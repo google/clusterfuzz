@@ -1225,6 +1225,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
         max_stdout_len=MAX_OUTPUT_LEN)
         
     result.output = f'{result.output}\n\nLogcat:\n{android.logger.log_output()}'
+    logs.info(f'Fuzzer run output for {self.package_name}:\n{result.output}')
     self._copy_local_directories_from_device(sync_directories)
     return result
 
