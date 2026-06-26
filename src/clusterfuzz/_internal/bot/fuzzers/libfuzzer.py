@@ -1211,7 +1211,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
     fuzzer_args_str = ' '.join(fuzzer_args)
 
     if self.instrumentation_runner:
-      device_stdout_file = f'/data/data/{self.package_name}/cache/fuzzer_output.txt'
+      device_stdout_file = f'/data/data/{self.package_name}/fuzzer_output.txt'
       args = [
           'shell', 'am', 'instrument', '-w',
           '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"',
