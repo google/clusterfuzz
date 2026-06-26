@@ -1298,9 +1298,26 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
       raise undercoat.UndercoatError('Instance handle not provided.')
     runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
   elif is_android:
-    if fuzzer_path.endswith('.apk'):
-      runner = AndroidApkLibFuzzerRunner(fuzzer_path, build_dir)
+    # Find the APK dynamically under build_dir.
+    # We first look for a fuzzer-specific APK (e.g. {fuzzer_name}-debug.apk or {fuzzer_name}.apk).
+    fuzzer_name = os.path.basename(fuzzer_path)
+    base_apk_path = None
+    
+    specific_apk_names = [f'{fuzzer_name}-debug.apk', f'{fuzzer_name}.apk']
+    for root, _, files in os.walk(build_dir):
+      # Check for specific APK first
+      for apk_name in specific_apk_names:
+        if apk_name in files:
+          base_apk_path = os.path.join(root, apk_name)
+          break
+      if base_apk_path:
+        break
+        
+    if base_apk_path:
+      logs.info(f'Using Android APK runner for {fuzzer_name}. APK path: {base_apk_path}')
+      runner = AndroidApkLibFuzzerRunner(base_apk_path, build_dir)
     else:
+      logs.info(f'Using Android command-line binary runner for {fuzzer_name}. Path: {fuzzer_path}')
       runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
     runner = LibFuzzerRunner(fuzzer_path, cwd=cwd)
