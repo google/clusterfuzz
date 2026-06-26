@@ -1590,9 +1590,8 @@ class RpathsTest(unittest.TestCase):
                                     http_build_url=None):
       self.mock_unpack_build('rpath_new', actual_self, base_build_dir,
                              build_dir, url, http_build_url)
-      schema_version_path = os.path.join(build_dir,
-                                         build_manager.SCHEMA_VERSION_FILE_NAME)
-      utils.write_data_to_file('1', schema_version_path)
+      manifest_path = os.path.join(build_dir, 'clusterfuzz_manifest.json')
+      utils.write_data_to_file('{"archive_schema_version": 1}', manifest_path)
       return True
 
     self.mock._unpack_build.side_effect = mock_unpack_build_schema_v1
@@ -1998,8 +1997,8 @@ class BuildPropertyTest(unittest.TestCase):
     self.assertFalse(build.is_discovery)
 
 
-class GetSchemaVersionTest(fake_filesystem_unittest.TestCase):
-  """Tests _get_schema_version resolution."""
+class ReadSchemaVersionFromManifestTest(fake_filesystem_unittest.TestCase):
+  """Tests _read_schema_version_from_manifest resolution."""
 
   def setUp(self):
     fake_filesystem_unittest.TestCase.setUp(self)
@@ -2008,172 +2007,34 @@ class GetSchemaVersionTest(fake_filesystem_unittest.TestCase):
     self.fs.create_dir(self.base_build_dir)
 
   def test_regular_build(self):
-    """Tests reading schema version for regular build."""
+    """Tests reading schema version from manifest for regular build."""
     build = build_manager.RegularBuild(self.base_build_dir, 1337,
                                        'gs://dummy/url.zip')
     self.fs.create_file(
-        os.path.join(build.build_dir, '.schema_version'), contents='1')
-    self.assertEqual(build._get_schema_version(), 1)
+        os.path.join(build.build_dir, 'clusterfuzz_manifest.json'),
+        contents='{"archive_schema_version": 1}')
+    self.assertEqual(
+        build._read_schema_version_from_manifest(build.build_dir), 1)
 
   def test_symbolized_build(self):
-    """Tests reading schema version for symbolized build."""
+    """Tests reading schema version from manifest for release and debug dirs."""
     build = build_manager.SymbolizedBuild(self.base_build_dir, 1337,
                                           'gs://dummy/release.zip',
                                           'gs://dummy/debug.zip')
     self.fs.create_file(
-        os.path.join(build.build_dir, '.schema_version'), contents='2')
-    self.assertEqual(build._get_schema_version(), 2)
+        os.path.join(build.release_build_dir, 'clusterfuzz_manifest.json'),
+        contents='{"archive_schema_version": 1}')
+    self.fs.create_file(
+        os.path.join(build.debug_build_dir, 'clusterfuzz_manifest.json'),
+        contents='{"archive_schema_version": 2}')
+    self.assertEqual(
+        build._read_schema_version_from_manifest(build.release_build_dir), 1)
+    self.assertEqual(
+        build._read_schema_version_from_manifest(build.debug_build_dir), 2)
 
   def test_missing_file(self):
-    """Tests that 0 is returned if file is missing."""
+    """Tests that 0 is returned if manifest file is missing."""
     build = build_manager.RegularBuild(self.base_build_dir, 1337,
                                        'gs://dummy/url.zip')
-    self.assertEqual(build._get_schema_version(), 0)
-
-  def test_get_schema_version_caching(self):
-    """Tests that _get_schema_version caches results."""
-    build = build_manager.RegularBuild(self.base_build_dir, 1337,
-                                       'gs://dummy/url.zip')
-    self.fs.create_file(
-        os.path.join(build.build_dir, '.schema_version'), contents='1')
-
-    with mock.patch(
-        'clusterfuzz._internal.base.utils.read_data_from_file',
-        return_value='1') as mock_read_call:
-      # First call should trigger read.
-      v1 = build._get_schema_version()
-
-      self.assertEqual(v1, 1)
-
-      # Second call should use cache.
-      v2 = build._get_schema_version()
-
-      self.assertEqual(v2, 1)
-      self.assertEqual(mock_read_call.call_count, 1)
-
-      # Clear call history
-      mock_read_call.reset_mock()
-
-      # Call again, should still be cached.
-      v3 = build._get_schema_version()
-
-      self.assertEqual(v3, 1)
-      self.assertEqual(mock_read_call.call_count, 0)
-
-
-class UnpackBuildSchemaVersionTest(fake_filesystem_unittest.TestCase):
-  """Tests schema version handling during _unpack_build."""
-
-  def setUp(self):
-    test_utils.set_up_pyfakefs(self)
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.build_management.build_manager._make_space',
-        'clusterfuzz._internal.system.shell.clear_temp_directory',
-        'clusterfuzz._internal.build_management.build_manager.Build._open_build_archive',
-    ])
-    self.mock._make_space.return_value = True
-
-    test_helpers.patch_environ(self)
-    os.environ['BUILDS_DIR'] = '/builds'
-    os.environ['FAIL_RETRIES'] = '1'
-    os.environ['APP_NAME'] = FAKE_APP_NAME
-    os.environ['JOB_NAME'] = 'job'
-
-    self.base_build_dir = '/base_build_dir'
-    self.fs.create_dir(self.base_build_dir)
-
-    self.build = build_manager.RegularBuild(self.base_build_dir, 1337,
-                                            'gs://dummy/url.zip')
-    # build_dir for RegularBuild is base_build_dir/revisions
-    self.fs.create_dir(self.build.build_dir)
-
-  def mock_archive(self, schema_version):
-    archive_mock = mock.MagicMock()
-    archive_mock.unpacked_size.return_value = 100
-    archive_mock.archive_schema_version.return_value = schema_version
-    archive_mock.list_fuzz_targets.return_value = []
-    return archive_mock
-
-  def test_first_unpack_writes_version(self):
-    """Tests that the first unpack writes the schema version."""
-    archive = self.mock_archive(1)
-    self.mock._open_build_archive.return_value.__enter__.return_value = archive
-    schema_file = os.path.join(self.build.build_dir, '.schema_version')
-
-    result = self.build._unpack_build(self.base_build_dir, self.build.build_dir,
-                                      'gs://dummy/url.zip')
-
-    self.assertTrue(result)
-    self.assertTrue(os.path.exists(schema_file))
-    self.assertEqual(utils.read_data_from_file(schema_file), 1)
-    self.assertEqual(self.build._schema_version, 1)
-
-  def test_second_unpack_same_version(self):
-    """Tests that subsequent unpack with same version does not overwrite and doesn't log error."""
-    schema_file = os.path.join(self.build.build_dir, '.schema_version')
-    self.fs.create_file(schema_file, contents='1')
-    self.build._schema_version = 1
-
-    archive = self.mock_archive(1)
-    self.mock._open_build_archive.return_value.__enter__.return_value = archive
-
-    with mock.patch.object(self.build, '_write_schema_version') as mock_write:
-      with mock.patch(
-          'clusterfuzz._internal.metrics.logs.error') as mock_log_error:
-        result = self.build._unpack_build(
-            self.base_build_dir, self.build.build_dir, 'gs://dummy/url.zip')
-
-        self.assertTrue(result)
-        mock_write.assert_not_called()
-        mock_log_error.assert_not_called()
-
-  def test_second_unpack_different_version_logs_error(self):
-    """Tests that subsequent unpack with different version logs error and does not overwrite."""
-    schema_file = os.path.join(self.build.build_dir, '.schema_version')
-    self.fs.create_file(schema_file, contents='1')
-    self.build._schema_version = 1
-
-    archive = self.mock_archive(2)  # Second archive has version 2
-    self.mock._open_build_archive.return_value.__enter__.return_value = archive
-
-    with mock.patch.object(self.build, '_write_schema_version') as mock_write:
-      with mock.patch(
-          'clusterfuzz._internal.metrics.logs.error') as mock_log_error:
-        result = self.build._unpack_build(
-            self.base_build_dir, self.build.build_dir, 'gs://dummy/url.zip')
-
-        self.assertTrue(result)
-        mock_write.assert_not_called()
-        mock_log_error.assert_called_once()
-        error_msg = mock_log_error.call_args[0][0]
-        self.assertIn('Schema version mismatch', error_msg)
-        self.assertIn('1', error_msg)  # Existing
-        self.assertIn('2', error_msg)  # New
-
-  def test_unpack_reads_from_disk_if_not_in_memory(self):
-    """Tests that unpack reads from disk if _schema_version is not in memory."""
-    build = build_manager.SymbolizedBuild(self.base_build_dir, 1337,
-                                          'gs://dummy/release.zip',
-                                          'gs://dummy/debug.zip')
-    self.fs.create_dir(build.build_dir)
-    self.fs.create_dir(build.release_build_dir)
-    self.fs.create_dir(build.debug_build_dir)
-
-    schema_file = os.path.join(build.build_dir, '.schema_version')
-    self.fs.create_file(schema_file, contents='1')
-    build._schema_version = None  # Not in memory
-
-    archive = self.mock_archive(1)
-    self.mock._open_build_archive.return_value.__enter__.return_value = archive
-
-    with mock.patch.object(build, '_write_schema_version') as mock_write:
-      with mock.patch(
-          'clusterfuzz._internal.metrics.logs.error') as mock_log_error:
-        # Unpack debug build (simulating it running after release build, but with clean memory)
-        result = build._unpack_build(self.base_build_dir, build.debug_build_dir,
-                                     'gs://dummy/debug.zip')
-
-        self.assertTrue(result)
-        mock_write.assert_not_called()
-        self.assertEqual(build._schema_version, 1)  # Should be synced to memory
-        mock_log_error.assert_not_called()
+    self.assertEqual(
+        build._read_schema_version_from_manifest(build.build_dir), 0)

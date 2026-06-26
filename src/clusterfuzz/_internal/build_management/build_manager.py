@@ -16,6 +16,7 @@
 from collections import namedtuple
 import contextlib
 import datetime
+import json
 import os
 import re
 import shutil
@@ -50,11 +51,6 @@ DEFAULT_BUILD_BUCKET_PATH_ENV_VARS = (
 
 # File name for storing current build revision.
 REVISION_FILE_NAME = 'REVISION'
-
-# File name for storing the archive schema version retrieved during unpacking.
-# The version is derived from clusterfuzz_manifest.json if it exists in the
-# archive, otherwise it defaults to 0.
-SCHEMA_VERSION_FILE_NAME = '.schema_version'
 
 # Various build type mapping strings.
 BUILD_TYPE_SUBSTRINGS = [
@@ -384,47 +380,18 @@ class Build(BaseBuild):
     environment.set_value(self.env_prefix + 'APP_PATH', '')
     environment.set_value(self.env_prefix + 'APP_PATH_DEBUG', '')
 
-  def _schema_version_path(self):
-    """Returns the path to the schema version metadata file in `build_dir`."""
-    return os.path.join(self.build_dir, SCHEMA_VERSION_FILE_NAME)
-
-  def _read_schema_version_from_disk(self) -> int | None:
-    """Reads the schema version from `SCHEMA_VERSION_FILE_NAME` in `build_dir`.
-
-    Returns None if the file is missing or cannot be read, so callers can
-    distinguish "no version recorded yet" from a recorded version of 0.
-    """
-    schema_version_path = self._schema_version_path()
-    if not os.path.exists(schema_version_path):
-      return None
+  def _read_schema_version_from_manifest(self, build_dir: str) -> int:
+    """Reads archive_schema_version from clusterfuzz_manifest.json."""
+    manifest_path = os.path.join(build_dir, 'clusterfuzz_manifest.json')
+    if not os.path.exists(manifest_path):
+      return 0
     try:
-      return int(utils.read_data_from_file(schema_version_path) or 0)
+      with open(manifest_path) as f:
+        manifest = json.load(f)
+      return int(manifest.get('archive_schema_version') or 0)
     except Exception as e:
-      logs.warning(
-          f'Failed to read schema version from {schema_version_path}: {e}')
-      return None
-
-  def _write_schema_version(self, schema_version):
-    """Writes schema version to `SCHEMA_VERSION_FILE_NAME` in `build_dir`."""
-    schema_version_path = self._schema_version_path()
-    try:
-      utils.write_data_to_file(str(schema_version), schema_version_path)
-    except Exception as e:
-      logs.warning(
-          f'Failed to write schema version to {schema_version_path}: {e}')
-
-  def _get_schema_version(self):
-    """Gets the schema version of the build, preferring the in-memory value and
-    falling back to `SCHEMA_VERSION_FILE_NAME` in `build_dir`. Defaults to 0
-    when no version has been recorded.
-
-    Note: For `SymbolizedBuild`, this naively looks for `.schema_version` at
-    `build_dir` and assumes both release and debug builds share the same schema
-    version. If they are different, the release build's schema version is used.
-    """
-    if self._schema_version is None:
-      self._schema_version = self._read_schema_version_from_disk()
-    return self._schema_version or 0
+      logs.warning(f'Failed to read schema version from {manifest_path}: {e}')
+      return 0
 
   def _patch_rpath(self, binary_path, instrumented_library_paths):
     """Patch rpaths of a binary to point to instrumented libraries"""
@@ -438,22 +405,38 @@ class Build(BaseBuild):
 
     set_rpaths(binary_path, rpaths)
 
-  def _patch_rpaths(self, instrumented_library_paths):
+  def _patch_rpaths(self,
+                    schema_version: int,
+                    build_dir: Optional[str] = None,
+                    app_path_env: Optional[str] = None):
     """Patch rpaths of builds to point to instrumented libraries."""
+    instrumented_library_paths = environment.get_instrumented_libraries_paths()
+    if not instrumented_library_paths:
+      return
+    if schema_version > 0:
+      logs.info('Skipping RPATH patching for schema v1+ build.')
+      return
+
+    if not build_dir:
+      build_dir = self.build_dir
+
     if environment.is_engine_fuzzer_job():
       # Import here as this path is not available in App Engine context.
       from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
-      for target_path in fuzzer_utils.get_fuzz_targets(self.build_dir):
+      for target_path in fuzzer_utils.get_fuzz_targets(build_dir):
         self._patch_rpath(target_path, instrumented_library_paths)
     else:
-      app_path = environment.get_value('APP_PATH')
-      if app_path:
-        self._patch_rpath(app_path, instrumented_library_paths)
-
-      app_path_debug = environment.get_value('APP_PATH_DEBUG')
-      if app_path_debug:
-        self._patch_rpath(app_path_debug, instrumented_library_paths)
+      if app_path_env:
+        app_paths = [environment.get_value(app_path_env)]
+      else:
+        app_paths = [
+            environment.get_value('APP_PATH'),
+            environment.get_value('APP_PATH_DEBUG')
+        ]
+      for app_path in app_paths:
+        if app_path:
+          self._patch_rpath(app_path, instrumented_library_paths)
 
   def _post_setup_success(self, update_revision=True):
     """Common post-setup."""
@@ -464,16 +447,6 @@ class Build(BaseBuild):
     if self.base_build_dir:
       timestamp_file_path = os.path.join(self.base_build_dir, TIMESTAMP_FILE)
       utils.write_data_to_file(time.time(), timestamp_file_path)
-
-    # Update rpaths if necessary (for e.g. instrumented libraries).
-    instrumented_library_paths = environment.get_instrumented_libraries_paths()
-    if not instrumented_library_paths:
-      return
-    if self._get_schema_version() > 0:
-      logs.info('Skipping RPATH patching for schema v1+ build.')
-      return
-
-    self._patch_rpaths(instrumented_library_paths)
 
   @contextlib.contextmanager
   def _download_and_open_build_archive(self, base_build_dir: str,
@@ -615,25 +588,6 @@ class Build(BaseBuild):
             build_dir=build_dir,
             fuzz_target=fuzz_target_to_unpack,
             trusted=trusted)
-
-        schema_version = build.archive_schema_version()
-
-        # Sync in-memory schema version with disk if we haven't read it yet.
-        # This helps detect mismatches in shared build dirs (e.g.,
-        # SymbolizedBuild).
-        if self._schema_version is None:
-          self._schema_version = self._read_schema_version_from_disk()
-
-        if self._schema_version is None:
-          # First time unpacking: record the schema version.
-          self._write_schema_version(schema_version)
-          self._schema_version = schema_version
-        elif self._schema_version != schema_version:
-          # Following unpack: flag if the new archive version doesn't match.
-          logs.error(
-              f'Schema version mismatch for build in {self.build_dir}. '
-              f'Existing version is {self._schema_version}, but new archive '
-              f'{build_url} has version {schema_version}.')
 
         _emit_job_build_retrieval_metric(unpack_start_time, 'unpack',
                                          self._build_type)
@@ -841,6 +795,8 @@ class RegularBuild(Build):
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
+    schema_version = self._read_schema_version_from_manifest(self.build_dir)
+    self._patch_rpaths(schema_version)
     return True
 
 
@@ -947,16 +903,31 @@ class SymbolizedBuild(Build):
     else:
       logs.info('Build already exists.')
 
+    release_schema_version = (
+        self._read_schema_version_from_manifest(self.release_build_dir)
+        if self.release_build_url else 0)
+    debug_schema_version = (
+        self._read_schema_version_from_manifest(self.debug_build_dir)
+        if self.debug_build_url else 0)
+
     if self.release_build_url:
       self._setup_application_path(
           self.release_build_dir, build_update=build_update)
       environment.set_value('BUILD_URL', self.release_build_url)
+      self._patch_rpaths(
+          release_schema_version,
+          build_dir=self.release_build_dir,
+          app_path_env='APP_PATH')
 
     if self.debug_build_url:
       # Note: this will override LLVM_SYMBOLIZER_PATH, APP_DIR etc from the
       # previous release setup, which may not be desirable behaviour.
       self._setup_application_path(
           self.debug_build_dir, 'APP_PATH_DEBUG', build_update=build_update)
+      self._patch_rpaths(
+          debug_schema_version,
+          build_dir=self.debug_build_dir,
+          app_path_env='APP_PATH_DEBUG')
 
     self._post_setup_success(update_revision=build_update)
     return True
@@ -1061,6 +1032,8 @@ class CustomBuild(Build):
     self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
+    schema_version = self._read_schema_version_from_manifest(self.build_dir)
+    self._patch_rpaths(schema_version)
     return True
 
 
