@@ -16,6 +16,7 @@
 import unittest
 
 from clusterfuzz._internal.platforms.android import device
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import android_helpers
 from clusterfuzz._internal.tests.test_libs import helpers
 
@@ -81,3 +82,41 @@ class AddTestAccountsIfNeededTest(unittest.TestCase):
     self.mock.is_uworker.return_value = True
     device.add_test_accounts_if_needed()
     self.mock.get_value.assert_not_called()
+
+
+class NeedsNoStreamingForAsanTest(unittest.TestCase):
+  """Tests _needs_no_streaming_for_asan."""
+
+  # pylint: disable=protected-access
+
+  def setUp(self):
+    super().setUp()
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.settings.get_sanitizer_tool_name',
+    ])
+    self.mock.get_sanitizer_tool_name.return_value = None
+
+  def test_normal_job(self):
+    """Test outcome for a normal job."""
+    self.assertFalse(device._needs_no_streaming_for_asan())
+
+  def test_asan_job(self):
+    """Test outcome for an ASan job."""
+    environment.set_value('JOB_NAME', 'android_asan_job')
+    self.assertTrue(device._needs_no_streaming_for_asan())
+
+  def test_hwasan_job(self):
+    """Test outcome for a non ASAN job like HWASan."""
+    environment.set_value('JOB_NAME', 'android_hwasan_job')
+    self.assertFalse(device._needs_no_streaming_for_asan())
+
+  def test_asan_device_env(self):
+    """Test outcome for an ASan device via ASAN_DEVICE_SETUP env."""
+    environment.set_value('ASAN_DEVICE_SETUP', True)
+    self.assertTrue(device._needs_no_streaming_for_asan())
+
+  def test_asan_device_flavor(self):
+    """Test outcome for an ASan device via settings build flavor."""
+    self.mock.get_sanitizer_tool_name.return_value = 'asan'
+    self.assertTrue(device._needs_no_streaming_for_asan())

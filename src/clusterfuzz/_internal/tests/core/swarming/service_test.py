@@ -16,8 +16,6 @@
 import unittest
 from unittest import mock
 
-from requests.exceptions import HTTPError
-
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming import service
@@ -95,6 +93,9 @@ class SwarmingServiceTest(unittest.TestCase):
     # job1 succeeds, job2 fails (not a swarming task), job3 succeeds
     self.mock.is_swarming_task.side_effect = [True, False, True]
 
+    self.mock_api.push_task.return_value = swarming_pb2.TaskRequestResponse(
+        task_id='123')
+
     unscheduled = self.service.create_utask_main_jobs(tasks)
 
     self.assertEqual(len(unscheduled), 1)
@@ -138,6 +139,30 @@ class SwarmingServiceTest(unittest.TestCase):
     self.assertEqual(unscheduled, [])
     self.mock_api.push_task.assert_not_called()
 
+  def test_create_utask_main_jobs_returns_unscheduled_on_empty_response(self):
+    """Verifies that tasks are returned when swarming didn't schedule them due to empty response."""
+    tasks = [remote_task_types.RemoteTask('fuzz', 'job1', 'url1')]
+    self.mock.is_swarming_task.return_value = True
+    self.mock_api.push_task.return_value = None
+
+    unscheduled = self.service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(unscheduled, tasks)
+    self.assertEqual(self.mock_api.push_task.call_count, 1)
+
+  def test_create_utask_main_jobs_returns_unscheduled_on_no_task_id(self):
+    """Verifies that tasks are returned when swarming didn't schedule them due to missing task_id."""
+    tasks = [remote_task_types.RemoteTask('fuzz', 'job1', 'url1')]
+    self.mock.is_swarming_task.return_value = True
+
+    mock_response = swarming_pb2.TaskRequestResponse()
+    self.mock_api.push_task.return_value = mock_response
+
+    unscheduled = self.service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(unscheduled, tasks)
+    self.assertEqual(self.mock_api.push_task.call_count, 1)
+
   def test_init_no_config(self):
     """Test that __init__ raises ValueError when config is missing."""
     self.mock.create.return_value = None
@@ -156,14 +181,14 @@ class SwarmingServiceTest(unittest.TestCase):
     with self.assertRaises(Exception):
       self.service.create_utask_main_jobs(tasks)
 
-  def test_create_utask_main_jobs_handles_http_error(self):
-    """Test that an HTTPError raised by push_task is caught and the task is returned as unscheduled."""
+  def test_create_utask_main_jobs_handles_api_error(self):
+    """Test that a SwarmingApiError raised by push_task is caught and the task is returned as unscheduled."""
     tasks = [
         remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
     ]
 
     self.mock.is_swarming_task.return_value = True
-    self.mock_api.push_task.side_effect = HTTPError('http error')
+    self.mock_api.push_task.side_effect = SwarmingApiError('api error')
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
 
@@ -208,4 +233,29 @@ class SwarmingServiceTest(unittest.TestCase):
     self.assertEqual(unscheduled[0].job_type, 'job1')
     self.assertEqual(unscheduled[1].job_type, 'job2')
 
+    self.mock_api.push_task.assert_not_called()
+
+  def test_create_utask_main_job_missing_dimensions(self):
+    """Test that a task with missing dimensions is discarded (returns None).
+    All tasks not returned by this method will be marked as ACK, hence discarding it.
+    """
+
+    self.mock.get_command_from_module.return_value = 'fuzz'
+    self.mock.is_swarming_task.return_value = True
+
+    # Request with missing dimensions (e.g., missing 'os')
+    invalid_request = swarming_pb2.NewTaskRequest(task_slices=[
+        swarming_pb2.TaskSlice(
+            properties=swarming_pb2.TaskProperties(dimensions=[
+                swarming_pb2.StringPair(
+                    key='pool', value='chrome-sec-clusterfuzz'),
+            ]))
+    ])
+    self.mock.create_new_task_request.return_value = invalid_request
+
+    result = self.service.create_utask_main_job('fuzz_task', 'job_type',
+                                                'http://url')
+
+    # Discarded task doesn't needs to return to the queue, hence we return None.
+    self.assertIsNone(result)
     self.mock_api.push_task.assert_not_called()
