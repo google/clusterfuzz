@@ -2253,11 +2253,6 @@ def _get_or_create_fuzz_target(engine_name, fuzz_target_binary, job_type):
 
 
 def _preprocess_get_fuzz_target(fuzzer_name, job_type):
-  force_target = environment.get_value('FORCE_FUZZ_TARGET')
-  if force_target:
-    logs.info(f'Forcing fuzz target selection: {force_target}')
-    return _get_or_create_fuzz_target(fuzzer_name, force_target, job_type)
-
   fuzz_target_name = _pick_fuzz_target()
   if fuzz_target_name:
     return _get_or_create_fuzz_target(fuzzer_name, fuzz_target_name, job_type)
