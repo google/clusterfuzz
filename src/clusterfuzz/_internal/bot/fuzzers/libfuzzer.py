@@ -1211,7 +1211,10 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
     fuzzer_args_str = ' '.join(fuzzer_args)
 
     if self.instrumentation_runner:
-      device_stdout_file = f'/data/data/{self.package_name}/fuzzer_output.txt'
+      device_cache_dir = f'/data/data/{self.package_name}/cache'
+      android.adb.run_shell_command(f'mkdir -p {device_cache_dir}', root=True)
+      android.adb.run_shell_command(f'chmod 777 {device_cache_dir}', root=True)
+      device_stdout_file = os.path.join(device_cache_dir, 'fuzzer_output.txt')
       args = [
           'shell', 'am', 'instrument', '-w',
           '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"',
