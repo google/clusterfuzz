@@ -1235,6 +1235,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
       fuzzer_output = android.adb.run_shell_command(f'cat {device_stdout_file}')
       android.adb.remove_file(device_stdout_file)
       if fuzzer_output:
+        logs.info(f'Fuzzer native stdout:\n{fuzzer_output}')
         result.output = f'{fuzzer_output}\n\n{result.output}'
         
     result.output = f'{result.output}\n\nLogcat:\n{android.logger.log_output()}'
