@@ -1323,12 +1323,28 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
       raise undercoat.UndercoatError('Instance handle not provided.')
     runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
   elif is_android:
-    # Find ChromiumFuzzerBase.apk dynamically under build_dir
+    # Find the APK dynamically under build_dir.
+    # We first look for a fuzzer-specific APK (e.g. {fuzzer_name}-debug.apk or {fuzzer_name}.apk).
+    # If not found, we fall back to the generic ChromiumFuzzerBase.apk.
+    fuzzer_name = os.path.basename(fuzzer_path)
     base_apk_path = None
+    
+    specific_apk_names = [f'{fuzzer_name}-debug.apk', f'{fuzzer_name}.apk']
     for root, _, files in os.walk(build_dir):
-      if 'ChromiumFuzzerBase.apk' in files:
-        base_apk_path = os.path.join(root, 'ChromiumFuzzerBase.apk')
+      # Check for specific APK first
+      for apk_name in specific_apk_names:
+        if apk_name in files:
+          base_apk_path = os.path.join(root, apk_name)
+          break
+      if base_apk_path:
         break
+        
+    if not base_apk_path:
+      # Fallback to generic base APK
+      for root, _, files in os.walk(build_dir):
+        if 'ChromiumFuzzerBase.apk' in files:
+          base_apk_path = os.path.join(root, 'ChromiumFuzzerBase.apk')
+          break
         
     if base_apk_path:
       # New standard APK fuzzing v2
