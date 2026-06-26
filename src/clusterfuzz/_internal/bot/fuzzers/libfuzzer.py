@@ -1212,8 +1212,8 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
 
     if self.instrumentation_runner:
       device_cache_dir = f'/data/data/{self.package_name}/cache'
-      android.adb.run_shell_command(f'mkdir -p {device_cache_dir}', root=True)
-      android.adb.run_shell_command(f'chmod 777 {device_cache_dir}', root=True)
+      android.adb.run_shell_command(f'mkdir -p {device_cache_dir}', log_output=True)
+      android.adb.run_shell_command(f'chmod 777 {device_cache_dir}', log_output=True)
       device_stdout_file = os.path.join(device_cache_dir, 'fuzzer_output.txt')
       args = [
           'shell', 'am', 'instrument', '-w',
