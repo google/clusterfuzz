@@ -1211,9 +1211,16 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
     fuzzer_args_str = ' '.join(fuzzer_args)
 
     if self.instrumentation_runner:
-      args = ['shell', 'am', 'instrument', '-w', '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"', f'{self.package_name}/{self.instrumentation_runner}']
+      device_stdout_file = f'/data/data/{self.package_name}/cache/fuzzer_output.txt'
+      args = [
+          'shell', 'am', 'instrument', '-w',
+          '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"',
+          '-e', 'org.chromium.native_test.NativeTestInstrumentationTestRunner.StdoutFile', device_stdout_file,
+          f'{self.package_name}/{self.instrumentation_runner}'
+      ]
       logs.info(f'Starting Instrumentation: {self.package_name}/{self.instrumentation_runner} with args: {fuzzer_args_str}')
     elif self.launchable_activity:
+      device_stdout_file = None
       args = ['shell', 'am', 'start', '-n', f'{self.package_name}/{self.launchable_activity}', '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"']
       logs.info(f'Starting APK: {self.package_name}/{self.launchable_activity} with args: {fuzzer_args_str}')
     else:
@@ -1223,6 +1230,12 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
         additional_args=args,
         timeout=self.get_total_timeout(fuzz_timeout),
         max_stdout_len=MAX_OUTPUT_LEN)
+        
+    if device_stdout_file:
+      fuzzer_output = android.adb.run_shell_command(f'cat {device_stdout_file}')
+      android.adb.remove_file(device_stdout_file)
+      if fuzzer_output:
+        result.output = f'{fuzzer_output}\n\n{result.output}'
         
     result.output = f'{result.output}\n\nLogcat:\n{android.logger.log_output()}'
     logs.info(f'Fuzzer run output for {self.package_name}:\n{result.output}')
