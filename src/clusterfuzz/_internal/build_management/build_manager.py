@@ -351,7 +351,6 @@ class Build(BaseBuild):
     # Every fetched build is a release one, except when SymbolizedBuild
     # explicitly downloads a debug build
     self._build_type = 'release'
-    self._schema_version = None
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
