@@ -1430,10 +1430,10 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
     # Workaround for wrap.sh not being extracted by the package manager.
-    # We extract to /data/local/tmp first, then move to the install dir.
+    # We extract to /data/local/tmp first, then copy to the install dir.
     # We temporarily disable SELinux (setenforce 0) to bypass MAC restrictions.
-    # If 'su 0' fails with Permission denied (likely due to missing CAP_DAC_OVERRIDE),
-    # we dynamically detect the owner of the target directory and run as them.
+    # We use 'cp' instead of 'mv' to handle potential cross-mount boundaries,
+    # and ensure the source file is world-writable before copying.
     wrap_sh_path = None
     try:
       logs.info("Running deep diagnostics...")
@@ -1465,6 +1465,26 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
         )
 
         try:
+          # Log mounts
+          mount_output = android.adb.run_shell_command('su 0 mount')
+          data_mounts = [
+              line for line in mount_output.split('\n') if '/data' in line
+          ]
+          logs.info(f"DEBUG: /data mounts:\n" + '\n'.join(data_mounts))
+
+          # Test writing dummy file
+          test_file_path = f"{target_dir}/test_antigravity.txt"
+          logs.info("DEBUG: Testing dummy write as root (su 0 sh -c)...")
+          write_root_result = android.adb.run_shell_command(
+              f"su 0 sh -c 'echo test > {test_file_path}'")
+          logs.info(f"DEBUG: write_root_result: {write_root_result.strip()}")
+
+          logs.info("DEBUG: Testing dummy write as system (su system sh -c)...")
+          write_system_result = android.adb.run_shell_command(
+              f"su system sh -c 'echo test > {test_file_path}'")
+          logs.info(
+              f"DEBUG: write_system_result: {write_system_result.strip()}")
+
           # 1. Create target directory as root (su 0)
           mkdir_result = android.adb.run_shell_command(
               f'su 0 mkdir -p {target_dir}')
@@ -1476,41 +1496,38 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           unzip_result = android.adb.run_shell_command(unzip_cmd)
           logs.info(f"DEBUG: unzip to tmp result: {unzip_result}")
 
-          # 3. Move to target directory
-          mv_cmd = f'su 0 mv {tmp_dir}/wrap.sh {wrap_sh_path}'
-          mv_result = android.adb.run_shell_command(mv_cmd)
-          logs.info(f"DEBUG: mv result: {mv_result}")
+          # Make tmp file world-readable/writable
+          android.adb.run_shell_command(f'chmod 666 {tmp_dir}/wrap.sh')
 
-          if "Permission denied" in mv_result:
-            logs.warning(
-                "DEBUG: mv as root failed with Permission denied. Trying as directory owner..."
-            )
-            ls_output = android.adb.run_shell_command(f'ls -ld {target_dir}')
-            logs.info(f"DEBUG: ls -ld target_dir: {ls_output.strip()}")
-            parts = ls_output.split()
-            if len(parts) >= 3:
-              owner = parts[2]
-              logs.info(
-                  f"DEBUG: Target directory owner is {owner}. Trying mv as {owner}..."
-              )
-              mv_owner_cmd = f'su {owner} mv {tmp_dir}/wrap.sh {wrap_sh_path}'
-              mv_owner_result = android.adb.run_shell_command(mv_owner_cmd)
-              logs.info(f"DEBUG: mv as owner result: {mv_owner_result}")
+          # 3. Try CP instead of MV
+          logs.info("DEBUG: Trying cp as root...")
+          cp_cmd = f'su 0 cp {tmp_dir}/wrap.sh {wrap_sh_path}'
+          cp_result = android.adb.run_shell_command(cp_cmd)
+          logs.info(f"DEBUG: cp result: {cp_result}")
 
-              chmod_owner_cmd = f'su {owner} chmod 755 {wrap_sh_path}'
-              chmod_owner_result = android.adb.run_shell_command(
-                  chmod_owner_cmd)
-              logs.info(f"DEBUG: chmod as owner result: {chmod_owner_result}")
+          if "Permission denied" in cp_result:
+            logs.warning("DEBUG: cp as root failed. Trying cp as system...")
+            cp_system_cmd = f'su system cp {tmp_dir}/wrap.sh {wrap_sh_path}'
+            cp_system_result = android.adb.run_shell_command(cp_system_cmd)
+            logs.info(f"DEBUG: cp as system result: {cp_system_result}")
+
+            if "Permission denied" in cp_system_result:
+              logs.error("DEBUG: Both cp as root and cp as system failed.")
+            else:
+              # cp as system succeeded, chmod as system
+              android.adb.run_shell_command(
+                  f'su system chmod 755 {wrap_sh_path}')
           else:
-            # If mv succeeded as root, chmod as root
-            chmod_result = android.adb.run_shell_command(
-                f'su 0 chmod 755 {wrap_sh_path}')
-            logs.info(f"DEBUG: chmod result: {chmod_result}")
+            # cp as root succeeded, chmod as root
+            android.adb.run_shell_command(f'su 0 chmod 755 {wrap_sh_path}')
 
           # 5. Restore SELinux context
           restorecon_result = android.adb.run_shell_command(
               f'su 0 restorecon {wrap_sh_path}')
           logs.info(f"DEBUG: restorecon result: {restorecon_result}")
+
+          # Clean up dummy file if created
+          android.adb.run_shell_command(f'su 0 rm -f {test_file_path}')
         finally:
           # Re-enable SELinux
           android.adb.run_shell_command('su 0 setenforce 1')
