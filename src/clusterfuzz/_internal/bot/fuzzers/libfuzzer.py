@@ -1430,8 +1430,8 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
     # Workaround for wrap.sh execution on Android.
-    # We extract wrap.sh and ASan RT to the app's secure app_native_libs
-    # directory to avoid linker restrictions on /data/local/tmp, and run with
+    # We write a custom wrap.sh and extract ASan RT to the app's secure
+    # app_native_libs directory to avoid linker restrictions, and run with
     # SELinux permissive.
     target_dir = f"/data/data/{self.package_name}/app_native_libs"
     wrap_sh_path = f"{target_dir}/wrap.sh"
@@ -1452,27 +1452,48 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
         android.adb.run_shell_command(
             f'su 0 rm -f {target_dir}/libclang_rt.asan-*.so')
 
-        # Extract wrap.sh using unzip directly to target_dir
-        unzip_wrap_cmd = (f'su 0 unzip -o -j {apk_path} '
-                          f'lib/x86_64/wrap.sh -d {target_dir}')
-        unzip_wrap_result = android.adb.run_shell_command(unzip_wrap_cmd)
-        logs.info(f"DEBUG: unzip wrap.sh result: {unzip_wrap_result.strip()}")
-
         # Extract ASan runtime using unzip directly to target_dir
         unzip_asan_cmd = (f'su 0 unzip -o -j {apk_path} '
                           f'"lib/x86_64/libclang_rt.asan-*.so" -d {target_dir}')
         unzip_asan_result = android.adb.run_shell_command(unzip_asan_cmd)
         logs.info(f"DEBUG: unzip ASan rt result: {unzip_asan_result.strip()}")
 
+        # Generate custom wrap.sh content (ensuring LF line endings and marker)
+        wrap_sh_content = (
+            f"#!/system/bin/sh\n"
+            f"HERE=\"{target_dir}\"\n"
+            f"_ASAN_OPTIONS=\"log_to_syslog=false,"
+            f"allow_user_segv_handler=1\"\n"
+            f"_ASAN_OPTIONS=\"$_ASAN_OPTIONS,"
+            f"strict_memcmp=0,use_sigaltstack=1\"\n"
+            f"_LD_PRELOAD=\"$HERE/libclang_rt.asan-x86_64-android.so\"\n"
+            f"echo wrap_sh_ran > /data/local/tmp/wrap_marker.txt\n"
+            f"log -t cr_wrap.sh -- \"Launching with ASAN enabled.\"\n"
+            f"log -t cr_wrap.sh -- \"Command: $0 $@\"\n"
+            f"log -t cr_wrap.sh -- \"LD_PRELOAD=$_LD_PRELOAD\"\n"
+            f"log -t cr_wrap.sh -- \"ASAN_OPTIONS=$_ASAN_OPTIONS\"\n"
+            f"export LD_PRELOAD=\"$_LD_PRELOAD\"\n"
+            f"export ASAN_OPTIONS=\"$_ASAN_OPTIONS\"\n"
+            f"exec \"$@\"\n")
+
+        # Write wrap.sh locally and push to avoid permission issues
+        import tempfile
+        with tempfile.NamedTemporaryFile(
+            mode='w', suffix='.sh', delete=False) as temp_wrap:
+          temp_wrap.write(wrap_sh_content)
+          temp_wrap_path = temp_wrap.name
+
+        tmp_wrap_path = "/data/local/tmp/temp_wrap.sh"
+        android.adb.copy_local_file_to_remote(temp_wrap_path, tmp_wrap_path)
+        os.remove(temp_wrap_path)
+
+        android.adb.run_shell_command(f"su 0 cp {tmp_wrap_path} {wrap_sh_path}")
+        android.adb.run_shell_command(f"su 0 rm -f {tmp_wrap_path}")
+
         if android.adb.file_exists(wrap_sh_path):
           android.adb.run_shell_command(f'su 0 chmod 777 {wrap_sh_path}')
           android.adb.run_shell_command(
               f'su 0 chmod 777 {target_dir}/libclang_rt.asan-*.so')
-
-          # Print wrap.sh content for diagnostics
-          wrap_content = android.adb.run_shell_command(
-              f'su 0 cat {wrap_sh_path}')
-          logs.info(f"DEBUG: wrap.sh content:\n{wrap_content}")
 
           selinux_status = android.adb.run_shell_command('su 0 getenforce')
           logs.info(f"DEBUG: Initial SELinux status: {selinux_status.strip()}")
@@ -1489,7 +1510,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
             logs.warning(
                 f"DEBUG: setprop output/error: {setprop_result.strip()}")
         else:
-          logs.error(f"DEBUG: Failed to extract wrap.sh to {target_dir}")
+          logs.error(f"DEBUG: Failed to create wrap.sh at {wrap_sh_path}")
           wrap_sh_path = None
       else:
         logs.error(f"DEBUG: Could not get APK path for {self.package_name}")
@@ -1510,6 +1531,19 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       if selinux_revert:
         android.adb.run_shell_command('su 0 setenforce 1')
         logs.info("DEBUG: Restored SELinux to Enforcing.")
+
+      # Check for marker
+      marker_path = "/data/local/tmp/wrap_marker.txt"
+      if android.adb.file_exists(marker_path):
+        logs.info("DEBUG: SUCCESS! wrap.sh executed (marker found).")
+        marker_content = android.adb.run_shell_command(
+            f"su 0 cat {marker_path}")
+        logs.info(f"DEBUG: marker content: {marker_content.strip()}")
+        android.adb.run_shell_command(f"su 0 rm -f {marker_path}")
+      else:
+        logs.error(
+            "DEBUG: FAILURE! wrap.sh did NOT execute (marker not found).")
+
       # Clean up wrap.sh and ASan runtime
       if wrap_sh_path:
         android.adb.run_shell_command(f'su 0 rm -f {wrap_sh_path}')
