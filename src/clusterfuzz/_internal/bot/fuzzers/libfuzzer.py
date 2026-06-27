@@ -1341,6 +1341,38 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
+  def _disable_seccomp(self):
+    """Disables SECCOMP by restarting the runtime in Permissive mode."""
+    # Check if we already disabled seccomp in a previous round
+    seccomp_disabled = android.adb.run_shell_command(
+        'getprop temp.debug.seccomp_disabled')
+    if seccomp_disabled.strip() == '1':
+      logs.info("DEBUG: SECCOMP already disabled in a previous round.")
+      return
+
+    logs.info("DEBUG: Disabling SECCOMP via runtime restart...")
+    import time
+    android.adb.run_shell_command('su 0 stop')
+    android.adb.run_shell_command('su 0 setprop sys.boot_completed 0')
+    time.sleep(2)
+    android.adb.run_shell_command('su 0 start')
+
+    # Wait for boot completion (max 60 seconds)
+    boot_timeout = 60
+    start_time = time.time()
+    while time.time() - start_time < boot_timeout:
+      time.sleep(2)
+      boot_completed = android.adb.run_shell_command(
+          'getprop sys.boot_completed')
+      if boot_completed.strip() == '1':
+        logs.info("DEBUG: Runtime restarted successfully.")
+        android.adb.run_shell_command(
+            'su 0 setprop temp.debug.seccomp_disabled 1')
+        return
+
+    logs.error("DEBUG: Timed out waiting for runtime restart. "
+               "Fuzzer might fail.")
+
   def fuzz(self,
            corpus_directories,
            fuzz_timeout,
@@ -1522,6 +1554,8 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           if setprop_result_sub:
             logs.warning(f"DEBUG: setprop sub-process output/error: "
                          f"{setprop_result_sub.strip()}")
+
+          self._disable_seccomp()
         else:
           logs.error(f"DEBUG: Failed to create wrap.sh at {wrap_sh_path}")
           wrap_sh_path = None
