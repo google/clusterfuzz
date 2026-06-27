@@ -1429,10 +1429,19 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     else:
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
-    result = self.run_and_wait(
-        additional_args=args,
-        timeout=self.get_total_timeout(fuzz_timeout),
-        max_stdout_len=MAX_OUTPUT_LEN)
+    # Force ASan wrapper to run on userdebug devices.
+    # We use the extracted wrap.sh in the app's lib directory.
+    android.adb.run_shell_command(
+        f'setprop wrap.{self.package_name} /data/data/{self.package_name}/lib/wrap.sh'
+    )
+    try:
+      result = self.run_and_wait(
+          additional_args=args,
+          timeout=self.get_total_timeout(fuzz_timeout),
+          max_stdout_len=MAX_OUTPUT_LEN)
+    finally:
+      # Clear the wrapper property.
+      android.adb.run_shell_command(f'setprop wrap.{self.package_name} ""')
 
     logs.info(f'DEBUG: adb command run: {result.command}')
     logs.info(f'DEBUG: adb command return code: {result.return_code}')
