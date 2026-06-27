@@ -1379,6 +1379,13 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           'org.chromium.native_test.NativeUnitTestActivity',
           'org.chromium.native_test.NativeUnitTestActivity',
           '-e',
+          f'{self.instrumentation_runner}.NativeTestActivity',
+          'org.chromium.native_test.NativeUnitTestActivity',
+          '-e',
+          'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
+          'NativeTestActivity',
+          'org.chromium.native_test.NativeUnitTestActivity',
+          '-e',
           'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
           'StdoutFile',
           device_stdout_file,
