@@ -1430,15 +1430,14 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
     # Workaround for wrap.sh not being extracted by the package manager.
-    # We run these commands as root (su 0) to bypass permission restrictions.
+    # We extract to /data/local/tmp first, then move to the install dir as root.
+    wrap_sh_path = None
     try:
       logs.info("Testing su 0...")
       id_result = android.adb.run_shell_command('su 0 id')
       logs.info(f"DEBUG: su 0 id result: {id_result}")
-      id_c_result = android.adb.run_shell_command('su 0 -c id')
-      logs.info(f"DEBUG: su 0 -c id result: {id_c_result}")
 
-      logs.info("Attempting to manually extract wrap.sh as root...")
+      logs.info("Attempting to manually extract wrap.sh...")
       pm_path_output = android.adb.run_shell_command(
           f'pm path {self.package_name}')
       if pm_path_output and pm_path_output.startswith('package:'):
@@ -1446,13 +1445,28 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
         install_dir = os.path.dirname(apk_path)
         abi = "x86_64"
         target_dir = f"{install_dir}/lib/{abi}"
+        wrap_sh_path = f"{target_dir}/wrap.sh"
 
-        android.adb.run_shell_command(f'su 0 -c "mkdir -p {target_dir}"')
-        unzip_cmd = f'su 0 -c "unzip -o -j {apk_path} lib/{abi}/wrap.sh -d {target_dir}"'
+        # 1. Create target directory as root (su 0)
+        mkdir_result = android.adb.run_shell_command(
+            f'su 0 mkdir -p {target_dir}')
+        logs.info(f"DEBUG: mkdir result: {mkdir_result}")
+
+        # 2. Unzip to /data/local/tmp as shell (no su needed)
+        tmp_dir = "/data/local/tmp"
+        unzip_cmd = f'unzip -o -j {apk_path} lib/{abi}/wrap.sh -d {tmp_dir}'
         unzip_result = android.adb.run_shell_command(unzip_cmd)
-        logs.info(f"DEBUG: unzip result: {unzip_result}")
-        android.adb.run_shell_command(
-            f'su 0 -c "chmod 755 {target_dir}/wrap.sh"')
+        logs.info(f"DEBUG: unzip to tmp result: {unzip_result}")
+
+        # 3. Move to target directory as root (su 0)
+        mv_cmd = f'su 0 mv {tmp_dir}/wrap.sh {wrap_sh_path}'
+        mv_result = android.adb.run_shell_command(mv_cmd)
+        logs.info(f"DEBUG: mv result: {mv_result}")
+
+        # 4. Chmod as root (su 0)
+        chmod_result = android.adb.run_shell_command(
+            f'su 0 chmod 755 {wrap_sh_path}')
+        logs.info(f"DEBUG: chmod result: {chmod_result}")
       else:
         logs.error(f"DEBUG: Could not get APK path for {self.package_name}")
     except Exception as e:
@@ -1482,11 +1496,19 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       logs.error(f"DEBUG: Failed during deep inspection: {e}")
 
     # Force ASan wrapper to run on userdebug devices.
-    # We use the extracted wrap.sh in the app's lib directory.
-    # We run setprop as root (su 0) to ensure we have permission.
-    android.adb.run_shell_command(
-        f'su 0 -c "setprop wrap.{self.package_name} /data/data/{self.package_name}/lib/wrap.sh"'
-    )
+    # We use the actual path of the extracted wrap.sh if available.
+    if wrap_sh_path:
+      logs.info(f"DEBUG: Setting wrap property to {wrap_sh_path}")
+      android.adb.run_shell_command(
+          f'su 0 setprop wrap.{self.package_name} {wrap_sh_path}')
+    else:
+      logs.warning(
+          "DEBUG: wrap_sh_path not found, falling back to default /data/data/.../lib/wrap.sh"
+      )
+      android.adb.run_shell_command(
+          f'su 0 setprop wrap.{self.package_name} /data/data/{self.package_name}/lib/wrap.sh'
+      )
+
     try:
       result = self.run_and_wait(
           additional_args=args,
@@ -1494,8 +1516,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           max_stdout_len=MAX_OUTPUT_LEN)
     finally:
       # Clear the wrapper property.
-      android.adb.run_shell_command(
-          f'su 0 -c "setprop wrap.{self.package_name} \\"\\""')
+      android.adb.run_shell_command(f'su 0 setprop wrap.{self.package_name} ""')
 
     logs.info(f'DEBUG: adb command run: {result.command}')
     logs.info(f'DEBUG: adb command return code: {result.return_code}')
