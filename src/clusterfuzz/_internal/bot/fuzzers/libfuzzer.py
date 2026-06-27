@@ -1385,6 +1385,9 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           '-e',
           f'{self.instrumentation_runner}.StdoutFile',
           device_stdout_file,
+          '-e',
+          'org.chromium.native_test.NativeUnitTestActivity',
+          'org.chromium.native_test.NativeUnitTestActivity',
       ]
 
       if self.library_under_test:
@@ -1504,7 +1507,8 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
   elif is_android:
     # Find the APK dynamically under build_dir.
-    # We first look for a fuzzer-specific APK (e.g. {fuzzer_name}-debug.apk or {fuzzer_name}.apk).
+    # We first look for a fuzzer-specific APK (e.g. {fuzzer_name}-debug.apk
+    # or {fuzzer_name}.apk).
     fuzzer_name = os.path.basename(fuzzer_path)
     base_apk_path = None
 
@@ -1519,14 +1523,12 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
         break
 
     if base_apk_path:
-      logs.info(
-          f'Using Android APK runner for {fuzzer_name}. APK path: {base_apk_path}'
-      )
+      logs.info(f'Using Android APK runner for {fuzzer_name}. '
+                f'APK path: {base_apk_path}')
       runner = AndroidApkLibFuzzerRunner(base_apk_path, build_dir)
     else:
-      logs.info(
-          f'Using Android command-line binary runner for {fuzzer_name}. Path: {fuzzer_path}'
-      )
+      logs.info(f'Using Android command-line binary runner for {fuzzer_name}. '
+                f'Path: {fuzzer_path}')
       runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
     runner = LibFuzzerRunner(fuzzer_path, cwd=cwd)
