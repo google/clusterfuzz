@@ -1429,19 +1429,28 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     else:
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
-    # Debug paths to diagnose wrap.sh execution failure
-    logs.info(f"DEBUG: package_name: {self.package_name}")
-    pm_path = android.adb.run_shell_command(f'pm path {self.package_name}')
-    logs.info(f"DEBUG: pm path: {pm_path}")
-    ls_lib = android.adb.run_shell_command(
-        f'ls -l /data/data/{self.package_name}/lib')
-    logs.info(f"DEBUG: ls -l /data/data/.../lib: {ls_lib}")
-    ls_wrap_data = android.adb.run_shell_command(
-        f'ls -l /data/data/{self.package_name}/lib/wrap.sh')
-    logs.info(f"DEBUG: ls -l /data/data/.../lib/wrap.sh: {ls_wrap_data}")
-    ls_wrap_user = android.adb.run_shell_command(
-        f'ls -l /data/user/0/{self.package_name}/lib/wrap.sh')
-    logs.info(f"DEBUG: ls -l /data/user/0/.../lib/wrap.sh: {ls_wrap_user}")
+    # Deep inspection of paths to diagnose wrap.sh execution failure
+    try:
+      logs.info(f"DEBUG: package_name: {self.package_name}")
+      pm_path_output = android.adb.run_shell_command(
+          f'pm path {self.package_name}')
+      logs.info(f"DEBUG: pm path output: {pm_path_output}")
+      if pm_path_output and pm_path_output.startswith('package:'):
+        apk_path = pm_path_output.split(':')[1].strip()
+        install_dir = os.path.dirname(apk_path)
+        logs.info(f"DEBUG: install_dir: {install_dir}")
+        ls_install = android.adb.run_shell_command(f'ls -R {install_dir}')
+        logs.info(f"DEBUG: ls -R install_dir:\n{ls_install}")
+
+      ls_data_dir = android.adb.run_shell_command(
+          f'ls -d /data/data/{self.package_name}')
+      logs.info(f"DEBUG: ls -d /data/data/...: {ls_data_dir}")
+
+      ls_data_R = android.adb.run_shell_command(
+          f'ls -R /data/data/{self.package_name}')
+      logs.info(f"DEBUG: ls -R /data/data/...:\n{ls_data_R}")
+    except Exception as e:
+      logs.error(f"DEBUG: Failed during deep inspection: {e}")
 
     # Force ASan wrapper to run on userdebug devices.
     # We use the extracted wrap.sh in the app's lib directory.
