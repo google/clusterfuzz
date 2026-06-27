@@ -1429,7 +1429,28 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     else:
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
-    # Deep inspection of paths to diagnose wrap.sh execution failure
+    # Workaround for wrap.sh not being extracted by the package manager.
+    try:
+      logs.info("Attempting to manually extract wrap.sh...")
+      pm_path_output = android.adb.run_shell_command(
+          f'pm path {self.package_name}')
+      if pm_path_output and pm_path_output.startswith('package:'):
+        apk_path = pm_path_output.split(':')[1].strip()
+        install_dir = os.path.dirname(apk_path)
+        abi = "x86_64"
+        target_dir = f"{install_dir}/lib/{abi}"
+
+        android.adb.run_shell_command(f'mkdir -p {target_dir}')
+        unzip_cmd = f'unzip -o -j {apk_path} lib/{abi}/wrap.sh -d {target_dir}'
+        unzip_result = android.adb.run_shell_command(unzip_cmd)
+        logs.info(f"DEBUG: unzip result: {unzip_result}")
+        android.adb.run_shell_command(f'chmod 755 {target_dir}/wrap.sh')
+      else:
+        logs.error(f"DEBUG: Could not get APK path for {self.package_name}")
+    except Exception as e:
+      logs.error(f"DEBUG: Failed to manually extract wrap.sh: {e}")
+
+    # Deep inspection of paths to verify
     try:
       logs.info(f"DEBUG: package_name: {self.package_name}")
       pm_path_output = android.adb.run_shell_command(
@@ -1448,7 +1469,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
 
       ls_data_R = android.adb.run_shell_command(
           f'ls -R /data/data/{self.package_name}')
-      logs.info(f"DEBUG: ls -R /data/data/...:\n{ls_data_R}")
+      logs.info(f"DEBUG: ls -R /data/data/...: {ls_data_R}")
     except Exception as e:
       logs.error(f"DEBUG: Failed during deep inspection: {e}")
 
