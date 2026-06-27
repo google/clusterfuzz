@@ -107,3 +107,55 @@ python butler.py format
 
 This will format the changed code in your current branch.
 It's possible to get into a state where linting and formatting contradict each other. In this case, STOP, the human will fix it.
+
+## Remote Swarming Development & Validation Workflow
+
+This section outlines the step-by-step cycle for developing, deploying, launching, and verifying changes on remote Swarming bots.
+
+### Step 1: Local Development & Formatting
+Make your code changes in your feature branch. Always run formatting and linting locally before committing:
+```bash
+pipenv run python butler.py format
+pipenv run python butler.py lint
+```
+
+### Step 2: Push & Deploy to Remote `dev`
+For changes to run on remote Swarming bots, they must be committed, merged, and pushed to the remote **`dev`** branch:
+1. Commit and push your feature branch:
+   ```bash
+   git add <modified_files>
+   git commit -m "Your description"
+   git push origin <your-feature-branch>
+   ```
+2. Merge into `dev` and push:
+   ```bash
+   git checkout dev
+   git pull origin dev
+   git merge <your-feature-branch>
+   git push origin dev
+   git checkout <your-feature-branch>
+   ```
+3. **⚠️ Crucial Rebuild Wait Time**: After pushing to `dev`, you **MUST wait 20 to 25 minutes** before triggering any Swarming tasks. This gives the remote Google Cloud Storage (GCS) builder enough time to pull your new commit, compile the binaries, and package them into the deployment ZIP bundle (`linux-3.zip`) fetched by the bots.
+
+### Step 3: Preprocess & Launch the Swarming Task
+Once the deployment package has finished rebuilding on GCS:
+1. Trigger the preprocess pipeline and launch a new Swarming task:
+   ```bash
+   python3 scratch/preprocess_and_launch.py
+   ```
+2. Note the generated **Swarming Task ID** (e.g. `791f445b26114a10`) and the task URL printed in the stdout.
+
+### Step 4: Live Monitoring & Log Retrieval
+1. **Live Monitor**: Open `scratch/monitor_swarming_task.py`, update `task_id` with your new Task ID, and run the script to stream the live console output:
+   ```bash
+   python3 scratch/monitor_swarming_task.py
+   ```
+2. **Download High-Resolution Logs**: Once the task terminates:
+   * Look at the live monitor output to identify the **assigned Bot Name** (e.g. `lin-192-g582`) and the final state (`COMPLETED` or `BOT_DIED`).
+   * Open `scratch/read_logs.py`, update the `bot_name` and adjust the time filter window (e.g. `timestamp >= "YYYY-MM-DDTHH:MM:SSZ"`), then run:
+     ```bash
+     pipenv run python scratch/read_logs.py
+     ```
+   * This downloads all high-resolution Stackdriver bot and logcat streams into `scratch/bot_logs.txt`.
+3. **Analyze**: Inspect `scratch/bot_logs.txt` using grep/editors to verify your changes (such as JNI prints or fuzzer loop outputs).
+
