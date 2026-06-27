@@ -1184,7 +1184,14 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           if os.path.exists(abs_path):
             libs.append(abs_path)
           else:
-            logs.warning(f"Dependency file {abs_path} does not exist.")
+            # Fallback: check if the library exists in the base_dir (stripped)
+            fallback_path = os.path.join(base_dir, os.path.basename(line))
+            if os.path.exists(fallback_path):
+              libs.append(fallback_path)
+            else:
+              logs.warning(
+                  f"Dependency file {abs_path} (and fallback {fallback_path}) "
+                  "does not exist.")
 
     if not libs:
       return
