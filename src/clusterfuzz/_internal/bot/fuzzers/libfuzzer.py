@@ -20,6 +20,7 @@ import os
 import random
 import re
 import shutil
+import subprocess
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -1122,21 +1123,159 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return result
 
 
-class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
+class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
+                                LibFuzzerCommon):
   """Android APK libFuzzer runner."""
 
   def __init__(self, executable_path, build_directory, default_args=None):
-    super().__init__(executable_path=android.adb.get_adb_path(), default_args=[])
+    super().__init__(
+        executable_path=android.adb.get_adb_path(), default_args=[])
     self.apk_path = executable_path
     self.package_name = android.app.get_package_name(self.apk_path)
     if not self.package_name:
       raise LibFuzzerError(f'Failed to get package name for {self.apk_path}')
 
     android.app.install(self.apk_path)
-    self.instrumentation_runner = self._get_instrumentation_runner(self.apk_path)
+    self.instrumentation_runner = self._get_instrumentation_runner(
+        self.apk_path)
     self.launchable_activity = self._get_launchable_activity(self.apk_path)
 
+    self.fuzzer_name = os.path.basename(self.apk_path).replace(
+        '-debug.apk', '').replace('.apk', '')
+    self.library_under_test = None
+    self.auxiliary_libraries = None
+
+    self._setup_dependencies(build_directory)
+
+  def _setup_dependencies(self, build_directory):
+    """Resolve, sort, and push C++ dependencies to the device."""
+    deps_filename = f"{self.fuzzer_name}__test_runner_script.runtime_deps"
+    deps_file_path = None
+    for root, _, files in os.walk(build_directory):
+      if deps_filename in files:
+        deps_file_path = os.path.join(root, deps_filename)
+        break
+
+    if not deps_file_path:
+      logs.info(f"No runtime_deps file found for {self.fuzzer_name}, "
+                "skipping dependency setup.")
+      return
+
+    logs.info(f"Found runtime_deps at: {deps_file_path}")
+
+    # Determine base output dir (parent of gen.runtime)
+    base_dir = deps_file_path
+    while True:
+      parent = os.path.dirname(base_dir)
+      if parent == base_dir:
+        break
+      if os.path.basename(base_dir) == 'gen.runtime':
+        base_dir = parent
+        break
+      base_dir = parent
+
+    # Read .so files from runtime_deps
+    libs = []
+    with open(deps_file_path, "r") as f:
+      for line in f:
+        line = line.strip()
+        if line.endswith(".so"):
+          abs_path = os.path.abspath(os.path.join(base_dir, line))
+          if os.path.exists(abs_path):
+            libs.append(abs_path)
+          else:
+            logs.warning(f"Dependency file {abs_path} does not exist.")
+
+    if not libs:
+      return
+
+    # Parse dependencies for each library
+    dependencies_dict = {}
+    for lib in libs:
+      lib_name = os.path.basename(lib)
+      dependencies_dict[lib_name] = self._parse_needed_libs(lib)
+
+    # Sort libraries topologically
+    sorted_libs = self._topological_sort(libs, dependencies_dict)
+
+    # Prepare device directory
+    android.adb.run_shell_command('rm -rf /sdcard/chromium_tests_root && '
+                                  'mkdir -p /sdcard/chromium_tests_root')
+
+    # Push sorted .so files to device
+    for lib in sorted_libs:
+      device_path = os.path.join('/sdcard/chromium_tests_root',
+                                 os.path.basename(lib))
+      android.adb.copy_local_file_to_remote(lib, device_path)
+
+    # Separate main library and auxiliary libraries
+    main_lib_name = f"lib{self.fuzzer_name}__library.so"
+    aux_libs = []
+    for lib in sorted_libs:
+      name = os.path.basename(lib)
+      if name == main_lib_name:
+        self.library_under_test = name
+      else:
+        aux_libs.append(name)
+
+    if aux_libs:
+      self.auxiliary_libraries = ','.join(aux_libs)
+
+    # Grant MANAGE_EXTERNAL_STORAGE permission
+    android.adb.run_shell_command(
+        f'appops set {self.package_name} MANAGE_EXTERNAL_STORAGE allow')
+    logs.info(f"Dependency setup complete. LibraryUnderTest: "
+              f"{self.library_under_test}, AuxiliaryLibraries: "
+              f"{self.auxiliary_libraries}")
+
+  def _parse_needed_libs(self, so_path):
+    """Parse NEEDED libraries using readelf."""
+    try:
+      res = subprocess.run(
+          ["readelf", "-d", so_path], capture_output=True, check=True)
+      output = res.stdout.decode('utf-8')
+      needed = []
+      for line in output.splitlines():
+        if "(NEEDED)" in line:
+          match = re.search(r"Shared library: \[(.*?)\]", line)
+          if match:
+            needed.append(match.group(1))
+      return needed
+    except Exception as e:
+      logs.error(f"Error reading ELF headers for {so_path}: {e}")
+      return []
+
+  def _topological_sort(self, libs, dependencies_dict):
+    """Perform topological sort on libs based on dependencies_dict."""
+    visited = {}
+    result = []
+
+    def visit(lib):
+      lib_name = os.path.basename(lib)
+      if visited.get(lib_name) == "visiting":
+        return
+      if visited.get(lib_name) == "visited":
+        return
+
+      visited[lib_name] = "visiting"
+      for dep in dependencies_dict.get(lib_name, []):
+        dep_path = None
+        for l in libs:
+          if os.path.basename(l) == dep:
+            dep_path = l
+            break
+        if dep_path:
+          visit(dep_path)
+
+      visited[lib_name] = "visited"
+      result.append(lib)
+
+    for lib in libs:
+      visit(lib)
+    return result
+
   def _get_launchable_activity(self, apk_path):
+    """Return the launchable activity name."""
     aapt_binary_path = os.path.join(
         environment.get_platform_resources_directory(), 'aapt')
     aapt_command = '%s dump badging %s' % (aapt_binary_path, apk_path)
@@ -1149,13 +1288,15 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
     return None
 
   def _get_instrumentation_runner(self, apk_path):
+    """Return the instrumentation runner."""
     aapt_binary_path = os.path.join(
         environment.get_platform_resources_directory(), 'aapt')
-    aapt_command = '%s dump xmltree %s AndroidManifest.xml' % (aapt_binary_path, apk_path)
+    aapt_command = '%s dump xmltree %s AndroidManifest.xml' % (aapt_binary_path,
+                                                               apk_path)
     output = android.adb.execute_command(aapt_command, timeout=60)
     if not output:
       return None
-      
+
     lines = output.splitlines()
     found_instrumentation = False
     for line in lines:
@@ -1193,7 +1334,12 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
-  def fuzz(self, corpus_directories, fuzz_timeout, artifact_prefix=None, additional_args=None, extra_env=None):
+  def fuzz(self,
+           corpus_directories,
+           fuzz_timeout,
+           artifact_prefix=None,
+           additional_args=None,
+           extra_env=None):
     sync_directories = list(corpus_directories)
     if artifact_prefix:
       sync_directories.append(artifact_prefix)
@@ -1212,41 +1358,74 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
 
     if self.instrumentation_runner:
       device_cache_dir = f'/data/user/0/{self.package_name}/cache'
-      android.adb.run_shell_command(f'mkdir -p {device_cache_dir}', log_output=True)
-      android.adb.run_shell_command(f'chmod 777 {device_cache_dir}', log_output=True)
+      android.adb.run_shell_command(
+          f'mkdir -p {device_cache_dir}', log_output=True)
+      android.adb.run_shell_command(
+          f'chmod 777 {device_cache_dir}', log_output=True)
       device_stdout_file = os.path.join(device_cache_dir, 'fuzzer_output.txt')
       args = [
-          'shell', 'am', 'instrument', '-w',
-          '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"',
-          '-e', 'org.chromium.native_test.NativeTestInstrumentationTestRunner.StdoutFile', device_stdout_file,
-          '-e', f'{self.instrumentation_runner}.StdoutFile', device_stdout_file,
-          f'{self.package_name}/{self.instrumentation_runner}'
+          'shell',
+          'am',
+          'instrument',
+          '-w',
+          '-e',
+          'org.chromium.native_test.NativeTest.CommandLineFlags',
+          f'"{fuzzer_args_str}"',
+          '-e',
+          'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
+          'StdoutFile',
+          device_stdout_file,
+          '-e',
+          f'{self.instrumentation_runner}.StdoutFile',
+          device_stdout_file,
       ]
-      logs.info(f'Starting Instrumentation: {self.package_name}/{self.instrumentation_runner} with args: {fuzzer_args_str}')
+
+      if self.library_under_test:
+        args.extend([
+            '-e',
+            'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
+            'LibraryUnderTest', self.library_under_test
+        ])
+      if self.auxiliary_libraries:
+        args.extend([
+            '-e',
+            'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
+            'AuxiliaryLibraries', self.auxiliary_libraries
+        ])
+
+      args.append(f'{self.package_name}/{self.instrumentation_runner}')
+      logs.info(f'Starting Instrumentation: {self.package_name}/'
+                f'{self.instrumentation_runner} with args: {fuzzer_args_str}')
     elif self.launchable_activity:
       device_stdout_file = None
-      args = ['shell', 'am', 'start', '-n', f'{self.package_name}/{self.launchable_activity}', '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"']
-      logs.info(f'Starting APK: {self.package_name}/{self.launchable_activity} with args: {fuzzer_args_str}')
+      args = [
+          'shell', 'am', 'start', '-n',
+          f'{self.package_name}/{self.launchable_activity}', '-e',
+          'org.chromium.native_test.NativeTest.CommandLineFlags',
+          f'"{fuzzer_args_str}"'
+      ]
+      logs.info(f'Starting APK: {self.package_name}/{self.launchable_activity} '
+                f'with args: {fuzzer_args_str}')
     else:
       raise LibFuzzerError('No launchable activity or instrumentation found.')
-      
+
     result = self.run_and_wait(
         additional_args=args,
         timeout=self.get_total_timeout(fuzz_timeout),
         max_stdout_len=MAX_OUTPUT_LEN)
-        
+
     if device_stdout_file:
       fuzzer_output = android.adb.run_shell_command(f'cat {device_stdout_file}')
       android.adb.remove_file(device_stdout_file)
       if fuzzer_output:
         logs.info(f'Fuzzer native stdout:\n{fuzzer_output}')
         result.output = f'{fuzzer_output}\n\n{result.output}'
-        
-    result.output = f'{result.output}\n\nLogcat:\n{android.logger.log_output()}'
+
+    result.output = (
+        f'{result.output}\n\nLogcat:\n{android.logger.log_output()}')
     logs.info(f'Fuzzer run output for {self.package_name}:\n{result.output}')
     self._copy_local_directories_from_device(sync_directories)
     return result
-
 
 
 def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
@@ -1321,7 +1500,7 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     # We first look for a fuzzer-specific APK (e.g. {fuzzer_name}-debug.apk or {fuzzer_name}.apk).
     fuzzer_name = os.path.basename(fuzzer_path)
     base_apk_path = None
-    
+
     specific_apk_names = [f'{fuzzer_name}-debug.apk', f'{fuzzer_name}.apk']
     for root, _, files in os.walk(build_dir):
       # Check for specific APK first
@@ -1331,12 +1510,16 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
           break
       if base_apk_path:
         break
-        
+
     if base_apk_path:
-      logs.info(f'Using Android APK runner for {fuzzer_name}. APK path: {base_apk_path}')
+      logs.info(
+          f'Using Android APK runner for {fuzzer_name}. APK path: {base_apk_path}'
+      )
       runner = AndroidApkLibFuzzerRunner(base_apk_path, build_dir)
     else:
-      logs.info(f'Using Android command-line binary runner for {fuzzer_name}. Path: {fuzzer_path}')
+      logs.info(
+          f'Using Android command-line binary runner for {fuzzer_name}. Path: {fuzzer_path}'
+      )
       runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
     runner = LibFuzzerRunner(fuzzer_path, cwd=cwd)
