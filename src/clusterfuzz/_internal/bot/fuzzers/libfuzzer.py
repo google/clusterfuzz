@@ -1376,8 +1376,8 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           'instrument',
           '-w',
           '-e',
-          'org.chromium.native_test.NativeTest.CommandLineFlags',
-          f'"{fuzzer_args_str}"',
+          'org.chromium.native_test.NativeUnitTestActivity',
+          'org.chromium.native_test.NativeUnitTestActivity',
           '-e',
           'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
           'StdoutFile',
@@ -1385,9 +1385,6 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           '-e',
           f'{self.instrumentation_runner}.StdoutFile',
           device_stdout_file,
-          '-e',
-          'org.chromium.native_test.NativeUnitTestActivity',
-          'org.chromium.native_test.NativeUnitTestActivity',
       ]
 
       if self.library_under_test:
@@ -1402,6 +1399,12 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
             'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
             'AuxiliaryLibraries', self.auxiliary_libraries
         ])
+
+      args.extend([
+          '-e',
+          'org.chromium.native_test.NativeTest.CommandLineFlags',
+          f'"{fuzzer_args_str}"',
+      ])
 
       args.append(f'{self.package_name}/{self.instrumentation_runner}')
       logs.info(f'Starting Instrumentation: {self.package_name}/'
