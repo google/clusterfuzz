@@ -1429,147 +1429,53 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     else:
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
-    # Workaround for wrap.sh not being extracted by the package manager.
-    # We extract to /data/local/tmp first, then copy to the install dir.
-    # We temporarily disable SELinux (setenforce 0) to bypass MAC restrictions.
-    # We use 'cp' instead of 'mv' to handle potential cross-mount boundaries,
-    # and ensure the source file is world-writable before copying.
-    wrap_sh_path = None
-    try:
-      logs.info("Running deep diagnostics...")
-      logs.info(
-          f"DEBUG: su 0 id: {android.adb.run_shell_command('su 0 id').strip()}")
-      su_status = android.adb.run_shell_command('su 0 cat /proc/self/status')
-      logs.info(f"DEBUG: su 0 capabilities:\n{su_status}")
-      ls_ld_data_app = android.adb.run_shell_command('ls -ld /data/app').strip()
-      logs.info(f"DEBUG: ls -ld /data/app: {ls_ld_data_app}")
+    # Workaround for wrap.sh execution on Android.
+    # We extract wrap.sh to /data/local/tmp/wrap.sh, make it executable,
+    # and run with SELinux permissive to allow execution from /data/local/tmp.
+    wrap_sh_path = "/data/local/tmp/wrap.sh"
+    selinux_revert = False
 
-      logs.info("Attempting to manually extract wrap.sh...")
+    try:
       pm_path_output = android.adb.run_shell_command(
           f'pm path {self.package_name}')
       if pm_path_output and pm_path_output.startswith('package:'):
         apk_path = pm_path_output.split(':')[1].strip()
-        install_dir = os.path.dirname(apk_path)
-        abi = "x86_64"
-        target_dir = f"{install_dir}/lib/{abi}"
-        wrap_sh_path = f"{target_dir}/wrap.sh"
 
-        # Temporarily disable SELinux
-        selinux_status = android.adb.run_shell_command('su 0 getenforce')
-        logs.info(f"DEBUG: Initial SELinux status: {selinux_status.strip()}")
-        android.adb.run_shell_command('su 0 setenforce 0')
-        selinux_dis = android.adb.run_shell_command('su 0 getenforce').strip()
-        logs.info(f"DEBUG: SELinux status after disabling: {selinux_dis}")
+        # Clean up old file if any
+        android.adb.run_shell_command(f'su 0 rm -f {wrap_sh_path}')
 
-        try:
-          # Log mounts
-          mount_output = android.adb.run_shell_command('su 0 mount')
-          data_mounts = [
-              line for line in mount_output.split('\n') if '/data' in line
-          ]
-          logs.info("DEBUG: /data mounts:\n" + '\n'.join(data_mounts))
+        # Extract using unzip
+        unzip_cmd = (f'su 0 unzip -o -j {apk_path} '
+                     'lib/x86_64/wrap.sh -d /data/local/tmp')
+        unzip_result = android.adb.run_shell_command(unzip_cmd)
+        logs.info(f"DEBUG: unzip result: {unzip_result.strip()}")
 
-          # Test writing dummy file
-          test_file_path = f"{target_dir}/test_antigravity.txt"
-          logs.info("DEBUG: Testing dummy write as root (su 0 sh -c)...")
-          write_root_result = android.adb.run_shell_command(
-              f"su 0 sh -c 'echo test > {test_file_path}'")
-          logs.info(f"DEBUG: write_root_result: {write_root_result.strip()}")
+        if android.adb.file_exists(wrap_sh_path):
+          android.adb.run_shell_command(f'su 0 chmod 777 {wrap_sh_path}')
 
-          logs.info("DEBUG: Testing dummy write as system (su system sh -c)...")
-          write_system_result = android.adb.run_shell_command(
-              f"su system sh -c 'echo test > {test_file_path}'")
-          logs.info(
-              f"DEBUG: write_system_result: {write_system_result.strip()}")
+          selinux_status = android.adb.run_shell_command('su 0 getenforce')
+          logs.info(f"DEBUG: Initial SELinux status: {selinux_status.strip()}")
+          if selinux_status.strip() == 'Enforcing':
+            android.adb.run_shell_command('su 0 setenforce 0')
+            selinux_revert = True
+            logs.info('DEBUG: Disabled SELinux (set to Permissive) '
+                      'for wrap.sh execution.')
 
-          # 1. Create target directory as root (su 0)
-          mkdir_result = android.adb.run_shell_command(
-              f'su 0 mkdir -p {target_dir}')
-          logs.info(f"DEBUG: mkdir result: {mkdir_result}")
-
-          # 2. Unzip to /data/local/tmp as shell (no su needed)
-          tmp_dir = "/data/local/tmp"
-          unzip_cmd = f'unzip -o -j {apk_path} lib/{abi}/wrap.sh -d {tmp_dir}'
-          unzip_result = android.adb.run_shell_command(unzip_cmd)
-          logs.info(f"DEBUG: unzip to tmp result: {unzip_result}")
-
-          # Make tmp file world-readable/writable
-          android.adb.run_shell_command(f'chmod 666 {tmp_dir}/wrap.sh')
-
-          # 3. Try CP instead of MV
-          logs.info("DEBUG: Trying cp as root...")
-          cp_cmd = f'su 0 cp {tmp_dir}/wrap.sh {wrap_sh_path}'
-          cp_result = android.adb.run_shell_command(cp_cmd)
-          logs.info(f"DEBUG: cp result: {cp_result}")
-
-          if "Permission denied" in cp_result:
-            logs.warning("DEBUG: cp as root failed. Trying cp as system...")
-            cp_system_cmd = f'su system cp {tmp_dir}/wrap.sh {wrap_sh_path}'
-            cp_system_result = android.adb.run_shell_command(cp_system_cmd)
-            logs.info(f"DEBUG: cp as system result: {cp_system_result}")
-
-            if "Permission denied" in cp_system_result:
-              logs.error("DEBUG: Both cp as root and cp as system failed.")
-            else:
-              # cp as system succeeded, chmod as system
-              android.adb.run_shell_command(
-                  f'su system chmod 755 {wrap_sh_path}')
-          else:
-            # cp as root succeeded, chmod as root
-            android.adb.run_shell_command(f'su 0 chmod 755 {wrap_sh_path}')
-
-          # 5. Restore SELinux context
-          restorecon_result = android.adb.run_shell_command(
-              f'su 0 restorecon {wrap_sh_path}')
-          logs.info(f"DEBUG: restorecon result: {restorecon_result}")
-
-          # Clean up dummy file if created
-          android.adb.run_shell_command(f'su 0 rm -f {test_file_path}')
-        finally:
-          # Re-enable SELinux
-          android.adb.run_shell_command('su 0 setenforce 1')
-          selinux_en = android.adb.run_shell_command('su 0 getenforce').strip()
-          logs.info(f"DEBUG: SELinux status after re-enabling: {selinux_en}")
+          logs.info(f"DEBUG: Setting wrap property to {wrap_sh_path}")
+          setprop_result = android.adb.run_shell_command(
+              f'su 0 setprop wrap.{self.package_name} {wrap_sh_path}')
+          if setprop_result:
+            logs.warning(
+                f"DEBUG: setprop output/error: {setprop_result.strip()}")
+        else:
+          logs.error("DEBUG: Failed to extract wrap.sh to /data/local/tmp")
+          wrap_sh_path = None
       else:
         logs.error(f"DEBUG: Could not get APK path for {self.package_name}")
+        wrap_sh_path = None
     except Exception as e:
-      logs.error(f"DEBUG: Failed to manually extract wrap.sh: {e}")
-
-    # Deep inspection of paths to verify
-    try:
-      logs.info(f"DEBUG: package_name: {self.package_name}")
-      pm_path_output = android.adb.run_shell_command(
-          f'pm path {self.package_name}')
-      logs.info(f"DEBUG: pm path output: {pm_path_output}")
-      if pm_path_output and pm_path_output.startswith('package:'):
-        apk_path = pm_path_output.split(':')[1].strip()
-        install_dir = os.path.dirname(apk_path)
-        logs.info(f"DEBUG: install_dir: {install_dir}")
-        ls_install = android.adb.run_shell_command(f'ls -R {install_dir}')
-        logs.info(f"DEBUG: ls -R install_dir:\n{ls_install}")
-
-      ls_data_dir = android.adb.run_shell_command(
-          f'ls -d /data/data/{self.package_name}')
-      logs.info(f"DEBUG: ls -d /data/data/...: {ls_data_dir}")
-
-      ls_data_recursive = android.adb.run_shell_command(
-          f'ls -R /data/data/{self.package_name}')
-      logs.info(f"DEBUG: ls -R /data/data/...: {ls_data_recursive}")
-    except Exception as e:
-      logs.error(f"DEBUG: Failed during deep inspection: {e}")
-
-    # Force ASan wrapper to run on userdebug devices.
-    # We use the actual path of the extracted wrap.sh if available.
-    if wrap_sh_path:
-      logs.info(f"DEBUG: Setting wrap property to {wrap_sh_path}")
-      android.adb.run_shell_command(
-          f'su 0 setprop wrap.{self.package_name} {wrap_sh_path}')
-    else:
-      logs.warning("DEBUG: wrap_sh_path not found, "
-                   "falling back to default /data/data/.../lib/wrap.sh")
-      fallback_wrap = f'/data/data/{self.package_name}/lib/wrap.sh'
-      android.adb.run_shell_command(
-          f'su 0 setprop wrap.{self.package_name} {fallback_wrap}')
+      logs.error(f"DEBUG: Error setting up wrap.sh workaround: {e}")
+      wrap_sh_path = None
 
     try:
       result = self.run_and_wait(
@@ -1579,6 +1485,13 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     finally:
       # Clear the wrapper property.
       android.adb.run_shell_command(f'su 0 setprop wrap.{self.package_name} ""')
+      # Restore SELinux if we changed it
+      if selinux_revert:
+        android.adb.run_shell_command('su 0 setenforce 1')
+        logs.info("DEBUG: Restored SELinux to Enforcing.")
+      # Clean up wrap.sh
+      if wrap_sh_path:
+        android.adb.run_shell_command(f'su 0 rm -f {wrap_sh_path}')
 
     logs.info(f'DEBUG: adb command run: {result.command}')
     logs.info(f'DEBUG: adb command return code: {result.return_code}')
