@@ -1431,6 +1431,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
 
     # Workaround for wrap.sh not being extracted by the package manager.
     # We extract to /data/local/tmp first, then move to the install dir as root.
+    # We temporarily disable SELinux (setenforce 0) to bypass permission restrictions.
     wrap_sh_path = None
     try:
       logs.info("Testing su 0...")
@@ -1447,26 +1448,46 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
         target_dir = f"{install_dir}/lib/{abi}"
         wrap_sh_path = f"{target_dir}/wrap.sh"
 
-        # 1. Create target directory as root (su 0)
-        mkdir_result = android.adb.run_shell_command(
-            f'su 0 mkdir -p {target_dir}')
-        logs.info(f"DEBUG: mkdir result: {mkdir_result}")
+        # Temporarily disable SELinux
+        selinux_status = android.adb.run_shell_command('su 0 getenforce')
+        logs.info(f"DEBUG: Initial SELinux status: {selinux_status.strip()}")
+        android.adb.run_shell_command('su 0 setenforce 0')
+        logs.info(
+            f"DEBUG: SELinux status after disabling: {android.adb.run_shell_command('su 0 getenforce').strip()}"
+        )
 
-        # 2. Unzip to /data/local/tmp as shell (no su needed)
-        tmp_dir = "/data/local/tmp"
-        unzip_cmd = f'unzip -o -j {apk_path} lib/{abi}/wrap.sh -d {tmp_dir}'
-        unzip_result = android.adb.run_shell_command(unzip_cmd)
-        logs.info(f"DEBUG: unzip to tmp result: {unzip_result}")
+        try:
+          # 1. Create target directory as root (su 0)
+          mkdir_result = android.adb.run_shell_command(
+              f'su 0 mkdir -p {target_dir}')
+          logs.info(f"DEBUG: mkdir result: {mkdir_result}")
 
-        # 3. Move to target directory as root (su 0)
-        mv_cmd = f'su 0 mv {tmp_dir}/wrap.sh {wrap_sh_path}'
-        mv_result = android.adb.run_shell_command(mv_cmd)
-        logs.info(f"DEBUG: mv result: {mv_result}")
+          # 2. Unzip to /data/local/tmp as shell (no su needed)
+          tmp_dir = "/data/local/tmp"
+          unzip_cmd = f'unzip -o -j {apk_path} lib/{abi}/wrap.sh -d {tmp_dir}'
+          unzip_result = android.adb.run_shell_command(unzip_cmd)
+          logs.info(f"DEBUG: unzip to tmp result: {unzip_result}")
 
-        # 4. Chmod as root (su 0)
-        chmod_result = android.adb.run_shell_command(
-            f'su 0 chmod 755 {wrap_sh_path}')
-        logs.info(f"DEBUG: chmod result: {chmod_result}")
+          # 3. Move to target directory as root (su 0)
+          mv_cmd = f'su 0 mv {tmp_dir}/wrap.sh {wrap_sh_path}'
+          mv_result = android.adb.run_shell_command(mv_cmd)
+          logs.info(f"DEBUG: mv result: {mv_result}")
+
+          # 4. Chmod as root (su 0)
+          chmod_result = android.adb.run_shell_command(
+              f'su 0 chmod 755 {wrap_sh_path}')
+          logs.info(f"DEBUG: chmod result: {chmod_result}")
+
+          # 5. Restore SELinux context
+          restorecon_result = android.adb.run_shell_command(
+              f'su 0 restorecon {wrap_sh_path}')
+          logs.info(f"DEBUG: restorecon result: {restorecon_result}")
+        finally:
+          # Re-enable SELinux
+          android.adb.run_shell_command('su 0 setenforce 1')
+          logs.info(
+              f"DEBUG: SELinux status after re-enabling: {android.adb.run_shell_command('su 0 getenforce').strip()}"
+          )
       else:
         logs.error(f"DEBUG: Could not get APK path for {self.package_name}")
     except Exception as e:
