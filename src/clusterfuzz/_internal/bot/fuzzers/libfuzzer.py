@@ -1429,6 +1429,20 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     else:
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
+    # Debug paths to diagnose wrap.sh execution failure
+    logs.info(f"DEBUG: package_name: {self.package_name}")
+    pm_path = android.adb.run_shell_command(f'pm path {self.package_name}')
+    logs.info(f"DEBUG: pm path: {pm_path}")
+    ls_lib = android.adb.run_shell_command(
+        f'ls -l /data/data/{self.package_name}/lib')
+    logs.info(f"DEBUG: ls -l /data/data/.../lib: {ls_lib}")
+    ls_wrap_data = android.adb.run_shell_command(
+        f'ls -l /data/data/{self.package_name}/lib/wrap.sh')
+    logs.info(f"DEBUG: ls -l /data/data/.../lib/wrap.sh: {ls_wrap_data}")
+    ls_wrap_user = android.adb.run_shell_command(
+        f'ls -l /data/user/0/{self.package_name}/lib/wrap.sh')
+    logs.info(f"DEBUG: ls -l /data/user/0/.../lib/wrap.sh: {ls_wrap_user}")
+
     # Force ASan wrapper to run on userdebug devices.
     # We use the extracted wrap.sh in the app's lib directory.
     android.adb.run_shell_command(
