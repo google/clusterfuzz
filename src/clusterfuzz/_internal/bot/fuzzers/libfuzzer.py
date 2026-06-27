@@ -1441,17 +1441,28 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       if pm_path_output and pm_path_output.startswith('package:'):
         apk_path = pm_path_output.split(':')[1].strip()
 
-        # Clean up old file if any
+        # Clean up old files if any
         android.adb.run_shell_command(f'su 0 rm -f {wrap_sh_path}')
+        android.adb.run_shell_command(
+            'su 0 rm -f /data/local/tmp/libclang_rt.asan-*.so')
 
-        # Extract using unzip
-        unzip_cmd = (f'su 0 unzip -o -j {apk_path} '
-                     'lib/x86_64/wrap.sh -d /data/local/tmp')
-        unzip_result = android.adb.run_shell_command(unzip_cmd)
-        logs.info(f"DEBUG: unzip result: {unzip_result.strip()}")
+        # Extract wrap.sh using unzip
+        unzip_wrap_cmd = (f'su 0 unzip -o -j {apk_path} '
+                          'lib/x86_64/wrap.sh -d /data/local/tmp')
+        unzip_wrap_result = android.adb.run_shell_command(unzip_wrap_cmd)
+        logs.info(f"DEBUG: unzip wrap.sh result: {unzip_wrap_result.strip()}")
+
+        # Extract ASan runtime using unzip
+        unzip_asan_cmd = (
+            f'su 0 unzip -o -j {apk_path} '
+            '"lib/x86_64/libclang_rt.asan-*.so" -d /data/local/tmp')
+        unzip_asan_result = android.adb.run_shell_command(unzip_asan_cmd)
+        logs.info(f"DEBUG: unzip ASan rt result: {unzip_asan_result.strip()}")
 
         if android.adb.file_exists(wrap_sh_path):
           android.adb.run_shell_command(f'su 0 chmod 777 {wrap_sh_path}')
+          android.adb.run_shell_command(
+              'su 0 chmod 777 /data/local/tmp/libclang_rt.asan-*.so')
 
           selinux_status = android.adb.run_shell_command('su 0 getenforce')
           logs.info(f"DEBUG: Initial SELinux status: {selinux_status.strip()}")
@@ -1489,9 +1500,11 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       if selinux_revert:
         android.adb.run_shell_command('su 0 setenforce 1')
         logs.info("DEBUG: Restored SELinux to Enforcing.")
-      # Clean up wrap.sh
+      # Clean up wrap.sh and ASan runtime
       if wrap_sh_path:
         android.adb.run_shell_command(f'su 0 rm -f {wrap_sh_path}')
+        android.adb.run_shell_command(
+            'su 0 rm -f /data/local/tmp/libclang_rt.asan-*.so')
 
     logs.info(f'DEBUG: adb command run: {result.command}')
     logs.info(f'DEBUG: adb command return code: {result.return_code}')
