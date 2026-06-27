@@ -53,7 +53,8 @@ def run():
   # Wait until battery charges to a minimum level and temperature threshold.
   android.battery.wait_until_good_state()
 
-  # Ensure adb runs as root for the rest of the session (essential for engine fuzzers).
+  # Ensure adb runs as root for the rest of the session (essential for
+  # engine fuzzers).
   android.adb.run_as_root()
 
   # Initialize environment settings.

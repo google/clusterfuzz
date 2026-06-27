@@ -1430,9 +1430,11 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
     # Workaround for wrap.sh execution on Android.
-    # We extract wrap.sh to /data/local/tmp/wrap.sh, make it executable,
-    # and run with SELinux permissive to allow execution from /data/local/tmp.
-    wrap_sh_path = "/data/local/tmp/wrap.sh"
+    # We extract wrap.sh and ASan RT to the app's secure app_native_libs
+    # directory to avoid linker restrictions on /data/local/tmp, and run with
+    # SELinux permissive.
+    target_dir = f"/data/data/{self.package_name}/app_native_libs"
+    wrap_sh_path = f"{target_dir}/wrap.sh"
     selinux_revert = False
 
     try:
@@ -1441,28 +1443,36 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       if pm_path_output and pm_path_output.startswith('package:'):
         apk_path = pm_path_output.split(':')[1].strip()
 
+        # Ensure target directory exists and is writable
+        android.adb.run_shell_command(f'su 0 mkdir -p {target_dir}')
+        android.adb.run_shell_command(f'su 0 chmod 777 {target_dir}')
+
         # Clean up old files if any
         android.adb.run_shell_command(f'su 0 rm -f {wrap_sh_path}')
         android.adb.run_shell_command(
-            'su 0 rm -f /data/local/tmp/libclang_rt.asan-*.so')
+            f'su 0 rm -f {target_dir}/libclang_rt.asan-*.so')
 
-        # Extract wrap.sh using unzip
+        # Extract wrap.sh using unzip directly to target_dir
         unzip_wrap_cmd = (f'su 0 unzip -o -j {apk_path} '
-                          'lib/x86_64/wrap.sh -d /data/local/tmp')
+                          f'lib/x86_64/wrap.sh -d {target_dir}')
         unzip_wrap_result = android.adb.run_shell_command(unzip_wrap_cmd)
         logs.info(f"DEBUG: unzip wrap.sh result: {unzip_wrap_result.strip()}")
 
-        # Extract ASan runtime using unzip
-        unzip_asan_cmd = (
-            f'su 0 unzip -o -j {apk_path} '
-            '"lib/x86_64/libclang_rt.asan-*.so" -d /data/local/tmp')
+        # Extract ASan runtime using unzip directly to target_dir
+        unzip_asan_cmd = (f'su 0 unzip -o -j {apk_path} '
+                          f'"lib/x86_64/libclang_rt.asan-*.so" -d {target_dir}')
         unzip_asan_result = android.adb.run_shell_command(unzip_asan_cmd)
         logs.info(f"DEBUG: unzip ASan rt result: {unzip_asan_result.strip()}")
 
         if android.adb.file_exists(wrap_sh_path):
           android.adb.run_shell_command(f'su 0 chmod 777 {wrap_sh_path}')
           android.adb.run_shell_command(
-              'su 0 chmod 777 /data/local/tmp/libclang_rt.asan-*.so')
+              f'su 0 chmod 777 {target_dir}/libclang_rt.asan-*.so')
+
+          # Print wrap.sh content for diagnostics
+          wrap_content = android.adb.run_shell_command(
+              f'su 0 cat {wrap_sh_path}')
+          logs.info(f"DEBUG: wrap.sh content:\n{wrap_content}")
 
           selinux_status = android.adb.run_shell_command('su 0 getenforce')
           logs.info(f"DEBUG: Initial SELinux status: {selinux_status.strip()}")
@@ -1479,7 +1489,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
             logs.warning(
                 f"DEBUG: setprop output/error: {setprop_result.strip()}")
         else:
-          logs.error("DEBUG: Failed to extract wrap.sh to /data/local/tmp")
+          logs.error(f"DEBUG: Failed to extract wrap.sh to {target_dir}")
           wrap_sh_path = None
       else:
         logs.error(f"DEBUG: Could not get APK path for {self.package_name}")
@@ -1504,7 +1514,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       if wrap_sh_path:
         android.adb.run_shell_command(f'su 0 rm -f {wrap_sh_path}')
         android.adb.run_shell_command(
-            'su 0 rm -f /data/local/tmp/libclang_rt.asan-*.so')
+            f'su 0 rm -f {target_dir}/libclang_rt.asan-*.so')
 
     logs.info(f'DEBUG: adb command run: {result.command}')
     logs.info(f'DEBUG: adb command return code: {result.return_code}')
