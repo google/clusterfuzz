@@ -1231,6 +1231,11 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # Grant MANAGE_EXTERNAL_STORAGE permission
     android.adb.run_shell_command(
         f'appops set {self.package_name} MANAGE_EXTERNAL_STORAGE allow')
+    # Also grant legacy storage permissions just in case the APK uses them
+    android.adb.run_shell_command(f'su 0 pm grant {self.package_name} '
+                                  f'android.permission.READ_EXTERNAL_STORAGE')
+    android.adb.run_shell_command(f'su 0 pm grant {self.package_name} '
+                                  f'android.permission.WRITE_EXTERNAL_STORAGE')
     logs.info(f"Dependency setup complete. LibraryUnderTest: "
               f"{self.library_under_test}, AuxiliaryLibraries: "
               f"{self.auxiliary_libraries}")
