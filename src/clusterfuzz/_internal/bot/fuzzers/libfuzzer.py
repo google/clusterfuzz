@@ -1427,6 +1427,10 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
         timeout=self.get_total_timeout(fuzz_timeout),
         max_stdout_len=MAX_OUTPUT_LEN)
 
+    logs.info(f'DEBUG: adb command run: {result.command}')
+    logs.info(f'DEBUG: adb command return code: {result.return_code}')
+    logs.info(f'DEBUG: adb command output: {result.output}')
+
     if device_stdout_file:
       fuzzer_output = android.adb.run_shell_command(f'cat {device_stdout_file}')
       android.adb.remove_file(device_stdout_file)
