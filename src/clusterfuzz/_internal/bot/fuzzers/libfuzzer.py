@@ -1495,6 +1495,11 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           android.adb.run_shell_command(
               f'su 0 chmod 777 {target_dir}/libclang_rt.asan-*.so')
 
+          # Print wrap.sh content for diagnostics
+          wrap_content = android.adb.run_shell_command(
+              f'su 0 cat {wrap_sh_path}')
+          logs.info(f"DEBUG: wrap.sh content:\n{wrap_content}")
+
           selinux_status = android.adb.run_shell_command('su 0 getenforce')
           logs.info(f"DEBUG: Initial SELinux status: {selinux_status.strip()}")
           if selinux_status.strip() == 'Enforcing':
@@ -1509,6 +1514,14 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           if setprop_result:
             logs.warning(
                 f"DEBUG: setprop output/error: {setprop_result.strip()}")
+
+          # Also set for :test_process suffix (Chromium sub-process)
+          setprop_result_sub = android.adb.run_shell_command(
+              f'su 0 setprop wrap.{self.package_name}:test_process '
+              f'{wrap_sh_path}')
+          if setprop_result_sub:
+            logs.warning(f"DEBUG: setprop sub-process output/error: "
+                         f"{setprop_result_sub.strip()}")
         else:
           logs.error(f"DEBUG: Failed to create wrap.sh at {wrap_sh_path}")
           wrap_sh_path = None
@@ -1527,6 +1540,8 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     finally:
       # Clear the wrapper property.
       android.adb.run_shell_command(f'su 0 setprop wrap.{self.package_name} ""')
+      android.adb.run_shell_command(
+          f'su 0 setprop wrap.{self.package_name}:test_process ""')
       # Restore SELinux if we changed it
       if selinux_revert:
         android.adb.run_shell_command('su 0 setenforce 1')
