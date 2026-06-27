@@ -2299,6 +2299,14 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
     fuzz_task_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
 
+  # Inject custom binary details if this is a custom binary job.
+  if uworker_env.get('CUSTOM_BINARY'):
+    job = data_types.Job.query(data_types.Job.name == job_type).get()
+    if job and job.custom_binary_key:
+      uworker_env['CUSTOM_BINARY_KEY'] = job.custom_binary_key
+      uworker_env['CUSTOM_BINARY_FILENAME'] = job.custom_binary_filename
+      uworker_env['CUSTOM_BINARY_REVISION'] = str(job.custom_binary_revision)
+
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
       fuzz_task_input=fuzz_task_input,
       job_type=job_type,

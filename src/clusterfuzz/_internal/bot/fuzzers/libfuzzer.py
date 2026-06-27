@@ -1439,12 +1439,10 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       logs.info("Running deep diagnostics...")
       logs.info(
           f"DEBUG: su 0 id: {android.adb.run_shell_command('su 0 id').strip()}")
-      logs.info(
-          f"DEBUG: su 0 capabilities:\n{android.adb.run_shell_command('su 0 cat /proc/self/status')}"
-      )
-      logs.info(
-          f"DEBUG: ls -ld /data/app: {android.adb.run_shell_command('ls -ld /data/app').strip()}"
-      )
+      su_status = android.adb.run_shell_command('su 0 cat /proc/self/status')
+      logs.info(f"DEBUG: su 0 capabilities:\n{su_status}")
+      ls_ld_data_app = android.adb.run_shell_command('ls -ld /data/app').strip()
+      logs.info(f"DEBUG: ls -ld /data/app: {ls_ld_data_app}")
 
       logs.info("Attempting to manually extract wrap.sh...")
       pm_path_output = android.adb.run_shell_command(
@@ -1460,9 +1458,8 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
         selinux_status = android.adb.run_shell_command('su 0 getenforce')
         logs.info(f"DEBUG: Initial SELinux status: {selinux_status.strip()}")
         android.adb.run_shell_command('su 0 setenforce 0')
-        logs.info(
-            f"DEBUG: SELinux status after disabling: {android.adb.run_shell_command('su 0 getenforce').strip()}"
-        )
+        selinux_dis = android.adb.run_shell_command('su 0 getenforce').strip()
+        logs.info(f"DEBUG: SELinux status after disabling: {selinux_dis}")
 
         try:
           # Log mounts
@@ -1470,7 +1467,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           data_mounts = [
               line for line in mount_output.split('\n') if '/data' in line
           ]
-          logs.info(f"DEBUG: /data mounts:\n" + '\n'.join(data_mounts))
+          logs.info("DEBUG: /data mounts:\n" + '\n'.join(data_mounts))
 
           # Test writing dummy file
           test_file_path = f"{target_dir}/test_antigravity.txt"
@@ -1531,9 +1528,8 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
         finally:
           # Re-enable SELinux
           android.adb.run_shell_command('su 0 setenforce 1')
-          logs.info(
-              f"DEBUG: SELinux status after re-enabling: {android.adb.run_shell_command('su 0 getenforce').strip()}"
-          )
+          selinux_en = android.adb.run_shell_command('su 0 getenforce').strip()
+          logs.info(f"DEBUG: SELinux status after re-enabling: {selinux_en}")
       else:
         logs.error(f"DEBUG: Could not get APK path for {self.package_name}")
     except Exception as e:
@@ -1556,9 +1552,9 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           f'ls -d /data/data/{self.package_name}')
       logs.info(f"DEBUG: ls -d /data/data/...: {ls_data_dir}")
 
-      ls_data_R = android.adb.run_shell_command(
+      ls_data_recursive = android.adb.run_shell_command(
           f'ls -R /data/data/{self.package_name}')
-      logs.info(f"DEBUG: ls -R /data/data/...: {ls_data_R}")
+      logs.info(f"DEBUG: ls -R /data/data/...: {ls_data_recursive}")
     except Exception as e:
       logs.error(f"DEBUG: Failed during deep inspection: {e}")
 
@@ -1569,12 +1565,11 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       android.adb.run_shell_command(
           f'su 0 setprop wrap.{self.package_name} {wrap_sh_path}')
     else:
-      logs.warning(
-          "DEBUG: wrap_sh_path not found, falling back to default /data/data/.../lib/wrap.sh"
-      )
+      logs.warning("DEBUG: wrap_sh_path not found, "
+                   "falling back to default /data/data/.../lib/wrap.sh")
+      fallback_wrap = f'/data/data/{self.package_name}/lib/wrap.sh'
       android.adb.run_shell_command(
-          f'su 0 setprop wrap.{self.package_name} /data/data/{self.package_name}/lib/wrap.sh'
-      )
+          f'su 0 setprop wrap.{self.package_name} {fallback_wrap}')
 
     try:
       result = self.run_and_wait(

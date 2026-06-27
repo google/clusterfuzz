@@ -1416,7 +1416,24 @@ def setup_symbolized_builds(revision):
 def setup_custom_binary():
   """Set up the custom binary for a particular job."""
   job_name = environment.get_value('JOB_NAME')
-  # Verify that this is really a custom binary job.
+
+  # Try to get from environment first (to avoid Datastore query on uworker)
+  custom_binary_key = environment.get_value('CUSTOM_BINARY_KEY')
+  custom_binary_filename = environment.get_value('CUSTOM_BINARY_FILENAME')
+  custom_binary_revision = environment.get_value('CUSTOM_BINARY_REVISION')
+
+  if custom_binary_key and custom_binary_filename:
+    logs.info('Using custom binary details from environment.')
+    base_build_dir = _base_build_dir('')
+    build = CustomBuild(base_build_dir,
+                        custom_binary_key, custom_binary_filename,
+                        int(custom_binary_revision or 0))
+    if build.setup():
+      return build
+    return None
+
+  # Fallback to Datastore query
+  logs.info('Custom binary details not in environment, querying Datastore...')
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job or not job.custom_binary_key or not job.custom_binary_filename:
     logs.error(

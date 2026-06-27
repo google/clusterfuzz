@@ -135,7 +135,7 @@ For changes to run on remote Swarming bots, they must be committed, merged, and 
    git push origin dev
    git checkout <your-feature-branch>
    ```
-3. **⚠️ Crucial Rebuild Wait Time**: After pushing to `dev`, you **MUST wait 20 to 25 minutes** before triggering any Swarming tasks. This gives the remote Google Cloud Storage (GCS) builder enough time to pull your new commit, compile the binaries, and package them into the deployment ZIP bundle (`linux-3.zip`) fetched by the bots.
+3. **⚠️ Crucial Rebuild Wait Time**: After pushing to `dev`, you **MUST wait 25 to 30 minutes** before triggering any Swarming tasks. This gives the remote Google Cloud Storage (GCS) builder enough time to pull your new commit, compile the binaries, and package them into the deployment ZIP bundle (`linux-3.zip`) fetched by the bots.
 
 ### Step 3: Preprocess & Launch the Swarming Task
 Once the deployment package has finished rebuilding on GCS:
