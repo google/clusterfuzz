@@ -1432,6 +1432,12 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # Workaround for wrap.sh not being extracted by the package manager.
     # We run these commands as root (su 0) to bypass permission restrictions.
     try:
+      logs.info("Testing su 0...")
+      id_result = android.adb.run_shell_command('su 0 id')
+      logs.info(f"DEBUG: su 0 id result: {id_result}")
+      id_c_result = android.adb.run_shell_command('su 0 -c id')
+      logs.info(f"DEBUG: su 0 -c id result: {id_c_result}")
+
       logs.info("Attempting to manually extract wrap.sh as root...")
       pm_path_output = android.adb.run_shell_command(
           f'pm path {self.package_name}')
@@ -1441,11 +1447,12 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
         abi = "x86_64"
         target_dir = f"{install_dir}/lib/{abi}"
 
-        android.adb.run_shell_command(f'su 0 mkdir -p {target_dir}')
-        unzip_cmd = f'su 0 unzip -o -j {apk_path} lib/{abi}/wrap.sh -d {target_dir}'
+        android.adb.run_shell_command(f'su 0 -c "mkdir -p {target_dir}"')
+        unzip_cmd = f'su 0 -c "unzip -o -j {apk_path} lib/{abi}/wrap.sh -d {target_dir}"'
         unzip_result = android.adb.run_shell_command(unzip_cmd)
         logs.info(f"DEBUG: unzip result: {unzip_result}")
-        android.adb.run_shell_command(f'su 0 chmod 755 {target_dir}/wrap.sh')
+        android.adb.run_shell_command(
+            f'su 0 -c "chmod 755 {target_dir}/wrap.sh"')
       else:
         logs.error(f"DEBUG: Could not get APK path for {self.package_name}")
     except Exception as e:
@@ -1478,7 +1485,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # We use the extracted wrap.sh in the app's lib directory.
     # We run setprop as root (su 0) to ensure we have permission.
     android.adb.run_shell_command(
-        f'su 0 setprop wrap.{self.package_name} /data/data/{self.package_name}/lib/wrap.sh'
+        f'su 0 -c "setprop wrap.{self.package_name} /data/data/{self.package_name}/lib/wrap.sh"'
     )
     try:
       result = self.run_and_wait(
@@ -1487,7 +1494,8 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           max_stdout_len=MAX_OUTPUT_LEN)
     finally:
       # Clear the wrapper property.
-      android.adb.run_shell_command(f'su 0 setprop wrap.{self.package_name} ""')
+      android.adb.run_shell_command(
+          f'su 0 -c "setprop wrap.{self.package_name} \\"\\""')
 
     logs.info(f'DEBUG: adb command run: {result.command}')
     logs.info(f'DEBUG: adb command return code: {result.return_code}')
