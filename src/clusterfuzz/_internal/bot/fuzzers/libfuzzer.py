@@ -1218,6 +1218,7 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommo
       args = [
           'shell', 'am', 'instrument', '-w',
           '-e', 'org.chromium.native_test.NativeTest.CommandLineFlags', f'"{fuzzer_args_str}"',
+          '-e', 'org.chromium.native_test.NativeTestInstrumentationTestRunner.StdoutFile', device_stdout_file,
           '-e', f'{self.instrumentation_runner}.StdoutFile', device_stdout_file,
           f'{self.package_name}/{self.instrumentation_runner}'
       ]
