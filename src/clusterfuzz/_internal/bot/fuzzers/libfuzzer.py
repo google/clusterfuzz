@@ -1430,13 +1430,21 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       raise LibFuzzerError('No launchable activity or instrumentation found.')
 
     # Workaround for wrap.sh not being extracted by the package manager.
-    # We extract to /data/local/tmp first, then move to the install dir as root.
-    # We temporarily disable SELinux (setenforce 0) to bypass permission restrictions.
+    # We extract to /data/local/tmp first, then move to the install dir.
+    # We temporarily disable SELinux (setenforce 0) to bypass MAC restrictions.
+    # If 'su 0' fails with Permission denied (likely due to missing CAP_DAC_OVERRIDE),
+    # we dynamically detect the owner of the target directory and run as them.
     wrap_sh_path = None
     try:
-      logs.info("Testing su 0...")
-      id_result = android.adb.run_shell_command('su 0 id')
-      logs.info(f"DEBUG: su 0 id result: {id_result}")
+      logs.info("Running deep diagnostics...")
+      logs.info(
+          f"DEBUG: su 0 id: {android.adb.run_shell_command('su 0 id').strip()}")
+      logs.info(
+          f"DEBUG: su 0 capabilities:\n{android.adb.run_shell_command('su 0 cat /proc/self/status')}"
+      )
+      logs.info(
+          f"DEBUG: ls -ld /data/app: {android.adb.run_shell_command('ls -ld /data/app').strip()}"
+      )
 
       logs.info("Attempting to manually extract wrap.sh...")
       pm_path_output = android.adb.run_shell_command(
@@ -1468,15 +1476,36 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
           unzip_result = android.adb.run_shell_command(unzip_cmd)
           logs.info(f"DEBUG: unzip to tmp result: {unzip_result}")
 
-          # 3. Move to target directory as root (su 0)
+          # 3. Move to target directory
           mv_cmd = f'su 0 mv {tmp_dir}/wrap.sh {wrap_sh_path}'
           mv_result = android.adb.run_shell_command(mv_cmd)
           logs.info(f"DEBUG: mv result: {mv_result}")
 
-          # 4. Chmod as root (su 0)
-          chmod_result = android.adb.run_shell_command(
-              f'su 0 chmod 755 {wrap_sh_path}')
-          logs.info(f"DEBUG: chmod result: {chmod_result}")
+          if "Permission denied" in mv_result:
+            logs.warning(
+                "DEBUG: mv as root failed with Permission denied. Trying as directory owner..."
+            )
+            ls_output = android.adb.run_shell_command(f'ls -ld {target_dir}')
+            logs.info(f"DEBUG: ls -ld target_dir: {ls_output.strip()}")
+            parts = ls_output.split()
+            if len(parts) >= 3:
+              owner = parts[2]
+              logs.info(
+                  f"DEBUG: Target directory owner is {owner}. Trying mv as {owner}..."
+              )
+              mv_owner_cmd = f'su {owner} mv {tmp_dir}/wrap.sh {wrap_sh_path}'
+              mv_owner_result = android.adb.run_shell_command(mv_owner_cmd)
+              logs.info(f"DEBUG: mv as owner result: {mv_owner_result}")
+
+              chmod_owner_cmd = f'su {owner} chmod 755 {wrap_sh_path}'
+              chmod_owner_result = android.adb.run_shell_command(
+                  chmod_owner_cmd)
+              logs.info(f"DEBUG: chmod as owner result: {chmod_owner_result}")
+          else:
+            # If mv succeeded as root, chmod as root
+            chmod_result = android.adb.run_shell_command(
+                f'su 0 chmod 755 {wrap_sh_path}')
+            logs.info(f"DEBUG: chmod result: {chmod_result}")
 
           # 5. Restore SELinux context
           restorecon_result = android.adb.run_shell_command(
