@@ -1229,13 +1229,28 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
       self.auxiliary_libraries = ','.join(aux_libs)
 
     # Grant MANAGE_EXTERNAL_STORAGE permission
-    android.adb.run_shell_command(
-        f'appops set {self.package_name} MANAGE_EXTERNAL_STORAGE allow')
+    logs.info("Granting MANAGE_EXTERNAL_STORAGE...")
+    op_names = ['MANAGE_EXTERNAL_STORAGE', 'android:manage_external_storage']
+    for op in op_names:
+      cmd = f'su 0 appops set {self.package_name} {op} allow'
+      out = android.adb.run_shell_command(cmd)
+      logs.info(f"Command: {cmd}, Output: {out}")
+
+      # Verify
+      verify_cmd = f'su 0 appops get {self.package_name} {op}'
+      verify_out = android.adb.run_shell_command(verify_cmd)
+      logs.info(f"Verification: {verify_cmd}, Output: {verify_out}")
+
     # Also grant legacy storage permissions just in case the APK uses them
-    android.adb.run_shell_command(f'su 0 pm grant {self.package_name} '
-                                  f'android.permission.READ_EXTERNAL_STORAGE')
-    android.adb.run_shell_command(f'su 0 pm grant {self.package_name} '
-                                  f'android.permission.WRITE_EXTERNAL_STORAGE')
+    logs.info("Granting legacy storage permissions...")
+    permissions = [
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE'
+    ]
+    for perm in permissions:
+      cmd = f'su 0 pm grant {self.package_name} {perm}'
+      out = android.adb.run_shell_command(cmd)
+      logs.info(f"Command: {cmd}, Output: {out}")
     logs.info(f"Dependency setup complete. LibraryUnderTest: "
               f"{self.library_under_test}, AuxiliaryLibraries: "
               f"{self.auxiliary_libraries}")
