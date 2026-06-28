@@ -1221,7 +1221,13 @@ class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
     for lib in sorted_libs:
       name = os.path.basename(lib)
       if name == main_lib_name:
-        self.library_under_test = name
+        # Strip 'lib' prefix and '.so' suffix for System.loadLibrary
+        stripped_name = name
+        if stripped_name.startswith('lib'):
+          stripped_name = stripped_name[3:]
+        if stripped_name.endswith('.so'):
+          stripped_name = stripped_name[:-3]
+        self.library_under_test = stripped_name
       else:
         aux_libs.append(name)
 
