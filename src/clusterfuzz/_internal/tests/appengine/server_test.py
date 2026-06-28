@@ -22,12 +22,12 @@ class ServerTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs._is_running_on_app_engine',
+        'clusterfuzz._internal.system.environment.is_running_on_app_engine',
     ])
-    self.mock._is_running_on_app_engine.return_value = True  # pylint: disable=protected-access
+    self.mock.is_running_on_app_engine.return_value = True
 
-  # pylint: disable=protected-access
   def test(self):
+    # pylint: disable=import-outside-toplevel
     import server
     self.assertIsNotNone(server.handlers)
     self.assertIsNotNone(server.cron_routes)

@@ -417,6 +417,44 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
         os.path.isdir('/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025'))
 
 
+class RegularBuildUnpackTest(fake_filesystem_unittest.TestCase):
+  """Tests for RegularBuild._unpack_build specifically (unmocked)."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.shell.clear_temp_directory',
+        'time.time',
+    ])
+    test_helpers.patch_environ(self)
+    os.environ['BUILDS_DIR'] = '/builds'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['APP_NAME'] = FAKE_APP_NAME
+    os.environ['JOB_NAME'] = 'job'
+
+  def test_unpack_build_fails_when_out_of_space(self):
+    """Test that _unpack_build returns False when out of space."""
+    with mock.patch(
+        'clusterfuzz._internal.build_management.build_manager._make_space',
+        return_value=False):
+      with mock.patch(
+          'clusterfuzz._internal.build_management.build_manager.Build._open_build_archive'
+      ) as mock_open:
+        archive_mock = mock.MagicMock()
+        archive_mock.unpacked_size.return_value = 100
+        mock_open.return_value.__enter__.return_value = archive_mock
+
+        build = build_manager.RegularBuild('/builds/build4', 1,
+                                           'gs://fake_bucket/fake.zip')
+
+        with mock.patch(
+            'clusterfuzz._internal.system.shell.remove_directory',
+            return_value=True):
+          result = build._unpack_build('/builds/build4', '/builds/build4/dir',
+                                       'gs://fake_bucket/fake.zip')
+          self.assertFalse(result)
+
+
 class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for regular libFuzzer build setup."""
 
@@ -494,6 +532,27 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         os.environ['BUILD_DIR'],
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions')
 
+  def test_setup_fuzz_discovery(self):
+    """Tests setting up a build during initial fuzz target discovery.
+
+    (fuzz_target=None).
+    """
+    os.environ['TASK_NAME'] = 'fuzz'
+    self.mock.time.return_value = 1000.0
+
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    # Verify unpack() was never called because we skipped unpacking
+    # for discovery.
+    unpack_mock = self.mock.open.return_value.__enter__.return_value.unpack
+    self.assertEqual(unpack_mock.call_count, 0)
+    self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
+
   @parameterized.parameterized.expand(['True', 'False'])
   def test_setup_fuzz(self, unpack_all):
     """Tests setting up a build during fuzzing."""
@@ -503,7 +562,9 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.mock.time.return_value = 1000.0
     fuzz_target = build_manager.pick_random_fuzz_target(
         target_weights=self.target_weights)
+
     build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
+
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
@@ -703,7 +764,9 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['ALLOW_UNPACK_OVER_HTTP'] = "True"
     self.mock.unzip_over_http_compatible.return_value = True
     self.mock.time.return_value = 1000.0
-    build = build_manager.setup_regular_build(2)
+    fuzz_target = build_manager.pick_random_fuzz_target(
+        target_weights=self.target_weights)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
@@ -718,7 +781,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # Test setting up build again.
     self.mock.time.return_value = 1005.0
-    build = build_manager.setup_regular_build(2)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
 
     self.assertIsInstance(build, build_manager.RegularBuild)
 
@@ -738,9 +801,12 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['TASK_NAME'] = 'fuzz'
     os.environ['RELEASE_BUILD_URL_PATTERN'] = (
         'https://example.com/path/file-release-([0-9]+).zip')
+    os.environ['ALLOW_UNPACK_OVER_HTTP'] = 'True'
     self.mock.unzip_over_http_compatible.return_value = True
     self.mock.time.return_value = 1000.0
-    build = build_manager.setup_regular_build(2)
+    fuzz_target = build_manager.pick_random_fuzz_target(
+        target_weights=self.target_weights)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
     self.assertIsInstance(build, build_manager.RegularBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
@@ -748,12 +814,15 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(os.environ['APP_REVISION'], '2')
 
     self.assertEqual(
-        1, self.mock.open.return_value.__enter__.return_value.unpack.call_count)
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.
+        call_count, 1)
+    self.mock.open_uri.return_value.__enter__.return_value.unpacked_size.assert_called_with(
+        fuzz_target=None)
 
     # Test setting up build again.
     os.environ['FUZZ_TARGET'] = ''
     self.mock.time.return_value = 1005.0
-    build = build_manager.setup_regular_build(2)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
 
     self.assertIsInstance(build, build_manager.RegularBuild)
 
@@ -761,9 +830,81 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # Not a partial build, so unpack shouldn't be called again.
     self.assertEqual(
-        1, self.mock.open.return_value.__enter__.return_value.unpack.call_count)
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.
+        call_count, 1)
 
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
+
+  def test_setup_blackbox_over_http(self):
+    """Tests setup blackbox (non-engine) build with compatible remote unzipping."""
+    os.environ['JOB_NAME'] = 'blackbox_job'
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['RELEASE_BUILD_URL_PATTERN'] = (
+        'https://example.com/path/file-release-([0-9]+).zip')
+    os.environ['ALLOW_UNPACK_OVER_HTTP'] = 'True'
+    self.mock.unzip_over_http_compatible.return_value = True
+    self.mock.time.return_value = 1000.0
+
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    # We expect unpack to be called because it is not skipped for blackbox.
+    self.assertEqual(
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.
+        call_count, 1)
+    self.assertEqual(self.mock.unzip_over_http_compatible.call_count, 1)
+
+    # Test setting up build again.
+    self.mock.time.return_value = 1005.0
+
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+
+    # Since UNPACK_ALL_FUZZ_TARGETS_AND_FILES is not True, it was marked as partial,
+    # so it should be unpacked again.
+    self.assertEqual(
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.
+        call_count, 2)
+
+  def test_setup_blackbox_over_http_unpack_all(self):
+    """Tests setup blackbox build with compatible remote unzipping and unpack all."""
+    os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
+    os.environ['JOB_NAME'] = 'blackbox_job'
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['RELEASE_BUILD_URL_PATTERN'] = (
+        'https://example.com/path/file-release-([0-9]+).zip')
+    os.environ['ALLOW_UNPACK_OVER_HTTP'] = 'True'
+    self.mock.unzip_over_http_compatible.return_value = True
+    self.mock.time.return_value = 1000.0
+
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+    self.assertEqual(
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.
+        call_count, 1)
+
+    # Test setting up build again.
+    self.mock.time.return_value = 1005.0
+
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+
+    # Not a partial build, so unpack shouldn't be called again.
+    self.assertEqual(
+        self.mock.open_uri.return_value.__enter__.return_value.unpack.
+        call_count, 1)
 
   def test_delete(self):
     """Test deleting this build."""
@@ -1792,3 +1933,39 @@ class GetPrimaryBucketPathTest(unittest.TestCase):
     """Test no bucket paths defined."""
     with self.assertRaises(build_manager.BuildManagerError):
       build_manager.get_primary_bucket_path()
+
+
+class BuildPropertyTest(unittest.TestCase):
+  """Tests for Build class properties."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_engine_fuzzer_job',
+    ])
+
+  def test_is_discovery_fuzzing_discovery(self):
+    """Test is_discovery is True for engine fuzzer job with no target and no prefix."""
+    self.mock.is_engine_fuzzer_job.return_value = True
+    build = build_manager.Build('/base', 1, build_prefix='', fuzz_target=None)
+    self.assertTrue(build.is_discovery)
+
+  def test_is_discovery_fuzzing_with_target(self):
+    """Test is_discovery is False for engine fuzzer job with target."""
+    self.mock.is_engine_fuzzer_job.return_value = True
+    build = build_manager.Build(
+        '/base', 1, build_prefix='', fuzz_target='target')
+    self.assertFalse(build.is_discovery)
+
+  def test_is_discovery_fuzzing_with_prefix(self):
+    """Test is_discovery is False for engine fuzzer job with build prefix."""
+    self.mock.is_engine_fuzzer_job.return_value = True
+    build = build_manager.Build(
+        '/base', 1, build_prefix='extra', fuzz_target=None)
+    self.assertFalse(build.is_discovery)
+
+  def test_is_discovery_non_fuzzing(self):
+    """Test is_discovery is False for non-engine fuzzer job."""
+    self.mock.is_engine_fuzzer_job.return_value = False
+    build = build_manager.Build('/base', 1, build_prefix='', fuzz_target=None)
+    self.assertFalse(build.is_discovery)

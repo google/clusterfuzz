@@ -133,17 +133,17 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
           fuzzer_binary_name=fuzzer_binary_name)
 
     is_minimized = testcase and blob_info.key() == testcase.minimized_keys
-    if access.has_access():
-      # User has general access.
+
+    # Testcase blobs require testcase-level access (which enforces the
+    # security_flag privileged-access requirement); general access alone is
+    # only sufficient for non-testcase blobs.
+    if testcase:
+      if not access.can_user_access_testcase(testcase):
+        raise helpers.AccessDeniedError()
       return self._send_blob(blob_info, testcase_id, is_minimized,
                              fuzzer_binary_name)
 
-    # If this blobstore file is for a testcase, check if the user has access to
-    # the testcase.
-    if not testcase:
-      raise helpers.AccessDeniedError()
-
-    if access.can_user_access_testcase(testcase):
+    if access.has_access():
       return self._send_blob(blob_info, testcase_id, is_minimized,
                              fuzzer_binary_name)
 

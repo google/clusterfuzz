@@ -69,6 +69,11 @@ LOCKSCREEN_TABLE_NAME = 'locksettings'
 
 def add_test_accounts_if_needed():
   """Add test account to work with GmsCore, etc."""
+  # Short-circuit: UWORKERs do not have Datastore access to retrieve
+  # credentials.
+  if environment.is_uworker():
+    return
+
   last_test_account_check_time = persistent_cache.get_value(
       constants.LAST_TEST_ACCOUNT_CHECK_KEY,
       constructor=datetime.datetime.utcfromtimestamp)
@@ -311,11 +316,12 @@ def initialize_device():
   add_test_accounts_if_needed()
 
   # Setup AddressSanitizer if needed.
-  sanitizer.setup_asan_if_needed()
+  asan_reboot_done = sanitizer.setup_asan_if_needed()
 
   # Reboot device as above steps would need it and also it brings device in a
   # good state.
-  reboot()
+  if not asan_reboot_done:
+    reboot()
 
   # Make sure we are running as root after restart.
   adb.run_as_root()
@@ -346,6 +352,29 @@ def initialize_environment():
   environment.set_value('LOG_TASK_TIMES', True)
 
 
+def _needs_no_streaming_for_asan() -> bool:
+  """
+  Asan setup requires non-streaming installation because streaming
+  installation prevents wrap.sh from being invoked on modern Android
+  versions which is necessary for ASan to function correctly.
+
+  Returns:
+    bool: True if the job or device requires ASan, False otherwise.
+  """
+  is_asan_job = False
+  job_name = environment.get_value('JOB_NAME')
+  if job_name:
+    memory_tool = environment.get_memory_tool_name(job_name)
+    if memory_tool == 'ASAN':
+      is_asan_job = True
+
+  is_asan_device = (
+      environment.get_value('ASAN_DEVICE_SETUP') or
+      settings.get_sanitizer_tool_name() == 'asan')
+
+  return is_asan_job or is_asan_device
+
+
 def install_application_if_needed(apk_path, force_update):
   """Install application package if it does not exist on device
   or if force_update is set."""
@@ -371,7 +400,7 @@ def install_application_if_needed(apk_path, force_update):
   # package list or force_update flag has been set.
   if force_update or not app.is_installed(package_name):
     app.uninstall(package_name)
-    app.install(apk_path)
+    app.install(apk_path, no_streaming=_needs_no_streaming_for_asan())
 
     if not app.is_installed(package_name):
       logs.error('Package %s was not installed successfully.' % package_name)

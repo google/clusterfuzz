@@ -26,41 +26,50 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+clusterfuzz/_internal/protos/swarming.proto\x12\x0bswarming.v2\"(\n\nStringPair\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\",\n\x0eStringListPair\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x03(\t\"*\n\x06\x44igest\x12\x0c\n\x04hash\x18\x01 \x01(\t\x12\x12\n\nsize_bytes\x18\x02 \x01(\x03\"I\n\x0c\x43\x41SReference\x12\x14\n\x0c\x63\x61s_instance\x18\x01 \x01(\t\x12#\n\x06\x64igest\x18\x02 \x01(\x0b\x32\x13.swarming.v2.Digest\"B\n\x0b\x43ipdPackage\x12\x14\n\x0cpackage_name\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0c\n\x04path\x18\x03 \x01(\t\"y\n\tCipdInput\x12\x0e\n\x06server\x18\x01 \x01(\t\x12\x30\n\x0e\x63lient_package\x18\x02 \x01(\x0b\x32\x18.swarming.v2.CipdPackage\x12*\n\x08packages\x18\x03 \x03(\x0b\x32\x18.swarming.v2.CipdPackage\"(\n\nCacheEntry\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04path\x18\x02 \x01(\t\"\xf2\x01\n\x0b\x43ontainment\x12\x16\n\x0elower_priority\x18\x01 \x01(\x08\x12\x42\n\x10\x63ontainment_type\x18\x02 \x01(\x0e\x32(.swarming.v2.Containment.ContainmentType\x12\x17\n\x0flimit_processes\x18\x03 \x01(\x03\x12$\n\x1climit_total_committed_memory\x18\x04 \x01(\x03\"H\n\x0f\x43ontainmentType\x12\x11\n\rNOT_SPECIFIED\x10\x00\x12\x08\n\x04NONE\x10\x01\x12\x08\n\x04\x41UTO\x10\x02\x12\x0e\n\nJOB_OBJECT\x10\x03\"\x83\x04\n\x0eTaskProperties\x12\'\n\x06\x63\x61\x63hes\x18\x01 \x03(\x0b\x32\x17.swarming.v2.CacheEntry\x12*\n\ncipd_input\x18\x02 \x01(\x0b\x32\x16.swarming.v2.CipdInput\x12\x0f\n\x07\x63ommand\x18\x03 \x03(\t\x12\x14\n\x0crelative_cwd\x18\x04 \x01(\t\x12+\n\ndimensions\x18\x05 \x03(\x0b\x32\x17.swarming.v2.StringPair\x12$\n\x03\x65nv\x18\x06 \x03(\x0b\x32\x17.swarming.v2.StringPair\x12\x31\n\x0c\x65nv_prefixes\x18\x07 \x03(\x0b\x32\x1b.swarming.v2.StringListPair\x12\x1e\n\x16\x65xecution_timeout_secs\x18\x08 \x01(\x05\x12\x19\n\x11grace_period_secs\x18\t \x01(\x05\x12\x12\n\nidempotent\x18\n \x01(\x08\x12\x31\n\x0e\x63\x61s_input_root\x18\x0b \x01(\x0b\x32\x19.swarming.v2.CASReference\x12\x17\n\x0fio_timeout_secs\x18\x0c \x01(\x05\x12\x0f\n\x07outputs\x18\r \x03(\t\x12\x14\n\x0csecret_bytes\x18\x0e \x01(\x0c\x12-\n\x0b\x63ontainment\x18\x0f \x01(\x0b\x32\x18.swarming.v2.Containment\"p\n\tTaskSlice\x12/\n\nproperties\x18\x01 \x01(\x0b\x32\x1b.swarming.v2.TaskProperties\x12\x17\n\x0f\x65xpiration_secs\x18\x02 \x01(\x05\x12\x19\n\x11wait_for_capacity\x18\x03 \x01(\x08\"\x1d\n\x0bResultDBCfg\x12\x0e\n\x06\x65nable\x18\x01 \x01(\x08\"\xe8\x04\n\x0eNewTaskRequest\x12\x17\n\x0f\x65xpiration_secs\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x16\n\x0eparent_task_id\x18\x03 \x01(\t\x12\x10\n\x08priority\x18\x04 \x01(\x05\x12/\n\nproperties\x18\x05 \x01(\x0b\x32\x1b.swarming.v2.TaskProperties\x12+\n\x0btask_slices\x18\x06 \x03(\x0b\x32\x16.swarming.v2.TaskSlice\x12\x0c\n\x04tags\x18\x07 \x03(\t\x12\x0c\n\x04user\x18\x08 \x01(\t\x12\x17\n\x0fservice_account\x18\t \x01(\t\x12\x14\n\x0cpubsub_topic\x18\n \x01(\t\x12\x19\n\x11pubsub_auth_token\x18\x0b \x01(\t\x12\x17\n\x0fpubsub_userdata\x18\x0c \x01(\t\x12\x15\n\revaluate_only\x18\r \x01(\x08\x12M\n\x12pool_task_template\x18\x0e \x01(\x0e\x32\x31.swarming.v2.NewTaskRequest.PoolTaskTemplateField\x12\x1f\n\x17\x62ot_ping_tolerance_secs\x18\x0f \x01(\x05\x12\x14\n\x0crequest_uuid\x18\x10 \x01(\t\x12*\n\x08resultdb\x18\x11 \x01(\x0b\x32\x18.swarming.v2.ResultDBCfg\x12\r\n\x05realm\x18\x12 \x01(\t\"P\n\x15PoolTaskTemplateField\x12\x08\n\x04\x41UTO\x10\x00\x12\x11\n\rCANARY_PREFER\x10\x01\x12\x10\n\x0c\x43\x41NARY_NEVER\x10\x02\x12\x08\n\x04SKIP\x10\x03\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n+clusterfuzz/_internal/protos/swarming.proto\x12\x0bswarming.v2\x1a\x1fgoogle/protobuf/timestamp.proto\"(\n\nStringPair\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t\",\n\x0eStringListPair\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x03(\t\"*\n\x06\x44igest\x12\x0c\n\x04hash\x18\x01 \x01(\t\x12\x12\n\nsize_bytes\x18\x02 \x01(\x03\"I\n\x0c\x43\x41SReference\x12\x14\n\x0c\x63\x61s_instance\x18\x01 \x01(\t\x12#\n\x06\x64igest\x18\x02 \x01(\x0b\x32\x13.swarming.v2.Digest\"B\n\x0b\x43ipdPackage\x12\x14\n\x0cpackage_name\x18\x01 \x01(\t\x12\x0f\n\x07version\x18\x02 \x01(\t\x12\x0c\n\x04path\x18\x03 \x01(\t\"y\n\tCipdInput\x12\x0e\n\x06server\x18\x01 \x01(\t\x12\x30\n\x0e\x63lient_package\x18\x02 \x01(\x0b\x32\x18.swarming.v2.CipdPackage\x12*\n\x08packages\x18\x03 \x03(\x0b\x32\x18.swarming.v2.CipdPackage\"(\n\nCacheEntry\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04path\x18\x02 \x01(\t\"\xf2\x01\n\x0b\x43ontainment\x12\x16\n\x0elower_priority\x18\x01 \x01(\x08\x12\x42\n\x10\x63ontainment_type\x18\x02 \x01(\x0e\x32(.swarming.v2.Containment.ContainmentType\x12\x17\n\x0flimit_processes\x18\x03 \x01(\x03\x12$\n\x1climit_total_committed_memory\x18\x04 \x01(\x03\"H\n\x0f\x43ontainmentType\x12\x11\n\rNOT_SPECIFIED\x10\x00\x12\x08\n\x04NONE\x10\x01\x12\x08\n\x04\x41UTO\x10\x02\x12\x0e\n\nJOB_OBJECT\x10\x03\"\x83\x04\n\x0eTaskProperties\x12\'\n\x06\x63\x61\x63hes\x18\x01 \x03(\x0b\x32\x17.swarming.v2.CacheEntry\x12*\n\ncipd_input\x18\x02 \x01(\x0b\x32\x16.swarming.v2.CipdInput\x12\x0f\n\x07\x63ommand\x18\x03 \x03(\t\x12\x14\n\x0crelative_cwd\x18\x04 \x01(\t\x12+\n\ndimensions\x18\x05 \x03(\x0b\x32\x17.swarming.v2.StringPair\x12$\n\x03\x65nv\x18\x06 \x03(\x0b\x32\x17.swarming.v2.StringPair\x12\x31\n\x0c\x65nv_prefixes\x18\x07 \x03(\x0b\x32\x1b.swarming.v2.StringListPair\x12\x1e\n\x16\x65xecution_timeout_secs\x18\x08 \x01(\x05\x12\x19\n\x11grace_period_secs\x18\t \x01(\x05\x12\x12\n\nidempotent\x18\n \x01(\x08\x12\x31\n\x0e\x63\x61s_input_root\x18\x0b \x01(\x0b\x32\x19.swarming.v2.CASReference\x12\x17\n\x0fio_timeout_secs\x18\x0c \x01(\x05\x12\x0f\n\x07outputs\x18\r \x03(\t\x12\x14\n\x0csecret_bytes\x18\x0e \x01(\x0c\x12-\n\x0b\x63ontainment\x18\x0f \x01(\x0b\x32\x18.swarming.v2.Containment\"p\n\tTaskSlice\x12/\n\nproperties\x18\x01 \x01(\x0b\x32\x1b.swarming.v2.TaskProperties\x12\x17\n\x0f\x65xpiration_secs\x18\x02 \x01(\x05\x12\x19\n\x11wait_for_capacity\x18\x03 \x01(\x08\"\x1d\n\x0bResultDBCfg\x12\x0e\n\x06\x65nable\x18\x01 \x01(\x08\"\xe8\x04\n\x0eNewTaskRequest\x12\x17\n\x0f\x65xpiration_secs\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x16\n\x0eparent_task_id\x18\x03 \x01(\t\x12\x10\n\x08priority\x18\x04 \x01(\x05\x12/\n\nproperties\x18\x05 \x01(\x0b\x32\x1b.swarming.v2.TaskProperties\x12+\n\x0btask_slices\x18\x06 \x03(\x0b\x32\x16.swarming.v2.TaskSlice\x12\x0c\n\x04tags\x18\x07 \x03(\t\x12\x0c\n\x04user\x18\x08 \x01(\t\x12\x17\n\x0fservice_account\x18\t \x01(\t\x12\x14\n\x0cpubsub_topic\x18\n \x01(\t\x12\x19\n\x11pubsub_auth_token\x18\x0b \x01(\t\x12\x17\n\x0fpubsub_userdata\x18\x0c \x01(\t\x12\x15\n\revaluate_only\x18\r \x01(\x08\x12M\n\x12pool_task_template\x18\x0e \x01(\x0e\x32\x31.swarming.v2.NewTaskRequest.PoolTaskTemplateField\x12\x1f\n\x17\x62ot_ping_tolerance_secs\x18\x0f \x01(\x05\x12\x14\n\x0crequest_uuid\x18\x10 \x01(\t\x12*\n\x08resultdb\x18\x11 \x01(\x0b\x32\x18.swarming.v2.ResultDBCfg\x12\r\n\x05realm\x18\x12 \x01(\t\"P\n\x15PoolTaskTemplateField\x12\x08\n\x04\x41UTO\x10\x00\x12\x11\n\rCANARY_PREFER\x10\x01\x12\x10\n\x0c\x43\x41NARY_NEVER\x10\x02\x12\x08\n\x04SKIP\x10\x03\"\xf2\x03\n\x13TaskRequestResponse\x12\x0f\n\x07task_id\x18\x01 \x01(\t\x12\x17\n\x0f\x65xpiration_secs\x18\x02 \x01(\x05\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x16\n\x0eparent_task_id\x18\x04 \x01(\t\x12\x10\n\x08priority\x18\x05 \x01(\x05\x12/\n\nproperties\x18\x06 \x01(\x0b\x32\x1b.swarming.v2.TaskProperties\x12\x0c\n\x04tags\x18\x07 \x03(\t\x12.\n\ncreated_ts\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0c\n\x04user\x18\t \x01(\t\x12\x15\n\rauthenticated\x18\n \x01(\t\x12+\n\x0btask_slices\x18\x0b \x03(\x0b\x32\x16.swarming.v2.TaskSlice\x12\x17\n\x0fservice_account\x18\x0c \x01(\t\x12\r\n\x05realm\x18\r \x01(\t\x12*\n\x08resultdb\x18\x0e \x01(\x0b\x32\x18.swarming.v2.ResultDBCfg\x12\x14\n\x0cpubsub_topic\x18\x0f \x01(\t\x12\x17\n\x0fpubsub_userdata\x18\x10 \x01(\t\x12\x1f\n\x17\x62ot_ping_tolerance_secs\x18\x11 \x01(\x05\x12\x14\n\x0crbe_instance\x18\x12 \x01(\t\"\x9d\x01\n\x11TasksCountRequest\x12)\n\x05start\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\'\n\x03\x65nd\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12&\n\x05state\x18\x03 \x01(\x0e\x32\x17.swarming.v2.StateQuery\x12\x0c\n\x04tags\x18\x04 \x03(\t\"D\n\nTasksCount\x12\r\n\x05\x63ount\x18\x01 \x01(\x05\x12\'\n\x03now\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp*\xcf\x02\n\nStateQuery\x12\x11\n\rQUERY_PENDING\x10\x00\x12\x11\n\rQUERY_RUNNING\x10\x01\x12\x19\n\x15QUERY_PENDING_RUNNING\x10\x02\x12\x13\n\x0fQUERY_COMPLETED\x10\x03\x12\x1b\n\x17QUERY_COMPLETED_SUCCESS\x10\x04\x12\x1b\n\x17QUERY_COMPLETED_FAILURE\x10\x05\x12\x11\n\rQUERY_EXPIRED\x10\x06\x12\x13\n\x0fQUERY_TIMED_OUT\x10\x07\x12\x12\n\x0eQUERY_BOT_DIED\x10\x08\x12\x12\n\x0eQUERY_CANCELED\x10\t\x12\r\n\tQUERY_ALL\x10\n\x12\x11\n\rQUERY_DEDUPED\x10\x0b\x12\x10\n\x0cQUERY_KILLED\x10\x0c\x12\x15\n\x11QUERY_NO_RESOURCE\x10\r\x12\x16\n\x12QUERY_CLIENT_ERROR\x10\x0e\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'clusterfuzz._internal.protos.swarming_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
-  _globals['_STRINGPAIR']._serialized_start=60
-  _globals['_STRINGPAIR']._serialized_end=100
-  _globals['_STRINGLISTPAIR']._serialized_start=102
-  _globals['_STRINGLISTPAIR']._serialized_end=146
-  _globals['_DIGEST']._serialized_start=148
-  _globals['_DIGEST']._serialized_end=190
-  _globals['_CASREFERENCE']._serialized_start=192
-  _globals['_CASREFERENCE']._serialized_end=265
-  _globals['_CIPDPACKAGE']._serialized_start=267
-  _globals['_CIPDPACKAGE']._serialized_end=333
-  _globals['_CIPDINPUT']._serialized_start=335
-  _globals['_CIPDINPUT']._serialized_end=456
-  _globals['_CACHEENTRY']._serialized_start=458
-  _globals['_CACHEENTRY']._serialized_end=498
-  _globals['_CONTAINMENT']._serialized_start=501
-  _globals['_CONTAINMENT']._serialized_end=743
-  _globals['_CONTAINMENT_CONTAINMENTTYPE']._serialized_start=671
-  _globals['_CONTAINMENT_CONTAINMENTTYPE']._serialized_end=743
-  _globals['_TASKPROPERTIES']._serialized_start=746
-  _globals['_TASKPROPERTIES']._serialized_end=1261
-  _globals['_TASKSLICE']._serialized_start=1263
-  _globals['_TASKSLICE']._serialized_end=1375
-  _globals['_RESULTDBCFG']._serialized_start=1377
-  _globals['_RESULTDBCFG']._serialized_end=1406
-  _globals['_NEWTASKREQUEST']._serialized_start=1409
-  _globals['_NEWTASKREQUEST']._serialized_end=2025
-  _globals['_NEWTASKREQUEST_POOLTASKTEMPLATEFIELD']._serialized_start=1945
-  _globals['_NEWTASKREQUEST_POOLTASKTEMPLATEFIELD']._serialized_end=2025
+  _globals['_STATEQUERY']._serialized_start=2792
+  _globals['_STATEQUERY']._serialized_end=3127
+  _globals['_STRINGPAIR']._serialized_start=93
+  _globals['_STRINGPAIR']._serialized_end=133
+  _globals['_STRINGLISTPAIR']._serialized_start=135
+  _globals['_STRINGLISTPAIR']._serialized_end=179
+  _globals['_DIGEST']._serialized_start=181
+  _globals['_DIGEST']._serialized_end=223
+  _globals['_CASREFERENCE']._serialized_start=225
+  _globals['_CASREFERENCE']._serialized_end=298
+  _globals['_CIPDPACKAGE']._serialized_start=300
+  _globals['_CIPDPACKAGE']._serialized_end=366
+  _globals['_CIPDINPUT']._serialized_start=368
+  _globals['_CIPDINPUT']._serialized_end=489
+  _globals['_CACHEENTRY']._serialized_start=491
+  _globals['_CACHEENTRY']._serialized_end=531
+  _globals['_CONTAINMENT']._serialized_start=534
+  _globals['_CONTAINMENT']._serialized_end=776
+  _globals['_CONTAINMENT_CONTAINMENTTYPE']._serialized_start=704
+  _globals['_CONTAINMENT_CONTAINMENTTYPE']._serialized_end=776
+  _globals['_TASKPROPERTIES']._serialized_start=779
+  _globals['_TASKPROPERTIES']._serialized_end=1294
+  _globals['_TASKSLICE']._serialized_start=1296
+  _globals['_TASKSLICE']._serialized_end=1408
+  _globals['_RESULTDBCFG']._serialized_start=1410
+  _globals['_RESULTDBCFG']._serialized_end=1439
+  _globals['_NEWTASKREQUEST']._serialized_start=1442
+  _globals['_NEWTASKREQUEST']._serialized_end=2058
+  _globals['_NEWTASKREQUEST_POOLTASKTEMPLATEFIELD']._serialized_start=1978
+  _globals['_NEWTASKREQUEST_POOLTASKTEMPLATEFIELD']._serialized_end=2058
+  _globals['_TASKREQUESTRESPONSE']._serialized_start=2061
+  _globals['_TASKREQUESTRESPONSE']._serialized_end=2559
+  _globals['_TASKSCOUNTREQUEST']._serialized_start=2562
+  _globals['_TASKSCOUNTREQUEST']._serialized_end=2719
+  _globals['_TASKSCOUNT']._serialized_start=2721
+  _globals['_TASKSCOUNT']._serialized_end=2789
 # @@protoc_insertion_point(module_scope)

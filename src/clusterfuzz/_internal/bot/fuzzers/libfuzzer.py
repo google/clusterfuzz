@@ -299,14 +299,16 @@ class LibFuzzerRunner(new_process.ModifierProcessRunnerMixin,
                       new_process.UnicodeProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when minijail is not used)."""
 
-  def __init__(self, executable_path, default_args=None):
+  def __init__(self, executable_path, default_args=None, cwd=None):
     """Inits the LibFuzzerRunner.
 
     Args:
       executable_path: Path to the fuzzer executable.
       default_args: Default arguments to always pass to the fuzzer.
+      cwd: Optional current working directory for the process.
     """
-    super().__init__(executable_path=executable_path, default_args=default_args)
+    super().__init__(
+        executable_path=executable_path, default_args=default_args, cwd=cwd)
 
   def fuzz(self,
            corpus_directories,
@@ -1133,6 +1135,10 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     temp_dir = fuzzer_utils.get_temp_dir()
 
   build_dir = environment.get_value('BUILD_DIR')
+
+  cwd = build_dir if environment.get_value(
+      'FUZZ_TARGET_CWD_IS_BUILD_DIR') else None
+
   is_android = environment.is_android()
   is_fuchsia = environment.platform() == 'FUCHSIA'
 
@@ -1141,6 +1147,7 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     os.chmod(fuzzer_path, 0o755)
 
   is_chromeos_system_job = environment.is_chromeos_system_job()
+
   if is_chromeos_system_job:
     minijail_chroot = minijail.ChromeOSChroot(build_dir)
   elif use_minijail:
@@ -1185,7 +1192,11 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   elif is_android:
     runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
-    runner = LibFuzzerRunner(fuzzer_path)
+    runner = LibFuzzerRunner(fuzzer_path, cwd=cwd)
+
+  if cwd and not isinstance(runner, LibFuzzerRunner):
+    logs.warning('FUZZ_TARGET_CWD_IS_BUILD_DIR is only supported for standard '
+                 'LibFuzzerRunner and will be ignored.')
 
   return runner
 

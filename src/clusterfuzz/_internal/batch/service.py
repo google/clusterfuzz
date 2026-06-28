@@ -46,23 +46,26 @@ from clusterfuzz._internal.system import environment
 # A named tuple that defines the execution environment for a batch workload.
 # This includes details about the machine, disk, network, and container image,
 # as well as ClusterFuzz-specific settings.
-BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
-    'clusterfuzz_release',
-    'disk_size_gb',
-    'disk_type',
-    'docker_image',
-    'user_data',
-    'service_account_email',
-    'subnetwork',
-    'preemptible',
-    'project',
-    'machine_type',
-    'network',
-    'gce_region',
-    'priority',
-    'max_run_duration',
-    'retry',
-])
+BatchWorkloadSpec = collections.namedtuple(
+    'BatchWorkloadSpec', [
+        'clusterfuzz_release',
+        'disk_size_gb',
+        'disk_type',
+        'docker_image',
+        'user_data',
+        'service_account_email',
+        'subnetwork',
+        'preemptible',
+        'project',
+        'machine_type',
+        'network',
+        'gce_region',
+        'priority',
+        'max_run_duration',
+        'retry',
+        'project_number',
+    ],
+    defaults=(None,))
 
 WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
                                            ['name', 'weight'])
@@ -253,7 +256,8 @@ def is_remote_task(command: str, job_name: str) -> bool:
   """
   try:
     _get_specs_from_config(
-        [remote_task_types.RemoteTask(command, job_name, None)])
+        [remote_task_types.RemoteTask(command, job_name, None)],
+        should_check_regions=False)
     return True
   except ValueError:
     return False
@@ -297,15 +301,15 @@ def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
   return config_map
 
 
-def _get_subconfig(batch_config, instance_spec):
+def _get_subconfig(batch_config, instance_spec, should_check_regions=True):
   all_subconfigs = batch_config.get('subconfigs', {})
   instance_subconfigs = instance_spec['subconfigs']
 
   queue_check_regions = batch_config.get('queue_check_regions')
-  if not queue_check_regions:
-    logs.info(
-        'Skipping batch load check because queue_check_regions is not configured.'
-    )
+  if not should_check_regions or not queue_check_regions:
+    logs.info('Skipping batch load check. '
+              f'should_check_regions: {should_check_regions}, '
+              f'queue_check_regions: {queue_check_regions}')
     weighted_subconfigs = [
         WeightedSubconfig(subconfig['name'], subconfig['weight'])
         for subconfig in instance_subconfigs
@@ -340,8 +344,8 @@ def _get_subconfig(batch_config, instance_spec):
   return all_subconfigs[chosen_name]
 
 
-def _get_specs_from_config(
-    batch_tasks: List[remote_task_types.RemoteTask]) -> Dict:
+def _get_specs_from_config(batch_tasks: List[remote_task_types.RemoteTask],
+                           should_check_regions: bool = True) -> Dict:
   """Gets the configured specifications for a batch workload."""
   if not batch_tasks:
     return {}
@@ -353,8 +357,15 @@ def _get_specs_from_config(
     if (task.command, task.job_type) in specs:
       # Don't repeat work for no reason.
       continue
-    config_name, disk_size_gb, base_os_version = config_map[(task.command,
-                                                             task.job_type)]
+    try:
+      config_name, disk_size_gb, base_os_version = config_map[(task.command,
+                                                               task.job_type)]
+    except Exception:
+      logs.error(
+          'Error on mapping the job',
+          command=task.command,
+          job_type=task.job_type)
+      continue
 
     instance_spec = batch_config.get('mapping').get(config_name)
     if instance_spec is None:
@@ -370,6 +381,7 @@ def _get_specs_from_config(
       docker_image_uri = instance_spec['docker_image']
 
     project_name = batch_config.get('project')
+    project_number = batch_config.get('project-number')
     clusterfuzz_release = instance_spec.get('clusterfuzz_release', 'prod')
     # Lower numbers are a lower priority, meaning less likely to run From:
     # https://cloud.google.com/batch/docs/reference/rest/v1/projects.locations.jobs
@@ -378,7 +390,8 @@ def _get_specs_from_config(
     # This saves us time and reduces fragementation, e.g. every linux fuzz task
     # run in this call will run in the same zone.
     if config_name not in subconfig_map:
-      subconfig = _get_subconfig(batch_config, instance_spec)
+      subconfig = _get_subconfig(batch_config, instance_spec,
+                                 should_check_regions)
       subconfig_map[config_name] = subconfig
 
     should_retry = instance_spec.get('retry', False)
@@ -399,6 +412,7 @@ def _get_specs_from_config(
         network=subconfig['network'],
         subnetwork=subconfig['subnetwork'],
         project=project_name,
+        project_number=project_number,
         clusterfuzz_release=clusterfuzz_release,
         priority=priority,
         max_run_duration=max_run_duration,
@@ -448,7 +462,7 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
     job_name = get_job_name()
     create_request.job_id = job_name
     # The job's parent is the region in which the job will run
-    project_id = spec.project
+    project_id = spec.project_number or spec.project
     create_request.parent = f'projects/{project_id}/locations/{spec.gce_region}'
     job_result = _send_create_job_request(create_request)
     logs.info(f'Created batch job id={job_name}.', spec=spec)

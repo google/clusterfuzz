@@ -46,19 +46,19 @@ class RemoteTaskGateTest(unittest.TestCase):
                 mock.Mock(
                     id='kubernetes',
                     service=mock.Mock(return_value=self.mock_k8s_service),
-                    feature_flag=None,
+                    feature_flag=mock.Mock(enabled=True),
                     default_weight=0.0),
             'GCP_BATCH':
                 mock.Mock(
                     id='gcp_batch',
                     service=mock.Mock(return_value=self.mock_gcp_batch_service),
-                    feature_flag=None,
+                    feature_flag=mock.Mock(enabled=True),
                     default_weight=1.0),
             'SWARMING':
                 mock.Mock(
                     id='swarming',
                     service=mock.Mock(return_value=self.mock_swarming_service),
-                    feature_flag=None,
+                    feature_flag=mock.Mock(enabled=True),
                     default_weight=0.0),
         })
     self.patcher.start()
@@ -488,19 +488,19 @@ class RemoteTaskGateProcessingTest(unittest.TestCase):
                 mock.Mock(
                     id='kubernetes',
                     service=mock.Mock(),
-                    feature_flag=None,
+                    feature_flag=mock.Mock(enabled=True),
                     default_weight=0.0),
             'GCP_BATCH':
                 mock.Mock(
                     id='gcp_batch',
                     service=mock.Mock(),
-                    feature_flag=None,
+                    feature_flag=mock.Mock(enabled=True),
                     default_weight=1.0),
             'SWARMING':
                 mock.Mock(
                     id='swarming',
                     service=mock.Mock(return_value=self.mock_swarming_service),
-                    feature_flag=None,
+                    feature_flag=mock.Mock(enabled=True),
                     default_weight=0.0),
         })
     self.patcher.start()
