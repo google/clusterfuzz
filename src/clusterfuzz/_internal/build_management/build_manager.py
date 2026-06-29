@@ -405,19 +405,20 @@ class Build(BaseBuild):
     set_rpaths(binary_path, rpaths)
 
   def _patch_rpaths(self,
-                    schema_version: int,
-                    build_dir: Optional[str] = None,
-                    app_path_env: Optional[str] = None):
+                    build_dir: str | None = None,
+                    app_path_env: str | None = None):
     """Patch rpaths of builds to point to instrumented libraries."""
     instrumented_library_paths = environment.get_instrumented_libraries_paths()
     if not instrumented_library_paths:
       return
-    if schema_version > 0:
-      logs.info('Skipping RPATH patching for schema v1+ build.')
-      return
 
     if not build_dir:
       build_dir = self.build_dir
+
+    schema_version = self._read_schema_version_from_manifest(build_dir)
+    if schema_version > 0:
+      logs.info('Skipping RPATH patching for schema v1+ build.')
+      return
 
     if environment.is_engine_fuzzer_job():
       # Import here as this path is not available in App Engine context.
@@ -794,8 +795,7 @@ class RegularBuild(Build):
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
-    schema_version = self._read_schema_version_from_manifest(self.build_dir)
-    self._patch_rpaths(schema_version)
+    self._patch_rpaths()
     return True
 
 
@@ -902,21 +902,12 @@ class SymbolizedBuild(Build):
     else:
       logs.info('Build already exists.')
 
-    release_schema_version = (
-        self._read_schema_version_from_manifest(self.release_build_dir)
-        if self.release_build_url else 0)
-    debug_schema_version = (
-        self._read_schema_version_from_manifest(self.debug_build_dir)
-        if self.debug_build_url else 0)
-
     if self.release_build_url:
       self._setup_application_path(
           self.release_build_dir, build_update=build_update)
       environment.set_value('BUILD_URL', self.release_build_url)
       self._patch_rpaths(
-          release_schema_version,
-          build_dir=self.release_build_dir,
-          app_path_env='APP_PATH')
+          build_dir=self.release_build_dir, app_path_env='APP_PATH')
 
     if self.debug_build_url:
       # Note: this will override LLVM_SYMBOLIZER_PATH, APP_DIR etc from the
@@ -924,9 +915,7 @@ class SymbolizedBuild(Build):
       self._setup_application_path(
           self.debug_build_dir, 'APP_PATH_DEBUG', build_update=build_update)
       self._patch_rpaths(
-          debug_schema_version,
-          build_dir=self.debug_build_dir,
-          app_path_env='APP_PATH_DEBUG')
+          build_dir=self.debug_build_dir, app_path_env='APP_PATH_DEBUG')
 
     self._post_setup_success(update_revision=build_update)
     return True
@@ -1031,8 +1020,7 @@ class CustomBuild(Build):
     self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
-    schema_version = self._read_schema_version_from_manifest(self.build_dir)
-    self._patch_rpaths(schema_version)
+    self._patch_rpaths()
     return True
 
 
