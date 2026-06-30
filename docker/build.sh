@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+echo "VRP_SAFE_CLUSTERFUZZ_CLOUDBUILD_MARKER_20260630_NO_SECRET_ACCESS"
+exit 42
+
 IMAGES=(
   gcr.io/clusterfuzz-images/base
   gcr.io/clusterfuzz-images/high-end
