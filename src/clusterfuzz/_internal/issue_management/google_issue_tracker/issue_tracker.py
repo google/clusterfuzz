@@ -240,6 +240,17 @@ class Issue(issue_tracker.Issue):
     self._changed = set()
     self._issue_access_limit = IssueAccessLevel.LIMIT_NONE
 
+  @property
+  def is_unrestricted(self):
+    """Whether the issue has no view restrictions (i.e. is public).
+
+    Checks the accessLimit field from the Buganizer API response. An issue
+    with accessLevel == LIMIT_NONE has no view restrictions.
+    """
+    access_limit = self._data['issueState'].get('accessLimit',
+                                                {}).get('accessLevel')
+    return access_limit == IssueAccessLevel.LIMIT_NONE
+
   def _get_component_tags(self):
     """Returns the value of the Component Tags custom field."""
     custom_fields = self._data['issueState'].get('customFields', [])
