@@ -327,7 +327,7 @@ def update_tests_if_needed(tests_url=None):
     try:
       shell.remove_directory(data_directory, recreate=True)
       if tests_url.startswith('http'):
-        storage.download_signed_url_to_file(tests_url, temp_archive)
+        storage.download_signed_url_to_filepath(tests_url, temp_archive)
       else:
         storage.copy_file_from(tests_url, temp_archive)
 
