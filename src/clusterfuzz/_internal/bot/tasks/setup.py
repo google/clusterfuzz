@@ -841,11 +841,14 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
 
   logs.info(f'Testcase and related files :\n{resource_list}')
 
+  upload_file_path = testcase_path
   if len(resource_list) <= 1:
     # If this does not have any resources, just save the testcase.
     # TODO(flowerhack): Update this when we teach CF how to download testcases.
     try:
-      file_handle = open(testcase_path, 'rb')
+      with open(testcase_path, 'rb') as _:
+        # Verify file can be opened.
+        pass
     except OSError:
       logs.error(f'Unable to open testcase {testcase_path}.')
       return None, None, None
@@ -879,31 +882,37 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
 
     # Create the archive.
     zip_path = os.path.join(environment.get_value('INPUT_DIR'), zip_filename)
-    zip_file = zipfile.ZipFile(zip_path, 'w')
-    for file_name in resource_list:
-      if os.path.exists(file_name):
-        relative_filename = file_name[base_len:]
-        zip_file.write(file_name, relative_filename, zipfile.ZIP_DEFLATED)
-    zip_file.close()
+    with zipfile.ZipFile(zip_path, 'w') as zip_file:
+      for file_name in resource_list:
+        if os.path.exists(file_name):
+          relative_filename = file_name[base_len:]
+          zip_file.write(file_name, relative_filename, zipfile.ZIP_DEFLATED)
 
     try:
-      file_handle = open(zip_path, 'rb')
+      with open(zip_path, 'rb') as _:
+        # Verify file can be opened.
+        pass
+      upload_file_path = zip_path
     except OSError:
       logs.error(f'Unable to open testcase archive {zip_path}.')
       return None, None, None
+    finally:
+      if zip_path:
+        shell.remove_file(zip_path)
 
     archived = True
     absolute_filename = testcase_path[base_len:]
 
-  if not storage.upload_signed_url(file_handle, upload_url):
-    logs.error('Failed to upload testcase.')
-    return None, None, None
+  try:
+    with open(upload_file_path, 'rb') as file_handle:
+      if not storage.upload_signed_url(file_handle, upload_url):
+        logs.error('Failed to upload testcase.')
+        return None, None, None
 
-  file_handle.close()
-
-  # Don't need the archive after writing testcase to blobstore.
-  if zip_path:
-    shell.remove_file(zip_path)
+  finally:
+    # Don't need the archive after writing testcase to blobstore.
+    if zip_path:
+      shell.remove_file(zip_path)
 
   return archived, absolute_filename, zip_filename
 
