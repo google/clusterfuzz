@@ -368,7 +368,7 @@ def _is_testcase_minimized(testcase):
 
 def download_testcase(testcase_download_url, dst):
   """Downloads a testcase from a signed url"""
-  return storage.download_signed_url_to_file(testcase_download_url, dst)
+  return storage.download_signed_url_to_filepath(testcase_download_url, dst)
 
 
 def unpack_testcase(testcase, testcase_download_url):
@@ -637,8 +637,8 @@ def _update_fuzzer(
 
   # Copy the archive to local disk and unpack it.
   archive_path = os.path.join(fuzzer_directory, fuzzer.filename)
-  if not storage.download_signed_url_to_file(update_input.fuzzer_download_url,
-                                             archive_path):
+  if not storage.download_signed_url_to_filepath(
+      update_input.fuzzer_download_url, archive_path):
     logs.error('Failed to copy fuzzer archive.')
     return False
 

@@ -480,17 +480,21 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     shell.create_directory(directory, create_intermediates=True)
     if corpus.backup_url:
       tmpdir = environment.get_value('FUZZ_INPUTS')
-      with tempfile.NamedTemporaryFile(
-          dir=tmpdir, suffix='.zip') as temp_zipfile:
-        try:
-          storage.download_signed_url_to_file(corpus.backup_url,
-                                              temp_zipfile.name)
-          with archive.open(temp_zipfile.name) as reader:
-            reader.extract_all(directory)
-            for member in reader.list_members():
-              self._filenames_to_delete_urls_mapping[member.name] = None
-        except RuntimeError:
-          logs.warning('Couldn\'t download corpus backup')
+      # To avoid opening the file multiple times on Windows, manually close the
+      # file after write and delete it after extraction.
+      temp_zipfile = tempfile.NamedTemporaryFile(
+          dir=tmpdir, suffix='.zip', delete=False)
+      try:
+        storage.download_signed_url_to_file(corpus.backup_url, temp_zipfile)
+        temp_zipfile.close()
+        with archive.open(temp_zipfile.name) as reader:
+          reader.extract_all(directory)
+          for member in reader.list_members():
+            self._filenames_to_delete_urls_mapping[member.name] = None
+      except RuntimeError:
+        logs.warning('Couldn\'t download corpus backup')
+      finally:
+        os.unlink(temp_zipfile.name)
 
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     fails = 0
