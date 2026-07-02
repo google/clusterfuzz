@@ -234,3 +234,190 @@ class LoadBigQueryStatsTest(unittest.TestCase):
           # Otherwise we need to mock two calls to mock.call().execute().__str__()
           # which does not seem to work well.
           any_order=True)
+
+  def test_execute_with_date(self):
+    """Tests executing of cron job with an explicit date."""
+    load_bigquery_stats.main(['--date', '2016-10-15'])
+
+    self.mock_bigquery.datasets().insert.assert_has_calls([
+        mock.call(
+            projectId='test-clusterfuzz',
+            body={
+                'datasetReference': {
+                    'projectId': 'test-clusterfuzz',
+                    'datasetId': 'fuzzer_stats'
+                }
+            }),
+        mock.call().execute()
+    ])
+
+    self.mock_bigquery.tables().insert.assert_has_calls([
+        mock.call(
+            body={
+                'timePartitioning': {
+                    'type': 'DAY'
+                },
+                'tableReference': {
+                    'projectId': 'test-clusterfuzz',
+                    'tableId': 'JobRun',
+                    'datasetId': 'fuzzer_stats',
+                },
+                'schema': fuzzer_stats.JobRun.SCHEMA,
+            },
+            datasetId='fuzzer_stats',
+            projectId='test-clusterfuzz'),
+        mock.call().execute(),
+        mock.call(
+            body={
+                'timePartitioning': {
+                    'type': 'DAY'
+                },
+                'tableReference': {
+                    'projectId': 'test-clusterfuzz',
+                    'tableId': 'TestcaseRun',
+                    'datasetId': 'fuzzer_stats',
+                },
+                'schema': {
+                    'schema': 'schema'
+                },
+            },
+            datasetId='fuzzer_stats',
+            projectId='test-clusterfuzz'),
+        mock.call().execute(),
+    ])
+
+    for i, prefix in enumerate(load_bigquery_stats._HEX_DIGITS):  # pylint: disable=protected-access
+      self.mock_bigquery.jobs().insert.assert_has_calls(
+          [
+              mock.call(
+                  body={
+                      'configuration': {
+                          'load': {
+                              'destinationTable': {
+                                  'projectId': 'test-clusterfuzz',
+                                  'tableId': 'JobRun$20161015',
+                                  'datasetId': 'fuzzer_stats'
+                              },
+                              'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
+                              'writeDisposition':
+                                  'WRITE_TRUNCATE'
+                                  if i == 0 else 'WRITE_APPEND',
+                              'sourceUris': [
+                                  'gs://test-bigquery-bucket/fuzzer/JobRun/date/'
+                                  '20161015/' + prefix + '*.json'
+                              ],
+                              'sourceFormat':
+                                  'NEWLINE_DELIMITED_JSON',
+                              'schema': {
+                                  'fields': [{
+                                      'type': 'INTEGER',
+                                      'name': 'testcases_executed',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'INTEGER',
+                                      'name': 'build_revision',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'INTEGER',
+                                      'name': 'new_crashes',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'STRING',
+                                      'name': 'job',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'FLOAT',
+                                      'name': 'timestamp',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'fields': [{
+                                          'type': 'STRING',
+                                          'name': 'crash_type',
+                                          'mode': 'NULLABLE'
+                                      }, {
+                                          'type': 'BOOLEAN',
+                                          'name': 'is_new',
+                                          'mode': 'NULLABLE'
+                                      }, {
+                                          'type': 'STRING',
+                                          'name': 'crash_state',
+                                          'mode': 'NULLABLE'
+                                      }, {
+                                          'type': 'BOOLEAN',
+                                          'name': 'security_flag',
+                                          'mode': 'NULLABLE'
+                                      }, {
+                                          'type': 'INTEGER',
+                                          'name': 'count',
+                                          'mode': 'NULLABLE'
+                                      }],
+                                      'type':
+                                          'RECORD',
+                                      'name':
+                                          'crashes',
+                                      'mode':
+                                          'REPEATED'
+                                  }, {
+                                      'type': 'INTEGER',
+                                      'name': 'known_crashes',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'STRING',
+                                      'name': 'fuzzer',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'STRING',
+                                      'name': 'kind',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'INTEGER',
+                                      'name': 'testcases_generated',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'INTERVAL',
+                                      'name': 'testcase_generation_duration',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'INTERVAL',
+                                      'name': 'testcase_execution_duration',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'INTERVAL',
+                                      'name': 'fuzzing_duration',
+                                      'mode': 'NULLABLE'
+                                  }]
+                              },
+                          }
+                      }
+                  },
+                  projectId='test-clusterfuzz'),
+              mock.call(
+                  body={
+                      'configuration': {
+                          'load': {
+                              'destinationTable': {
+                                  'projectId': 'test-clusterfuzz',
+                                  'tableId': 'TestcaseRun$20161015',
+                                  'datasetId': 'fuzzer_stats'
+                              },
+                              'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
+                              'writeDisposition':
+                                  'WRITE_TRUNCATE'
+                                  if i == 0 else 'WRITE_APPEND',
+                              'sourceUris': [
+                                  'gs://test-bigquery-bucket/fuzzer/TestcaseRun/'
+                                  'date/20161015/' + prefix + '*.json'
+                              ],
+                              'sourceFormat':
+                                  'NEWLINE_DELIMITED_JSON',
+                              'schema': {
+                                  'schema': 'schema'
+                              },
+                          }
+                      }
+                  },
+                  projectId='test-clusterfuzz'),
+          ],
+          # Otherwise we need to mock two calls to mock.call().execute().__str__()
+          # which does not seem to work well.
+          any_order=True)
