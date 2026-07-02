@@ -1580,6 +1580,32 @@ class RpathsTest(unittest.TestCase):
     rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
     self.assertListEqual(['/msan/lib', '/msan/usr/lib'], rpaths)
 
+  def test_patch_rpaths_schema_v1(self):
+    """Tests that RPATH is not patched when schema version is > 0."""
+
+    def mock_unpack_build_schema_v1(actual_self,
+                                    base_build_dir,
+                                    build_dir,
+                                    url,
+                                    http_build_url=None):
+      self.mock_unpack_build('rpath_new', actual_self, base_build_dir,
+                             build_dir, url, http_build_url)
+      manifest_path = os.path.join(build_dir, 'clusterfuzz_manifest.json')
+      utils.write_data_to_file('{"archive_schema_version": 1}', manifest_path)
+      return True
+
+    self.mock._unpack_build.side_effect = mock_unpack_build_schema_v1
+
+    build = build_manager.RegularBuild(self.base_build_dir, 1337,
+                                       'chained-origins')
+    self.assertTrue(build.setup())
+    self.assertEqual(
+        os.path.join(self.base_build_dir, 'revisions', 'app'),
+        os.environ['APP_PATH'])
+
+    rpaths = build_manager.get_rpaths(os.environ['APP_PATH'])
+    self.assertListEqual([], rpaths)
+
 
 class SortBuildUrlsByRevisionTest(unittest.TestCase):
   """Test _sort_build_urls_by_revision."""
@@ -1969,3 +1995,46 @@ class BuildPropertyTest(unittest.TestCase):
     self.mock.is_engine_fuzzer_job.return_value = False
     build = build_manager.Build('/base', 1, build_prefix='', fuzz_target=None)
     self.assertFalse(build.is_discovery)
+
+
+class ReadSchemaVersionFromManifestTest(fake_filesystem_unittest.TestCase):
+  """Tests _read_schema_version_from_manifest resolution."""
+
+  def setUp(self):
+    fake_filesystem_unittest.TestCase.setUp(self)
+    self.setUpPyfakefs()
+    self.base_build_dir = '/base_build_dir'
+    self.fs.create_dir(self.base_build_dir)
+
+  def test_regular_build(self):
+    """Tests reading schema version from manifest for regular build."""
+    build = build_manager.RegularBuild(self.base_build_dir, 1337,
+                                       'gs://dummy/url.zip')
+    self.fs.create_file(
+        os.path.join(build.build_dir, 'clusterfuzz_manifest.json'),
+        contents='{"archive_schema_version": 1}')
+    self.assertEqual(
+        build._read_schema_version_from_manifest(build.build_dir), 1)
+
+  def test_symbolized_build(self):
+    """Tests reading schema version from manifest for release and debug dirs."""
+    build = build_manager.SymbolizedBuild(self.base_build_dir, 1337,
+                                          'gs://dummy/release.zip',
+                                          'gs://dummy/debug.zip')
+    self.fs.create_file(
+        os.path.join(build.release_build_dir, 'clusterfuzz_manifest.json'),
+        contents='{"archive_schema_version": 1}')
+    self.fs.create_file(
+        os.path.join(build.debug_build_dir, 'clusterfuzz_manifest.json'),
+        contents='{"archive_schema_version": 2}')
+    self.assertEqual(
+        build._read_schema_version_from_manifest(build.release_build_dir), 1)
+    self.assertEqual(
+        build._read_schema_version_from_manifest(build.debug_build_dir), 2)
+
+  def test_missing_file(self):
+    """Tests that 0 is returned if manifest file is missing."""
+    build = build_manager.RegularBuild(self.base_build_dir, 1337,
+                                       'gs://dummy/url.zip')
+    self.assertEqual(
+        build._read_schema_version_from_manifest(build.build_dir), 0)

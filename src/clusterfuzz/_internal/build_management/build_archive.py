@@ -40,6 +40,7 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'afl-showmap',
     'afl-tmin',
     'centipede',
+    'clusterfuzz_manifest.json',
     'honggfuzz',
     'jazzer_agent_deploy.jar',
     'jazzer_driver',
@@ -421,6 +422,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return [
         'args.gn',
         'llvm-symbolizer',
+        'clusterfuzz_manifest.json',
     ]
 
   def get_target_dependencies(
