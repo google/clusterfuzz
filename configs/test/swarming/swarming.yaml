@@ -30,6 +30,26 @@ mapping:
     expiration_secs: 86400
     execution_timeout_secs: 86400
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+  ANDROID_EMULATOR:
+    priority: 1
+    command: 
+      - 'luci-auth'
+      - 'context'
+      - '--'
+      - './linux_entry_point.sh'
+    cas_input_root:
+      cas_instance: 'projects/server-name/instances/instance_name'
+      digest:
+        hash: 'linux_entry_point_archive_hash'
+        size_bytes: 1234
+    service_account_email: test-clusterfuzz-service-account-email
+    preemptible: false
+    expiration_secs: 86400
+    execution_timeout_secs: 86400
+    docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+    env:
+      - key: OS_OVERRIDE
+        value: ANDROID_EMULATOR
   MAC:
     priority: 1
     command:
