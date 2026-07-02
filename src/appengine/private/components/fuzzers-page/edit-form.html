@@ -113,6 +113,13 @@
         </paper-input>
       </div>
       <div class="inline narrow">
+        <paper-input
+            label="Primary owner (email)"
+            value="{{fuzzer.primary_owner}}"
+            title="Primary owner for VRP reasons.">
+        </paper-input>
+      </div>
+      <div class="inline narrow">
         <paper-menu-button
             class="job-select dropdown-filter"
             no-animations="true"
@@ -252,6 +259,7 @@
                 'differential',
                 'executable_path',
                 'external_contribution',
+                'primary_owner',
                 'jobs',
                 'launcher_script',
                 'max_testcases',
