@@ -91,7 +91,10 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
     return []
 
   unique_dimensions = {}
-  unique_dimensions['os'] = str(job.platform).capitalize()
+  if job.platform == 'ANDROID_EMULATOR':
+    unique_dimensions['os'] = 'Linux'
+  else:
+    unique_dimensions['os'] = str(job.platform).capitalize()
   unique_dimensions['pool'] = swarming_config.get('swarming_pool')
 
   for dimension in platform_specific_dimensions:
