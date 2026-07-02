@@ -60,7 +60,8 @@ def wait_until_good_state():
   """Check battery and make sure it is charged beyond minimum level and
   temperature thresholds."""
   # Battery levels are not applicable on GCE.
-  if environment.is_android_cuttlefish() or settings.is_automotive():
+  if (environment.is_android_cuttlefish() or
+      environment.is_android_emulator() or settings.is_automotive()):
     return
 
   # Make sure device is online.
