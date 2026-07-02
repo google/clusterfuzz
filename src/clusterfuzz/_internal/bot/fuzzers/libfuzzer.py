@@ -20,6 +20,7 @@ import os
 import random
 import re
 import shutil
+import subprocess
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -1122,6 +1123,526 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return result
 
 
+class AndroidApkLibFuzzerRunner(new_process.UnicodeProcessRunner,
+                                LibFuzzerCommon):
+  """Android APK libFuzzer runner."""
+
+  def __init__(self, executable_path, build_directory, default_args=None):
+    super().__init__(
+        executable_path=android.adb.get_adb_path(), default_args=[])
+    self.apk_path = executable_path
+    self.package_name = android.app.get_package_name(self.apk_path)
+    if not self.package_name:
+      raise LibFuzzerError(f'Failed to get package name for {self.apk_path}')
+
+    android.app.install(self.apk_path)
+    self.instrumentation_runner = self._get_instrumentation_runner(
+        self.apk_path)
+    self.launchable_activity = self._get_launchable_activity(self.apk_path)
+
+    self.fuzzer_name = os.path.basename(self.apk_path).replace(
+        '-debug.apk', '').replace('.apk', '')
+    self.library_under_test = None
+    self.auxiliary_libraries = None
+
+    self._setup_dependencies(build_directory)
+
+  def _setup_dependencies(self, build_directory):
+    """Resolve, sort, and push C++ dependencies to the device."""
+    deps_filename = f"{self.fuzzer_name}__test_runner_script.runtime_deps"
+    deps_file_path = None
+    for root, _, files in os.walk(build_directory):
+      if deps_filename in files:
+        deps_file_path = os.path.join(root, deps_filename)
+        break
+
+    if not deps_file_path:
+      logs.info(f"No runtime_deps file found for {self.fuzzer_name}, "
+                "skipping dependency setup.")
+      return
+
+    logs.info(f"Found runtime_deps at: {deps_file_path}")
+
+    # Determine base output dir (parent of gen.runtime)
+    base_dir = deps_file_path
+    while True:
+      parent = os.path.dirname(base_dir)
+      if parent == base_dir:
+        break
+      if os.path.basename(base_dir) == 'gen.runtime':
+        base_dir = parent
+        break
+      base_dir = parent
+
+    # Read .so files from runtime_deps
+    libs = []
+    with open(deps_file_path, "r") as f:
+      for line in f:
+        line = line.strip()
+        if line.endswith(".so"):
+          abs_path = os.path.abspath(os.path.join(base_dir, line))
+          if os.path.exists(abs_path):
+            libs.append(abs_path)
+          else:
+            # Fallback: check if the library exists in the base_dir (stripped)
+            fallback_path = os.path.join(base_dir, os.path.basename(line))
+            if os.path.exists(fallback_path):
+              libs.append(fallback_path)
+            else:
+              logs.warning(
+                  f"Dependency file {abs_path} (and fallback {fallback_path}) "
+                  "does not exist.")
+
+    if not libs:
+      return
+
+    # Parse dependencies for each library
+    dependencies_dict = {}
+    for lib in libs:
+      lib_name = os.path.basename(lib)
+      dependencies_dict[lib_name] = self._parse_needed_libs(lib)
+
+    # Sort libraries topologically
+    sorted_libs = self._topological_sort(libs, dependencies_dict)
+
+    # Prepare device directory
+    android.adb.run_shell_command('rm -rf /sdcard/chromium_tests_root && '
+                                  'mkdir -p /sdcard/chromium_tests_root')
+
+    # Push sorted .so files to device
+    for lib in sorted_libs:
+      device_path = os.path.join('/sdcard/chromium_tests_root',
+                                 os.path.basename(lib))
+      android.adb.copy_local_file_to_remote(lib, device_path)
+
+    # Separate main library and auxiliary libraries
+    main_lib_name = f"lib{self.fuzzer_name}__library.so"
+    aux_libs = []
+    for lib in sorted_libs:
+      name = os.path.basename(lib)
+      if name == main_lib_name:
+        # Strip 'lib' prefix and '.so' suffix for System.loadLibrary
+        stripped_name = name
+        if stripped_name.startswith('lib'):
+          stripped_name = stripped_name[3:]
+        if stripped_name.endswith('.so'):
+          stripped_name = stripped_name[:-3]
+        self.library_under_test = stripped_name
+      else:
+        aux_libs.append(name)
+
+    if aux_libs:
+      self.auxiliary_libraries = ','.join(aux_libs)
+
+    # Grant MANAGE_EXTERNAL_STORAGE permission
+    logs.info("Granting MANAGE_EXTERNAL_STORAGE...")
+    op_names = ['MANAGE_EXTERNAL_STORAGE', 'android:manage_external_storage']
+    for op in op_names:
+      cmd = f'su 0 appops set {self.package_name} {op} allow'
+      out = android.adb.run_shell_command(cmd)
+      logs.info(f"Command: {cmd}, Output: {out}")
+
+      # Verify
+      verify_cmd = f'su 0 appops get {self.package_name} {op}'
+      verify_out = android.adb.run_shell_command(verify_cmd)
+      logs.info(f"Verification: {verify_cmd}, Output: {verify_out}")
+
+    # Also grant legacy storage permissions just in case the APK uses them
+    logs.info("Granting legacy storage permissions...")
+    permissions = [
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE'
+    ]
+    for perm in permissions:
+      cmd = f'su 0 pm grant {self.package_name} {perm}'
+      out = android.adb.run_shell_command(cmd)
+      logs.info(f"Command: {cmd}, Output: {out}")
+    logs.info(f"Dependency setup complete. LibraryUnderTest: "
+              f"{self.library_under_test}, AuxiliaryLibraries: "
+              f"{self.auxiliary_libraries}")
+
+  def _parse_needed_libs(self, so_path):
+    """Parse NEEDED libraries using readelf."""
+    try:
+      res = subprocess.run(
+          ["readelf", "-d", so_path], capture_output=True, check=True)
+      output = res.stdout.decode('utf-8')
+      needed = []
+      for line in output.splitlines():
+        if "(NEEDED)" in line:
+          match = re.search(r"Shared library: \[(.*?)\]", line)
+          if match:
+            needed.append(match.group(1))
+      return needed
+    except Exception as e:
+      logs.error(f"Error reading ELF headers for {so_path}: {e}")
+      return []
+
+  def _topological_sort(self, libs, dependencies_dict):
+    """Perform topological sort on libs based on dependencies_dict."""
+    visited = {}
+    result = []
+
+    def visit(lib):
+      lib_name = os.path.basename(lib)
+      if visited.get(lib_name) == "visiting":
+        return
+      if visited.get(lib_name) == "visited":
+        return
+
+      visited[lib_name] = "visiting"
+      for dep in dependencies_dict.get(lib_name, []):
+        dep_path = None
+        for l in libs:
+          if os.path.basename(l) == dep:
+            dep_path = l
+            break
+        if dep_path:
+          visit(dep_path)
+
+      visited[lib_name] = "visited"
+      result.append(lib)
+
+    for lib in libs:
+      visit(lib)
+    return result
+
+  def _get_launchable_activity(self, apk_path):
+    """Return the launchable activity name."""
+    aapt_binary_path = os.path.join(
+        environment.get_platform_resources_directory(), 'aapt')
+    aapt_command = '%s dump badging %s' % (aapt_binary_path, apk_path)
+    output = android.adb.execute_command(aapt_command, timeout=60)
+    if not output:
+      return None
+    match = re.search(r"launchable-activity: name='([^']+)'", output)
+    if match:
+      return match.group(1)
+    return None
+
+  def _get_instrumentation_runner(self, apk_path):
+    """Return the instrumentation runner."""
+    aapt_binary_path = os.path.join(
+        environment.get_platform_resources_directory(), 'aapt')
+    aapt_command = '%s dump xmltree %s AndroidManifest.xml' % (aapt_binary_path,
+                                                               apk_path)
+    output = android.adb.execute_command(aapt_command, timeout=60)
+    if not output:
+      return None
+
+    lines = output.splitlines()
+    found_instrumentation = False
+    for line in lines:
+      if 'E: instrumentation' in line:
+        found_instrumentation = True
+        continue
+      if found_instrumentation and 'android:name' in line:
+        match = re.search(r'="([^"]+)"', line)
+        if match:
+          return match.group(1)
+    return None
+
+  def _get_device_corpus_paths(self, corpus_directories):
+    return [self._get_device_path(path) for path in corpus_directories]
+
+  def _get_device_path(self, local_path):
+    root_directory = environment.get_root_directory()
+    return os.path.join(android.constants.DEVICE_FUZZING_DIR,
+                        os.path.relpath(local_path, root_directory))
+
+  def _copy_local_directories_to_device(self, local_directories):
+    for local_directory in sorted(set(local_directories)):
+      self.copy_local_directory_to_device(local_directory)
+
+  def copy_local_directory_to_device(self, local_directory):
+    device_directory = self._get_device_path(local_directory)
+    android.adb.remove_directory(device_directory, recreate=True)
+    android.adb.copy_local_directory_to_remote(local_directory,
+                                               device_directory)
+
+  def _copy_local_directories_from_device(self, local_directories):
+    for local_directory in sorted(set(local_directories)):
+      device_directory = self._get_device_path(local_directory)
+      shell.remove_directory(local_directory, recreate=True)
+      android.adb.copy_remote_directory_to_local(device_directory,
+                                                 local_directory)
+
+  def _disable_seccomp(self):
+    """Disables SECCOMP by restarting the runtime in Permissive mode."""
+    # Check if we already disabled seccomp in a previous round
+    seccomp_disabled = android.adb.run_shell_command(
+        'getprop temp.debug.seccomp_disabled')
+    if seccomp_disabled.strip() == '1':
+      logs.info("DEBUG: SECCOMP already disabled in a previous round.")
+      return
+
+    logs.info("DEBUG: Disabling SECCOMP via runtime restart...")
+    import time
+    android.adb.run_shell_command('su 0 stop')
+    android.adb.run_shell_command('su 0 setprop sys.boot_completed 0')
+    time.sleep(2)
+    android.adb.run_shell_command('su 0 start')
+
+    # Wait for boot completion (max 60 seconds)
+    boot_timeout = 60
+    start_time = time.time()
+    while time.time() - start_time < boot_timeout:
+      time.sleep(2)
+      boot_completed = android.adb.run_shell_command(
+          'getprop sys.boot_completed')
+      if boot_completed.strip() == '1':
+        logs.info("DEBUG: Runtime restarted successfully.")
+        android.adb.run_shell_command(
+            'su 0 setprop temp.debug.seccomp_disabled 1')
+        return
+
+    logs.error("DEBUG: Timed out waiting for runtime restart. "
+               "Fuzzer might fail.")
+
+  def fuzz(self,
+           corpus_directories,
+           fuzz_timeout,
+           artifact_prefix=None,
+           additional_args=None,
+           extra_env=None):
+    sync_directories = list(corpus_directories)
+    if artifact_prefix:
+      sync_directories.append(artifact_prefix)
+
+    self._copy_local_directories_to_device(sync_directories)
+    device_corpus_dirs = self._get_device_corpus_paths(corpus_directories)
+
+    if artifact_prefix:
+      artifact_prefix = self._get_device_path(artifact_prefix)
+
+    fuzzer_args = []
+    if additional_args:
+      fuzzer_args.extend(additional_args)
+    fuzzer_args.extend(device_corpus_dirs)
+    fuzzer_args_str = ' '.join(fuzzer_args)
+
+    if self.instrumentation_runner:
+      device_cache_dir = f'/data/user/0/{self.package_name}/cache'
+      android.adb.run_shell_command(
+          f'mkdir -p {device_cache_dir}', log_output=True)
+      android.adb.run_shell_command(
+          f'chmod 777 {device_cache_dir}', log_output=True)
+      device_stdout_file = os.path.join(device_cache_dir, 'fuzzer_output.txt')
+      args = [
+          'shell',
+          'am',
+          'instrument',
+          '-w',
+          '-e',
+          'org.chromium.native_test.NativeUnitTestActivity',
+          'org.chromium.native_test.NativeUnitTestActivity',
+          '-e',
+          f'{self.instrumentation_runner}.NativeTestActivity',
+          'org.chromium.native_test.NativeUnitTestActivity',
+          '-e',
+          'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
+          'NativeTestActivity',
+          'org.chromium.native_test.NativeUnitTestActivity',
+          '-e',
+          'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
+          'StdoutFile',
+          device_stdout_file,
+          '-e',
+          f'{self.instrumentation_runner}.StdoutFile',
+          device_stdout_file,
+      ]
+
+      if self.library_under_test:
+        args.extend([
+            '-e',
+            'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
+            'LibraryUnderTest', self.library_under_test
+        ])
+      if self.auxiliary_libraries:
+        args.extend([
+            '-e',
+            'org.chromium.native_test.NativeTestInstrumentationTestRunner.'
+            'AuxiliaryLibraries', self.auxiliary_libraries
+        ])
+
+      args.extend([
+          '-e',
+          'org.chromium.native_test.NativeTest.CommandLineFlags',
+          f'"{fuzzer_args_str}"',
+      ])
+
+      args.append(f'{self.package_name}/{self.instrumentation_runner}')
+      logs.info(f'Starting Instrumentation: {self.package_name}/'
+                f'{self.instrumentation_runner} with args: {fuzzer_args_str}')
+    elif self.launchable_activity:
+      device_stdout_file = None
+      args = [
+          'shell', 'am', 'start', '-n',
+          f'{self.package_name}/{self.launchable_activity}', '-e',
+          'org.chromium.native_test.NativeTest.CommandLineFlags',
+          f'"{fuzzer_args_str}"'
+      ]
+      logs.info(f'Starting APK: {self.package_name}/{self.launchable_activity} '
+                f'with args: {fuzzer_args_str}')
+    else:
+      raise LibFuzzerError('No launchable activity or instrumentation found.')
+
+    # Workaround for wrap.sh execution on Android.
+    # We write a custom wrap.sh and extract ASan RT to the app's secure
+    # app_native_libs directory to avoid linker restrictions, and run with
+    # SELinux permissive.
+    target_dir = f"/data/data/{self.package_name}/app_native_libs"
+    wrap_sh_path = f"{target_dir}/wrap.sh"
+    selinux_revert = False
+
+    try:
+      pm_path_output = android.adb.run_shell_command(
+          f'pm path {self.package_name}')
+      if pm_path_output and pm_path_output.startswith('package:'):
+        apk_path = pm_path_output.split(':')[1].strip()
+
+        # Ensure target directory exists and is writable
+        android.adb.run_shell_command(f'su 0 mkdir -p {target_dir}')
+        android.adb.run_shell_command(f'su 0 chmod 777 {target_dir}')
+
+        # Clean up old files if any
+        android.adb.run_shell_command(f'su 0 rm -f {wrap_sh_path}')
+        android.adb.run_shell_command(
+            f'su 0 rm -f {target_dir}/libclang_rt.asan-*.so')
+
+        # Extract ASan runtime using unzip directly to target_dir
+        unzip_asan_cmd = (f'su 0 unzip -o -j {apk_path} '
+                          f'"lib/x86_64/libclang_rt.asan-*.so" -d {target_dir}')
+        unzip_asan_result = android.adb.run_shell_command(unzip_asan_cmd)
+        logs.info(f"DEBUG: unzip ASan rt result: {unzip_asan_result.strip()}")
+
+        # Generate custom wrap.sh content (ensuring LF line endings and marker)
+        wrap_sh_content = (
+            f"#!/system/bin/sh\n"
+            f"HERE=\"{target_dir}\"\n"
+            f"_ASAN_OPTIONS=\"log_to_syslog=false,"
+            f"allow_user_segv_handler=1\"\n"
+            f"_ASAN_OPTIONS=\"$_ASAN_OPTIONS,"
+            f"strict_memcmp=0,use_sigaltstack=1\"\n"
+            f"_LD_PRELOAD=\"$HERE/libclang_rt.asan-x86_64-android.so\"\n"
+            f"echo wrap_sh_ran > /data/local/tmp/wrap_marker.txt\n"
+            f"log -t cr_wrap.sh -- \"Launching with ASAN enabled.\"\n"
+            f"log -t cr_wrap.sh -- \"Command: $0 $@\"\n"
+            f"log -t cr_wrap.sh -- \"LD_PRELOAD=$_LD_PRELOAD\"\n"
+            f"log -t cr_wrap.sh -- \"ASAN_OPTIONS=$_ASAN_OPTIONS\"\n"
+            f"export LD_PRELOAD=\"$_LD_PRELOAD\"\n"
+            f"export ASAN_OPTIONS=\"$_ASAN_OPTIONS\"\n"
+            f"exec \"$@\"\n")
+
+        # Write wrap.sh locally and push to avoid permission issues
+        import tempfile
+        with tempfile.NamedTemporaryFile(
+            mode='w', suffix='.sh', delete=False) as temp_wrap:
+          temp_wrap.write(wrap_sh_content)
+          temp_wrap_path = temp_wrap.name
+
+        tmp_wrap_path = "/data/local/tmp/temp_wrap.sh"
+        android.adb.copy_local_file_to_remote(temp_wrap_path, tmp_wrap_path)
+        os.remove(temp_wrap_path)
+
+        android.adb.run_shell_command(f"su 0 cp {tmp_wrap_path} {wrap_sh_path}")
+        android.adb.run_shell_command(f"su 0 rm -f {tmp_wrap_path}")
+
+        if android.adb.file_exists(wrap_sh_path):
+          android.adb.run_shell_command(f'su 0 chmod 777 {wrap_sh_path}')
+          android.adb.run_shell_command(
+              f'su 0 chmod 777 {target_dir}/libclang_rt.asan-*.so')
+
+          # Print wrap.sh content for diagnostics
+          wrap_content = android.adb.run_shell_command(
+              f'su 0 cat {wrap_sh_path}')
+          logs.info(f"DEBUG: wrap.sh content:\n{wrap_content}")
+
+          selinux_status = android.adb.run_shell_command('su 0 getenforce')
+          logs.info(f"DEBUG: Initial SELinux status: {selinux_status.strip()}")
+          if selinux_status.strip() == 'Enforcing':
+            android.adb.run_shell_command('su 0 setenforce 0')
+            selinux_revert = True
+            logs.info('DEBUG: Disabled SELinux (set to Permissive) '
+                      'for wrap.sh execution.')
+
+          logs.info(f"DEBUG: Setting wrap property to {wrap_sh_path}")
+          setprop_result = android.adb.run_shell_command(
+              f'su 0 setprop wrap.{self.package_name} {wrap_sh_path}')
+          if setprop_result:
+            logs.warning(
+                f"DEBUG: setprop output/error: {setprop_result.strip()}")
+
+          # Also set for :test_process suffix (Chromium sub-process)
+          setprop_result_sub = android.adb.run_shell_command(
+              f'su 0 setprop wrap.{self.package_name}:test_process '
+              f'{wrap_sh_path}')
+          if setprop_result_sub:
+            logs.warning(f"DEBUG: setprop sub-process output/error: "
+                         f"{setprop_result_sub.strip()}")
+
+          self._disable_seccomp()
+        else:
+          logs.error(f"DEBUG: Failed to create wrap.sh at {wrap_sh_path}")
+          wrap_sh_path = None
+      else:
+        logs.error(f"DEBUG: Could not get APK path for {self.package_name}")
+        wrap_sh_path = None
+    except Exception as e:
+      logs.error(f"DEBUG: Error setting up wrap.sh workaround: {e}")
+      wrap_sh_path = None
+
+    try:
+      result = self.run_and_wait(
+          additional_args=args,
+          timeout=self.get_total_timeout(fuzz_timeout),
+          max_stdout_len=MAX_OUTPUT_LEN)
+    finally:
+      # Clear the wrapper property.
+      android.adb.run_shell_command(f'su 0 setprop wrap.{self.package_name} ""')
+      android.adb.run_shell_command(
+          f'su 0 setprop wrap.{self.package_name}:test_process ""')
+      # Restore SELinux if we changed it
+      if selinux_revert:
+        android.adb.run_shell_command('su 0 setenforce 1')
+        logs.info("DEBUG: Restored SELinux to Enforcing.")
+
+      # Check for marker
+      marker_path = "/data/local/tmp/wrap_marker.txt"
+      if android.adb.file_exists(marker_path):
+        logs.info("DEBUG: SUCCESS! wrap.sh executed (marker found).")
+        marker_content = android.adb.run_shell_command(
+            f"su 0 cat {marker_path}")
+        logs.info(f"DEBUG: marker content: {marker_content.strip()}")
+        android.adb.run_shell_command(f"su 0 rm -f {marker_path}")
+      else:
+        logs.error(
+            "DEBUG: FAILURE! wrap.sh did NOT execute (marker not found).")
+
+      # Clean up wrap.sh and ASan runtime
+      if wrap_sh_path:
+        android.adb.run_shell_command(f'su 0 rm -f {wrap_sh_path}')
+        android.adb.run_shell_command(
+            f'su 0 rm -f {target_dir}/libclang_rt.asan-*.so')
+
+    logs.info(f'DEBUG: adb command run: {result.command}')
+    logs.info(f'DEBUG: adb command return code: {result.return_code}')
+    logs.info(f'DEBUG: adb command output: {result.output}')
+
+    if device_stdout_file:
+      fuzzer_output = android.adb.run_shell_command(f'cat {device_stdout_file}')
+      android.adb.remove_file(device_stdout_file)
+      if fuzzer_output:
+        logs.info(f'Fuzzer native stdout:\n{fuzzer_output}')
+        result.output = f'{fuzzer_output}\n\n{result.output}'
+
+    result.output = (
+        f'{result.output}\n\nLogcat:\n{android.logger.log_output()}')
+    logs.info(f'Fuzzer run output for {self.package_name}:\n{result.output}')
+    self._copy_local_directories_from_device(sync_directories)
+    return result
+
+
 def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   """Get a libfuzzer runner."""
   if use_minijail is None:
@@ -1190,7 +1711,30 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
       raise undercoat.UndercoatError('Instance handle not provided.')
     runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
   elif is_android:
-    runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
+    # Find the APK dynamically under build_dir.
+    # We first look for a fuzzer-specific APK (e.g. {fuzzer_name}-debug.apk
+    # or {fuzzer_name}.apk).
+    fuzzer_name = os.path.basename(fuzzer_path)
+    base_apk_path = None
+
+    specific_apk_names = [f'{fuzzer_name}-debug.apk', f'{fuzzer_name}.apk']
+    for root, _, files in os.walk(build_dir):
+      # Check for specific APK first
+      for apk_name in specific_apk_names:
+        if apk_name in files:
+          base_apk_path = os.path.join(root, apk_name)
+          break
+      if base_apk_path:
+        break
+
+    if base_apk_path:
+      logs.info(f'Using Android APK runner for {fuzzer_name}. '
+                f'APK path: {base_apk_path}')
+      runner = AndroidApkLibFuzzerRunner(base_apk_path, build_dir)
+    else:
+      logs.info(f'Using Android command-line binary runner for {fuzzer_name}. '
+                f'Path: {fuzzer_path}')
+      runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
     runner = LibFuzzerRunner(fuzzer_path, cwd=cwd)
 

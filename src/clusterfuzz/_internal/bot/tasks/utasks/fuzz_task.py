@@ -2276,6 +2276,28 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
     fuzz_task_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
 
+  # Inject custom binary details if this is a custom binary job.
+  if uworker_env.get('CUSTOM_BINARY'):
+    job = data_types.Job.query(data_types.Job.name == job_type).get()
+    if job and job.custom_binary_key:
+      uworker_env['CUSTOM_BINARY_KEY'] = job.custom_binary_key
+      uworker_env['CUSTOM_BINARY_FILENAME'] = job.custom_binary_filename
+      uworker_env['CUSTOM_BINARY_REVISION'] = str(job.custom_binary_revision)
+
+      # Generate signed URL for the custom binary to avoid 403 on uworker
+      try:
+        custom_builds_bucket = local_config.ProjectConfig().get(
+            'custom_builds.bucket')
+        if custom_builds_bucket:
+          gcs_path = f'/{custom_builds_bucket}/{job.custom_binary_key}'
+        else:
+          gcs_path = f'/{storage.blobs_bucket()}/{job.custom_binary_key}'
+
+        uworker_env['CUSTOM_BINARY_SIGNED_URL'] = (
+            storage.get_signed_download_url(gcs_path))
+      except Exception as e:
+        logs.error(f'Failed to generate signed URL for custom binary: {e}')
+
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
       fuzz_task_input=fuzz_task_input,
       job_type=job_type,

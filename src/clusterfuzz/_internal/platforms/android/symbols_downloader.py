@@ -35,6 +35,11 @@ def get_repo_prop_archive_filename(build_id, target):
 
 def should_download_symbols():
   """Return True if we should continue to download symbols."""
+  # Uworkers do not have Datastore access to retrieve the API key needed for
+  # downloading symbols.
+  if environment.is_uworker():
+    return False
+
   # For local testing, we do not have access to the cloud storage bucket with
   # the symbols. In this case, just bail out. We have archived symbols for
   # google builds only.
@@ -192,7 +197,20 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
   elif 'oriole' in device or 'raven' in device or 'bluejay' in device:
     ab_target = 'slider-fuzz-test-debug'
   else:
-    logs.error(f'Unsupported device {device}.')
+    # Emulators (like sdk_gdesktop) do not run the physical Trusty Secure OS
+    # TEE. Therefore, no official Trusty symbols exist for them at the moment
+    # in GCS. Instead of logging a confusing ERROR that can be mistaken for a
+    # fuzz task failure, we log a verbose INFO message and return early.
+    if environment.is_android_emulator(
+    ) or 'sdk_gdesktop' in device or 'emulator' in device:
+      logs.info(
+          f'Skipping Trusty symbols download for emulator device "{device}". '
+          'Virtual/emulator devices do not run a physical Trusty '
+          'Trusted Execution Environment (TEE), '
+          'so no official Trusty symbol archives are available or needed.')
+    else:
+      logs.error(f'Unsupported device {device}.')
+    return
 
   branch = 'polygon-trusty-whitechapel-master'
   if not bid:

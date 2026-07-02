@@ -893,11 +893,16 @@ class SymbolizedBuild(Build):
 class CustomBuild(Build):
   """Custom binary."""
 
-  def __init__(self, base_build_dir, custom_binary_key, custom_binary_filename,
-               custom_binary_revision):
+  def __init__(self,
+               base_build_dir,
+               custom_binary_key,
+               custom_binary_filename,
+               custom_binary_revision,
+               custom_binary_signed_url=None):
     super().__init__(base_build_dir, custom_binary_revision)
     self.custom_binary_key = custom_binary_key
     self.custom_binary_filename = custom_binary_filename
+    self.custom_binary_signed_url = custom_binary_signed_url
     self._build_dir = os.path.join(self.base_build_dir, 'custom')
 
   @property
@@ -913,20 +918,35 @@ class CustomBuild(Build):
 
     build_local_archive = os.path.join(self.build_dir,
                                        self.custom_binary_filename)
-    custom_builds_bucket = local_config.ProjectConfig().get(
-        'custom_builds.bucket')
 
     download_start_time = time.time()
 
-    if custom_builds_bucket:
-      directory = os.path.dirname(build_local_archive)
-      if not os.path.exists(directory):
-        os.makedirs(directory)
-      gcs_path = f'/{custom_builds_bucket}/{self.custom_binary_key}'
-      storage.copy_file_from(gcs_path, build_local_archive)
-    elif not blobs.read_blob_to_disk(self.custom_binary_key,
-                                     build_local_archive):
-      return False
+    # Try to download using signed URL if available (uworker friendly)
+    if self.custom_binary_signed_url:
+      logs.info('Downloading custom binary using signed URL.')
+      try:
+        storage.download_signed_url_to_file(self.custom_binary_signed_url,
+                                            build_local_archive)
+        if not os.path.exists(build_local_archive) or os.path.getsize(
+            build_local_archive) == 0:
+          logs.error('Downloaded custom binary is empty or missing.')
+          return False
+      except Exception as e:
+        logs.error(f'Failed to download custom binary using signed URL: {e}')
+        return False
+    else:
+      custom_builds_bucket = local_config.ProjectConfig().get(
+          'custom_builds.bucket')
+
+      if custom_builds_bucket:
+        directory = os.path.dirname(build_local_archive)
+        if not os.path.exists(directory):
+          os.makedirs(directory)
+        gcs_path = f'/{custom_builds_bucket}/{self.custom_binary_key}'
+        storage.copy_file_from(gcs_path, build_local_archive)
+      elif not blobs.read_blob_to_disk(self.custom_binary_key,
+                                       build_local_archive):
+        return False
 
     _emit_job_build_retrieval_metric(download_start_time, 'download',
                                      self._build_type)
@@ -1416,7 +1436,25 @@ def setup_symbolized_builds(revision):
 def setup_custom_binary():
   """Set up the custom binary for a particular job."""
   job_name = environment.get_value('JOB_NAME')
-  # Verify that this is really a custom binary job.
+
+  # Try to get from environment first (to avoid Datastore query on uworker)
+  custom_binary_key = environment.get_value('CUSTOM_BINARY_KEY')
+  custom_binary_filename = environment.get_value('CUSTOM_BINARY_FILENAME')
+  custom_binary_revision = environment.get_value('CUSTOM_BINARY_REVISION')
+  custom_binary_signed_url = environment.get_value('CUSTOM_BINARY_SIGNED_URL')
+
+  if custom_binary_key and custom_binary_filename:
+    logs.info('Using custom binary details from environment.')
+    base_build_dir = _base_build_dir('')
+    build = CustomBuild(
+        base_build_dir, custom_binary_key, custom_binary_filename,
+        int(custom_binary_revision or 0), custom_binary_signed_url)
+    if build.setup():
+      return build
+    return None
+
+  # Fallback to Datastore query
+  logs.info('Custom binary details not in environment, querying Datastore...')
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job or not job.custom_binary_key or not job.custom_binary_filename:
     logs.error(
