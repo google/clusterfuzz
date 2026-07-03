@@ -76,6 +76,71 @@ class UnpackTest(unittest.TestCase):
 
       shell.remove_directory(output_directory)
 
+  def test_unpack_untrusted_tar_symlink_fails(self):
+    """Test that unpacking an untrusted TAR symlink fails."""
+    with tempfile.NamedTemporaryFile(suffix='.tar') as tmp_tar_file:
+      archive_path = tmp_tar_file.name
+
+      with tarfile.open(archive_path, 'w') as tar:
+        tarinfo = tarfile.TarInfo(name='linked_file')
+        tarinfo.type = tarfile.SYMTYPE
+        tarinfo.linkname = '/tmp/linked_file_target'
+        tar.addfile(tarinfo)
+
+      output_directory = tempfile.mkdtemp()
+
+      with archive.open(archive_path) as reader:
+        result = reader.extract_all(output_directory, trusted=False)
+        self.assertFalse(result)
+
+      self.assertFalse(os.path.lexists(os.path.join(output_directory,
+                                                    'linked_file')))
+      shell.remove_directory(output_directory)
+
+  def test_unpack_untrusted_tar_hardlink_fails(self):
+    """Test that unpacking an untrusted TAR hardlink fails."""
+    with tempfile.NamedTemporaryFile(suffix='.tar') as tmp_tar_file:
+      archive_path = tmp_tar_file.name
+
+      with tarfile.open(archive_path, 'w') as tar:
+        tarinfo = tarfile.TarInfo(name='linked_file')
+        tarinfo.type = tarfile.LNKTYPE
+        tarinfo.linkname = '/tmp/linked_file_target'
+        tar.addfile(tarinfo)
+
+      output_directory = tempfile.mkdtemp()
+
+      with archive.open(archive_path) as reader:
+        result = reader.extract_all(output_directory, trusted=False)
+        self.assertFalse(result)
+
+      self.assertFalse(os.path.lexists(os.path.join(output_directory,
+                                                    'linked_file')))
+      shell.remove_directory(output_directory)
+
+  def test_unpack_untrusted_tar_regular_file_succeeds(self):
+    """Test that unpacking an untrusted TAR regular file still succeeds."""
+    with tempfile.NamedTemporaryFile(suffix='.tar') as tmp_tar_file:
+      archive_path = tmp_tar_file.name
+
+      with tarfile.open(archive_path, 'w') as tar:
+        file_data = b'plain content'
+        tarinfo = tarfile.TarInfo(name='plain_file')
+        tarinfo.size = len(file_data)
+        tar.addfile(tarinfo, io.BytesIO(file_data))
+
+      output_directory = tempfile.mkdtemp()
+
+      with archive.open(archive_path) as reader:
+        result = reader.extract_all(output_directory, trusted=False)
+        self.assertTrue(result)
+
+      output_path = os.path.join(output_directory, 'plain_file')
+      self.assertTrue(os.path.isfile(output_path))
+      with open(output_path, 'rb') as output_file:
+        self.assertEqual(output_file.read(), b'plain content')
+      shell.remove_directory(output_directory)
+
 
 class ArchiveReaderTest(unittest.TestCase):
   """Tests for the archive.iterator function."""
