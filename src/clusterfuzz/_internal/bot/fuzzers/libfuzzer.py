@@ -20,6 +20,7 @@ import os
 import random
 import re
 import shutil
+import sys
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -1122,6 +1123,106 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return result
 
 
+def find_wrapper_script(fuzzer_path, build_dir):
+  """Locate a host-side script wrapper for Android fuzzer execution."""
+  if not build_dir:
+    build_dir = os.path.dirname(fuzzer_path)
+
+  fuzzer_name = os.path.basename(fuzzer_path)
+  wrapper_candidates = [
+      'hello.py',
+      'fuzz.py',
+      f'{fuzzer_name}_runner.py',
+      f'run_{fuzzer_name}.py',
+      f'{fuzzer_name}.py',
+      f'run_{fuzzer_name}',
+  ]
+
+  search_dirs = [build_dir, os.path.dirname(fuzzer_path)]
+  for search_dir in search_dirs:
+    if not search_dir or not os.path.exists(search_dir):
+      continue
+    for candidate in wrapper_candidates:
+      candidate_path = os.path.join(search_dir, candidate)
+      if os.path.isfile(candidate_path):
+        os.chmod(candidate_path, 0o755)
+        return candidate_path
+
+  if os.path.exists(build_dir):
+    for root, _, files in os.walk(build_dir):
+      for candidate in wrapper_candidates:
+        if candidate in files:
+          candidate_path = os.path.join(root, candidate)
+          os.chmod(candidate_path, 0o755)
+          return candidate_path
+
+  return None
+
+
+class AndroidWrapperLibFuzzerRunner(new_process.UnicodeProcessRunner,
+                                    LibFuzzerCommon):
+  """Android libFuzzer runner using a host script wrapper."""
+
+  def __init__(self,
+               wrapper_path,
+               fuzzer_path,
+               build_directory,
+               default_args=None):
+    """Inits the AndroidWrapperLibFuzzerRunner."""
+    self.wrapper_path = wrapper_path
+    self.fuzzer_path = fuzzer_path
+    self.build_directory = build_directory
+
+    if wrapper_path.endswith('.py'):
+      executable_path = sys.executable
+      runner_default_args = [wrapper_path]
+    else:
+      executable_path = wrapper_path
+      runner_default_args = []
+
+    if default_args:
+      runner_default_args.extend(default_args)
+
+    super().__init__(
+        executable_path=executable_path, default_args=runner_default_args)
+
+  def fuzz(self,
+           corpus_directories,
+           fuzz_timeout,
+           artifact_prefix=None,
+           additional_args=None,
+           extra_env=None):
+    """Executes the host script wrapper as a subprocess."""
+    android.logger.clear_log()
+
+    android_serial = environment.get_value('ANDROID_SERIAL', '')
+    fuzzer_name = os.path.basename(self.fuzzer_path)
+
+    wrapper_args = [
+        f'--device-serial={android_serial}',
+        f'--fuzzer-name={fuzzer_name}',
+    ]
+
+    if additional_args:
+      wrapper_args.append(f'--fuzzer-args={" ".join(additional_args)}')
+
+    logs.info(f'Running Android host wrapper subprocess: {self.wrapper_path} '
+              f'with args: {wrapper_args}')
+
+    result = self.run_and_wait(
+        additional_args=wrapper_args,
+        timeout=self.get_total_timeout(fuzz_timeout),
+        max_stdout_len=MAX_OUTPUT_LEN)
+
+    logcat_output = android.logger.log_output()
+    if logcat_output:
+      result.output = f'{result.output}\n\nLogcat:\n{logcat_output}'
+
+    logs.info(
+        f'Fuzzer run output for wrapper ({fuzzer_name}):\n{result.output}')
+    return result
+
+
 def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   """Get a libfuzzer runner."""
   if use_minijail is None:
@@ -1190,7 +1291,16 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
       raise undercoat.UndercoatError('Instance handle not provided.')
     runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
   elif is_android:
-    runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
+    wrapper_path = find_wrapper_script(fuzzer_path, build_dir)
+    if wrapper_path:
+      logs.info(
+          f'Using Android wrapper runner for {fuzzer_path}: {wrapper_path}')
+      runner = AndroidWrapperLibFuzzerRunner(wrapper_path, fuzzer_path,
+                                             build_dir)
+    else:
+      logs.info(f'Using Android command-line binary runner for {fuzzer_path}. '
+                f'Path: {fuzzer_path}')
+      runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   else:
     runner = LibFuzzerRunner(fuzzer_path, cwd=cwd)
 
