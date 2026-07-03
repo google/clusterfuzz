@@ -291,6 +291,70 @@ class SwarmingTest(unittest.TestCase):
         ])
     self.assertEqual(spec, expected_spec)
 
+  def test_get_spec_from_config_for_android_emulator(self):
+    """Tests that create_new_task_request overrides dimensions with (os=Linux)
+    and environment with (OS_OVERRIDE=ANDROID_EMULATOR)
+    for ANDROID_EMULATOR platform tasks."""
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan', platform='ANDROID_EMULATOR')
+    job.put()
+    spec = swarming.create_new_task_request('corpus_pruning', job.name,
+                                            'https://download_url')
+    expected_spec = swarming_pb2.NewTaskRequest(
+        name='task_name',
+        priority=1,
+        realm='realm-name',
+        service_account='test-clusterfuzz-service-account-email',
+        task_slices=[
+            swarming_pb2.TaskSlice(
+                expiration_secs=86400,
+                properties=swarming_pb2.TaskProperties(
+                    command=[
+                        'luci-auth', 'context', '--', './linux_entry_point.sh'
+                    ],
+                    dimensions=[
+                        swarming_pb2.StringPair(key='os', value='Linux'),
+                        swarming_pb2.StringPair(key='pool', value='pool-name')
+                    ],
+                    cipd_input=swarming_pb2.CipdInput(),  # pylint: disable=no-member
+                    cas_input_root=swarming_pb2.CASReference(
+                        cas_instance=
+                        'projects/server-name/instances/instance_name',
+                        digest=swarming_pb2.Digest(
+                            hash='linux_entry_point_archive_hash',
+                            size_bytes=1234)),
+                    execution_timeout_secs=86400,
+                    env=[
+                        swarming_pb2.StringPair(
+                            key='DOCKER_IMAGE',
+                            value=
+                            'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+                        ),
+                        swarming_pb2.StringPair(
+                            key='OS_OVERRIDE', value='ANDROID_EMULATOR'),
+                        swarming_pb2.StringPair(key='UWORKER', value='True'),
+                        swarming_pb2.StringPair(
+                            key='SWARMING_BOT', value='True'),
+                        swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),
+                        swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),
+                        swarming_pb2.StringPair(
+                            key='DISABLE_MOUNTS', value='True'),
+                        swarming_pb2.StringPair(
+                            key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
+                        swarming_pb2.StringPair(
+                            key='DOCKER_ENV_VARS',
+                            value=(
+                                '{"DOCKER_IMAGE": "gcr.io/clusterfuzz-images/'
+                                'base:a2f4dd6-202202070654", "OS_OVERRIDE": '
+                                '"ANDROID_EMULATOR", "UWORKER": "True", '
+                                '"SWARMING_BOT": "True", "LOG_TO_GCP": "True", '
+                                '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
+                                '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
+                    ],
+                    secret_bytes='https://download_url'.encode('utf-8')))
+        ])
+    self.assertEqual(spec, expected_spec)
+
   def test_is_swarming_task(self):
     """Tests that is_swarming_task works as expected."""
     job = data_types.Job(
