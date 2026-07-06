@@ -21,6 +21,8 @@ import random
 import re
 import shutil
 import sys
+import threading
+import time
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -1209,17 +1211,48 @@ class AndroidWrapperLibFuzzerRunner(new_process.UnicodeProcessRunner,
     logs.info(f'Running Android host wrapper subprocess: {self.wrapper_path} '
               f'with args: {wrapper_args}')
 
-    result = self.run_and_wait(
-        additional_args=wrapper_args,
-        timeout=self.get_total_timeout(fuzz_timeout),
-        max_stdout_len=MAX_OUTPUT_LEN)
+    proc = self.run(additional_args=wrapper_args, extra_env=extra_env)
+
+    output_lines = []
+    start_time = time.time()
+    timeout = self.get_total_timeout(fuzz_timeout)
+
+    timer = None
+    if timeout:
+      timer = threading.Timer(timeout, proc.kill)
+      timer.start()
+
+    try:
+      while True:
+        line = proc.popen.stdout.readline()
+        if not line:
+          break
+        decoded_line = utils.decode_to_unicode(line)
+        output_lines.append(decoded_line)
+        logs.info(f'[Wrapper Output] {decoded_line.rstrip()}')
+    finally:
+      if timer:
+        timer.cancel()
+
+    proc.popen.wait()
+    time_executed = time.time() - start_time
+    timed_out = (proc.poll() != 0) and bool(timeout and
+                                            time_executed >= timeout)
+    if timed_out:
+      logs.warning(f'Wrapper process timed out after {timeout}s.')
+
+    full_output = ''.join(output_lines)
+    result = new_process.ProcessResult(
+        command=proc.command,
+        return_code=proc.poll(),
+        output=full_output,
+        time_executed=time_executed,
+        timed_out=timed_out)
 
     logcat_output = android.logger.log_output()
     if logcat_output:
-      result.output = f'{result.output}\n\nLogcat:\n{logcat_output}'
+      logs.info(f'Android logcat output: {logcat_output}')
 
-    logs.info(
-        f'Fuzzer run output for wrapper ({fuzzer_name}):\n{result.output}')
     return result
 
 
