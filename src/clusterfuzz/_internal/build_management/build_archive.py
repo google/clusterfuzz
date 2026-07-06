@@ -473,7 +473,7 @@ def open_with_reader(reader: archive.ArchiveReader) -> BuildArchive:
   # archive implementation to use.
   # Hopefully, we can search in the archive whether some files are present and
   # give us some hints.
-  # For instance, chrome build archives are embedding `gn.args` and
+  # For instance, chrome build archives contain `args.gn` and/or
   # `clusterfuzz_manifest.json`. Let's use this for now.
   # Being wrong is no big deal here, because BuildArchive is designed so that
   # we always fall back on default behaviour.
