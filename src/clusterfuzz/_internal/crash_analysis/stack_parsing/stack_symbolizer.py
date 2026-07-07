@@ -28,10 +28,12 @@
 # Disable all pylint warnings/errors as this is based on external code.
 # pylint: disable-all
 
+import collections
 import os
 import re
 import subprocess
 import sys
+import threading
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -240,6 +242,7 @@ class LLVMSymbolizer(Symbolizer):
     self.default_arch = default_arch
     self.system = system
     self.dsym_hints = dsym_hints
+    self.stderr_buffer = collections.deque(maxlen=100)
     self.pipe = self.open_llvm_symbolizer()
 
   def open_llvm_symbolizer(self):
@@ -270,7 +273,19 @@ class LLVMSymbolizer(Symbolizer):
 
     # Run the symbolizer.
     pipe = subprocess.Popen(
-        cmd, env=env_copy, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        cmd,
+        env=env_copy,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+    def read_stderr(p, buffer):
+      for line in iter(p.stderr.readline, b''):
+        buffer.append(line.decode('utf-8', errors='replace'))
+
+    self.stderr_thread = threading.Thread(
+        target=read_stderr, args=(pipe, self.stderr_buffer), daemon=True)
+    self.stderr_thread.start()
 
     global pipes
     pipes.append(pipe)
@@ -296,9 +311,16 @@ class LLVMSymbolizer(Symbolizer):
         file_name = self.pipe.stdout.readline().rstrip().decode('utf-8')
         result.append(get_stack_frame(binary, addr, function_name, file_name))
 
-    except Exception:
-      logs.error('Symbolization using llvm-symbolizer failed for: "%s".' %
-                 symbolizer_input)
+    except Exception as e:
+      return_code = self.pipe.poll()
+      if return_code is not None:
+        self.stderr_thread.join(timeout=0.1)
+      stderr_content = ''.join(self.stderr_buffer).strip()
+      stderr_msg = f' Stderr: {stderr_content}' if stderr_content else ''
+      exit_msg = f' (exit code {return_code})' if return_code is not None else ''
+      logs.error(
+          f'Symbolization using llvm-symbolizer failed{exit_msg} for: "{symbolizer_input}".{stderr_msg}'
+      )
       result = []
     if not result:
       result = None
@@ -558,8 +580,16 @@ class SymbolizationLoop:
   def _close_pipes(self):
     """Closes any open pipes."""
     for pipe in pipes:
-      pipe.stdin.close()
-      pipe.stdout.close()
+      try:
+        pipe.stdin.close()
+      except Exception as e:
+        logs.warning(f'Failed to close symbolizer stdin pipe: {e}')
+
+      try:
+        pipe.stdout.close()
+      except Exception as e:
+        logs.warning(f'Failed to close symbolizer stdout pipe: {e}')
+
       try:
         pipe.kill()
       except ProcessLookupError:
