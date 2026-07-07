@@ -43,6 +43,7 @@ class FeatureFlags(Enum):
   SWARMING_MAX_PENDING_TASKS = 'swarming_max_pending_tasks'
 
   ENABLE_FUZZ_FOR_BOTS = 'enable_fuzz_for_bots'
+  STORAGE_THREADED_OPS_FUZZ_TARGETS = 'storage_threaded_ops_fuzz_targets'
 
   @property
   def flag(self):

@@ -22,13 +22,13 @@ POOL_SIZE = multiprocessing.cpu_count()
 
 
 @contextlib.contextmanager
-def make_pool(pool_size=POOL_SIZE, max_pool_size=None):
+def make_pool(pool_size=POOL_SIZE, max_pool_size=None, use_threads=False):
   """Returns a pool that can (usually) execute tasks concurrently."""
   if max_pool_size is not None:
     pool_size = min(pool_size, max_pool_size)
 
   # Don't use processes on Windows and unittests to avoid hangs.
-  if (environment.get_value('PY_UNITTESTS') or
+  if (use_threads or environment.get_value('PY_UNITTESTS') or
       environment.platform() == 'WINDOWS'):
     yield futures.ThreadPoolExecutor(pool_size)
   else:

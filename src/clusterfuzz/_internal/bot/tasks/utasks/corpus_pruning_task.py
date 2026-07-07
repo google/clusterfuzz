@@ -28,6 +28,7 @@ from google.auth.transport import requests as google_auth_requests
 from google.cloud import ndb
 from google.protobuf import timestamp_pb2
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import options
@@ -1212,6 +1213,23 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
     # Copy global blacklist into local suppressions file if LSan is enabled.
     setup_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
+
+  if uworker_env is None:
+    uworker_env = {}
+
+  threaded_ops_flag = (
+      feature_flags.FeatureFlags.STORAGE_THREADED_OPS_FUZZ_TARGETS)
+  if threaded_ops_flag.enabled:
+    threaded_ops_targets = threaded_ops_flag.string_value
+    if threaded_ops_targets:
+      allowed_targets = [
+          t.strip() for t in threaded_ops_targets.split(',') if t.strip()
+      ]
+      if fuzzer_name in allowed_targets:
+        uworker_env['USE_THREADED_STORAGE_OPS'] = 'True'
+        # TODO(paulovlb): Remove this once fixed.
+        logs.info(f'[Corpus Fix] Enabled threaded storage ops for target: '
+                  f'{fuzzer_name}')
 
   logs.info('done preprocess')
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
