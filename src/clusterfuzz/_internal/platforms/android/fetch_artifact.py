@@ -64,7 +64,7 @@ def _use_v4():
     return False
 
 
-def execute_request_with_retries(request):
+def _execute_request_with_retries(request):
   """Executes request and retries on failure."""
   result = None
   for _ in range(MAX_RETRIES):
@@ -77,10 +77,10 @@ def execute_request_with_retries(request):
   return result
 
 
-def download_artifact(client, bid, target, attempt_id, name, output_directory,
-                      output_filename):
+def _download_artifact(client, bid, target, attempt_id, name, output_directory,
+                       output_filename):
   """Download one artifact."""
-  logs.info('reached download_artifact')
+  logs.info('reached _download_artifact')
   logs.info('artifact to download: %s' % name)
   logs.info('output_directory: %s' % output_directory)
   logs.info('output_filename: %s' % output_filename)
@@ -101,7 +101,7 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
   else:
     artifact_query = client.buildartifact().get(
         buildId=bid, target=target, attemptId=attempt_id, resourceId=name)
-  artifact = execute_request_with_retries(artifact_query)
+  artifact = _execute_request_with_retries(artifact_query)
   if artifact is None:
     logs.error(
         'AndroidBuildAPI download_artifact failed: artifact metadata '
@@ -200,11 +200,11 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
   return output_path
 
 
-def get_artifacts_for_build(client,
-                            bid: str,
-                            target: str,
-                            attempt_id: str = 'latest',
-                            regexp: Optional[str] = None) -> List[str]:
+def _get_artifacts_for_build(client,
+                             bid: str,
+                             target: str,
+                             attempt_id: str = 'latest',
+                             regexp: Optional[str] = None) -> List[str]:
   """Return list of artifacts for a given build."""
   version_tag = 'V4' if _use_v4() else 'V3'
   logs.info(
@@ -246,7 +246,7 @@ def get_artifacts_for_build(client,
 
   results = []
   while request:
-    result = execute_request_with_retries(request)
+    result = _execute_request_with_retries(request)
     if not result:
       break
     results.append(result)
@@ -277,7 +277,7 @@ def get_artifacts_for_build(client,
   return artifacts
 
 
-def get_client():
+def _get_client():
   """Return client with connection to build apiary."""
   # Connect using build apiary service account credentials.
   build_apiary_service_account_private_key = db_config.get_value(
@@ -312,9 +312,9 @@ def get_client():
   return client
 
 
-def get_stable_build_info():
+def _get_stable_build_info():
   """Return stable artifact for cuttlefish branch and target."""
-  logs.info('Reached get_stable_build_info')
+  logs.info('Reached _get_stable_build_info')
   stable_build_info = STABLE_CUTTLEFISH_BUILD
 
   try:
@@ -332,14 +332,14 @@ def get_stable_build_info():
 
 def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
   """Return latest artifact for a branch and target."""
-  client = get_client()
+  client = _get_client()
   if not client:
     return None
 
   # TODO(https://github.com/google/clusterfuzz/issues/3950)
   # After stabilizing the Cuttlefish image, revert this
   if environment.is_android_cuttlefish() and stable_build:
-    build_info = get_stable_build_info()
+    build_info = _get_stable_build_info()
     # Use tip-of-tree build if 'bid' is missing or 0.
     # Setting 'bid' to 0 in stable_build_info.json
     # allows for easy switching between stable build
@@ -374,7 +374,7 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
   request_str = (f'{request.uri}, {request.method}, '
                  f'{request.body}, {request.methodId}')
 
-  builds = execute_request_with_retries(request)
+  builds = _execute_request_with_retries(request)
   if not builds:
     logs.error(
         'AndroidBuildAPI get_latest_artifact_info failed: no builds found.',
@@ -405,12 +405,12 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
 
 def get(bid, target, regex, output_directory, output_filename=None):
   """Return artifact for a given build id, target and file regex."""
-  client = get_client()
+  client = _get_client()
   if not client:
     return None
 
   # Run the script to fetch the artifact.
-  return run_script(
+  return _run_script(
       client=client,
       bid=bid,
       target=target,
@@ -419,9 +419,9 @@ def get(bid, target, regex, output_directory, output_filename=None):
       output_filename=output_filename)
 
 
-def run_script(client, bid, target, regex, output_directory, output_filename):
+def _run_script(client, bid, target, regex, output_directory, output_filename):
   """Download artifacts as specified."""
-  artifacts = get_artifacts_for_build(
+  artifacts = _get_artifacts_for_build(
       client=client, bid=bid, target=target, attempt_id='latest', regexp=regex)
   if not artifacts:
     logs.error(f'Artifact could not be fetched for target {target}, '
@@ -439,7 +439,7 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
       continue
 
     if regex.match(artifact_name):
-      loop_result = download_artifact(
+      loop_result = _download_artifact(
           client=client,
           bid=bid,
           target=target,
