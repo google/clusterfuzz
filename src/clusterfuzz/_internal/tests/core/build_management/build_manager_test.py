@@ -2014,7 +2014,7 @@ class ReadSchemaVersionFromManifestTest(fake_filesystem_unittest.TestCase):
         os.path.join(build.build_dir, 'clusterfuzz_manifest.json'),
         contents='{"archive_schema_version": 1}')
     self.assertEqual(
-        build._read_schema_version_from_manifest(build.build_dir), 1)
+        build_manager._read_schema_version_from_manifest(build.build_dir), 1)
 
   def test_symbolized_build(self):
     """Tests reading schema version from manifest for release and debug dirs."""
@@ -2028,13 +2028,15 @@ class ReadSchemaVersionFromManifestTest(fake_filesystem_unittest.TestCase):
         os.path.join(build.debug_build_dir, 'clusterfuzz_manifest.json'),
         contents='{"archive_schema_version": 2}')
     self.assertEqual(
-        build._read_schema_version_from_manifest(build.release_build_dir), 1)
+        build_manager._read_schema_version_from_manifest(
+            build.release_build_dir), 1)
     self.assertEqual(
-        build._read_schema_version_from_manifest(build.debug_build_dir), 2)
+        build_manager._read_schema_version_from_manifest(build.debug_build_dir),
+        2)
 
   def test_missing_file(self):
     """Tests that 0 is returned if manifest file is missing."""
     build = build_manager.RegularBuild(self.base_build_dir, 1337,
                                        'gs://dummy/url.zip')
     self.assertEqual(
-        build._read_schema_version_from_manifest(build.build_dir), 0)
+        build_manager._read_schema_version_from_manifest(build.build_dir), 0)
