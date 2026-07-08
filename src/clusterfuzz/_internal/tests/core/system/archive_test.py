@@ -44,14 +44,13 @@ class UnpackTest(unittest.TestCase):
     """Test unpack with trusted=False passes with file having './' prefix."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     output_directory = tempfile.mkdtemp(prefix='cwd-prefix')
+    self.addCleanup(shell.remove_directory, output_directory)
     with archive.open(tgz_path) as reader:
       reader.extract_all(output_directory, trusted=False)
 
     test_file_path = os.path.join(output_directory, 'test')
     self.assertTrue(os.path.exists(test_file_path))
     self.assertEqual(open(test_file_path).read(), 'abc\n')
-
-    shell.remove_directory(output_directory)
 
   def test_extract(self):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
@@ -80,13 +79,12 @@ class UnpackTest(unittest.TestCase):
         tar.addfile(tarinfo, io.BytesIO(file_data))
 
       output_directory = tempfile.mkdtemp()
+      self.addCleanup(shell.remove_directory, output_directory)
 
       # The function should return False, indicating an error occurred.
       with archive.open(malicious_archive_path) as reader:
         result = reader.extract_all(output_directory, trusted=False)
         self.assertFalse(result)
-
-      shell.remove_directory(output_directory)
 
   def test_zip_extract_permissions_mocked_chmod(self):
     """Test zip extraction only calls chmod when permissions change or execute bit is set."""
@@ -102,6 +100,7 @@ class UnpackTest(unittest.TestCase):
       ])
 
       output_directory = tempfile.mkdtemp(prefix='zip-chmod-test')
+      self.addCleanup(shell.remove_directory, output_directory)
       with archive.open(zip_path) as reader:
         reader.extract_all(output_directory, trusted=True)
 
@@ -111,8 +110,6 @@ class UnpackTest(unittest.TestCase):
       ]
       self.mock.chmod.assert_has_calls(expected_calls, any_order=True)
       self.assertEqual(self.mock.chmod.call_count, 2)
-
-      shell.remove_directory(output_directory)
 
   def test_zip_extract_permissions_filesystem(self):
     """Test actual filesystem execution bits when extracting a zip archive."""
@@ -124,6 +121,7 @@ class UnpackTest(unittest.TestCase):
       ])
 
       output_directory = tempfile.mkdtemp(prefix='zip-fs-test')
+      self.addCleanup(shell.remove_directory, output_directory)
       with archive.open(zip_path) as reader:
         reader.extract_all(output_directory, trusted=True)
 
@@ -133,8 +131,6 @@ class UnpackTest(unittest.TestCase):
       self.assertTrue(os.access(exe_path, os.X_OK))
       self.assertFalse(os.access(reg_path, os.X_OK))
       self.assertEqual(os.stat(exe_path).st_mode & 0o777, 0o750)
-
-      shell.remove_directory(output_directory)
 
   def test_zip_unpack_absolute_path_traversal(self):
     """Test that unpacking a zip archive with an absolute path fails when untrusted."""
@@ -146,12 +142,11 @@ class UnpackTest(unittest.TestCase):
         zip_file.writestr(info, b'malicious content')
 
       output_directory = tempfile.mkdtemp()
+      self.addCleanup(shell.remove_directory, output_directory)
 
       with archive.open(malicious_archive_path) as reader:
         result = reader.extract_all(output_directory, trusted=False)
         self.assertFalse(result)
-
-      shell.remove_directory(output_directory)
 
 
 class ArchiveReaderTest(unittest.TestCase):
