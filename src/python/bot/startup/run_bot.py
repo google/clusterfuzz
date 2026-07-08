@@ -100,10 +100,13 @@ def schedule_utask_mains():
   utask_mains = tasks.get_utask_mains(pub_sub_task_queue.UTASK_MAIN_QUEUE.name)
 
   if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
-    swarming_utask_mains = tasks.get_utask_mains(
-        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
-    logs.info(f'Found {len(swarming_utask_mains)} swarming utask mains.')
-    utask_mains.extend(swarming_utask_mains)
+    try:
+      swarming_utask_mains = tasks.get_utask_mains(
+          pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+      logs.info(f'Found {len(swarming_utask_mains)} swarming utask mains.')
+      utask_mains.extend(swarming_utask_mains)
+    except RuntimeError as e:
+      logs.error(f'[Swarming] Enabled but failed to schedule utask_main: {e}')
 
   if not utask_mains:
     logs.info('No utask mains.')

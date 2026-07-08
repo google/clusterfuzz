@@ -238,6 +238,36 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
     self.assertEqual(called_batch_tasks[0].pubsub_task, regular_task)
     self.assertEqual(called_batch_tasks[1].pubsub_task, swarming_task)
 
+  @mock.patch('clusterfuzz._internal.metrics.logs.error')
+  def test_schedule_tasks_swarming_runtime_error(self, mock_log_error):
+    """Test that schedule_utask_mains handles RuntimeError when fetching
+    swarming utask_mains from the swarming pubn sub queue when it doesnt exists. """
+    regular_task = mock.MagicMock(
+        command='command1', job='job1', argument='argument1')
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.value,
+        enabled=True).put()
+
+    self.mock.get_utask_mains.side_effect = [
+        [regular_task],
+        RuntimeError('Invalid subscription'),
+    ]
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
+
+    run_bot.schedule_utask_mains()
+
+    self.mock.get_utask_mains.assert_has_calls([
+        mock.call(pub_sub_task_queue.UTASK_MAIN_QUEUE.name),
+        mock.call(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name),
+    ])
+    mock_log_error.assert_called_once()
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
+    )
+    args, _ = self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.call_args
+    called_batch_tasks = args[0]
+    self.assertEqual(len(called_batch_tasks), 1)
+    self.assertEqual(called_batch_tasks[0].pubsub_task, regular_task)
+
 
 class TworkerGetTaskTest(unittest.TestCase):
   """Tests for tworker_get_task."""
