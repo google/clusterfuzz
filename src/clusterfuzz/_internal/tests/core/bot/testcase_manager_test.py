@@ -14,6 +14,7 @@
 """Tests testcase_manager."""
 import datetime
 import os
+import queue
 import shutil
 import tempfile
 import unittest
@@ -862,6 +863,118 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             output=self.GREYBOX_FUZZER_CRASH),
         mock.call('Crash is reproducible.'),
     ])
+
+
+class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
+  """Tests for run_testcase_and_return_result_in_queue."""
+
+  def setUp(self):
+    """Setup for run_testcase_and_return_result_in_queue tests."""
+    test_helpers.patch_environ(self)
+    test_utils.set_up_pyfakefs(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.bot.testcase_manager.run_testcase',
+        'clusterfuzz._internal.bot.testcase_manager._get_testcase_time',
+        'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
+        'clusterfuzz._internal.bot.testcase_manager.upload_log',
+        'clusterfuzz._internal.crash_analysis.crash_analyzer.is_crash',
+        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
+        'clusterfuzz._internal.datastore.ndb_init.context',
+        'clusterfuzz._internal.metrics.logs.error',
+    ])
+    os.environ['CRASH_STACKTRACES_DIR'] = '/crashes'
+    os.environ['ROOT_DIR'] = '/root'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['FAIL_WAIT'] = '1'
+    self.fs.create_dir('/crashes')
+    self.fs.create_dir('/root/bot/logs')
+    self.fs.create_dir('/usr/local/google/home/ibarba/clusterfuzz/.worktrees/'
+                       'issue-2-blackbox-raw-logs/bot/logs')
+
+  def test_upload_output_false_no_crash(self):
+    """Verify run_testcase_and_return_result_in_queue with upload_output=False
+    returns unsymbolized output and puts it in queue without uploading when no crash."""
+    crash_queue = queue.Queue()
+    self.mock.run_testcase.return_value = (0, 1.5, 'raw_output_trace')
+    self.mock.is_crash.return_value = False
+    self.mock._get_testcase_time.return_value = datetime.datetime(2026, 7, 10)
+    mock_unsymbolized_info = mock.MagicMock()
+    mock_unsymbolized_info.crash_stacktrace = 'unsymbolized_raw_trace'
+    self.mock.get_crash_data.return_value = mock_unsymbolized_info
+
+    result = testcase_manager.run_testcase_and_return_result_in_queue(
+        crash_queue, 0, '/testcase', [], {}, upload_output=False)
+
+    self.assertEqual(0, self.mock.error.call_count,
+                     f'Unexpected error: {self.mock.error.call_args_list}')
+    self.assertIsNotNone(result)
+    crash, fuzzer_run_output_data = result
+
+    self.assertIsNone(crash)
+    self.assertEqual(
+        ('unsymbolized_raw_trace', None, 0, datetime.datetime(2026, 7, 10)),
+        fuzzer_run_output_data)
+    self.assertEqual(0, self.mock.upload_testcase.call_count)
+    self.assertEqual(0, self.mock.upload_log.call_count)
+    self.assertFalse(crash_queue.empty())
+    queue_crash, queue_data = crash_queue.get()
+    self.assertIsNone(queue_crash)
+    self.assertEqual(fuzzer_run_output_data, queue_data)
+
+  def test_upload_output_false_with_crash(self):
+    """Verify run_testcase_and_return_result_in_queue with upload_output=False
+    returns crash and unsymbolized output without direct uploads on crash."""
+    crash_queue = queue.Queue()
+    self.mock.run_testcase.return_value = (1, 2.0, 'raw_crash_trace')
+    self.mock.is_crash.return_value = True
+    self.mock._get_testcase_time.return_value = datetime.datetime(2026, 7, 10)
+    mock_unsymbolized_info = mock.MagicMock()
+    mock_unsymbolized_info.crash_stacktrace = 'unsymbolized_crash_trace'
+    self.mock.get_crash_data.return_value = mock_unsymbolized_info
+
+    result = testcase_manager.run_testcase_and_return_result_in_queue(
+        crash_queue, 0, '/testcase', [], {}, upload_output=False)
+
+    self.assertEqual(0, self.mock.error.call_count,
+                     f'Unexpected error: {self.mock.error.call_args_list}')
+    self.assertIsNotNone(result)
+    crash, fuzzer_run_output_data = result
+
+    self.assertIsNotNone(crash)
+    self.assertEqual('/testcase', crash.file_path)
+    self.assertEqual(('unsymbolized_crash_trace', '/testcase', 1,
+                      datetime.datetime(2026, 7, 10)), fuzzer_run_output_data)
+    self.assertEqual(0, self.mock.upload_testcase.call_count)
+    self.assertEqual(0, self.mock.upload_log.call_count)
+    self.assertFalse(crash_queue.empty())
+    queue_crash, queue_data = crash_queue.get()
+    self.assertEqual(crash, queue_crash)
+    self.assertEqual(fuzzer_run_output_data, queue_data)
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.ENGINE_OUTPUT_LIMIT',
+      50)
+  def test_upload_output_false_truncated(self):
+    """Verify run_testcase_and_return_result_in_queue truncates long unsymbolized output."""
+    crash_queue = queue.Queue()
+    self.mock.run_testcase.return_value = (0, 1.5, 'raw_output_trace')
+    self.mock.is_crash.return_value = False
+    self.mock._get_testcase_time.return_value = datetime.datetime(2026, 7, 10)
+    mock_unsymbolized_info = mock.MagicMock()
+    mock_unsymbolized_info.crash_stacktrace = 'A' * 50 + 'B' * 50
+    self.mock.get_crash_data.return_value = mock_unsymbolized_info
+
+    result = testcase_manager.run_testcase_and_return_result_in_queue(
+        crash_queue, 0, '/testcase', [], {}, upload_output=False)
+
+    self.assertIsNotNone(result)
+    _, fuzzer_run_output_data = result
+    expected_output = 'A' * 17 + '\n...truncated...\n' + 'B' * 16
+    self.assertEqual((expected_output, None, 0, datetime.datetime(2026, 7, 10)),
+                     fuzzer_run_output_data)
+    self.assertFalse(crash_queue.empty())
+    _, queue_data = crash_queue.get()
+    self.assertEqual(fuzzer_run_output_data, queue_data)
 
 
 def _get_fuzz_target_from_preprocess(testcase):
