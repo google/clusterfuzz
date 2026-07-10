@@ -18,6 +18,7 @@ import collections
 import datetime
 import os
 import re
+import tempfile
 import zlib
 
 from clusterfuzz._internal.base import utils
@@ -462,12 +463,8 @@ def _get_crash_output(output):
   return output[:crash_stacktrace_end_marker_index]
 
 
-def run_testcase_and_return_result_in_queue(crash_queue,
-                                            thread_index,
-                                            file_path,
-                                            gestures,
-                                            env_copy,
-                                            upload_output=False):
+def run_testcase_and_return_result_in_queue(crash_queue, thread_index,
+                                            file_path, gestures, env_copy):
   """Run a single testcase and return crash results in the crash queue."""
   # Since this is running in its own process, initialize the log handler again.
   # This is needed for Windows where instances are not shared across child
@@ -479,22 +476,12 @@ def run_testcase_and_return_result_in_queue(crash_queue,
 
   # Also reinitialize NDB context for the same reason as above.
   with ndb_init.context():
-    result = _do_run_testcase_and_return_result_in_queue(
-        crash_queue,
-        thread_index,
-        file_path,
-        gestures,
-        env_copy,
-        upload_output=upload_output)
-  return result
+    _do_run_testcase_and_return_result_in_queue(crash_queue, thread_index,
+                                                file_path, gestures, env_copy)
 
 
-def _do_run_testcase_and_return_result_in_queue(crash_queue,
-                                                thread_index,
-                                                file_path,
-                                                gestures,
-                                                env_copy,
-                                                upload_output=False):
+def _do_run_testcase_and_return_result_in_queue(crash_queue, thread_index,
+                                                file_path, gestures, env_copy):
   """Run a single testcase and return crash results in the crash queue."""
   try:
     # Run testcase and check whether a crash occurred or not.
@@ -535,36 +522,24 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
           gestures=gestures,
           stack_file_path=stack_file_path)
 
-      # Don't upload uninteresting testcases (no crash) or if there is no log to
-      # correlate it with (not upload_output).
-      if upload_output:
-        crash_queue.put(crash)
-        upload_testcase(file_path, None, log_time)
-
-    if upload_output:
-      # Include full output for uploaded logs (crash output, merge output, etc).
-      crash_result_full = CrashResult(return_code, crash_time, output)
-      upload_log(crash_result_full.get_stacktrace(), return_code, log_time)
-      return crash
-
-    # Return raw, unsymbolized execution output for deferred postprocessing.
+    # Save raw, unsymbolized execution output for deferred postprocessing.
     crash_result_full = CrashResult(return_code, crash_time, output)
     unsymbolized_output = crash_result_full.get_stacktrace(symbolized=False)
-    from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
-    unsymbolized_output = fuzz_task.truncate_fuzzer_output(
-        unsymbolized_output, fuzz_task.ENGINE_OUTPUT_LIMIT)
     log_time = log_time or datetime.datetime.utcnow()
     crash_path = file_path if crash else None
-    fuzzer_run_output_data = (unsymbolized_output, crash_path, return_code,
-                              log_time)
+    fd, log_file_path = tempfile.mkstemp(
+        dir=environment.get_value('BOT_TMPDIR'),
+        prefix='fuzzer_output_',
+        suffix='.log')
+    os.close(fd)
+    utils.write_data_to_file(unsymbolized_output, log_file_path)
+    fuzzer_run_output_data = (log_file_path, crash_path, return_code, log_time)
     crash_queue.put((crash, fuzzer_run_output_data))
-    return crash, fuzzer_run_output_data
   except Exception as e:
     logs.error(
         'Exception occurred while running '
         'run_testcase_and_return_result_in_queue.',
         exception=e)
-    return None
 
 
 def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,

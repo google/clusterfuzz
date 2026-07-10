@@ -1332,9 +1332,9 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual('/app/app_1 -r=3 -x -y /tests/2',
                      crashes[1].application_command_line)
 
-  def test_do_blackbox_fuzzing_deferred_log_upload(self):
-    """Verify that do_blackbox_fuzzing passes upload_output=False when invoking
-    run_testcase_and_return_result_in_queue and packages unsymbolized output."""
+  def test_do_blackbox_fuzzing_log_packaging(self):
+    """Verify that do_blackbox_fuzzing invokes run_testcase_and_return_result_in_queue
+    and packages unsymbolized output."""
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
     uworker_input = uworker_msg_pb2.Input(
         fuzzer_name='fantasy_fuzz',
@@ -1363,12 +1363,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
 
     self.assertEqual(2, mock_thread_cls.call_count)
     for _, kwargs in mock_thread_cls.call_args_list:
-      self.assertFalse(kwargs['args'][5])
-
-    fuzzer_run_outputs = session.fuzz_task_output.fuzzer_run_outputs
-    self.assertEqual(2, len(fuzzer_run_outputs))
-    self.assertEqual(b'testcase_crashed', fuzzer_run_outputs[0].testcase)
-    self.assertEqual(b'', fuzzer_run_outputs[1].testcase)
+      self.assertEqual(5, len(kwargs['args']))
 
   @mock.patch(
       'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
@@ -1481,9 +1476,9 @@ class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
     self.mock.get_queue.return_value = queue.Queue()
     self.mock.get_process.return_value = threading.Thread
 
-  def test_do_blackbox_fuzzing_upload_output_false_and_packaging(self):
+  def test_do_blackbox_fuzzing_packaging(self):
     """Verify that do_blackbox_fuzzing invokes run_testcase_and_return_result_in_queue
-    with upload_output=False and correctly packages raw logs into fuzzer_run_outputs."""
+    and correctly packages raw logs into fuzzer_run_outputs."""
     uworker_input = uworker_msg_pb2.Input(
         fuzzer_name='fantasy_fuzz',
         job_type='asan_test',
@@ -1505,11 +1500,11 @@ class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
 
     session.do_blackbox_fuzzing(fuzzer, '/fake-fuzz-dir', 'asan_test')
 
-    # Verify run_testcase_and_return_result_in_queue invoked with upload_output=False.
     self.assertEqual(2, mock_thread_cls.call_count)
     for _, kwargs in mock_thread_cls.call_args_list:
-      self.assertFalse(kwargs['args'][5],
-                       'upload_output argument must be False')
+      self.assertEqual(
+          5, len(kwargs['args']),
+          'run_testcase_and_return_result_in_queue must take 5 positional args')
 
     # Verify fuzzer_run_outputs packaged in fuzz_task_output.
     fuzzer_run_outputs = session.fuzz_task_output.fuzzer_run_outputs
@@ -1524,79 +1519,34 @@ class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(b'', fuzzer_run_outputs[1].testcase)
 
   def test_drain_temp_queue(self):
-    """Verify _drain_temp_queue unpacks tuples and standalone crashes correctly."""
+    """Verify _drain_temp_queue unpacks tuples correctly and reads log files."""
     uworker_input = uworker_msg_pb2.Input(
         fuzzer_name='fantasy_fuzz',
         job_type='asan_test',
         fuzz_task_input=uworker_msg_pb2.FuzzTaskInput())
     session = fuzz_task.FuzzingSession(uworker_input, 10)
 
+    self.fs.create_file('/tmp/trace.log', contents='output_trace')
+
     temp_queue = queue.Queue()
-    crash = data_types.Crash(file_path='/test/crash', return_code=1)
-    fuzzer_run_output_data = ('output_trace', '/test/crash', 1,
+    crash = testcase_manager.Crash('/test/crash', 1, 1, [], [], '/stack')
+    fuzzer_run_output_data = ('/tmp/trace.log', '/test/crash', 1,
                               datetime.datetime(2026, 7, 10))
     temp_queue.put((crash, fuzzer_run_output_data))
 
-    standalone_crash = data_types.Crash(file_path='/test/crash2', return_code=2)
-    temp_queue.put(standalone_crash)
+    standalone_crash = testcase_manager.Crash('/test/crash2', 1, 2, [], [],
+                                              '/stack2')
+    temp_queue.put((standalone_crash, None))
 
     crashes = []
     session._drain_temp_queue(temp_queue, crashes)
 
     self.assertTrue(temp_queue.empty())
+    self.assertFalse(os.path.exists('/tmp/trace.log'))
     self.assertEqual([crash, standalone_crash], crashes)
     self.assertEqual(1, len(session.fuzz_task_output.fuzzer_run_outputs))
     self.assertEqual(b'output_trace',
                      session.fuzz_task_output.fuzzer_run_outputs[0].output)
-
-  def test_do_blackbox_fuzzing_active_queue_draining(self):
-    """Verify do_blackbox_fuzzing actively polls and drains temp_queue while threads run."""
-    uworker_input = uworker_msg_pb2.Input(
-        fuzzer_name='fantasy_fuzz',
-        job_type='asan_test',
-        fuzz_task_input=uworker_msg_pb2.FuzzTaskInput())
-
-    session = fuzz_task.FuzzingSession(uworker_input, 10)
-    session.generate_blackbox_testcases = mock.MagicMock()
-    session.generate_blackbox_testcases.return_value = (
-        fuzz_task.GenerateBlackboxTestcasesResult(
-            True, ['/tests/0'], {'fuzzer_binary_name': 'fantasy_fuzz'}))
-
-    fuzzer = data_types.Fuzzer()
-    fuzzer.name = 'fantasy_fuzz'
-
-    fake_queue = queue.Queue()
-    self.mock.get_queue.return_value = fake_queue
-
-    class FakeThread:
-      """Fake thread class for testing active queue draining."""
-
-      def __init__(self, target, args):
-        self.target = target
-        self.args = args
-        self._alive_checks = 0
-
-      def start(self):
-        pass
-
-      def is_alive(self):
-        self._alive_checks += 1
-        if self._alive_checks == 1:
-          fake_queue.put((None, ('trace_during_loop', None, 0,
-                                 datetime.datetime(2026, 7, 10))))
-          return True
-        return False
-
-    self.mock.get_process.return_value = FakeThread
-
-    with mock.patch.object(
-        session, '_drain_temp_queue',
-        wraps=session._drain_temp_queue) as mock_drain:
-      session.do_blackbox_fuzzing(fuzzer, '/fake-fuzz-dir', 'asan_test')
-      self.assertGreaterEqual(mock_drain.call_count, 2)
-      self.assertEqual(1, len(session.fuzz_task_output.fuzzer_run_outputs))
-      self.assertEqual(b'trace_during_loop',
-                       session.fuzz_task_output.fuzzer_run_outputs[0].output)
 
 
 @test_utils.with_cloud_emulators('datastore')

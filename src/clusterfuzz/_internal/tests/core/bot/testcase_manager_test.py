@@ -23,6 +23,7 @@ from unittest import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz import stacktraces
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     constants as libfuzzer_constants
@@ -886,14 +887,16 @@ class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
     os.environ['ROOT_DIR'] = '/root'
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['FAIL_WAIT'] = '1'
+    os.environ['BOT_TMPDIR'] = '/bot_tmp'
     self.fs.create_dir('/crashes')
     self.fs.create_dir('/root/bot/logs')
+    self.fs.create_dir('/bot_tmp')
     self.fs.create_dir('/usr/local/google/home/ibarba/clusterfuzz/.worktrees/'
                        'issue-2-blackbox-raw-logs/bot/logs')
 
-  def test_upload_output_false_no_crash(self):
-    """Verify run_testcase_and_return_result_in_queue with upload_output=False
-    returns unsymbolized output and puts it in queue without uploading when no crash."""
+  def test_run_no_crash(self):
+    """Verify run_testcase_and_return_result_in_queue returns unsymbolized output
+    written to file and puts path in queue without uploading when no crash."""
     crash_queue = queue.Queue()
     self.mock.run_testcase.return_value = (0, 1.5, 'raw_output_trace')
     self.mock.is_crash.return_value = False
@@ -902,28 +905,30 @@ class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
     mock_unsymbolized_info.crash_stacktrace = 'unsymbolized_raw_trace'
     self.mock.get_crash_data.return_value = mock_unsymbolized_info
 
-    result = testcase_manager.run_testcase_and_return_result_in_queue(
-        crash_queue, 0, '/testcase', [], {}, upload_output=False)
+    testcase_manager.run_testcase_and_return_result_in_queue(
+        crash_queue, 0, '/testcase', [], {})
 
     self.assertEqual(0, self.mock.error.call_count,
                      f'Unexpected error: {self.mock.error.call_args_list}')
-    self.assertIsNotNone(result)
-    crash, fuzzer_run_output_data = result
+    self.assertFalse(crash_queue.empty())
+    crash, fuzzer_run_output_data = crash_queue.get()
 
     self.assertIsNone(crash)
+    log_file_path, crash_path, return_code, log_time = fuzzer_run_output_data
+    self.assertTrue(os.path.exists(log_file_path))
     self.assertEqual(
-        ('unsymbolized_raw_trace', None, 0, datetime.datetime(2026, 7, 10)),
-        fuzzer_run_output_data)
+        'unsymbolized_raw_trace',
+        utils.read_data_from_file(log_file_path,
+                                  eval_data=False).decode('utf-8'))
+    self.assertIsNone(crash_path)
+    self.assertEqual(0, return_code)
+    self.assertEqual(datetime.datetime(2026, 7, 10), log_time)
     self.assertEqual(0, self.mock.upload_testcase.call_count)
     self.assertEqual(0, self.mock.upload_log.call_count)
-    self.assertFalse(crash_queue.empty())
-    queue_crash, queue_data = crash_queue.get()
-    self.assertIsNone(queue_crash)
-    self.assertEqual(fuzzer_run_output_data, queue_data)
 
-  def test_upload_output_false_with_crash(self):
-    """Verify run_testcase_and_return_result_in_queue with upload_output=False
-    returns crash and unsymbolized output without direct uploads on crash."""
+  def test_run_with_crash(self):
+    """Verify run_testcase_and_return_result_in_queue returns crash and log file
+    path without direct uploads on crash."""
     crash_queue = queue.Queue()
     self.mock.run_testcase.return_value = (1, 2.0, 'raw_crash_trace')
     self.mock.is_crash.return_value = True
@@ -932,49 +937,27 @@ class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
     mock_unsymbolized_info.crash_stacktrace = 'unsymbolized_crash_trace'
     self.mock.get_crash_data.return_value = mock_unsymbolized_info
 
-    result = testcase_manager.run_testcase_and_return_result_in_queue(
-        crash_queue, 0, '/testcase', [], {}, upload_output=False)
+    testcase_manager.run_testcase_and_return_result_in_queue(
+        crash_queue, 0, '/testcase', [], {})
 
     self.assertEqual(0, self.mock.error.call_count,
                      f'Unexpected error: {self.mock.error.call_args_list}')
-    self.assertIsNotNone(result)
-    crash, fuzzer_run_output_data = result
+    self.assertFalse(crash_queue.empty())
+    crash, fuzzer_run_output_data = crash_queue.get()
 
     self.assertIsNotNone(crash)
     self.assertEqual('/testcase', crash.file_path)
-    self.assertEqual(('unsymbolized_crash_trace', '/testcase', 1,
-                      datetime.datetime(2026, 7, 10)), fuzzer_run_output_data)
+    log_file_path, crash_path, return_code, log_time = fuzzer_run_output_data
+    self.assertTrue(os.path.exists(log_file_path))
+    self.assertEqual(
+        'unsymbolized_crash_trace',
+        utils.read_data_from_file(log_file_path,
+                                  eval_data=False).decode('utf-8'))
+    self.assertEqual('/testcase', crash_path)
+    self.assertEqual(1, return_code)
+    self.assertEqual(datetime.datetime(2026, 7, 10), log_time)
     self.assertEqual(0, self.mock.upload_testcase.call_count)
     self.assertEqual(0, self.mock.upload_log.call_count)
-    self.assertFalse(crash_queue.empty())
-    queue_crash, queue_data = crash_queue.get()
-    self.assertEqual(crash, queue_crash)
-    self.assertEqual(fuzzer_run_output_data, queue_data)
-
-  @mock.patch(
-      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.ENGINE_OUTPUT_LIMIT',
-      50)
-  def test_upload_output_false_truncated(self):
-    """Verify run_testcase_and_return_result_in_queue truncates long unsymbolized output."""
-    crash_queue = queue.Queue()
-    self.mock.run_testcase.return_value = (0, 1.5, 'raw_output_trace')
-    self.mock.is_crash.return_value = False
-    self.mock._get_testcase_time.return_value = datetime.datetime(2026, 7, 10)
-    mock_unsymbolized_info = mock.MagicMock()
-    mock_unsymbolized_info.crash_stacktrace = 'A' * 50 + 'B' * 50
-    self.mock.get_crash_data.return_value = mock_unsymbolized_info
-
-    result = testcase_manager.run_testcase_and_return_result_in_queue(
-        crash_queue, 0, '/testcase', [], {}, upload_output=False)
-
-    self.assertIsNotNone(result)
-    _, fuzzer_run_output_data = result
-    expected_output = 'A' * 17 + '\n...truncated...\n' + 'B' * 16
-    self.assertEqual((expected_output, None, 0, datetime.datetime(2026, 7, 10)),
-                     fuzzer_run_output_data)
-    self.assertFalse(crash_queue.empty())
-    _, queue_data = crash_queue.get()
-    self.assertEqual(fuzzer_run_output_data, queue_data)
 
 
 def _get_fuzz_target_from_preprocess(testcase):

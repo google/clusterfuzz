@@ -1733,20 +1733,24 @@ class FuzzingSession:
   def _drain_temp_queue(self, temp_queue, crashes):
     """Pops items from temp_queue and processes crashes and run outputs."""
     while not temp_queue.empty():
-      item = temp_queue.get()
-      if isinstance(item, tuple):
-        crash, fuzzer_run_output_data = item
-      else:
-        crash = item
-        fuzzer_run_output_data = None
+      crash, fuzzer_run_output_data = temp_queue.get()
 
       if crash:
         crashes.append(crash)
       if fuzzer_run_output_data:
-        output, crash_path, return_code, log_time = fuzzer_run_output_data
+        (log_file_path, crash_path, return_code,
+         log_time) = fuzzer_run_output_data
+        output = (
+            utils.read_data_from_file(log_file_path, eval_data=False)
+            if log_file_path and os.path.exists(log_file_path) else None)
+        if output is None:
+          return
+        if isinstance(output, bytes):
+          output = output.decode('utf-8', errors='replace')
+        shell.remove_file(log_file_path)
         fuzzer_run_output = _to_fuzzer_run_output(output, crash_path,
                                                   return_code, log_time)
-        self.fuzz_task_output.fuzzer_run_outputs.appen(fduzzer_run_output)
+        self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
@@ -1878,17 +1882,7 @@ class FuzzingSession:
 
       with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
                           job_type) as tracker:
-        tracker.timeout = True
-        wait_timeout = time.time() + thread_timeout
-
-        while time.time() < wait_timeout:
-          self._drain_temp_queue(temp_queue, crashes)
-
-          if not any(thread.is_alive() for thread in threads):
-            tracker.timeout = False
-            break
-
-          time.sleep(environment.get_value('THREAD_ALIVE_CHECK_INTERVAL', 1.0))
+        tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
 
       # Allow for some time to finish processing before terminating the
       # processes.
@@ -2343,7 +2337,7 @@ def _to_fuzzer_run_output(output: str, crash_path: str, return_code: int,
       return_code=return_code,
       timestamp=proto_timestamp)
 
-  if crash_path is None:
+  if crash_path is None or not os.path.exists(crash_path):
     return fuzzer_run_output
   if os.path.getsize(crash_path) > 10 * 1024**2:
     return fuzzer_run_output
