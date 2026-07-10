@@ -597,10 +597,12 @@ class SymbolizationLoop:
 
   def process_trusty_stacktrace(self, unsymbolized_crash_stacktrace):
     """Adds debug line information to a Trusted App stacktrace."""
-    symbols_dir = environment.get_value('SYMBOLS_DIR')
     trusty_app = self._extract_trusty_app_name(unsymbolized_crash_stacktrace)
     trusty_bid = self._extract_trusty_bid(unsymbolized_crash_stacktrace)
+    if not trusty_app or not trusty_bid:
+      return unsymbolized_crash_stacktrace
 
+    symbols_dir = environment.get_value('SYMBOLS_DIR')
     symbols_downloader.download_trusty_symbols_if_needed(
         symbols_dir, trusty_app, trusty_bid)
     kernel_binary = f'{symbols_dir}/lk.elf'
@@ -743,11 +745,12 @@ def symbolize_stacktrace(unsymbolized_crash_stacktrace,
   loop = SymbolizationLoop(
       binary_path_filter=filter_binary_path,
       dsym_hint_producer=chrome_dsym_hints)
+  symbolized_crash_stacktrace = unsymbolized_crash_stacktrace
   if environment.is_android_emulator():
     symbolized_crash_stacktrace = loop.process_trusty_stacktrace(
-        unsymbolized_crash_stacktrace)
+        symbolized_crash_stacktrace)
 
   symbolized_crash_stacktrace = loop.process_stacktrace(
-      unsymbolized_crash_stacktrace)
+      symbolized_crash_stacktrace)
 
   return symbolized_crash_stacktrace
