@@ -242,12 +242,18 @@ class LLVMSymbolizerTest(unittest.TestCase):
     return mock_addr2line_process
 
   def _mock_crashing_llvm_symbolizer(self, return_code=-11, stderr_content=''):
-    """Mocks a llvm-symbolizer that crashes after the first write."""
+    """Mocks a llvm-symbolizer that crashes on the second write."""
     mock_llvm_stdin = mock.Mock()
     mock_llvm_stdin.write.side_effect = [
-        None, BrokenPipeError(32, 'Broken pipe')
+        None,
+        BrokenPipeError(32, 'Broken pipe'),
+        BrokenPipeError(32, 'Broken pipe')
     ]
-    mock_llvm_stdin.flush.side_effect = BrokenPipeError(32, 'Broken pipe')
+    mock_llvm_stdin.flush.side_effect = [
+        None,
+        BrokenPipeError(32, 'Broken pipe'),
+        BrokenPipeError(32, 'Broken pipe')
+    ]
     mock_llvm_stdin.close.side_effect = BrokenPipeError(32, 'Broken pipe')
 
     mock_llvm_process = mock.Mock()
@@ -345,7 +351,6 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=-11,
         stderr_content='',
         expected_log_msgs=[
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x5678".',
             'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x9abc".',
             'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0xdef0".'
         ],
@@ -360,7 +365,6 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=-11,
         stderr_content='some error info',
         expected_log_msgs=[
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x5678". Stderr: some error info',
             'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x9abc". Stderr: some error info',
             'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0xdef0". Stderr: some error info'
         ],
@@ -375,7 +379,6 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=None,
         stderr_content='',
         expected_log_msgs=[
-            'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0x5678".',
             'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0x9abc".',
             'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0xdef0".'
         ],
