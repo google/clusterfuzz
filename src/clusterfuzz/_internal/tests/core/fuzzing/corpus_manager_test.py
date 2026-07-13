@@ -481,6 +481,27 @@ class ProtoFuzzTargetCorpusRsyncTest(fake_filesystem_unittest.TestCase):
     self.mock.delete_signed_urls.assert_called_with(
         [self.DELETED_FILE_DELETION_URL])
 
+  def test_rsync_multiple_calls(self):
+    """Tests that multiple rsync_from_disk calls don't try to delete same files."""
+    corpus = corpus_manager.get_fuzz_target_corpus(
+        'libFuzzer', 'fake_fuzzer', include_delete_urls=True)
+    corpus.rsync_to_disk(self.INITIAL_CORPUS_PATH)
+    self.fs.create_file(
+        self.PRESERVED_FILE_PATH_IN_NEW, contents=self.PRESERVED_CONTENTS)
+
+    # First call
+    corpus.rsync_from_disk(self.MINIMIZED_CORPUS_PATH)
+    self.mock.delete_signed_urls.assert_called_with(
+        [self.DELETED_FILE_DELETION_URL])
+
+    # Reset mock
+    self.mock.delete_signed_urls.reset_mock()
+
+    # Second call
+    corpus.rsync_from_disk(self.MINIMIZED_CORPUS_PATH)
+    # Should NOT be called with the deleted file URL again.
+    self.mock.delete_signed_urls.assert_called_with([])
+
 
 class GetProtoCorpusTest(unittest.TestCase):
   """Tests for get_proto_corpus."""
