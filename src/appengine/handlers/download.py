@@ -63,16 +63,11 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     response.headers['Content-disposition'] = content_disposition
     return response
 
-  def check_public_testcase(self, blob_info, testcase):
-    """Check public testcase."""
+  def check_public_testcase(self, issue, blob_info, testcase):
+    """Check public testcase. |issue| is the already-fetched issue (or None)."""
     if blob_info.key() != testcase.minimized_keys:
       return False
 
-    if not testcase.bug_information:
-      return False
-
-    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
-    issue = issue_tracker.get_issue(testcase.bug_information)
     if not issue:
       return False
 
@@ -91,14 +86,14 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
 
     return True
 
-  def check_derestricted_testcase(self, blob_info, testcase):
+  def check_derestricted_testcase(self, issue, blob_info, testcase):
     """Check if a testcase's associated bug has been derestricted (made public).
 
     For Chromium deployments, checks if the corresponding bug tracker issue has
     no view restrictions, indicating it has been derestricted. Only allows
     access to the minimized testcase. Gated on is_chromium() to avoid exposing
     testcases on internal deployments where LIMIT_NONE doesn't mean truly
-    public.
+    public. |issue| is the already-fetched issue (or None).
     """
     if not utils.is_chromium():
       return False
@@ -106,11 +101,6 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     if blob_info.key() != testcase.minimized_keys:
       return False
 
-    if not testcase.bug_information:
-      return False
-
-    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
-    issue = issue_tracker.get_issue(testcase.bug_information)
     if not issue:
       return False
 
@@ -148,36 +138,38 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
         testcase.minimized_keys != blob_info.key()):
       raise helpers.EarlyExitError('Invalid testcase.', 400)
 
-    if (utils.is_oss_fuzz() and testcase and
-        self.check_public_testcase(blob_info, testcase)):
-      # Public OSS-Fuzz testcase.
-      return self._send_blob(
-          blob_info,
-          testcase.key.id(),
-          is_minimized=True,
-          fuzzer_binary_name=fuzzer_binary_name)
-
-    if testcase and self.check_derestricted_testcase(blob_info, testcase):
-      # Testcase for a derestricted (public) Chromium bug.
-      return self._send_blob(
-          blob_info,
-          testcase.key.id(),
-          is_minimized=True,
-          fuzzer_binary_name=fuzzer_binary_name)
-
     is_minimized = testcase and blob_info.key() == testcase.minimized_keys
 
-    # Testcase blobs require testcase-level access (which enforces the
-    # security_flag privileged-access requirement); general access alone is
-    # only sufficient for non-testcase blobs.
-    if testcase:
-      if not access.can_user_access_testcase(testcase):
-        raise helpers.AccessDeniedError()
+    if not testcase:
+      # Non-testcase blob. General access is sufficient.
+      if access.has_access():
+        return self._send_blob(blob_info, testcase_id, is_minimized,
+                               fuzzer_binary_name)
+      raise helpers.AccessDeniedError()
+
+    # Testcase blob. Check testcase-level access first (this enforces the
+    # security_flag privileged-access requirement). Authorized users are served
+    # without an issue-tracker call.
+    if access.can_user_access_testcase(testcase):
       return self._send_blob(blob_info, testcase_id, is_minimized,
                              fuzzer_binary_name)
 
-    if access.has_access():
-      return self._send_blob(blob_info, testcase_id, is_minimized,
+    # Unauthorized: allow a public download if the testcase's bug has been made
+    # public, either via the OSS-Fuzz public reproducer policy or a derestricted
+    # (LIMIT_NONE) Chromium bug. Fetch the issue once and reuse it below.
+    issue = None
+    if testcase.bug_information:
+      issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
+          testcase)
+      issue = issue_tracker.get_issue(testcase.bug_information)
+
+    if utils.is_oss_fuzz() and self.check_public_testcase(
+        issue, blob_info, testcase):
+      return self._send_blob(blob_info, testcase.key.id(), is_minimized,
+                             fuzzer_binary_name)
+
+    if self.check_derestricted_testcase(issue, blob_info, testcase):
+      return self._send_blob(blob_info, testcase.key.id(), is_minimized,
                              fuzzer_binary_name)
 
     raise helpers.AccessDeniedError()
