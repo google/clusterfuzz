@@ -19,16 +19,12 @@ from unittest import mock
 
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
 
-TEST_STACK_TRACE = (
-    "    #0 0x1234 (/lib/foo.so+0x5678)\n"
-    "    #1 0x5678 (/lib/foo.so+0x9abc)\n"
-    "    #2 0x9abc (/lib/foo.so+0xdef0)\n"
-)
+TEST_STACK_TRACE = ("    #0 0x1234 (/lib/foo.so+0x5678)\n"
+                    "    #1 0x5678 (/lib/foo.so+0x9abc)\n"
+                    "    #2 0x9abc (/lib/foo.so+0xdef0)\n")
 
-TEST_STACK_TRACE_INLINE = (
-    "    #0 0x1234 (/lib/foo.so+0x5678)\n"
-    "    #1 0x5678 (/lib/foo.so+0x9abc)\n"
-)
+TEST_STACK_TRACE_INLINE = ("    #0 0x1234 (/lib/foo.so+0x5678)\n"
+                           "    #1 0x5678 (/lib/foo.so+0x9abc)\n")
 
 # Expected inputs and outputs for LLVM symbolizer (3 frames).
 UNSYMBOLIZED_LLVM_FRAMES = [
@@ -39,11 +35,17 @@ UNSYMBOLIZED_LLVM_FRAMES = [
 
 SYMBOLIZED_LLVM_FRAMES = [
     # Frame 0
-    b'llvm_func0\n', b'llvm_file0:10\n', b'\n',
+    b'llvm_func0\n',
+    b'llvm_file0:10\n',
+    b'\n',
     # Frame 1
-    b'llvm_func1\n', b'llvm_file1:20\n', b'\n',
+    b'llvm_func1\n',
+    b'llvm_file1:20\n',
+    b'\n',
     # Frame 2
-    b'llvm_func2\n', b'llvm_file2:30\n', b'\n'
+    b'llvm_func2\n',
+    b'llvm_file2:30\n',
+    b'\n'
 ]
 
 # Expected inputs and outputs for addr2line symbolizer (3 frames).
@@ -55,27 +57,27 @@ UNSYMBOLIZED_ADDR2LINE_FRAMES = [
 
 SYMBOLIZED_ADDR2LINE_FRAMES = [
     # Frame 0
-    b'addr2line_func0\n', b'addr2line_file0:1\n',
+    b'addr2line_func0\n',
+    b'addr2line_file0:1\n',
     # Frame 1
-    b'addr2line_func1\n', b'addr2line_file1:1\n',
+    b'addr2line_func1\n',
+    b'addr2line_file1:1\n',
     # Frame 2
-    b'addr2line_func2\n', b'addr2line_file2:1\n',
+    b'addr2line_func2\n',
+    b'addr2line_file2:1\n',
 ]
 
 # In practice, both symbolizers format their output the same way, but we use
 # distinct mocked function names (e.g. 'llvm_func0' vs 'addr2line_func0')
 # in our tests to verify which symbolizer was actually used.
-EXPECTED_LLVM_OUTPUT = (
-    "    #0 0x1234 in llvm_func0 llvm_file0:10\n"
-    "    #1 0x5678 in llvm_func1 llvm_file1:20\n"
-    "    #2 0x9abc in llvm_func2 llvm_file2:30\n"
-)
+EXPECTED_LLVM_OUTPUT = ("    #0 0x1234 in llvm_func0 llvm_file0:10\n"
+                        "    #1 0x5678 in llvm_func1 llvm_file1:20\n"
+                        "    #2 0x9abc in llvm_func2 llvm_file2:30\n")
 
 EXPECTED_ADDR2LINE_OUTPUT = (
     "    #0 0x1234 in addr2line_func0 addr2line_file0:1\n"
     "    #1 0x5678 in addr2line_func1 addr2line_file1:1\n"
-    "    #2 0x9abc in addr2line_func2 addr2line_file2:1\n"
-)
+    "    #2 0x9abc in addr2line_func2 addr2line_file2:1\n")
 
 # Expected inputs and outputs for LLVM inline frames test.
 UNSYMBOLIZED_LLVM_INLINE_FRAMES = [
@@ -85,20 +87,22 @@ UNSYMBOLIZED_LLVM_INLINE_FRAMES = [
 
 SYMBOLIZED_LLVM_INLINE_FRAMES = [
     # Frame 0 (Inline)
-    b'llvm_inline_func\n', b'llvm_inline_file:5\n',
+    b'llvm_inline_func\n',
+    b'llvm_inline_file:5\n',
     # Frame 0 (Caller)
-    b'llvm_caller_func\n', b'llvm_caller_file:10\n',
+    b'llvm_caller_func\n',
+    b'llvm_caller_file:10\n',
     b'\n',
     # Frame 1
-    b'llvm_func1\n', b'llvm_file1:20\n',
+    b'llvm_func1\n',
+    b'llvm_file1:20\n',
     b'\n'
 ]
 
 EXPECTED_LLVM_INLINE_OUTPUT = (
     "    #0 0x1234 in llvm_inline_func llvm_inline_file:5\n"
     "    #1 0x1234 in llvm_caller_func llvm_caller_file:10\n"
-    "    #2 0x5678 in llvm_func1 llvm_file1:20\n"
-)
+    "    #2 0x5678 in llvm_func1 llvm_file1:20\n")
 
 
 class ChromeDsymHintsTests(unittest.TestCase):
@@ -147,7 +151,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
     original_exists = os.path.exists
     exists_patcher = mock.patch(
         'os.path.exists',
-        side_effect=lambda path: path == 'llvm-symbolizer' or original_exists(path))
+        side_effect=
+        lambda path: path == 'llvm-symbolizer' or original_exists(path))
     exists_patcher.start()
     self.addCleanup(exists_patcher.stop)
 
@@ -203,7 +208,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
     mock_llvm_process = mock.Mock()
     mock_llvm_process.stdin = mock_llvm_stdin
     mock_llvm_process.stdout = mock.Mock()
-    mock_llvm_process.stdout.readline.side_effect = list(SYMBOLIZED_LLVM_INLINE_FRAMES)
+    mock_llvm_process.stdout.readline.side_effect = list(
+        SYMBOLIZED_LLVM_INLINE_FRAMES)
     mock_llvm_process.stderr = mock.Mock()
     mock_llvm_process.stderr.readline.return_value = b''
     # return None to indicate the process is still running.
@@ -230,7 +236,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
     mock_addr2line_process = mock.Mock()
     mock_addr2line_process.stdin = mock_addr2line_stdin
     mock_addr2line_process.stdout = mock.Mock()
-    mock_addr2line_process.stdout.readline.side_effect = list(SYMBOLIZED_ADDR2LINE_FRAMES)
+    mock_addr2line_process.stdout.readline.side_effect = list(
+        SYMBOLIZED_ADDR2LINE_FRAMES)
     mock_addr2line_process.poll.return_value = 0
     return mock_addr2line_process
 
@@ -280,10 +287,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
     mock_log_error.assert_has_calls(expected_calls)
 
     # Verify Popen calls
-    self.assertEqual(
-        ['llvm-symbolizer', 'addr2line'],
-        self._get_called_binaries(mock_popen))
-
+    self.assertEqual(['llvm-symbolizer', 'addr2line'],
+                     self._get_called_binaries(mock_popen))
 
   @mock.patch('subprocess.Popen')
   @mock.patch('sys.platform', 'linux')
@@ -296,9 +301,7 @@ class LLVMSymbolizerTest(unittest.TestCase):
     self.assertEqual(EXPECTED_LLVM_OUTPUT, actual_output)
 
     # Verify Popen calls
-    self.assertEqual(
-        ['llvm-symbolizer'],
-        self._get_called_binaries(mock_popen))
+    self.assertEqual(['llvm-symbolizer'], self._get_called_binaries(mock_popen))
 
   @mock.patch('subprocess.Popen')
   @mock.patch('sys.platform', 'linux')
@@ -307,13 +310,12 @@ class LLVMSymbolizerTest(unittest.TestCase):
     mock_llvm_process = self._mock_llvm_inline_process()
     mock_popen.return_value = mock_llvm_process
 
-    actual_output = stack_symbolizer.symbolize_stacktrace(TEST_STACK_TRACE_INLINE)
+    actual_output = stack_symbolizer.symbolize_stacktrace(
+        TEST_STACK_TRACE_INLINE)
     self.assertEqual(EXPECTED_LLVM_INLINE_OUTPUT, actual_output)
 
     # Verify Popen calls
-    self.assertEqual(
-        ['llvm-symbolizer'],
-        self._get_called_binaries(mock_popen))
+    self.assertEqual(['llvm-symbolizer'], self._get_called_binaries(mock_popen))
 
   @mock.patch('subprocess.Popen')
   @mock.patch('sys.platform', 'linux')
@@ -332,15 +334,13 @@ class LLVMSymbolizerTest(unittest.TestCase):
     self.assertEqual(EXPECTED_ADDR2LINE_OUTPUT, actual_output)
 
     # Verify Popen calls
-    self.assertEqual(
-        ['llvm-symbolizer', 'addr2line'],
-        self._get_called_binaries(mock_popen))
+    self.assertEqual(['llvm-symbolizer', 'addr2line'],
+                     self._get_called_binaries(mock_popen))
 
   @mock.patch('clusterfuzz._internal.metrics.logs.error')
   @mock.patch('subprocess.Popen')
   @mock.patch('sys.platform', 'linux')
-  def test_return_code_neg11_no_stderr(
-      self, mock_popen, mock_log_error):
+  def test_return_code_neg11_no_stderr(self, mock_popen, mock_log_error):
     self._check_logging(
         return_code=-11,
         stderr_content='',
@@ -355,8 +355,7 @@ class LLVMSymbolizerTest(unittest.TestCase):
   @mock.patch('clusterfuzz._internal.metrics.logs.error')
   @mock.patch('subprocess.Popen')
   @mock.patch('sys.platform', 'linux')
-  def test_return_code_neg11_with_stderr(
-      self, mock_popen, mock_log_error):
+  def test_return_code_neg11_with_stderr(self, mock_popen, mock_log_error):
     self._check_logging(
         return_code=-11,
         stderr_content='some error info',
