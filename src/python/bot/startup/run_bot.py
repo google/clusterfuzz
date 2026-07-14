@@ -177,19 +177,22 @@ def task_loop():
     # This caches the current environment on first run. Don't move this.
     environment.reset_environment()
     try:
+      # We need to keep the update task flow for bots managed outside of
+      # terraform.
       if update_task_enabled():
         logs.info("Running update task.")
         # Run regular updates.
         # TODO(metzman): Move this after utask_main execution
         # so that utasks can't be updated on subsequent attempts.
         update_task.run()
-        update_task.track_revision()
       else:
         logs.info(
             "Update task not enabled. Running environment cleanup and platform "
             "init scripts.")
         update_task.prepare_environment_for_new_task()
         update_task.run_platform_init_scripts()
+
+      update_task.track_revision()
 
       if environment.is_uworker():
         # Batch/Swarming tasks only run one at a time.
@@ -259,7 +262,7 @@ def update_task_enabled() -> bool:
 
       This flag will be used to rollout the update_task deprecation
       by disabling it progressively for each instance group through
-      the instance template metadata 
+      the instance template metadata
   """
   metadata_url = ("http://metadata.google.internal/computeMetadata/v1/" +
                   "instance/attributes/")
