@@ -243,23 +243,33 @@ class LLVMSymbolizerTest(unittest.TestCase):
     return mock_addr2line_process
 
   def _mock_crashing_llvm_symbolizer(self, return_code=-11, stderr_content=''):
-    """Mocks a llvm-symbolizer that crashes on the second write."""
+    """Mocks a llvm-symbolizer that acts as if it crashed when `UNSYMBOLIZED_LLVM_FRAMES[1]` is written to it."""
     mock_llvm_stdin = mock.Mock()
-    mock_llvm_stdin.write.side_effect = [
-        None,
-        BrokenPipeError(32, 'Broken pipe'),
-        BrokenPipeError(32, 'Broken pipe')
-    ]
-    mock_llvm_stdin.flush.side_effect = [
-        None,
-        BrokenPipeError(32, 'Broken pipe'),
-        BrokenPipeError(32, 'Broken pipe')
-    ]
     mock_llvm_stdin.close.side_effect = BrokenPipeError(32, 'Broken pipe')
 
+    crashed = False
+
+    def write_side_effect(data):
+      nonlocal crashed
+      if data == UNSYMBOLIZED_LLVM_FRAMES[1]:
+        crashed = True
+      return None
+
+    mock_llvm_stdin.write.side_effect = write_side_effect
+
+    def flush_side_effect():
+      if crashed:
+        raise BrokenPipeError(32, 'Broken pipe')
+      return None
+
+    mock_llvm_stdin.flush.side_effect = flush_side_effect
+
     mock_llvm_process = mock.Mock()
+    # poll() returns exit code after we crash
+    mock_llvm_process.poll.side_effect = lambda: return_code if crashed else None
     mock_llvm_process.stdin = mock_llvm_stdin
     mock_llvm_process.stdout = mock.Mock()
+
     # Symbolize the first frame successfully, then return EOF the same way a
     # crashing symbolizer would.
     mock_llvm_process.stdout.readline.side_effect = list(
@@ -275,7 +285,6 @@ class LLVMSymbolizerTest(unittest.TestCase):
     else:
       mock_llvm_process.stderr.readline.return_value = b''
 
-    mock_llvm_process.poll.return_value = return_code
     return mock_llvm_process
 
   def _check_logging(self, return_code, stderr_content, expected_log_msgs,
