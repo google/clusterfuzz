@@ -56,7 +56,7 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
 
 # Manifest file present in Chrome build archives. Specifies the archive
 # schema version along with optional build metadata (e.g., fuzz targets).
-MANIFEST_FILENAME = 'clusterfuzz_manifest.json'
+CHROME_MANIFEST_FILENAME = 'clusterfuzz_manifest.json'
 
 
 class BuildArchive(archive.ArchiveReader):
@@ -313,7 +313,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     self._manifest_fuzz_targets = None
     # The manifest may not exist for earlier versions of archives. In this
     # case, default to schema version 0.
-    manifest_path = MANIFEST_FILENAME
+    manifest_path = CHROME_MANIFEST_FILENAME
     if not self.file_exists(manifest_path):
       self._archive_schema_version = default_archive_schema_version
       return
@@ -478,7 +478,7 @@ def open_with_reader(reader: archive.ArchiveReader) -> BuildArchive:
   # Being wrong is no big deal here, because BuildArchive is designed so that
   # we always fall back on default behaviour.
   args_gn_path = os.path.join(reader.root_dir(), 'args.gn')
-  manifest_path = os.path.join(reader.root_dir(), MANIFEST_FILENAME)
+  manifest_path = os.path.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
   if reader.file_exists(args_gn_path) or reader.file_exists(manifest_path):
     return ChromeBuildArchive(reader)
   return DefaultBuildArchive(reader)
