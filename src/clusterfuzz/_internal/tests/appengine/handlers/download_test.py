@@ -44,6 +44,7 @@ class DownloadTest(unittest.TestCase):
     self.testcase.put()
 
     test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
         'clusterfuzz._internal.base.utils.is_oss_fuzz',
         'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_info',
         'libs.access.can_user_access_testcase',
@@ -53,6 +54,7 @@ class DownloadTest(unittest.TestCase):
         'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
     ])
+    self.mock.is_chromium.return_value = False
     self.mock.is_oss_fuzz.return_value = False
     self.mock.can_user_access_testcase.return_value = False
     self.mock.has_access.return_value = False
@@ -214,6 +216,66 @@ class DownloadTest(unittest.TestCase):
         expect_blob=False)
     self._test_download(
         self.fuzzed_key,
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_derestricted_chromium(self):
+    """Test public downloading of derestricted Chromium testcases."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_chromium.return_value = True
+    self.mock.is_oss_fuzz.return_value = False
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = True
+
+    # Minimized testcase should be downloadable.
+    self._test_download(
+        self.minimized_key,
+        testcase_id=self.testcase.key.id(),
+        expect_filename='clusterfuzz-testcase-minimized-1.ext')
+    # Only minimized testcase, not fuzzed.
+    self._test_download(
+        self.fuzzed_key,
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_restricted_chromium(self):
+    """Test public downloading of still-restricted Chromium testcases fails."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_chromium.return_value = True
+    self.mock.is_oss_fuzz.return_value = False
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = False
+
+    self._test_download(
+        self.minimized_key,
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+    self._test_download(
+        self.fuzzed_key,
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_non_chromium_unrestricted_bug(self):
+    """Test that unrestricted bugs on non-Chromium deployments don't expose
+    testcases. This guards against internal deployments where LIMIT_NONE means
+    'accessible to Googlers' rather than 'truly public'."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_chromium.return_value = False
+    self.mock.is_oss_fuzz.return_value = False
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = True
+
+    # Even though the bug is unrestricted, non-Chromium deployments should
+    # not serve the testcase publicly.
+    self._test_download(
+        self.minimized_key,
         testcase_id=self.testcase.key.id(),
         expect_status=302,
         expect_blob=False)

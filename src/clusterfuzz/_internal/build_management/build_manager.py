@@ -16,6 +16,7 @@
 from collections import namedtuple
 import contextlib
 import datetime
+import json
 import os
 import re
 import shutil
@@ -328,6 +329,58 @@ class BaseBuild:
     shell.remove_directory(self.base_build_dir)
 
 
+def _read_schema_version_from_manifest(build_dir: str) -> int:
+  """Reads archive_schema_version from clusterfuzz_manifest.json."""
+  manifest_path = os.path.join(build_dir, 'clusterfuzz_manifest.json')
+  if not os.path.exists(manifest_path):
+    return 0
+  try:
+    with open(manifest_path) as f:
+      manifest = json.load(f)
+    return int(manifest.get('archive_schema_version') or 0)
+  except Exception as e:
+    logs.warning(f'Failed to read schema version from {manifest_path}: {e}')
+    return 0
+
+
+def _patch_rpath(binary_path, instrumented_library_paths):
+  """Patch rpaths of a binary to point to instrumented libraries"""
+  rpaths = get_rpaths(binary_path)
+  # Discard all RPATHs that aren't relative to build.
+  rpaths = [rpath for rpath in rpaths if '$ORIGIN' in rpath]
+
+  for additional_path in reversed(instrumented_library_paths):
+    if additional_path not in rpaths:
+      rpaths.insert(0, additional_path)
+
+  set_rpaths(binary_path, rpaths)
+
+
+def _patch_rpaths(build_dir: str, app_path_env: str):
+  """Patch rpaths of builds to point to instrumented libraries."""
+  instrumented_library_paths = environment.get_instrumented_libraries_paths()
+  if not instrumented_library_paths:
+    return
+
+  schema_version = _read_schema_version_from_manifest(build_dir)
+  if schema_version > 0:
+    logs.info('Skipping RPATH patching for schema v1+ build.')
+    return
+
+  if environment.is_engine_fuzzer_job():
+    # Import here as this path is not available in App Engine context.
+    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+
+    for target_path in fuzzer_utils.get_fuzz_targets(build_dir):
+      _patch_rpath(target_path, instrumented_library_paths)
+    return
+
+  assert app_path_env
+  app_path = environment.get_value(app_path_env)
+  if app_path:
+    _patch_rpath(app_path, instrumented_library_paths)
+
+
 class Build(BaseBuild):
   """Represent a build type at a particular revision."""
 
@@ -378,35 +431,6 @@ class Build(BaseBuild):
     environment.set_value(self.env_prefix + 'APP_PATH', '')
     environment.set_value(self.env_prefix + 'APP_PATH_DEBUG', '')
 
-  def _patch_rpath(self, binary_path, instrumented_library_paths):
-    """Patch rpaths of a binary to point to instrumented libraries"""
-    rpaths = get_rpaths(binary_path)
-    # Discard all RPATHs that aren't relative to build.
-    rpaths = [rpath for rpath in rpaths if '$ORIGIN' in rpath]
-
-    for additional_path in reversed(instrumented_library_paths):
-      if additional_path not in rpaths:
-        rpaths.insert(0, additional_path)
-
-    set_rpaths(binary_path, rpaths)
-
-  def _patch_rpaths(self, instrumented_library_paths):
-    """Patch rpaths of builds to point to instrumented libraries."""
-    if environment.is_engine_fuzzer_job():
-      # Import here as this path is not available in App Engine context.
-      from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
-
-      for target_path in fuzzer_utils.get_fuzz_targets(self.build_dir):
-        self._patch_rpath(target_path, instrumented_library_paths)
-    else:
-      app_path = environment.get_value('APP_PATH')
-      if app_path:
-        self._patch_rpath(app_path, instrumented_library_paths)
-
-      app_path_debug = environment.get_value('APP_PATH_DEBUG')
-      if app_path_debug:
-        self._patch_rpath(app_path_debug, instrumented_library_paths)
-
   def _post_setup_success(self, update_revision=True):
     """Common post-setup."""
     if update_revision:
@@ -416,11 +440,6 @@ class Build(BaseBuild):
     if self.base_build_dir:
       timestamp_file_path = os.path.join(self.base_build_dir, TIMESTAMP_FILE)
       utils.write_data_to_file(time.time(), timestamp_file_path)
-
-    # Update rpaths if necessary (for e.g. instrumented libraries).
-    instrumented_library_paths = environment.get_instrumented_libraries_paths()
-    if instrumented_library_paths:
-      self._patch_rpaths(instrumented_library_paths)
 
   @contextlib.contextmanager
   def _download_and_open_build_archive(self, base_build_dir: str,
@@ -769,6 +788,7 @@ class RegularBuild(Build):
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
+    _patch_rpaths(self.build_dir, 'APP_PATH')
     return True
 
 
@@ -879,12 +899,14 @@ class SymbolizedBuild(Build):
       self._setup_application_path(
           self.release_build_dir, build_update=build_update)
       environment.set_value('BUILD_URL', self.release_build_url)
+      _patch_rpaths(self.release_build_dir, 'APP_PATH')
 
     if self.debug_build_url:
       # Note: this will override LLVM_SYMBOLIZER_PATH, APP_DIR etc from the
       # previous release setup, which may not be desirable behaviour.
       self._setup_application_path(
           self.debug_build_dir, 'APP_PATH_DEBUG', build_update=build_update)
+      _patch_rpaths(self.debug_build_dir, 'APP_PATH_DEBUG')
 
     self._post_setup_success(update_revision=build_update)
     return True
@@ -989,6 +1011,7 @@ class CustomBuild(Build):
     self._fuzz_targets = list(self._get_fuzz_targets_from_dir(self.build_dir))
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
+    _patch_rpaths(self.build_dir, 'APP_PATH')
     return True
 
 
