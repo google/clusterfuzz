@@ -253,14 +253,12 @@ class LLVMSymbolizerTest(unittest.TestCase):
       nonlocal crashed
       if data == UNSYMBOLIZED_LLVM_FRAMES[1]:
         crashed = True
-      return None
 
     mock_llvm_stdin.write.side_effect = write_side_effect
 
     def flush_side_effect():
       if crashed:
         raise BrokenPipeError(32, 'Broken pipe')
-      return None
 
     mock_llvm_stdin.flush.side_effect = flush_side_effect
 
