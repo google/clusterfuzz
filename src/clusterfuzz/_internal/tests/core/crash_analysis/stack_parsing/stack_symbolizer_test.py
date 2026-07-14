@@ -268,7 +268,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
     mock_llvm_process.stdin = mock_llvm_stdin
     mock_llvm_process.stdout = mock.Mock()
 
-    # Symbolize the first frame successfully, then return EOF the same way a
+    # Symbolize the first frame successfully by returning a function name,
+    # file name, and a new line. Then return EOF the same way a
     # crashing symbolizer would.
     mock_llvm_process.stdout.readline.side_effect = list(
         SYMBOLIZED_LLVM_FRAMES[:3]) + [b'']
