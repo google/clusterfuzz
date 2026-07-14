@@ -495,3 +495,43 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
         test_archive.get_path_for_target('my_fuzzer'), 'out/build/my_fuzzer')
     # Ensure list_members was never called for fuzz target discovery.
     self.mock_archive_reader.list_members.assert_not_called()
+
+
+class OpenWithReaderTest(unittest.TestCase):
+  """Tests for open_with_reader."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.archive.ArchiveReader',
+    ])
+    self.mock_archive_reader = self.mock.ArchiveReader.return_value
+    self.mock_archive_reader.root_dir.return_value = ''
+
+  def test_manifest_present(self):
+    """Tests that an archive with clusterfuzz_manifest.json returns ChromeBuildArchive."""
+
+    def _mock_file_exists(path):
+      return path == 'clusterfuzz_manifest.json'
+
+    self.mock_archive_reader.file_exists.side_effect = _mock_file_exists
+    self.mock_archive_reader.open.return_value = io.BytesIO(
+        b'{"archive_schema_version": 1}')
+    build = build_archive.open_with_reader(self.mock_archive_reader)
+    self.assertIsInstance(build, build_archive.ChromeBuildArchive)
+
+  def test_args_gn_present(self):
+    """Tests that an archive with args.gn returns ChromeBuildArchive."""
+
+    def _mock_file_exists(path):
+      return path == 'args.gn'
+
+    self.mock_archive_reader.file_exists.side_effect = _mock_file_exists
+    self.mock_archive_reader.open.return_value = io.BytesIO(b'')
+    build = build_archive.open_with_reader(self.mock_archive_reader)
+    self.assertIsInstance(build, build_archive.ChromeBuildArchive)
+
+  def test_neither_present(self):
+    """Tests that an archive with neither file returns DefaultBuildArchive."""
+    self.mock_archive_reader.file_exists.return_value = False
+    build = build_archive.open_with_reader(self.mock_archive_reader)
+    self.assertIsInstance(build, build_archive.DefaultBuildArchive)
