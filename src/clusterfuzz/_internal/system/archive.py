@@ -354,7 +354,7 @@ class ZipArchiveReader(ArchiveReader):
         old_mode = external_attr & 0o7777
         new_mode = external_attr & 0o777
         new_mode |= 0o440
-        needs_execute_permission = external_attr & 100
+        needs_execute_permission = external_attr & 0o100
 
         if new_mode != old_mode or needs_execute_permission:
           # Default extract condition is 640 which is safe.
