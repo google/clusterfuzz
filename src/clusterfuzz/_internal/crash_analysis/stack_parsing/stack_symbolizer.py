@@ -244,6 +244,8 @@ class LLVMSymbolizer(Symbolizer):
     self.dsym_hints = dsym_hints
     self.stderr_buffer = collections.deque(maxlen=100)
     self.pipe = self.open_llvm_symbolizer()
+    self.crashed = False
+    self.last_successful_frame = None
 
   def open_llvm_symbolizer(self):
     if not os.path.exists(self.symbolizer_path):
@@ -295,6 +297,9 @@ class LLVMSymbolizer(Symbolizer):
 
   def symbolize(self, addr, binary, offset):
     """Overrides Symbolizer.symbolize."""
+    if self.crashed:
+      return None
+
     if not binary.strip():
       return ['%s in' % addr]
 
@@ -309,18 +314,27 @@ class LLVMSymbolizer(Symbolizer):
           break
 
         file_name = self.pipe.stdout.readline().rstrip().decode('utf-8')
-        result.append(get_stack_frame(binary, addr, function_name, file_name))
+        frame = get_stack_frame(binary, addr, function_name, file_name)
+        result.append(frame)
+        self.last_successful_frame = frame
+
+      if self.pipe.poll() is not None:
+        raise RuntimeError("llvm-symbolizer process ended")
 
     except Exception as e:
+      self.crashed = True
       return_code = self.pipe.poll()
       if return_code is not None:
         self.stderr_thread.join(timeout=0.1)
       stderr_content = ''.join(self.stderr_buffer).strip()
       stderr_msg = f' Stderr: {stderr_content}' if stderr_content else ''
       exit_msg = f' (exit code {return_code})' if return_code is not None else ''
-      logs.error(
-          f'Symbolization using llvm-symbolizer failed{exit_msg} for: "{symbolizer_input}".{stderr_msg}'
-      )
+
+      log_msg = f'Symbolization using llvm-symbolizer failed{exit_msg} for: "{symbolizer_input}".\n'
+      log_msg += f' Previously symbolized: {self.last_successful_frame}.\n'
+      log_msg += stderr_msg
+      logs.error(log_msg)
+
       result = []
     if not result:
       result = None

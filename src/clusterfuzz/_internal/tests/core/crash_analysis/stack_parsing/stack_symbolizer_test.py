@@ -369,8 +369,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=-11,
         stderr_content='',
         expected_log_msgs=[
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x2000".',
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x3000".'
+            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x2000".\n'
+            ' Previously symbolized: 0x0001 in llvm_func0 llvm_file0:10.\n',
         ],
         mock_popen=mock_popen,
         mock_log_error=mock_log_error)
@@ -383,8 +383,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=-11,
         stderr_content='some error info',
         expected_log_msgs=[
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x2000". Stderr: some error info',
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x3000". Stderr: some error info'
+            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x2000".\n'
+            ' Previously symbolized: 0x0001 in llvm_func0 llvm_file0:10.\n Stderr: some error info',
         ],
         mock_popen=mock_popen,
         mock_log_error=mock_log_error)
@@ -397,8 +397,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=None,
         stderr_content='',
         expected_log_msgs=[
-            'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0x2000".',
-            'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0x3000".'
+            'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0x2000".\n'
+            ' Previously symbolized: 0x0001 in llvm_func0 llvm_file0:10.\n',
         ],
         mock_popen=mock_popen,
         mock_log_error=mock_log_error)
