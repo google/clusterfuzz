@@ -17,12 +17,24 @@ import os
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
+import zipfile
 
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import shell
 from clusterfuzz._internal.tests.test_libs import helpers
 
 TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'archive_data')
+
+
+def _create_test_zip(zip_path, file_entries):
+  """Helper to create a test zip file with specified attributes."""
+  with zipfile.ZipFile(zip_path, 'w') as zip_file:
+    for filename, content, external_attr in file_entries:
+      info = zipfile.ZipInfo(filename)
+      info.create_system = 3
+      info.external_attr = external_attr
+      zip_file.writestr(info, content)
 
 
 class UnpackTest(unittest.TestCase):
@@ -32,14 +44,13 @@ class UnpackTest(unittest.TestCase):
     """Test unpack with trusted=False passes with file having './' prefix."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     output_directory = tempfile.mkdtemp(prefix='cwd-prefix')
+    self.addCleanup(shell.remove_directory, output_directory)
     with archive.open(tgz_path) as reader:
       reader.extract_all(output_directory, trusted=False)
 
     test_file_path = os.path.join(output_directory, 'test')
     self.assertTrue(os.path.exists(test_file_path))
     self.assertEqual(open(test_file_path).read(), 'abc\n')
-
-    shell.remove_directory(output_directory)
 
   def test_extract(self):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
@@ -68,13 +79,74 @@ class UnpackTest(unittest.TestCase):
         tar.addfile(tarinfo, io.BytesIO(file_data))
 
       output_directory = tempfile.mkdtemp()
+      self.addCleanup(shell.remove_directory, output_directory)
 
       # The function should return False, indicating an error occurred.
       with archive.open(malicious_archive_path) as reader:
         result = reader.extract_all(output_directory, trusted=False)
         self.assertFalse(result)
 
-      shell.remove_directory(output_directory)
+  def test_zip_extract_permissions_mocked_chmod(self):
+    """Test zip extraction only calls chmod when permissions change or execute bit is set."""
+    helpers.patch(self, ['os.chmod'])
+    with tempfile.NamedTemporaryFile(suffix='.zip') as tmp_zip_file:
+      zip_path = tmp_zip_file.name
+      _create_test_zip(zip_path, [
+          ('exe.sh', b'echo hi', 0o100755 << 16),
+          ('reg_644.txt', b'hello', 0o100644 << 16),
+          ('reg_640.txt', b'world', 0o100640 << 16),
+          ('reg_600.txt', b'secret', 0o100600 << 16),
+          ('reg_444.txt', b'read only', 0o100444 << 16),
+      ])
+
+      output_directory = tempfile.mkdtemp(prefix='zip-chmod-test')
+      self.addCleanup(shell.remove_directory, output_directory)
+      with archive.open(zip_path) as reader:
+        reader.extract_all(output_directory, trusted=True)
+
+      expected_calls = [
+          mock.call(os.path.join(output_directory, 'exe.sh'), 0o750),
+          mock.call(os.path.join(output_directory, 'reg_600.txt'), 0o640),
+      ]
+      self.mock.chmod.assert_has_calls(expected_calls, any_order=True)
+      self.assertEqual(self.mock.chmod.call_count, 2)
+
+  def test_zip_extract_permissions_filesystem(self):
+    """Test actual filesystem execution bits when extracting a zip archive."""
+    with tempfile.NamedTemporaryFile(suffix='.zip') as tmp_zip_file:
+      zip_path = tmp_zip_file.name
+      _create_test_zip(zip_path, [
+          ('exe.sh', b'echo hi', 0o100755 << 16),
+          ('reg.txt', b'hello', 0o100644 << 16),
+      ])
+
+      output_directory = tempfile.mkdtemp(prefix='zip-fs-test')
+      self.addCleanup(shell.remove_directory, output_directory)
+      with archive.open(zip_path) as reader:
+        reader.extract_all(output_directory, trusted=True)
+
+      exe_path = os.path.join(output_directory, 'exe.sh')
+      reg_path = os.path.join(output_directory, 'reg.txt')
+
+      self.assertTrue(os.access(exe_path, os.X_OK))
+      self.assertFalse(os.access(reg_path, os.X_OK))
+      self.assertEqual(os.stat(exe_path).st_mode & 0o777, 0o750)
+
+  def test_zip_unpack_absolute_path_traversal(self):
+    """Test that unpacking a zip archive with an absolute path fails when untrusted."""
+    with tempfile.NamedTemporaryFile(suffix='.zip') as tmp_zip_file:
+      malicious_archive_path = tmp_zip_file.name
+
+      with zipfile.ZipFile(malicious_archive_path, 'w') as zip_file:
+        info = zipfile.ZipInfo('/tmp/pwned')
+        zip_file.writestr(info, b'malicious content')
+
+      output_directory = tempfile.mkdtemp()
+      self.addCleanup(shell.remove_directory, output_directory)
+
+      with archive.open(malicious_archive_path) as reader:
+        result = reader.extract_all(output_directory, trusted=False)
+        self.assertFalse(result)
 
 
 class ArchiveReaderTest(unittest.TestCase):
@@ -136,3 +208,25 @@ class ArchiveReaderTest(unittest.TestCase):
       ]
 
       self.assertEqual(expected_results, actual_results)
+
+  def test_zip(self):
+    """Test that a .zip file is handled properly by list_members() and open()."""
+    with tempfile.NamedTemporaryFile(suffix='.zip') as tmp_zip_file:
+      zip_path = tmp_zip_file.name
+      _create_test_zip(zip_path, [
+          ('archive_dir/hi', b'hi\n', 0o100644 << 16),
+          ('archive_dir/bye', b'bye\n', 0o100644 << 16),
+      ])
+
+      expected_results = {
+          'archive_dir/hi': b'hi\n',
+          'archive_dir/bye': b'bye\n'
+      }
+      with archive.open(zip_path) as reader:
+        actual_results = {}
+        for member in reader.list_members():
+          self.assertEqual(member.mode, 0o644)
+          if not member.is_dir:
+            with reader.open(member.name) as f:
+              actual_results[member.name] = f.read()
+        self.assertEqual(actual_results, expected_results)

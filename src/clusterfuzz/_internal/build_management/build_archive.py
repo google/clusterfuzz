@@ -40,6 +40,7 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'afl-showmap',
     'afl-tmin',
     'centipede',
+    'clusterfuzz_manifest.json',
     'honggfuzz',
     'jazzer_agent_deploy.jar',
     'jazzer_driver',
@@ -53,6 +54,10 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     # data needed by tests that initially exist in the source tree.
     'src_root',
 ]
+
+# Manifest file present in Chrome build archives. Specifies the archive
+# schema version along with optional build metadata (e.g., fuzz targets).
+CHROME_MANIFEST_FILENAME = 'clusterfuzz_manifest.json'
 
 
 class BuildArchive(archive.ArchiveReader):
@@ -309,7 +314,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     self._manifest_fuzz_targets = None
     # The manifest may not exist for earlier versions of archives. In this
     # case, default to schema version 0.
-    manifest_path = 'clusterfuzz_manifest.json'
+    manifest_path = CHROME_MANIFEST_FILENAME
     if not self.file_exists(manifest_path):
       self._archive_schema_version = default_archive_schema_version
       return
@@ -421,6 +426,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return [
         'args.gn',
         'llvm-symbolizer',
+        'clusterfuzz_manifest.json',
     ]
 
   def get_target_dependencies(
@@ -469,12 +475,13 @@ def open_with_reader(reader: archive.ArchiveReader) -> BuildArchive:
   # archive implementation to use.
   # Hopefully, we can search in the archive whether some files are present and
   # give us some hints.
-  # For instance, chrome build archives are embedding `gn.args`. Let's use
-  # this for now.
+  # For instance, chrome build archives contain `args.gn` and/or
+  # `clusterfuzz_manifest.json`. Let's use this for now.
   # Being wrong is no big deal here, because BuildArchive is designed so that
   # we always fall back on default behaviour.
   args_gn_path = os.path.join(reader.root_dir(), 'args.gn')
-  if reader.file_exists(args_gn_path):
+  manifest_path = os.path.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
+  if reader.file_exists(args_gn_path) or reader.file_exists(manifest_path):
     return ChromeBuildArchive(reader)
   return DefaultBuildArchive(reader)
 
