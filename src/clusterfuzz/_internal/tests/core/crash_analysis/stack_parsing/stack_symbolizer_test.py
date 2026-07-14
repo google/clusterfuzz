@@ -19,18 +19,18 @@ from unittest import mock
 
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
 
-TEST_STACK_TRACE = ("    #0 0x1234 (/lib/foo.so+0x5678)\n"
-                    "    #1 0x5678 (/lib/foo.so+0x9abc)\n"
-                    "    #2 0x9abc (/lib/foo.so+0xdef0)\n")
+TEST_STACK_TRACE = ("    #0 0x0001 (/lib/foo.so+0x1000)\n"
+                    "    #1 0x0002 (/lib/foo.so+0x2000)\n"
+                    "    #2 0x0003 (/lib/foo.so+0x3000)\n")
 
-TEST_STACK_TRACE_INLINE = ("    #0 0x1234 (/lib/foo.so+0x5678)\n"
-                           "    #1 0x5678 (/lib/foo.so+0x9abc)\n")
+TEST_STACK_TRACE_INLINE = ("    #0 0x0001 (/lib/foo.so+0x1000)\n"
+                           "    #1 0x0002 (/lib/foo.so+0x2000)\n")
 
 # Expected inputs and outputs for LLVM symbolizer (3 frames).
 UNSYMBOLIZED_LLVM_FRAMES = [
-    b'"/lib/foo.so" 0x5678\n',
-    b'"/lib/foo.so" 0x9abc\n',
-    b'"/lib/foo.so" 0xdef0\n',
+    b'"/lib/foo.so" 0x1000\n',
+    b'"/lib/foo.so" 0x2000\n',
+    b'"/lib/foo.so" 0x3000\n',
 ]
 
 SYMBOLIZED_LLVM_FRAMES = [
@@ -50,9 +50,9 @@ SYMBOLIZED_LLVM_FRAMES = [
 
 # Expected inputs and outputs for addr2line symbolizer (3 frames).
 UNSYMBOLIZED_ADDR2LINE_FRAMES = [
-    b'0x5678\n',
-    b'0x9abc\n',
-    b'0xdef0\n',
+    b'0x1000\n',
+    b'0x2000\n',
+    b'0x3000\n',
 ]
 
 SYMBOLIZED_ADDR2LINE_FRAMES = [
@@ -70,19 +70,19 @@ SYMBOLIZED_ADDR2LINE_FRAMES = [
 # In practice, both symbolizers format their output the same way, but we use
 # distinct mocked function names (e.g. 'llvm_func0' vs 'addr2line_func0')
 # in our tests to verify which symbolizer was actually used.
-EXPECTED_LLVM_OUTPUT = ("    #0 0x1234 in llvm_func0 llvm_file0:10\n"
-                        "    #1 0x5678 in llvm_func1 llvm_file1:20\n"
-                        "    #2 0x9abc in llvm_func2 llvm_file2:30\n")
+EXPECTED_LLVM_OUTPUT = ("    #0 0x0001 in llvm_func0 llvm_file0:10\n"
+                        "    #1 0x0002 in llvm_func1 llvm_file1:20\n"
+                        "    #2 0x0003 in llvm_func2 llvm_file2:30\n")
 
 EXPECTED_ADDR2LINE_OUTPUT = (
-    "    #0 0x1234 in addr2line_func0 addr2line_file0:1\n"
-    "    #1 0x5678 in addr2line_func1 addr2line_file1:1\n"
-    "    #2 0x9abc in addr2line_func2 addr2line_file2:1\n")
+    "    #0 0x0001 in addr2line_func0 addr2line_file0:1\n"
+    "    #1 0x0002 in addr2line_func1 addr2line_file1:1\n"
+    "    #2 0x0003 in addr2line_func2 addr2line_file2:1\n")
 
 # Expected inputs and outputs for LLVM inline frames test.
 UNSYMBOLIZED_LLVM_INLINE_FRAMES = [
-    b'"/lib/foo.so" 0x5678\n',
-    b'"/lib/foo.so" 0x9abc\n',
+    b'"/lib/foo.so" 0x1000\n',
+    b'"/lib/foo.so" 0x2000\n',
 ]
 
 SYMBOLIZED_LLVM_INLINE_FRAMES = [
@@ -100,9 +100,9 @@ SYMBOLIZED_LLVM_INLINE_FRAMES = [
 ]
 
 EXPECTED_LLVM_INLINE_OUTPUT = (
-    "    #0 0x1234 in llvm_inline_func llvm_inline_file:5\n"
-    "    #1 0x1234 in llvm_caller_func llvm_caller_file:10\n"
-    "    #2 0x5678 in llvm_func1 llvm_file1:20\n")
+    "    #0 0x0001 in llvm_inline_func llvm_inline_file:5\n"
+    "    #1 0x0001 in llvm_caller_func llvm_caller_file:10\n"
+    "    #2 0x0002 in llvm_func1 llvm_file1:20\n")
 
 
 class ChromeDsymHintsTests(unittest.TestCase):
@@ -217,14 +217,14 @@ class LLVMSymbolizerTest(unittest.TestCase):
 
     return mock_llvm_process
 
-  def _mock_addr2line_process(self):
+  def _mock_addr2line_process(self, starting_frame=0):
     """Mocks a working addr2line process.
 
     This mock expects to be called with UNSYMBOLIZED_ADDR2LINE_FRAMES and
     returns SYMBOLIZED_ADDR2LINE_FRAMES.
     """
     mock_addr2line_stdin = mock.Mock()
-    num_writes = 0
+    num_writes = starting_frame
 
     def write_side_effect(data):
       nonlocal num_writes
@@ -236,8 +236,9 @@ class LLVMSymbolizerTest(unittest.TestCase):
     mock_addr2line_process = mock.Mock()
     mock_addr2line_process.stdin = mock_addr2line_stdin
     mock_addr2line_process.stdout = mock.Mock()
+    start_readline_index = starting_frame * 2
     mock_addr2line_process.stdout.readline.side_effect = list(
-        SYMBOLIZED_ADDR2LINE_FRAMES)
+        SYMBOLIZED_ADDR2LINE_FRAMES[start_readline_index:])
     mock_addr2line_process.poll.return_value = 0
     return mock_addr2line_process
 
@@ -259,7 +260,10 @@ class LLVMSymbolizerTest(unittest.TestCase):
     mock_llvm_process = mock.Mock()
     mock_llvm_process.stdin = mock_llvm_stdin
     mock_llvm_process.stdout = mock.Mock()
-    mock_llvm_process.stdout.readline.return_value = b''
+    # Symbolize the first frame successfully, then return EOF the same way a
+    # crashing symbolizer would.
+    mock_llvm_process.stdout.readline.side_effect = list(
+        SYMBOLIZED_LLVM_FRAMES[:3]) + [b'']
     mock_llvm_process.stderr = mock.Mock()
 
     if stderr_content:
@@ -283,7 +287,7 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=return_code, stderr_content=stderr_content)
 
     # Setup fallback addr2line symbolizer.
-    mock_addr2line_process = self._mock_addr2line_process()
+    mock_addr2line_process = self._mock_addr2line_process(starting_frame=1)
 
     mock_popen.side_effect = [mock_llvm_process, mock_addr2line_process]
 
@@ -332,12 +336,17 @@ class LLVMSymbolizerTest(unittest.TestCase):
     mock_llvm_process = self._mock_crashing_llvm_symbolizer(return_code=-11)
 
     # Set up mock for addr2line process (fallback)
-    mock_addr2line_process = self._mock_addr2line_process()
+    mock_addr2line_process = self._mock_addr2line_process(starting_frame=1)
 
     mock_popen.side_effect = [mock_llvm_process, mock_addr2line_process]
 
     actual_output = stack_symbolizer.symbolize_stacktrace(TEST_STACK_TRACE)
-    self.assertEqual(EXPECTED_ADDR2LINE_OUTPUT, actual_output)
+
+    # Frame 0 is symbolized by LLVM, Frame 1 & 2 fallback to addr2line
+    expected_output = ("    #0 0x0001 in llvm_func0 llvm_file0:10\n"
+                       "    #1 0x0002 in addr2line_func1 addr2line_file1:1\n"
+                       "    #2 0x0003 in addr2line_func2 addr2line_file2:1\n")
+    self.assertEqual(expected_output, actual_output)
 
     # Verify Popen calls
     self.assertEqual(['llvm-symbolizer', 'addr2line'],
@@ -351,8 +360,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=-11,
         stderr_content='',
         expected_log_msgs=[
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x9abc".',
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0xdef0".'
+            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x2000".',
+            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x3000".'
         ],
         mock_popen=mock_popen,
         mock_log_error=mock_log_error)
@@ -365,8 +374,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=-11,
         stderr_content='some error info',
         expected_log_msgs=[
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x9abc". Stderr: some error info',
-            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0xdef0". Stderr: some error info'
+            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x2000". Stderr: some error info',
+            'Symbolization using llvm-symbolizer failed (exit code -11) for: ""/lib/foo.so" 0x3000". Stderr: some error info'
         ],
         mock_popen=mock_popen,
         mock_log_error=mock_log_error)
@@ -379,8 +388,8 @@ class LLVMSymbolizerTest(unittest.TestCase):
         return_code=None,
         stderr_content='',
         expected_log_msgs=[
-            'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0x9abc".',
-            'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0xdef0".'
+            'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0x2000".',
+            'Symbolization using llvm-symbolizer failed for: ""/lib/foo.so" 0x3000".'
         ],
         mock_popen=mock_popen,
         mock_log_error=mock_log_error)
