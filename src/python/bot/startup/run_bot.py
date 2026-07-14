@@ -271,6 +271,10 @@ def update_task_enabled() -> bool:
 
   running_on_batch = bool(environment.is_uworker())
 
+  if not compute_metadata.is_gce():
+    logs.info('Bot was detected to be off GCE, falling back to legacy '
+              'update_task flow.')
+    return not running_on_batch
   try:
     # Construct the full URL for your specific metadata key
     response = requests.get(
