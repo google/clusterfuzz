@@ -295,6 +295,13 @@ class TarArchiveReader(ArchiveReader):
     output_directory = os.path.realpath(path)
 
     if not trusted:
+      tar_member = self._archive.getmember(member)
+      if tar_member.issym() or tar_member.islnk():
+        logs.error('Link member attempted while unpacking archive %s '
+                   '(member=%s, link target=%s). Aborting.' %
+                   (self._archive_path, member, tar_member.linkname))
+        return None
+
       if (_is_attempting_path_traversal(self._archive_path, output_directory,
                                         member)):
         return None
