@@ -112,6 +112,7 @@ class MinimizeTaskTestUntrusted(
     """Set up."""
     super().setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
+    environment.set_value('UWORKER', True)
 
     patcher = mock.patch(
         'clusterfuzz._internal.bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.fuzzer_directory',
@@ -376,7 +377,7 @@ class UTaskMainTest(unittest.TestCase):
     setup_testcase.return_value = ([], '/path', None)
     del setup_build
     del check_app_path
-    testcase = data_types.Testcase()
+    testcase = data_types.Testcase(trusted=True)
     testcase.put()
     environment.set_value('FAIL_WAIT', 10)
     uworker_input = uworker_msg_pb2.Input(
