@@ -272,6 +272,47 @@ class GetAccessTest(unittest.TestCase):
         access.get_access(need_privileged_access=False),
         access.UserAccess.Denied)
 
+  def test_get_access_unverified_privileged(self):
+    """An unverified email matching privileged_users must NOT be granted
+    privileged access (GitHub EMU can assert any email)."""
+    self.mock.get_current_user.return_value = auth.User(
+        'test@test.com', email_verified=False)
+    self.mock.is_current_user_admin.return_value = False
+    self.mock._is_privileged_user.return_value = True
+    self.mock._is_domain_allowed.return_value = False
+    self.mock.is_fuzzer_allowed_for_user.return_value = False
+    self.mock.is_job_allowed_for_user.return_value = False
+    self.assertEqual(
+        access.get_access(need_privileged_access=True),
+        access.UserAccess.Denied)
+    self.assertEqual(
+        access.get_access(need_privileged_access=False),
+        access.UserAccess.Denied)
+
+  def test_get_access_unverified_external_job(self):
+    """An unverified email must not gain job-scoped access."""
+    self.mock.get_current_user.return_value = auth.User(
+        'test@test.com', email_verified=False)
+    self.mock.is_current_user_admin.return_value = False
+    self.mock._is_privileged_user.return_value = False
+    self.mock._is_domain_allowed.return_value = False
+    self.mock.is_fuzzer_allowed_for_user.return_value = False
+    self.mock.is_job_allowed_for_user.return_value = True
+    self.assertEqual(
+        access.get_access(job_type='test'), access.UserAccess.Denied)
+
+  def test_get_access_unverified_external_fuzzer(self):
+    """An unverified email must not gain fuzzer-scoped access."""
+    self.mock.get_current_user.return_value = auth.User(
+        'test@test.com', email_verified=False)
+    self.mock.is_current_user_admin.return_value = False
+    self.mock._is_privileged_user.return_value = False
+    self.mock._is_domain_allowed.return_value = False
+    self.mock.is_fuzzer_allowed_for_user.return_value = True
+    self.mock.is_job_allowed_for_user.return_value = False
+    self.assertEqual(
+        access.get_access(fuzzer_name='test'), access.UserAccess.Denied)
+
   def test_get_access_external_fuzzer(self):
     """For a fuzzer, ensure it allows when a user is allowed."""
     self.mock.get_current_user.return_value = self.user
@@ -478,6 +519,23 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
     self.testcase.security_flag = True
 
     self.assertTrue(access.can_user_access_testcase(self.testcase))
+
+  def test_denied_unverified_uploader(self):
+    """An unverified email matching the uploader must NOT grant access."""
+    self.mock.get_current_user.return_value = auth.User(
+        self.email, email_verified=False)
+    self.testcase.uploader_email = self.email
+    self.testcase.security_flag = True
+    self.assertFalse(access.can_user_access_testcase(self.testcase))
+
+  def test_denied_unverified_bug_owner(self):
+    """An unverified email matching a bug assignee must NOT grant access."""
+    self.mock.get_current_user.return_value = auth.User(
+        self.email, email_verified=False)
+    self.bug.owner = self.email
+    self.get_issue.return_value = self.bug
+    self.testcase.bug_information = '1234'
+    self.assertFalse(access.can_user_access_testcase(self.testcase))
 
   def test_allowed_because_of_owner_in_original_issue(self):
     """Ensure it is allowed because the user is the owner of original issue."""
