@@ -86,14 +86,14 @@ def wait_process(process,
 
   def create_timeout_timer(interval, function, args):
     """Helper to create a timer that logs timeout info."""
+
     def target():
       binary_name = os.path.basename(process.command[0])
       action_fn = args[0]
-      logs.info(
-          f"TIMEOUT: Terminating {binary_name} after {interval} seconds "
-          f"(using {action_fn.__name__})."
-      )
+      logs.info(f"TIMEOUT: Terminating {binary_name} after {interval} seconds "
+                f"(using {action_fn.__name__}).")
       function(*args)
+
     return threading.Timer(interval, target)
 
   # On Windows, terminate() just calls Win32 API function TerminateProcess()
