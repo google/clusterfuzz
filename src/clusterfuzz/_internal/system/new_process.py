@@ -84,20 +84,38 @@ def wait_process(process,
   result = ProcessResult()
   is_windows = environment.platform() == 'WINDOWS'
 
+  def create_timeout_timer(interval, function, args):
+    """Helper to create a timer that logs timeout info."""
+    def target():
+      binary_name = os.path.basename(process.command[0])
+      action_fn = args[0]
+      logs.info(
+          f"TIMEOUT: Terminating {binary_name} after {interval} seconds "
+          f"(using {action_fn.__name__})."
+      )
+      function(*args)
+    return threading.Timer(interval, target)
+
   # On Windows, terminate() just calls Win32 API function TerminateProcess()
   # which is equivalent to process kill. So, skip terminate_before_kill.
   if terminate_before_kill and not is_windows:
     first_timeout_function = process.terminate
 
     # Use a second timer to send the process kill.
-    second_timer = threading.Timer(timeout + terminate_wait_time, _end_process,
-                                   [process.kill, result])
+    second_timer = create_timeout_timer(
+        timeout + terminate_wait_time,
+        _end_process,
+        [process.kill, result],
+    )
   else:
     first_timeout_function = process.kill
     second_timer = None
 
-  first_timer = threading.Timer(timeout, _end_process,
-                                [first_timeout_function, result])
+  first_timer = create_timeout_timer(
+      timeout,
+      _end_process,
+      [first_timeout_function, result],
+  )
 
   output = None
   start_time = time.time()
