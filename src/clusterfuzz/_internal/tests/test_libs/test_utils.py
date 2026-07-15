@@ -63,6 +63,7 @@ def create_generic_testcase(created_days_ago=28):
   testcase.timestamp = CURRENT_TIME - datetime.timedelta(days=created_days_ago)
   testcase.project_name = 'project'
   testcase.platform = 'linux'
+  testcase.trusted = True
   testcase.put()
 
   return testcase
