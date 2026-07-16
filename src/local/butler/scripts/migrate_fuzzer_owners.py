@@ -54,10 +54,6 @@ if __name__ == '__main__':
       description='Backfill primary_owner for Fuzzers.')
   parser.add_argument(
       '--live', action='store_true', help='Perform live updates.')
-  parser.add_argument(
-      '--owner',
-      default='default-owner@example.com',
-      help='Default owner email.')
   args = parser.parse_args()
 
   migrate(dry_run=not args.live, default_owner=args.owner)
