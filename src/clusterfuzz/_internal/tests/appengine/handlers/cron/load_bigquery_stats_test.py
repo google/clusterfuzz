@@ -207,9 +207,12 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                       'configuration': {
                           'load': {
                               'destinationTable': {
-                                  'projectId': 'test-clusterfuzz',
-                                  'tableId': f'TestcaseRun${expected_date_str}',
-                                  'datasetId': 'fuzzer_stats'
+                                  'projectId':
+                                      'test-clusterfuzz',
+                                  'tableId':
+                                      f'TestcaseRun${expected_date_str}',
+                                  'datasetId':
+                                      'fuzzer_stats'
                               },
                               'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
                               'writeDisposition':
@@ -217,7 +220,8 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                                   if i == 0 else 'WRITE_APPEND',
                               'sourceUris': [
                                   'gs://test-bigquery-bucket/fuzzer/TestcaseRun/'
-                                  f'date/{expected_date_str}/' + prefix + '*.json'
+                                  f'date/{expected_date_str}/' + prefix +
+                                  '*.json'
                               ],
                               'sourceFormat':
                                   'NEWLINE_DELIMITED_JSON',
