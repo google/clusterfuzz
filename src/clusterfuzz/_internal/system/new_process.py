@@ -85,7 +85,18 @@ def wait_process(process,
   is_windows = environment.platform() == 'WINDOWS'
 
   def create_timeout_timer(interval, function, args):
-    """Helper to create a timer that logs timeout info."""
+    """Helper to create a timer that logs timeout info.
+
+    This function takes the same arguments as threading.Timer.
+
+    Args:
+      interval: The delay in seconds before the timer action is executed.
+      function: The function to be called when the timer expires.
+      args: The arguments to be passed to the function.
+
+    Returns:
+      A threading.Timer object.
+    """
 
     def target():
       binary_name = os.path.basename(process.command[0])
