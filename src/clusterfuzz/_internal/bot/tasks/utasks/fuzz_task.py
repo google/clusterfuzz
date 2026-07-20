@@ -2209,6 +2209,7 @@ def _pick_fuzz_target():
     logs.info('Not engine fuzzer. Not picking fuzz target.')
     return None
 
+
   logs.info('Picking fuzz target.')
   target_weights = fuzzer_selection.get_fuzz_target_weights()
   return build_manager.pick_random_fuzz_target(target_weights)
