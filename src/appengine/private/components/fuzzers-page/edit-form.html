@@ -229,7 +229,7 @@
         <paper-checkbox checked="{{fuzzer.external_contribution}}">External contribution</paper-checkbox>
       </div>
       <div class="inline narrow">
-        <paper-checkbox checked="{{fuzzer.untrusted}}">Untrusted</paper-checkbox>
+        <paper-checkbox checked="{{fuzzer.trusted}}">Trusted</paper-checkbox>
       </div>
 
       <!-- TODO: Re-enable after the differential fuzzing is implemented.
@@ -270,7 +270,7 @@
                 'max_testcases',
                 'name',
                 'timeout',
-                'untrusted',
+                'trusted',
             ],
           },
           file: Object,
