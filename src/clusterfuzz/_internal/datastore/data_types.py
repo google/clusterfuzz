@@ -353,8 +353,8 @@ class Fuzzer(Model):
   # Does it run un-trusted content ? Examples including running live sites.
   untrusted_content = ndb.BooleanProperty(default=False)
 
-  # Is this fuzzer untrusted? (VRP support)
-  untrusted = ndb.BooleanProperty(default=False)
+  # Is this fuzzer trusted? (VRP support)
+  trusted = ndb.BooleanProperty(default=False)
 
   # Data bundle name.
   data_bundle_name = ndb.StringProperty(default='')

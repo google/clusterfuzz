@@ -174,7 +174,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     timeout = self._get_integer_value('timeout')
     max_testcases = self._get_integer_value('max_testcases')
     external_contribution = request.get('external_contribution', False)
-    untrusted = request.get('untrusted', False)
+    trusted = request.get('trusted', False)
     differential = request.get('differential', False)
     environment_string = request.get('additional_environment_string')
     data_bundle_name = request.get('data_bundle_name')
@@ -194,7 +194,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     fuzzer.sample_testcase = None
     fuzzer.console_output = None
     fuzzer.external_contribution = bool(external_contribution)
-    fuzzer.untrusted = bool(untrusted)
+    fuzzer.trusted = bool(trusted)
     fuzzer.differential = bool(differential)
     fuzzer.additional_environment_string = environment_string
     fuzzer.timestamp = datetime.datetime.now(tz=datetime.timezone.utc).replace(
@@ -210,15 +210,12 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     if launcher_script:
       fuzzer.launcher_script = launcher_script
 
-    if fuzzer.untrusted:
+    if not fuzzer.trusted:
       for job_name in jobs:
-        job = data_types.Job.query(data_types.Job.name == job_name).get()
-        if not job:
-          raise helpers.EarlyExitError(f'Job {job_name} not found.', 400)
-        if job.platform.lower() != 'linux':
-          raise helpers.EarlyExitError(
-              f'Untrusted fuzzers can only be run on Linux jobs. '
-              f'Job "{job_name}" has platform "{job.platform}".', 400)
+        try:
+          data_handler.check_job_supports_untrusted_workloads(job_name)
+        except ValueError as e:
+          raise helpers.EarlyExitError(str(e), 400)
 
     fuzzer.put()
 

@@ -35,6 +35,7 @@ from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -1209,6 +1210,29 @@ def bot_run_timed_out():
 # ------------------------------------------------------------------------------
 # Job database related functions
 # ------------------------------------------------------------------------------
+
+
+def check_job_supports_untrusted_workloads(job_name: str,
+                                           platform_id: str = None) -> None:
+  """Checks that the named job can run untrusted testcases or fuzzers.
+
+  Raises:
+    ValueError: if the job can run on privileged bots and should never run
+      an untrusted workload.
+  """
+  job = data_types.Job.query(data_types.Job.name == job_name).get()
+  if not job:
+    raise ValueError(f'Job "{job_name}" not found.')
+
+  # Chrome is the only ClusterFuzz deployment where there are trusted bots
+  # running utasks. This check also fails on oss-fuzz because of the way it
+  # abuses platform.
+  if utils.is_chromium() and task_utils.is_remotely_executing_utasks():
+    if ((platform_id and platform_id != 'Linux') or
+        job.platform.lower() != 'linux'):
+      raise ValueError(
+          f'Job "{job_name}" does not support running untrusted workloads. '
+          'Untrusted workloads on Chrome are only supported on Linux.')
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
