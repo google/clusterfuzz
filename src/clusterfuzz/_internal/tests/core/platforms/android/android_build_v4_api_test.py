@@ -223,13 +223,16 @@ class AndroidBuildV4ApiTest(unittest.TestCase):
     resp_url = json.dumps({'signedUrl': 'https://storage.googleapis.com/test'})
     resp_dl = mock.MagicMock()
     resp_dl.status_code = 200
+    resp_dl.iter_content.side_effect = OSError('Disk error')
 
     self.mock.fetch_url.side_effect = [resp_url, resp_dl]
 
-    success = self.api.download_artifact_file(
-        bid='123',
-        target='target',
-        attempt_id='latest',
-        name='file.txt',
-        output_path='/invalid/dir/file')
-    self.assertFalse(success)
+    with tempfile.TemporaryDirectory() as temp_dir:
+      output_path = os.path.join(temp_dir, 'output.txt')
+      success = self.api.download_artifact_file(
+          bid='123',
+          target='target',
+          attempt_id='latest',
+          name='file.txt',
+          output_path=output_path)
+      self.assertFalse(success)
