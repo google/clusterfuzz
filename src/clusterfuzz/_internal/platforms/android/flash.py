@@ -188,7 +188,7 @@ def flash_to_latest_build_if_needed():
   if not build_info and not has_local_images:
     logs.error(
         'No valid build info available (API may be disabled) and no local '
-        'images found in %s. Bot cannot recover.' % image_directory)
+        f'images found in {image_directory}. Bot cannot recover.')
     adb.bad_state_reached()
 
   instance_id = None

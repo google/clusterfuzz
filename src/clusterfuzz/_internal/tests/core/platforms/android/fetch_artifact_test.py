@@ -29,10 +29,12 @@ class FetchArtifactTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.platforms.android.fetch_artifact._get_client',
         'clusterfuzz._internal.platforms.android.fetch_artifact._use_v4',
+        'clusterfuzz._internal.platforms.android.fetch_artifact._call_android_api_enabled',
         'clusterfuzz._internal.platforms.android.fetch_artifact._execute_request_with_retries',
     ])
     self.mock_client = mock.MagicMock()
     self.mock._get_client.return_value = self.mock_client
+    self.mock._call_android_api_enabled.return_value = True
 
   def test_get_latest_artifact_v4_success(self):
     """Tests get_latest_artifact_info (V4). Expects extraction of {bid, branch, target} when list_builds returns data."""
@@ -112,6 +114,13 @@ class FetchArtifactTest(unittest.TestCase):
   def test_get_latest_artifact_client_auth_failure(self):
     """Tests get_latest_artifact_info exits early and returns None when client auth fails."""
     self.mock._get_client.return_value = None
+
+    result = fetch_artifact.get_latest_artifact_info('branch1', 'target1')
+    self.assertIsNone(result)
+
+  def test_get_latest_artifact_disabled_by_feature_flag(self):
+    """Tests get_latest_artifact_info exits early and returns None when disabled by feature flag."""
+    self.mock._call_android_api_enabled.return_value = False
 
     result = fetch_artifact.get_latest_artifact_info('branch1', 'target1')
     self.assertIsNone(result)
