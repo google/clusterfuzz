@@ -402,14 +402,14 @@ class TestCheckRunningFuzzerSafe(unittest.TestCase):
 
   def test_trusted_fuzzer(self):
     """Test that trusted fuzzer passes without checks."""
-    self.fuzzer.untrusted = False
+    self.fuzzer.trusted = True
     uworker_io.check_running_fuzzer_safe(self.fuzzer)
     self.mock.is_uworker.assert_not_called()
     self.mock.log_fatal_and_exit.assert_not_called()
 
   def test_untrusted_fuzzer_uworker(self):
     """Test that untrusted fuzzer on uworker passes."""
-    self.fuzzer.untrusted = True
+    self.fuzzer.trusted = False
     self.mock.is_uworker.return_value = True
     uworker_io.check_running_fuzzer_safe(self.fuzzer)
     self.mock.is_uworker.assert_called_once()
@@ -417,7 +417,7 @@ class TestCheckRunningFuzzerSafe(unittest.TestCase):
 
   def test_untrusted_fuzzer_not_uworker_raises(self):
     """Test that untrusted fuzzer not on uworker raises SystemExit."""
-    self.fuzzer.untrusted = True
+    self.fuzzer.trusted = False
     self.mock.is_uworker.return_value = False
     uworker_io.check_running_fuzzer_safe(self.fuzzer)
     self.mock.is_uworker.assert_called_once()
