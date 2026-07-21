@@ -436,6 +436,11 @@ class ChromeBuildArchive(DefaultBuildArchive):
       logs.warning(f'Target path not found for {fuzz_target}')
       return super().get_target_dependencies(fuzz_target)
 
+    # On Windows, `target_path` ends in `.exe`, but the Chrome convention is for
+    # `.runtime_deps` files to not include the `.exe` suffix. For example:
+    # ./fuzzer.exe
+    # ./fuzzer.runtime_deps
+    # So the `.exe` suffix must be stripped before appending `.runtime_deps`.
     target_name = target_path.removesuffix('.exe')
     deps_file = f'{target_name}.runtime_deps'
     if not self.file_exists(deps_file):
