@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for android_build_v4_api.py."""
 
+import json
 import os
 import tempfile
 import unittest
@@ -31,6 +32,7 @@ class AndroidBuildV4ApiTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.fetch_url',
         'requests.get',
     ])
 
@@ -68,19 +70,17 @@ class AndroidBuildV4ApiTest(unittest.TestCase):
     """Tests that list_builds sends correct GET request parameters and returns
     parsed build data on success.
     """
-    mock_response = mock.MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
+    self.mock.fetch_url.return_value = json.dumps({
         'builds': [{
             'buildId': '123456',
             'target': {
                 'name': 'target_name'
             }
         }]
-    }
-    self.mock.get.return_value = mock_response
+    })
 
-    result = self.api.list_builds('git_main', 'target_name', signed=True)
+    result = self.api.list_builds(
+        branch='git_main', target='target_name', signed=True)
     self.assertEqual(
         result,
         {'builds': [{
@@ -89,7 +89,7 @@ class AndroidBuildV4ApiTest(unittest.TestCase):
                 'name': 'target_name'
             }
         }]})
-    self.mock.get.assert_called_once_with(
+    self.mock.fetch_url.assert_called_once_with(
         'https://androidbuild-pa.googleapis.com/v4/builds',
         headers={
             'Authorization': 'Bearer test_token',
@@ -103,18 +103,15 @@ class AndroidBuildV4ApiTest(unittest.TestCase):
             'pageSize': 1,
             'signed': 'true',
         },
-        stream=False,
-        timeout=60)
+        request_timeout=60,
+        raise_for_not_found=True)
 
   def test_list_builds_error(self):
     """Tests that list_builds handles HTTP errors gracefully by logging and
     returning None.
     """
-    mock_response = mock.MagicMock()
-    mock_response.status_code = 500
-    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-        'Server error', response=mock_response)
-    self.mock.get.return_value = mock_response
+    self.mock.fetch_url.side_effect = requests.exceptions.HTTPError(
+        'Server error')
 
     result = self.api.list_builds('git_main', 'target_name')
     self.assertIsNone(result)
@@ -123,62 +120,49 @@ class AndroidBuildV4ApiTest(unittest.TestCase):
     """Tests that list_builds handles JSON decoding errors (ValueError) by
     returning None.
     """
-    mock_response = mock.MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.side_effect = ValueError('Invalid JSON')
-    self.mock.get.return_value = mock_response
+    self.mock.fetch_url.return_value = 'invalid json'
 
-    result = self.api.list_builds('git_main', 'target_name')
+    result = self.api.list_builds(branch='git_main', target='target_name')
     self.assertIsNone(result)
 
   def test_list_artifacts_pagination(self):
     """Tests that list_artifacts follows nextPageToken pagination and
     aggregates artifacts across pages.
     """
-    resp1 = mock.MagicMock()
-    resp1.status_code = 200
-    resp1.json.return_value = {
+    resp1 = json.dumps({
         'artifacts': [{
             'name': 'art1'
         }],
         'nextPageToken': 'token123'
-    }
+    })
+    resp2 = json.dumps({'artifacts': [{'name': 'art2'}]})
 
-    resp2 = mock.MagicMock()
-    resp2.status_code = 200
-    resp2.json.return_value = {'artifacts': [{'name': 'art2'}]}
+    self.mock.fetch_url.side_effect = [resp1, resp2]
 
-    self.mock.get.side_effect = [resp1, resp2]
-
-    artifacts = self.api.list_artifacts('123', 'target_name', regexp='.*zip')
+    artifacts = self.api.list_artifacts(
+        bid='123', target='target_name', regexp='.*zip')
     self.assertEqual(artifacts, [{'name': 'art1'}, {'name': 'art2'}])
 
   def test_list_artifacts_error(self):
     """Tests that list_artifacts handles HTTP request errors gracefully by
     returning an empty list.
     """
-    mock_response = mock.MagicMock()
-    mock_response.status_code = 500
-    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-        'Server error', response=mock_response)
-    self.mock.get.return_value = mock_response
+    self.mock.fetch_url.side_effect = requests.exceptions.HTTPError(
+        'Server error')
 
-    artifacts = self.api.list_artifacts('123', 'target_name')
+    artifacts = self.api.list_artifacts(bid='123', target='target_name')
     self.assertEqual(artifacts, [])
 
   def test_get_artifact_metadata(self):
     """Tests that get_artifact_metadata retrieves metadata dictionary for a
     specific build artifact.
     """
-    mock_response = mock.MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
+    self.mock.fetch_url.return_value = json.dumps({
         'buildArtifactMetadata': {
             'name': 'file.zip',
             'size': '100'
         }
-    }
-    self.mock.get.return_value = mock_response
+    })
 
     metadata = self.api.get_artifact_metadata('123', 'target', 'latest',
                                               'file.zip')
@@ -188,36 +172,31 @@ class AndroidBuildV4ApiTest(unittest.TestCase):
     """Tests that get_artifact_metadata handles HTTP errors (e.g. 404) by
     returning None.
     """
-    mock_response = mock.MagicMock()
-    mock_response.status_code = 404
-    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-        'Not found', response=mock_response)
-    self.mock.get.return_value = mock_response
+    self.mock.fetch_url.side_effect = requests.exceptions.HTTPError('Not found')
 
-    metadata = self.api.get_artifact_metadata('123', 'target', 'latest',
-                                              'file.zip')
+    metadata = self.api.get_artifact_metadata(
+        bid='123', target='target', attempt_id='latest', name='file.zip')
     self.assertIsNone(metadata)
 
   def test_download_artifact_file(self):
     """Tests that download_artifact_file fetches a signed URL and streams file
     chunks to local path.
     """
-    resp_url = mock.MagicMock()
-    resp_url.status_code = 200
-    resp_url.json.return_value = {
-        'signedUrl': 'https://storage.googleapis.com/test'
-    }
-
+    resp_url = json.dumps({'signedUrl': 'https://storage.googleapis.com/test'})
     resp_dl = mock.MagicMock()
     resp_dl.status_code = 200
     resp_dl.iter_content.return_value = [b'chunk1', b'chunk2']
 
-    self.mock.get.side_effect = [resp_url, resp_dl]
+    self.mock.fetch_url.side_effect = [resp_url, resp_dl]
 
     with tempfile.TemporaryDirectory() as temp_dir:
       output_path = os.path.join(temp_dir, 'output.txt')
-      success = self.api.download_artifact_file('123', 'target', 'latest',
-                                                'file.txt', output_path)
+      success = self.api.download_artifact_file(
+          bid='123',
+          target='target',
+          attempt_id='latest',
+          name='file.txt',
+          output_path=output_path)
       self.assertTrue(success)
       with open(output_path, 'rb') as f:
         self.assertEqual(f.read(), b'chunk1chunk2')
@@ -226,32 +205,34 @@ class AndroidBuildV4ApiTest(unittest.TestCase):
     """Tests that download_artifact_file handles HTTP errors during signed URL
     retrieval and returns False.
     """
-    mock_response = mock.MagicMock()
-    mock_response.status_code = 500
-    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(
-        'Server error', response=mock_response)
-    self.mock.get.return_value = mock_response
+    self.mock.fetch_url.side_effect = requests.exceptions.HTTPError(
+        'Server error')
 
-    success = self.api.download_artifact_file('123', 'target', 'latest',
-                                              'file.txt', '/tmp/file.txt')
+    success = self.api.download_artifact_file(
+        bid='123',
+        target='target',
+        attempt_id='latest',
+        name='file.txt',
+        output_path='/tmp/file.txt')
     self.assertFalse(success)
 
   def test_download_artifact_file_os_error(self):
     """Tests that download_artifact_file handles local filesystem OSError
     during download and returns False.
     """
-    resp_url = mock.MagicMock()
-    resp_url.status_code = 200
-    resp_url.json.return_value = {
-        'signedUrl': 'https://storage.googleapis.com/test'
-    }
-
+    resp_url = json.dumps({'signedUrl': 'https://storage.googleapis.com/test'})
     resp_dl = mock.MagicMock()
     resp_dl.status_code = 200
-    resp_dl.raise_for_status.side_effect = OSError('Disk error')
+    resp_dl.iter_content.side_effect = OSError('Disk error')
 
-    self.mock.get.side_effect = [resp_url] + [resp_dl] * 10
+    self.mock.fetch_url.side_effect = [resp_url, resp_dl]
 
-    success = self.api.download_artifact_file('123', 'target', 'latest',
-                                              'file.txt', '/invalid/dir/file')
-    self.assertFalse(success)
+    with tempfile.TemporaryDirectory() as temp_dir:
+      output_path = os.path.join(temp_dir, 'output.txt')
+      success = self.api.download_artifact_file(
+          bid='123',
+          target='target',
+          attempt_id='latest',
+          name='file.txt',
+          output_path=output_path)
+      self.assertFalse(success)
