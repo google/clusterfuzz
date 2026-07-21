@@ -1839,7 +1839,7 @@ class FuzzingSession:
         thread = process_handler.get_process()(
             target=testcase_manager.run_testcase_and_return_result_in_queue,
             args=(temp_queue, thread_index, testcase_file_path, gestures,
-                  env_copy, True))
+                  env_copy, not environment.is_uworker()))
 
         try:
           thread.start()

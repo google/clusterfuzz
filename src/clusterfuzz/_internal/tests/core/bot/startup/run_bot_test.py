@@ -86,16 +86,31 @@ class MonitorTest(unittest.TestCase):
 class TaskLoopTest(unittest.TestCase):
   """Test task_loop."""
 
+  def _setup_metric_mocks(self):
+    """Mock out system queries used to populate tracking metric labels."""
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.update_task.get_local_source_revision',
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.base.utils.get_clusterfuzz_release',
+        'platform.release',
+    ])
+    self.mock.get_local_source_revision.return_value = 'test-revision'
+    self.mock.platform.return_value = 'test-os'
+    self.mock.release.return_value = 'test-version'
+    self.mock.get_clusterfuzz_release.return_value = 'test-release'
+
   def setUp(self):
     helpers.patch_environ(self)
+    self._setup_metric_mocks()
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.get_task',
         'clusterfuzz._internal.bot.tasks.commands.process_command',
         'clusterfuzz._internal.bot.tasks.update_task.run',
-        'clusterfuzz._internal.bot.tasks.update_task.track_revision',
         'python.bot.startup.run_bot.update_task_enabled',
     ])
     self.mock.update_task_enabled.return_value = True
+
+    monitor.metrics_store().reset_for_testing()
 
     self.task = mock.MagicMock()
     self.task.payload.return_value = 'payload'
@@ -112,6 +127,14 @@ class TaskLoopTest(unittest.TestCase):
     self.assertIn('Exception: text', exception)
     self.assertFalse(clean_exit)
     self.assertEqual('payload', payload)
+    self.assertEqual(
+        1,
+        monitoring_metrics.BOT_COUNT.get({
+            'revision': 'test-revision',
+            'os_type': 'test-os',
+            'os_version': 'test-version',
+            'release': 'test-release',
+        }))
 
   def test_max_executions(self):
     """Test that the loop breaks after MAX_TASK_EXECUTIONS iterations."""
@@ -124,6 +147,14 @@ class TaskLoopTest(unittest.TestCase):
     self.assertEqual(3, self.mock.process_command.call_count)
     self.assertTrue(clean_exit)
     self.assertEqual('payload', payload)
+    self.assertEqual(
+        1,
+        monitoring_metrics.BOT_COUNT.get({
+            'revision': 'test-revision',
+            'os_type': 'test-os',
+            'os_version': 'test-version',
+            'release': 'test-release',
+        }))
 
   @mock.patch('clusterfuzz._internal.metrics.logs.log_fatal_and_exit')
   def test_max_executions_invalid(self, mock_log_fatal_and_exit):
@@ -139,6 +170,27 @@ class TaskLoopTest(unittest.TestCase):
     mock_log_fatal_and_exit.assert_any_call(
         'Invalid value for MAX_TASK_EXECUTIONS: invalid')
     self.assertEqual(0, self.mock.process_command.call_count)
+
+
+class UpdateTaskEnabledTest(unittest.TestCase):
+  """Test update_task_enabled check"""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.is_gce',
+        'requests.get',
+    ])
+    self.mock.is_uworker.return_value = False
+    self.mock.is_gce.return_value = True
+
+  def test_off_gce(self):
+    """Test that bots off GCE fallback gracefully without triggering requests."""
+    self.mock.is_gce.return_value = False
+
+    self.assertTrue(run_bot.update_task_enabled())
+    # We shouldn't have made a request to the metadata server.
+    self.assertEqual(0, self.mock.get.call_count)
 
 
 class LeaseAllTasksTest(unittest.TestCase):
