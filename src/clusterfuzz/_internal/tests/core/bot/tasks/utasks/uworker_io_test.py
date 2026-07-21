@@ -395,7 +395,6 @@ class TestCheckRunningFuzzerSafe(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.system.environment.is_uworker',
-        'clusterfuzz._internal.metrics.logs.log_fatal_and_exit',
     ])
     self.fuzzer = mock.MagicMock(spec=data_types.Fuzzer)
     self.fuzzer.name = 'test_fuzzer'
@@ -403,24 +402,17 @@ class TestCheckRunningFuzzerSafe(unittest.TestCase):
   def test_trusted_fuzzer(self):
     """Test that trusted fuzzer passes without checks."""
     self.fuzzer.trusted = True
-    uworker_io.check_running_fuzzer_safe(self.fuzzer)
-    self.mock.is_uworker.assert_not_called()
-    self.mock.log_fatal_and_exit.assert_not_called()
+    self.assertTrue(uworker_io.check_running_fuzzer_safe(self.fuzzer))
 
   def test_untrusted_fuzzer_uworker(self):
     """Test that untrusted fuzzer on uworker passes."""
     self.fuzzer.trusted = False
     self.mock.is_uworker.return_value = True
-    uworker_io.check_running_fuzzer_safe(self.fuzzer)
-    self.mock.is_uworker.assert_called_once()
-    self.mock.log_fatal_and_exit.assert_not_called()
+    self.assertTrue(uworker_io.check_running_fuzzer_safe(self.fuzzer))
 
   def test_untrusted_fuzzer_not_uworker_raises(self):
     """Test that untrusted fuzzer not on uworker raises SystemExit."""
     self.fuzzer.trusted = False
     self.mock.is_uworker.return_value = False
-    uworker_io.check_running_fuzzer_safe(self.fuzzer)
-    self.mock.is_uworker.assert_called_once()
-    self.mock.log_fatal_and_exit.assert_called_once_with(
-        'Security Violation: Cannot run untrusted fuzzer test_fuzzer '
-        'in trusted environment.')
+    with self.assertRaises(SystemExit):
+      uworker_io.check_running_fuzzer_safe(self.fuzzer)
