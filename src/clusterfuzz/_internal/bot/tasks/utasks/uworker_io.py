@@ -246,7 +246,7 @@ def check_handling_testcase_safe(testcase):
 def check_running_fuzzer_safe(fuzzer):
   """Exits when the fuzzer is untrusted but the execution environment is
   trusted."""
-  if not fuzzer.untrusted:
+  if fuzzer.trusted:
     return
   if environment.is_uworker():
     return
