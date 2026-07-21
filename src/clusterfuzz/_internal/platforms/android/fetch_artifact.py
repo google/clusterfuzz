@@ -166,6 +166,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
     logs.info(f'Creating directory {output_dir}')
     os.makedirs(output_dir, exist_ok=True)
 
+  # TODO(b/537368595) Remove unnecesary logging.
   # Just like get, except get_media.
   logs.info(
       'AndroidBuildAPI download_artifact media download started.',
@@ -229,7 +230,9 @@ def _get_artifacts_for_build(client,
   """Return list of artifacts for a given build."""
   if not regexp:
     logs.warning(
-        'Regexp is empty, returning early to avoid querying all artifacts.')
+        'Regexp is empty, returning early to avoid querying all artifacts.',
+        bid=bid,
+        target=target)
     return []
 
   version_tag = 'V4' if _use_v4() else 'V3'
@@ -374,9 +377,10 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
         successful=True,
         maxResults=1,
         signed=signed)
-    builds = _execute_request_with_retries(request)
+    res = _execute_request_with_retries(request)
+    builds = res if (res and res.get('builds')) else None
 
-  if not builds or 'builds' not in builds or not builds['builds']:
+  if not builds:
     logs.error(
         'AndroidBuildAPI get_latest_artifact_info failed: no builds found.',
         api_version=version_tag,
@@ -389,10 +393,7 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
 
   build = builds['builds'][0]
   bid = build['buildId']
-  if _use_v4():
-    target = build.get('target', {}).get('name', build.get('target'))
-  else:
-    target = build['target']['name']
+  target = build['target']['name']
 
   logs.info(
       'AndroidBuildAPI get_latest_artifact_info completed.',

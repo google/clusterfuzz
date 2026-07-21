@@ -165,7 +165,10 @@ class AndroidBuildV4Api:
     url = f'{self.BASE_URL}/v4/builds'
     try:
       response = self._request(url, params=params)
-      return response.json()
+      data = response.json()
+      if data.get('builds') and len(data['builds']) > 0:
+        return data
+      return None
     except (requests.exceptions.RequestException,
             google.auth.exceptions.GoogleAuthError, ValueError) as e:
       logs.error(
