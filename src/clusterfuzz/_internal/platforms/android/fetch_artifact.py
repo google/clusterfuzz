@@ -288,7 +288,7 @@ def _get_artifacts_for_build(client,
 
   if not artifacts:
     logs.error(f'No artifact found for target {target}, build id {bid}.\n'
-               f'request {request_str}, results {results}')
+               f'results {results}')
 
   return artifacts
 
