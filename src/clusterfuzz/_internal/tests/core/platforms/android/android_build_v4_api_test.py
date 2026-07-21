@@ -250,7 +250,7 @@ class AndroidBuildV4ApiTest(unittest.TestCase):
     resp_dl.status_code = 200
     resp_dl.raise_for_status.side_effect = OSError('Disk error')
 
-    self.mock.get.side_effect = [resp_url, resp_dl]
+    self.mock.get.side_effect = [resp_url] + [resp_dl] * 10
 
     success = self.api.download_artifact_file('123', 'target', 'latest',
                                               'file.txt', '/invalid/dir/file')
