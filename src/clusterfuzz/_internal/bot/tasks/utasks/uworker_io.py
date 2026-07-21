@@ -247,12 +247,13 @@ def check_running_fuzzer_safe(fuzzer):
   """Exits when the fuzzer is untrusted but the execution environment is
   trusted."""
   if fuzzer.trusted:
-    return
+    return True
   if environment.is_uworker():
-    return
+    return True
   logs.log_fatal_and_exit(
       f'Security Violation: Cannot run untrusted fuzzer {fuzzer.name} '
       f'in trusted environment.')
+  return False
 
 
 def timestamp_to_proto_timestamp(pydt) -> Timestamp:

@@ -325,13 +325,17 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
       argument, job = fuzzer_selection.get_fuzz_task_payload('ANDROID:PIXEL6')
       self.assertEqual(('pixel_fuzzer', 'job_pixel6'), (argument, job))
 
-  @parameterized.parameterized.expand([('False',), ('True',)])
-  def test_untrusted_fuzzer_exclusion(self, is_uworker):
+  @parameterized.parameterized.expand([
+      ('False', 'trusted_fuzzer', 'job_2'),
+      ('True', 'untrusted_fuzzer', 'job_1'),
+  ])
+  def test_untrusted_fuzzer_exclusion(self, is_uworker, expected_fuzzer,
+                                      expected_job):
     """Ensure that untrusted fuzzers are filtered out on long-lived bots."""
     os.environ['UWORKER'] = is_uworker
 
-    data_types.Fuzzer(name='untrusted_fuzzer', untrusted_content=True).put()
-    data_types.Fuzzer(name='trusted_fuzzer', untrusted_content=False).put()
+    data_types.Fuzzer(name='untrusted_fuzzer', trusted=False).put()
+    data_types.Fuzzer(name='trusted_fuzzer', trusted=True).put()
 
     untrusted_mapping = data_types.FuzzerJob()
     untrusted_mapping.fuzzer = 'untrusted_fuzzer'
@@ -351,10 +355,7 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
 
     argument, job = fuzzer_selection.get_fuzz_task_payload('linux')
 
-    if is_uworker == 'True':
-      self.assertEqual(('untrusted_fuzzer', 'job_1'), (argument, job))
-    else:
-      self.assertEqual(('trusted_fuzzer', 'job_2'), (argument, job))
+    self.assertEqual((expected_fuzzer, expected_job), (argument, job))
 
 
 @test_utils.with_cloud_emulators('datastore')
