@@ -133,7 +133,10 @@ class AndroidBuildV4Api:
           headers=self._get_headers(),
           request_timeout=HTTP_TIMEOUT,
           raise_for_not_found=True)
-      return json.loads(response_text)
+      data = json.loads(response_text)
+      if data.get('builds') and len(data['builds']) > 0:
+        return data
+      return None
     except (requests.exceptions.RequestException,
             google.auth.exceptions.GoogleAuthError, ValueError) as e:
       logs.error(
