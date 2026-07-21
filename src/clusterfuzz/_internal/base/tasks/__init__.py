@@ -238,7 +238,7 @@ def get_regular_task(queue=None):
       if task.command == 'fuzz' and not environment.is_tworker():
         fuzzer = data_types.Fuzzer.query(
             data_types.Fuzzer.name == task.argument).get()
-        if fuzzer and fuzzer.untrusted:
+        if fuzzer and not fuzzer.trusted:
           logs.warning(
               f'Skipping untrusted fuzzer {task.argument} on long-lived bot.')
           continue
