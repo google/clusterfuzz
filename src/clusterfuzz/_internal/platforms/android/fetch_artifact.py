@@ -25,6 +25,7 @@ from typing import Optional
 import apiclient
 from oauth2client.service_account import ServiceAccountCredentials
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
@@ -62,6 +63,14 @@ def _use_v4():
         'Defaulting to False.',
         error=str(e))
     return False
+
+
+def _call_android_api_enabled():
+  """Return True if we should call the Android Build API. Enabled by default."""
+  flag = feature_flags.FeatureFlags.CALL_ANDROID_API.flag
+  if flag is None:
+    return True
+  return flag.enabled
 
 
 def execute_request_with_retries(request):
@@ -332,6 +341,11 @@ def get_stable_build_info():
 
 def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
   """Return latest artifact for a branch and target."""
+  if not _call_android_api_enabled():
+    logs.warning(
+        'Android build API is disabled by feature flag call_android_api.')
+    return None
+
   client = get_client()
   if not client:
     return None
@@ -405,6 +419,11 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
 
 def get(bid, target, regex, output_directory, output_filename=None):
   """Return artifact for a given build id, target and file regex."""
+  if not _call_android_api_enabled():
+    logs.warning(
+        'Android build API is disabled by feature flag call_android_api.')
+    return None
+
   client = get_client()
   if not client:
     return None

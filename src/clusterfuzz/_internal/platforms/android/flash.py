@@ -97,6 +97,9 @@ def boot_stable_build_cuttlefish(branch, target, image_directory):
   """Boot cuttlefish instance using stable build id fetched from gcs."""
   build_info = fetch_artifact.get_latest_artifact_info(
       branch, target, stable_build=True)
+  if not build_info:
+    logs.error('Unable to fetch stable build info for cuttlefish.')
+    return
   download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES, image_directory)
   adb.recreate_cuttlefish_device()
   adb.connect_to_cuttlefish_device()
