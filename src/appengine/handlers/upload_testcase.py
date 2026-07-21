@@ -409,9 +409,8 @@ class UploadHandlerCommon:
       helpers.log(f'User {email} does not have access', helpers.VIEW_OPERATION)
       raise helpers.AccessDeniedError()
 
-    # Chrome is the only ClusterFuzz deployment where there are trusted bots
-    # running utasks. This check also fails on oss-fuzz because of the way it
-    # abuses platform.
+    # Ensure the job supports untrusted workloads if the uploader hasn't signed
+    # a trusted agreement.
     if not trusted_agreement_signed:
       try:
         data_handler.check_job_supports_untrusted_workloads(

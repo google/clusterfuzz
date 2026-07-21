@@ -173,9 +173,9 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     jobs = request.get('jobs', [])
     timeout = self._get_integer_value('timeout')
     max_testcases = self._get_integer_value('max_testcases')
-    external_contribution = request.get('external_contribution', False)
-    trusted = request.get('trusted', False)
-    differential = request.get('differential', False)
+    external_contribution = bool(request.get('external_contribution', False))
+    trusted = bool(request.get('trusted', False))
+    differential = bool(request.get('differential', False))
     environment_string = request.get('additional_environment_string')
     data_bundle_name = request.get('data_bundle_name')
 
@@ -193,9 +193,9 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     fuzzer.result = None
     fuzzer.sample_testcase = None
     fuzzer.console_output = None
-    fuzzer.external_contribution = bool(external_contribution)
-    fuzzer.trusted = bool(trusted)
-    fuzzer.differential = bool(differential)
+    fuzzer.external_contribution = external_contribution
+    fuzzer.trusted = trusted
+    fuzzer.differential = differential
     fuzzer.additional_environment_string = environment_string
     fuzzer.timestamp = datetime.datetime.now(tz=datetime.timezone.utc).replace(
         tzinfo=None)

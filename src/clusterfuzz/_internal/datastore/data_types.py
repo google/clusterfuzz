@@ -353,7 +353,11 @@ class Fuzzer(Model):
   # Does it run un-trusted content ? Examples including running live sites.
   untrusted_content = ndb.BooleanProperty(default=False)
 
-  # Is this fuzzer trusted? (VRP support)
+  # Whether this fuzzer is trusted or not.
+  # Untrusted fuzzers can only execute on unprivileged bots, as
+  # they might produce malicious outputs. All the testcases they
+  # produce are also treated as untrusted.
+  # See also `data_handler.check_job_supports_untrusted_workloads()`.
   trusted = ndb.BooleanProperty(default=False)
 
   # Data bundle name.

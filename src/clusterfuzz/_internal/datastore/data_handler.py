@@ -1224,15 +1224,23 @@ def check_job_supports_untrusted_workloads(job_name: str,
   if not job:
     raise ValueError(f'Job "{job_name}" not found.')
 
-  # Chrome is the only ClusterFuzz deployment where there are trusted bots
-  # running utasks. This check also fails on oss-fuzz because of the way it
-  # abuses platform.
-  if utils.is_chromium() and task_utils.is_remotely_executing_utasks():
-    if ((platform_id and platform_id != 'Linux') or
-        job.platform.lower() != 'linux'):
-      raise ValueError(
-          f'Job "{job_name}" does not support running untrusted workloads. '
-          'Untrusted workloads on Chrome are only supported on Linux.')
+  # 1. This restriction is currently specific to Chromium deployments.
+  if not utils.is_chromium():
+    return
+
+  # 2. It only applies when running with Remote Utasks (e.g., GCP Batch),
+  # where privilege separation (tworkers vs uworkers) is enforced.
+  if not task_utils.is_remotely_executing_utasks():
+    return
+
+  # 3. In remote mode, unprivileged uworkers (where untrusted code must run)
+  # are implemented as Linux containers. Thus, non-Linux jobs cannot support
+  # untrusted workloads in this setup.
+
+  if (platform_id or job.platform).lower() != 'linux':
+    raise ValueError(
+        f'Job "{job_name}" does not support running untrusted workloads. '
+        'Untrusted workloads on Chrome are only supported on Linux.')
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
