@@ -174,7 +174,7 @@ def get_fuzz_task_payload(platform=None):
     untrusted_fuzzers = {
         fuzzer.name for fuzzer in ndb_utils.get_all_from_query(
             data_types.Fuzzer.query(
-                data_types.Fuzzer.untrusted_content == True))  # pylint: disable=singleton-comparison
+                ndb_utils.is_false(data_types.Fuzzer.trusted)))
     }
 
     if untrusted_fuzzers:
