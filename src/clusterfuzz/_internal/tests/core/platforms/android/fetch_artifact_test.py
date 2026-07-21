@@ -13,11 +13,14 @@
 # limitations under the License.
 """Tests for fetch_artifact.py."""
 
+# pylint: disable=protected-access
+
 import unittest
 from unittest import mock
 
 from clusterfuzz._internal.platforms.android import fetch_artifact
 from clusterfuzz._internal.tests.test_libs import helpers
+
 
 class FetchArtifactTest(unittest.TestCase):
   """Tests for fetch_artifact."""
@@ -44,8 +47,13 @@ class FetchArtifactTest(unittest.TestCase):
     }
 
     result = fetch_artifact.get_latest_artifact_info('branch1', 'target1')
-    self.assertEqual(result, {'bid': '123', 'branch': 'branch1', 'target': 'test_target'})
-    self.mock_client.list_builds.assert_called_once_with('branch1', 'target1', False)
+    self.assertEqual(result, {
+        'bid': '123',
+        'branch': 'branch1',
+        'target': 'test_target'
+    })
+    self.mock_client.list_builds.assert_called_once_with(
+        'branch1', 'target1', False)
 
   def test_get_latest_artifact_v4_failure_no_builds(self):
     """Tests get_latest_artifact_info (V4) returns None gracefully when no builds are found."""
@@ -58,10 +66,10 @@ class FetchArtifactTest(unittest.TestCase):
   def test_get_latest_artifact_v3_success(self):
     """Tests get_latest_artifact_info (V3). Expects extraction of {bid, branch, target} via legacy HTTP execution."""
     self.mock._use_v4.return_value = False
-    
+
     mock_request = mock.MagicMock()
     self.mock_client.build().list.return_value = mock_request
-    
+
     self.mock._execute_request_with_retries.return_value = {
         'builds': [{
             'buildId': '456',
@@ -71,9 +79,14 @@ class FetchArtifactTest(unittest.TestCase):
         }]
     }
 
-    result = fetch_artifact.get_latest_artifact_info('branch2', 'target2', signed=True)
-    self.assertEqual(result, {'bid': '456', 'branch': 'branch2', 'target': 'test_target2'})
-    
+    result = fetch_artifact.get_latest_artifact_info(
+        'branch2', 'target2', signed=True)
+    self.assertEqual(result, {
+        'bid': '456',
+        'branch': 'branch2',
+        'target': 'test_target2'
+    })
+
     self.mock_client.build().list.assert_called_once_with(
         buildType='submitted',
         branch='branch2',
@@ -81,17 +94,19 @@ class FetchArtifactTest(unittest.TestCase):
         successful=True,
         maxResults=1,
         signed=True)
-    self.mock._execute_request_with_retries.assert_called_once_with(mock_request)
+    self.mock._execute_request_with_retries.assert_called_once_with(
+        mock_request)
 
   def test_get_latest_artifact_v3_failure_no_builds(self):
     """Tests get_latest_artifact_info (V3) returns None gracefully when the payload is empty."""
     self.mock._use_v4.return_value = False
-    
+
     mock_request = mock.MagicMock()
     self.mock_client.build().list.return_value = mock_request
     self.mock._execute_request_with_retries.return_value = {'builds': []}
 
-    result = fetch_artifact.get_latest_artifact_info('branch2', 'target2', signed=True)
+    result = fetch_artifact.get_latest_artifact_info(
+        'branch2', 'target2', signed=True)
     self.assertIsNone(result)
 
   def test_get_latest_artifact_client_auth_failure(self):
@@ -103,7 +118,8 @@ class FetchArtifactTest(unittest.TestCase):
 
   def test_get_artifacts_for_build_empty_regexp(self):
     """Tests _get_artifacts_for_build returns [] returning early when regexp is empty, bypassing API calls."""
-    result = fetch_artifact._get_artifacts_for_build(self.mock_client, 'bid', 'target', regexp='')
+    result = fetch_artifact._get_artifacts_for_build(
+        self.mock_client, 'bid', 'target', regexp='')
     self.assertEqual(result, [])
     self.mock_client.list_artifacts.assert_not_called()
     self.mock_client.buildartifact().list.assert_not_called()

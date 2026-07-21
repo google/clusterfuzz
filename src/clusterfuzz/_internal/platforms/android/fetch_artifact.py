@@ -23,6 +23,7 @@ from typing import List
 from typing import Optional
 
 import apiclient
+from google.oauth2 import service_account
 from oauth2client.service_account import ServiceAccountCredentials
 
 from clusterfuzz._internal.config import db_config
@@ -293,17 +294,23 @@ def _get_client():
         'Android build apiary credentials are not set, skip artifact fetch.')
     return None
 
-  credentials = ServiceAccountCredentials.from_json_keyfile_dict(
-      json.loads(build_apiary_service_account_private_key),
-      scopes=ANDROID_BUILD_API_SCOPES)
+  key_dict = json.loads(build_apiary_service_account_private_key)
 
   logs.info(
       'AndroidBuildAPI client initialization started.',
       api_version='V4' if _use_v4() else 'V3')
 
   if _use_v4():
-    client = AndroidBuildV4Api.create_authenticated(credentials)
+    try:
+      credentials = service_account.Credentials.from_service_account_info(
+          key_dict, scopes=ANDROID_BUILD_API_SCOPES)
+      client = AndroidBuildV4Api.create_authenticated(credentials)
+    except Exception as e:
+      logs.error(f'Failed to initialize AndroidBuildV4Api: {e}')
+      return None
   else:
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(
+        key_dict, scopes=ANDROID_BUILD_API_SCOPES)
     client = apiclient.discovery.build(
         'androidbuildinternal',
         'v3',
