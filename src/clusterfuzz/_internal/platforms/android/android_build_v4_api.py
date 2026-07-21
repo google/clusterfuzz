@@ -13,6 +13,7 @@
 # limitations under the License.
 """HTTP client for Android Build API V4 REST endpoints."""
 
+import json
 import os
 from urllib.parse import quote
 
@@ -21,7 +22,7 @@ from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 import requests
 
-from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 
 # HTTP request timeout in seconds.
@@ -77,49 +78,8 @@ class AndroidBuildV4Api:
         'Accept': 'application/json',
     }
 
-  @retry.wrap(
-      retries=5, delay=1, backoff=2, function='android_build_v4_api._request')
-  def _request(self,
-               url: str,
-               params: dict | None = None,
-               headers: dict | None = None,
-               stream: bool = False) -> requests.Response:
-    """Launches an HTTP GET request with retries.
-
-    Args:
-      url: Target URL for the GET request.
-      params: Optional query parameters dictionary.
-      headers: Optional additional headers dictionary.
-      stream: Whether to stream the response content (for file downloads).
-
-    Returns:
-      The HTTP response object.
-
-    Raises:
-      requests.exceptions.RequestException: If the HTTP request fails or
-        returns an error status.
-    """
-    request_headers = self._get_headers()
-    if headers:
-      request_headers.update(headers)
-
-    logs.info(f'AndroidBuildV4Api request for {url}', params=params)
-    response = requests.get(
-        url,
-        headers=request_headers,
-        params=params,
-        stream=stream,
-        timeout=HTTP_TIMEOUT)
-    response.raise_for_status()
-    return response
-
-  @retry.wrap(
-      retries=5,
-      delay=1,
-      backoff=2,
-      function='android_build_v4_api._download_file')
   def _download_file(self, url: str, output_path: str) -> None:
-    """Downloads content from a URL to output_path with retries.
+    """Downloads content from a URL to output_path.
 
     Args:
       url: Download URL.
@@ -133,8 +93,11 @@ class AndroidBuildV4Api:
     if dirname:
       os.makedirs(dirname, exist_ok=True)
 
-    response = requests.get(url, stream=True, timeout=HTTP_TIMEOUT)
-    response.raise_for_status()
+    response = utils.fetch_url(
+        url,
+        request_timeout=HTTP_TIMEOUT,
+        raise_for_not_found=True,
+        stream=True)
     with open(output_path, 'wb') as f:
       for chunk in response.iter_content(chunk_size=DEFAULT_CHUNK_SIZE):
         if chunk:
@@ -164,8 +127,13 @@ class AndroidBuildV4Api:
 
     url = f'{self.BASE_URL}/v4/builds'
     try:
-      response = self._request(url, params=params)
-      return response.json()
+      response_text = utils.fetch_url(
+          url,
+          params=params,
+          headers=self._get_headers(),
+          request_timeout=HTTP_TIMEOUT,
+          raise_for_not_found=True)
+      return json.loads(response_text)
     except (requests.exceptions.RequestException,
             google.auth.exceptions.GoogleAuthError, ValueError) as e:
       logs.error(
@@ -204,8 +172,13 @@ class AndroidBuildV4Api:
         params['pageToken'] = page_token
 
       try:
-        response = self._request(url, params=params)
-        result = response.json()
+        response_text = utils.fetch_url(
+            url,
+            params=params,
+            headers=self._get_headers(),
+            request_timeout=HTTP_TIMEOUT,
+            raise_for_not_found=True)
+        result = json.loads(response_text)
       except (requests.exceptions.RequestException,
               google.auth.exceptions.GoogleAuthError, ValueError) as e:
         logs.error(
@@ -239,8 +212,12 @@ class AndroidBuildV4Api:
             f'/artifacts/{resource_id}')
     url = f'{self.BASE_URL}{path}'
     try:
-      response = self._request(url)
-      data = response.json()
+      response_text = utils.fetch_url(
+          url,
+          headers=self._get_headers(),
+          request_timeout=HTTP_TIMEOUT,
+          raise_for_not_found=True)
+      data = json.loads(response_text)
       return data.get('buildArtifactMetadata', data)
     except (requests.exceptions.RequestException,
             google.auth.exceptions.GoogleAuthError, ValueError) as e:
@@ -266,8 +243,12 @@ class AndroidBuildV4Api:
             f'/artifacts/{resource_id}/url')
     url = f'{self.BASE_URL}{path}'
     try:
-      response = self._request(url)
-      signed_url = response.json().get('signedUrl')
+      response_text = utils.fetch_url(
+          url,
+          headers=self._get_headers(),
+          request_timeout=HTTP_TIMEOUT,
+          raise_for_not_found=True)
+      signed_url = json.loads(response_text).get('signedUrl')
     except (requests.exceptions.RequestException,
             google.auth.exceptions.GoogleAuthError, ValueError) as e:
       logs.error(f'Error getting V4 download url for artifact {name}: {e}')
