@@ -31,8 +31,6 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-from . import adb
-
 # 20 MB default chunk size.
 DEFAULT_CHUNK_SIZE = 20 * 1024 * 1024
 
@@ -281,7 +279,6 @@ def get_artifacts_for_build(client,
   if not artifacts:
     logs.error(f'No artifact found for target {target}, build id {bid}.\n'
                f'request {request_str}, results {results}')
-    adb.bad_state_reached()
 
   return artifacts
 
