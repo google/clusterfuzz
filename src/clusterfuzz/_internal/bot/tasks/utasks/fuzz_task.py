@@ -1932,6 +1932,7 @@ class FuzzingSession:
       time.sleep(failure_wait_interval)
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
+    uworker_io.check_running_fuzzer_safe(self.fuzzer)
 
     # Update the session's test_timeout to use the fuzzer's timeout (if any).
     # When the fuzzer has a specified timeout, `update_fuzzer_and_data_bundles`
