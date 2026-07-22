@@ -182,21 +182,12 @@ def flash_to_latest_build_if_needed():
   if not build_info:
     logs.error('Unable to fetch information on latest build artifact for '
                'branch %s and target %s.' % (branch, target))
-
-  has_local_images = os.path.exists(image_directory) and bool(
-      os.listdir(image_directory))
-  if not build_info and not has_local_images:
-    logs.error(
-        'No valid build info available (API may be disabled) and no local '
-        f'images found in {image_directory}. Bot cannot recover.')
-    adb.bad_state_reached()
+    return
 
   instance_id = None
   is_candidate = None
   if environment.is_android_cuttlefish():
-    if build_info:
-      download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES,
-                            image_directory)
+    download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES, image_directory)
     adb.recreate_cuttlefish_device()
     adb.connect_to_cuttlefish_device()
     if compute_metadata.is_gce():
@@ -205,8 +196,7 @@ def flash_to_latest_build_if_needed():
       # Determine if the current instance is a candidate.
       is_candidate = utils.get_clusterfuzz_release() == 'candidate'
   else:
-    if build_info:
-      download_latest_build(build_info, FLASH_IMAGE_REGEXES, image_directory)
+    download_latest_build(build_info, FLASH_IMAGE_REGEXES, image_directory)
     # We do one device flash at a time on one host, otherwise we run into
     # failures and device being stuck in a bad state.
     flash_lock_key_name = 'flash:%s' % socket.gethostname()
@@ -249,7 +239,7 @@ def flash_to_latest_build_if_needed():
     if environment.is_android_cuttlefish():
       logs.info('Trying to boot cuttlefish instance using stable build.')
       monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
-          'build_id': build_info['bid'] if build_info else 'unknown',
+          'build_id': build_info['bid'],
           'instance_id': instance_id,
           'is_candidate': is_candidate,
           'is_succeeded': False
@@ -262,7 +252,7 @@ def flash_to_latest_build_if_needed():
       logs.error('Unable to find device. Reimaging failed.')
       adb.bad_state_reached()
   monitoring_metrics.CF_TIP_BOOT_FAILED_COUNT.increment({
-      'build_id': build_info['bid'] if build_info else 'unknown',
+      'build_id': build_info['bid'],
       'instance_id': instance_id,
       'is_candidate': is_candidate,
       'is_succeeded': True
