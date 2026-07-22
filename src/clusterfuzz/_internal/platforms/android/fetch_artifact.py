@@ -72,12 +72,17 @@ def _use_v4():
 
 
 def _call_android_api_enabled():
-  """Return True if we should call the Android Build API. Enabled by default."""
+  """Return True if we should call the Android Build API, enabled by default,
+  Disabled always if invoked in a uworker
+  """
+  if environment.is_uworker():
+    logs.info('AndroidBuildAPI access disabled for uworker.')
+    return False
+
   flag = feature_flags.FeatureFlags.CALL_ANDROID_API.flag
   if flag is None:
     return True
   return flag.enabled
-
 
 
 def _execute_request_with_retries(request):
@@ -355,7 +360,6 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
         'Android build API is disabled by feature flag call_android_api.')
     return None
 
-
   client = _get_client()
   if not client:
     return None
@@ -426,7 +430,6 @@ def get(bid, target, regex, output_directory, output_filename=None):
     logs.warning(
         'Android build API is disabled by feature flag call_android_api.')
     return None
-
 
   client = _get_client()
   if not client:
