@@ -358,7 +358,7 @@ class Fuzzer(Model):
   # they might produce malicious outputs. All the testcases they
   # produce are also treated as untrusted.
   # See also `data_handler.check_job_supports_untrusted_workloads()`.
-  trusted = ndb.BooleanProperty(default=False)
+  trusted = ndb.BooleanProperty(default=True)
 
   # Data bundle name.
   data_bundle_name = ndb.StringProperty(default='')

@@ -207,6 +207,7 @@ class EditHandlerTest(unittest.TestCase):
         revision=1,
         source='original@example.com',
         timeout=10,
+        trusted=True,
     )
     fuzzer.put()
 
@@ -214,7 +215,7 @@ class EditHandlerTest(unittest.TestCase):
         'csrf_token': form.generate_csrf_token(),
         'key': fuzzer.key.id(),
         'name': fuzzer_name,
-        'trusted': False,  # It is untrusted by default (trusted=False)
+        'trusted': False,
         'jobs': ['linux_job'],
     }
 
@@ -238,6 +239,7 @@ class EditHandlerTest(unittest.TestCase):
         revision=1,
         source='original@example.com',
         timeout=10,
+        trusted=True,
     )
     fuzzer.put()
 
@@ -255,6 +257,6 @@ class EditHandlerTest(unittest.TestCase):
     self.assertIn('does not support running untrusted workloads',
                   resp.normal_body.decode())
 
-    # Verify fuzzer was not updated (or remained untrusted).
+    # Verify fuzzer was not updated (remained trusted).
     fuzzer = fuzzer.key.get()
-    self.assertFalse(fuzzer.trusted)
+    self.assertTrue(fuzzer.trusted)
