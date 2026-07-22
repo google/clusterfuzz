@@ -261,6 +261,8 @@ class LLVMSymbolizer(Symbolizer):
         '--inlining=%s' % stack_inlining,
     ]
     if self.system == 'darwin':
+      # TODO(crbug.com/532093354): Remove --cache-size once llvm-symbolizer is fixed.
+      cmd.append('--cache-size=%d' % (5 * 1024 * 1024 * 1024))  # 5 GiB
       for hint in self.dsym_hints:
         cmd.append('--dsym-hint=%s' % hint)
 
