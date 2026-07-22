@@ -70,6 +70,10 @@ from clusterfuzz.fuzz import engine
 
 # pylint: disable=no-member
 
+
+# 10 MB limit for proto testcase payload field (see FuzzerRunOutput testcase in
+# src/clusterfuzz/_internal/protos/uworker_msg.proto:L248).
+MAX_TESTCASE_PAYLOAD_SIZE = 10 * 1024 * 1024
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_NEW_CORPUS_FILES = 500
@@ -1738,19 +1742,9 @@ class FuzzingSession:
       if crash:
         crashes.append(crash)
       if fuzzer_run_output_data:
-        (log_file_path, crash_path, return_code,
-         log_time) = fuzzer_run_output_data
-        output = (
-            utils.read_data_from_file(log_file_path, eval_data=False)
-            if log_file_path and os.path.exists(log_file_path) else None)
-        if output is None:
-          return
-        if isinstance(output, bytes):
-          output = output.decode('utf-8', errors='replace')
-        shell.remove_file(log_file_path)
-        fuzzer_run_output = _to_fuzzer_run_output(output, crash_path,
-                                                  return_code, log_time)
-        self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
+        fuzzer_run_output = _to_fuzzer_run_output(*fuzzer_run_output_data)
+        if fuzzer_run_output:
+          self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
@@ -2324,25 +2318,42 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
-def _to_fuzzer_run_output(output: str, crash_path: str, return_code: int,
+def _to_fuzzer_run_output(output_or_file_path: str | bytes,
+                          crash_path: str | None, return_code: int,
                           log_time: datetime.datetime):
-  """Returns a FuzzerRunOutput proto."""
+  """Returns a FuzzerRunOutput proto from raw output or a temporary log file."""
+  if not output_or_file_path:
+    return None
+
+  output = None
+  if isinstance(output_or_file_path, str) and os.path.exists(
+      output_or_file_path):
+    output = utils.read_data_from_file_and_remove(
+        output_or_file_path, eval_data=False)
+    if isinstance(output, bytes):
+      output = output.decode('utf-8', errors='replace')
+  elif isinstance(output_or_file_path, bytes):
+    output = output_or_file_path.decode('utf-8', errors='replace')
+  else:
+    output = output_or_file_path
+
+  if output is None:
+    return None
+
   truncated_output = truncate_fuzzer_output(output, ENGINE_OUTPUT_LIMIT)
   if len(output) != len(truncated_output):
     logs.warning('Fuzzer output truncated.')
 
   proto_timestamp = uworker_io.timestamp_to_proto_timestamp(log_time)
   fuzzer_run_output = uworker_msg_pb2.FuzzerRunOutput(
-      output=bytes(truncated_output, 'utf-8'),
+      output=truncated_output.encode('utf-8'),
       return_code=return_code,
       timestamp=proto_timestamp)
 
-  if crash_path is None or not os.path.exists(crash_path):
-    return fuzzer_run_output
-  if os.path.getsize(crash_path) > 10 * 1024**2:
-    return fuzzer_run_output
-  with open(crash_path, 'rb') as fp:
-    fuzzer_run_output.testcase = fp.read()
+  if crash_path and os.path.exists(crash_path):
+    if os.path.getsize(crash_path) <= MAX_TESTCASE_PAYLOAD_SIZE:
+      with open(crash_path, 'rb') as fp:
+        fuzzer_run_output.testcase = fp.read()
 
   return fuzzer_run_output
 
