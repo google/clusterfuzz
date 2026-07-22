@@ -18,6 +18,7 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.platforms.android import fetch_artifact
 from clusterfuzz._internal.tests.test_libs import helpers
 
@@ -132,3 +133,42 @@ class FetchArtifactTest(unittest.TestCase):
     self.assertEqual(result, [])
     self.mock_client.list_artifacts.assert_not_called()
     self.mock_client.buildartifact().list.assert_not_called()
+
+
+class CallAndroidApiEnabledTest(unittest.TestCase):
+  """Tests for _call_android_api_enabled."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+    ])
+    self.mock.is_uworker.return_value = False
+
+  def test_is_uworker_returns_false(self):
+    self.mock.is_uworker.return_value = True
+    self.assertFalse(fetch_artifact._call_android_api_enabled())
+
+  def test_flag_none_returns_true(self):
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = None
+      self.assertTrue(fetch_artifact._call_android_api_enabled())
+
+  def test_flag_enabled_returns_true(self):
+    mock_flag_obj = mock.MagicMock()
+    mock_flag_obj.enabled = True
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertTrue(fetch_artifact._call_android_api_enabled())
+
+  def test_flag_disabled_returns_false(self):
+    mock_flag_obj = mock.MagicMock()
+    mock_flag_obj.enabled = False
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertFalse(fetch_artifact._call_android_api_enabled())

@@ -72,7 +72,13 @@ def _use_v4():
 
 
 def _call_android_api_enabled():
-  """Return True if we should call the Android Build API. Enabled by default."""
+  """Return True if we should call the Android Build API, enabled by default,
+  Disabled always if invoked in a uworker
+  """
+  if environment.is_uworker():
+    logs.info('AndroidBuildAPI access disabled for uworker.')
+    return False
+
   flag = feature_flags.FeatureFlags.CALL_ANDROID_API.flag
   if flag is None:
     return True
