@@ -314,7 +314,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     self._manifest_fuzz_targets = None
     # The manifest may not exist for earlier versions of archives. In this
     # case, default to schema version 0.
-    manifest_path = CHROME_MANIFEST_FILENAME
+    manifest_path = os.path.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
     if not self.file_exists(manifest_path):
       self._archive_schema_version = default_archive_schema_version
       return
