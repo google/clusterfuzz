@@ -18,6 +18,7 @@ import datetime
 import itertools
 import json
 import os
+import queue
 import random
 import re
 import time
@@ -1738,6 +1739,19 @@ class FuzzingSession:
               'platform': environment.platform(),
           })
 
+  def _drain_temp_queue(self, temp_queue: queue.Queue,
+                        crashes: list[testcase_manager.Crash]) -> None:
+    """Pops items from temp_queue and processes crashes and run outputs."""
+    while not temp_queue.empty():
+      result: testcase_manager.TestcaseRunResult = temp_queue.get()
+
+      if result.crash:
+        crashes.append(result.crash)
+      if result.fuzzer_run_output_data:
+        fuzzer_run_output = _to_fuzzer_run_output(result.fuzzer_run_output_data)
+        if fuzzer_run_output:
+          self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
+
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
     # Set the thread timeout values.
@@ -1847,7 +1861,7 @@ class FuzzingSession:
         thread = process_handler.get_process()(
             target=testcase_manager.run_testcase_and_return_result_in_queue,
             args=(temp_queue, thread_index, testcase_file_path, gestures,
-                  env_copy, not environment.is_uworker()))
+                  env_copy))
 
         try:
           thread.start()
@@ -1880,9 +1894,7 @@ class FuzzingSession:
         process_handler.terminate_stale_application_instances()
         needs_stale_process_cleanup = False
 
-      while not temp_queue.empty():
-        crashes.append(temp_queue.get())
-
+      self._drain_temp_queue(temp_queue, crashes)
       process_handler.close_queue(temp_queue)
       logs.info(f'Upto {test_number}')
       if thread_error_occurred:
