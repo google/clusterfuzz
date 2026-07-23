@@ -80,9 +80,7 @@ def _call_android_api_enabled():
     return False
 
   flag = feature_flags.FeatureFlags.CALL_ANDROID_API.flag
-  if flag is None:
-    return True
-  return flag.enabled
+  return flag.enabled if flag else True
 
 
 def _execute_request_with_retries(request):
