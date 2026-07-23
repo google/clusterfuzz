@@ -18,6 +18,7 @@ import unittest
 
 from pyfakefs import fake_filesystem_unittest
 
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
@@ -239,6 +240,25 @@ class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
         self.fuzzer_name)
     setup.update_fuzzer_and_data_bundles(setup_input)
     self.assertEqual(self.mock.update_data_bundle.call_count, 2)
+
+  def test_invalid_fuzzer_no_blobstore_key(self):
+    """Tests that a blackbox fuzzer without a blobstore_key raises an error."""
+    fuzzer_name = 'invalid_fuzzer'
+    data_types.Fuzzer(name=fuzzer_name, builtin=False, blobstore_key=None).put()
+
+    with self.assertRaises(errors.InvalidFuzzerError):
+      setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
+
+  def test_builtin_fuzzer_no_blobstore_key(self):
+    """
+    Tests that a builtin fuzzer without a blobstore_key does not raise an error.
+    """
+    fuzzer_name = 'builtin_fuzzer'
+    data_types.Fuzzer(name=fuzzer_name, builtin=True, blobstore_key=None).put()
+
+    setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
+
+    self.assertEqual(setup_input.fuzzer_name, fuzzer_name)
 
 
 class SetupLocalFuzzerTest(unittest.TestCase):
