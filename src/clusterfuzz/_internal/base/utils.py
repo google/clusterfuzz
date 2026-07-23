@@ -23,6 +23,7 @@ import os
 import random
 import re
 import sys
+import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -1100,3 +1101,10 @@ def batched(iterator, batch_size):
 
   if batch:
     yield batch
+
+
+def create_temp_file(directory: str, prefix: str, suffix: str) -> str:
+  """Creates a temporary file and returns its path."""
+  fd, file_path = tempfile.mkstemp(dir=directory, prefix=prefix, suffix=suffix)
+  os.close(fd)
+  return file_path
