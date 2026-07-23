@@ -15,6 +15,7 @@
 
 import base64
 import collections
+import dataclasses
 import datetime
 import os
 import re
@@ -354,6 +355,43 @@ class Crash(
   """Represents a crash in a queue. This class is transformed into
     fuzz_task.Crash. Therefore, please be careful when adding/removing
     fields."""
+
+
+@dataclasses.dataclass
+class FuzzerRunOutputData:
+  """Output metadata for a single fuzzer run stored in memory or a temp file."""
+  output_or_file_path: str | bytes
+  crash_path: str | None = None
+  return_code: int = 0
+  log_time: datetime.datetime | None = None
+
+  def _is_file_path(self) -> bool:
+    """Returns True if output_or_file_path is an existing file path."""
+    return isinstance(self.output_or_file_path, str) and os.path.exists(
+        self.output_or_file_path)
+
+  def get_output(self) -> str | None:
+    """Reads or decodes the fuzzer output text."""
+    if not self.output_or_file_path:
+      return None
+
+    if self._is_file_path():
+      output = utils.read_data_from_file_and_remove(
+          self.output_or_file_path, eval_data=False)
+      return None if output is None else output.decode(
+          'utf-8', errors='replace')
+
+    if isinstance(self.output_or_file_path, bytes):
+      return self.output_or_file_path.decode('utf-8', errors='replace')
+
+    return self.output_or_file_path
+
+
+@dataclasses.dataclass
+class TestcaseRunResult:
+  """Result of a testcase execution queued for processing."""
+  crash: Crash | None = None
+  fuzzer_run_output_data: FuzzerRunOutputData | None = None
 
 
 def get_resource_paths(output):
