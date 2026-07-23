@@ -18,6 +18,7 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
+from clusterfuzz._internal.tests.test_libs import helpers
 
 TEST_STACK_TRACE = ("    #0 0x0001 (/lib/foo.so+0x1000)\n"
                     "    #1 0x0002 (/lib/foo.so+0x2000)\n"
@@ -401,3 +402,96 @@ class LLVMSymbolizerTest(unittest.TestCase):
         ],
         mock_popen=mock_popen,
         mock_log_error=mock_log_error)
+
+
+class ProcessTrustyStacktraceTest(unittest.TestCase):
+  """Tests that process_trusty_stacktrace returns early without downloading symbols 
+  when required Trusty metadata is missing."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.symbols_downloader.download_trusty_symbols_if_needed',
+        'clusterfuzz._internal.system.environment.get_value',
+        'clusterfuzz._internal.system.environment.is_uworker',
+    ])
+    self.mock.is_uworker.return_value = False
+    self.loop = stack_symbolizer.SymbolizationLoop()
+
+  def test_early_return_when_missing_app_and_bid(self):
+    """Tests that we avoid processing the Trusty stacktrace and downloading 
+    symbols when both trusty_app and trusty_bid are missing."""
+    stacktrace = 'Some standard crash without trusty metadata\n#0 0x1234'
+    self.assertEqual(stacktrace,
+                     self.loop.process_trusty_stacktrace(stacktrace))
+    self.mock.download_trusty_symbols_if_needed.assert_not_called()
+
+  def test_early_return_when_missing_app(self):
+    """Tests that we avoid processing the Trusty stacktrace and downloading symbols
+    when trusty_app is missing (even if trusty_bid is present)."""
+    stacktrace = ', Build: 1234567, Built:\n#0 0x1234'
+    self.assertEqual(stacktrace,
+                     self.loop.process_trusty_stacktrace(stacktrace))
+    self.mock.download_trusty_symbols_if_needed.assert_not_called()
+
+  def test_early_return_when_missing_bid(self):
+    """Tests that we avoid processing the Trusty stacktrace and downloading symbols 
+    when trusty_bid is missing (even if trusty_app is present)."""
+    stacktrace = '(app: keymaster)\n#0 0x1234'
+    self.assertEqual(stacktrace,
+                     self.loop.process_trusty_stacktrace(stacktrace))
+    self.mock.download_trusty_symbols_if_needed.assert_not_called()
+
+  def test_early_return_on_uworker_without_symbols_dir(self):
+    """Tests that we avoid processing the Trusty stacktrace and downloading symbols when on a uworker without a SYMBOLS_DIR (even if both trusty_app and trusty_bid are present)."""
+    self.mock.is_uworker.return_value = True
+    self.mock.get_value.return_value = None
+
+    stacktrace = '(app: keymaster), Build: 1234567, Built:\n#0 0x1234'
+    self.assertEqual(stacktrace,
+                     self.loop.process_trusty_stacktrace(stacktrace))
+    self.mock.download_trusty_symbols_if_needed.assert_not_called()
+
+
+class SymbolizeStacktraceChainTest(unittest.TestCase):
+  """Tests that symbolize_stacktrace correctly chains Trusty and standard stacktrace symbolization workflows based on the environment."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.SymbolizationLoop',
+        'clusterfuzz._internal.system.environment.get_llvm_symbolizer_path',
+        'clusterfuzz._internal.system.environment.is_android_emulator',
+        'clusterfuzz._internal.system.environment.is_trusted_host',
+        'clusterfuzz._internal.system.environment.platform',
+    ])
+    self.mock.is_trusted_host.return_value = False
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.get_llvm_symbolizer_path.return_value = '/path/to/llvm-symbolizer'
+    self.mock_loop = self.mock.SymbolizationLoop.return_value
+    self.mock_loop.process_stacktrace.return_value = 'final_symbolized_output'
+
+  def test_symbolize_stacktrace_chaining_on_android_emulator(self):
+    """Tests that on an Android emulator, both process_trusty_stacktrace and process_stacktrace 
+    execute sequentially and preserve intermediate results."""
+    self.mock.is_android_emulator.return_value = True
+    self.mock_loop.process_trusty_stacktrace.return_value = (
+        'trusty_symbolized_output')
+
+    result = stack_symbolizer.symbolize_stacktrace('unsymbolized_input')
+
+    self.mock_loop.process_trusty_stacktrace.assert_called_once_with(
+        'unsymbolized_input')
+    self.mock_loop.process_stacktrace.assert_called_once_with(
+        'trusty_symbolized_output')
+    self.assertEqual('final_symbolized_output', result)
+
+  def test_symbolize_stacktrace_no_trusty_on_non_emulator(self):
+    """Tests that on non-emulator environments, process_trusty_stacktrace is bypassed and process_stacktrace 
+    receives the raw unsymbolized stacktrace directly."""
+    self.mock.is_android_emulator.return_value = False
+
+    result = stack_symbolizer.symbolize_stacktrace('unsymbolized_input')
+
+    self.mock_loop.process_trusty_stacktrace.assert_not_called()
+    self.mock_loop.process_stacktrace.assert_called_once_with(
+        'unsymbolized_input')
+    self.assertEqual('final_symbolized_output', result)
