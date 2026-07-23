@@ -593,6 +593,9 @@ def preprocess_update_fuzzer_and_data_bundles(
   if not fuzzer:
     logs.error('No fuzzer exists with name %s.' % fuzzer_name)
     raise errors.InvalidFuzzerError
+  if not fuzzer.blobstore_key:
+    logs.error(f'Fuzzer {fuzzer_name} does not have a blobstore_key.')
+    raise errors.InvalidFuzzerError
 
   update_input = uworker_msg_pb2.SetupInput(  # pylint: disable=no-member
       fuzzer_name=fuzzer_name,
