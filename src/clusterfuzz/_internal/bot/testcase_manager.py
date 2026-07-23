@@ -20,7 +20,6 @@ import datetime
 import os
 import queue
 import re
-import tempfile
 import zlib
 
 from clusterfuzz._internal.base import utils
@@ -589,11 +588,10 @@ def _do_run_testcase_and_return_result_in_queue(
     crash_result_full = CrashResult(return_code, crash_time, output)
     unsymbolized_output = crash_result_full.get_stacktrace(symbolized=False)
     crash_path = file_path if crash else None
-    fd, log_file_path = tempfile.mkstemp(
-        dir=environment.get_value('BOT_TMPDIR'),
+    log_file_path = utils.create_temp_file(
+        directory=environment.get_value('BOT_TMPDIR'),
         prefix='fuzzer_output_',
         suffix='.log')
-    os.close(fd)
     utils.write_data_to_file(unsymbolized_output, log_file_path)
     fuzzer_run_output_data = FuzzerRunOutputData.from_file_path(
         file_path=log_file_path,
