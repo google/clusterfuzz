@@ -260,7 +260,8 @@ class LLVMSymbolizer(Symbolizer):
         '--functions=linkage',
         '--inlining=%s' % stack_inlining,
     ]
-    if self.system == 'darwin':
+    if self.system == 'darwin' and self.symbolizer_path != environment.get_default_tool_path(
+        'llvm-symbolizer'):
       # TODO(crbug.com/532093354): Remove --cache-size once llvm-symbolizer is fixed.
       cmd.append('--cache-size=%d' % (5 * 1024 * 1024 * 1024))  # 5 GiB
       for hint in self.dsym_hints:
