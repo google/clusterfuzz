@@ -222,7 +222,10 @@ class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
     self.fuzzer_name = 'fuzzer'
     data_bundle_name = 'data_bundle_name'
     data_types.Fuzzer(
-        name=self.fuzzer_name, data_bundle_name=data_bundle_name).put()
+        name=self.fuzzer_name,
+        data_bundle_name=data_bundle_name,
+        blobstore_key='blobstore_key',
+    ).put()
     self.data_bundle = data_types.DataBundle(name=data_bundle_name)
     self.data_bundle.put()
     data_types.DataBundle(name=data_bundle_name).put()
