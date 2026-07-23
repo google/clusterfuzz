@@ -36,6 +36,7 @@ from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import shell
 
 try:
   import psutil
@@ -656,6 +657,17 @@ def read_data_from_file(file_path, eval_data=True, default=None):
     return ast.literal_eval(file_content.decode('utf-8'))
   except (SyntaxError, TypeError):
     return None
+
+
+def read_data_from_file_and_remove(file_path, eval_data=False, default=None):
+  """Reads file content and removes the file after read"""
+  if not file_path or not os.path.exists(file_path):
+    return default
+
+  try:
+    return read_data_from_file(file_path, eval_data=eval_data, default=default)
+  finally:
+    shell.remove_file(file_path)
 
 
 def remove_prefix(string, prefix):
