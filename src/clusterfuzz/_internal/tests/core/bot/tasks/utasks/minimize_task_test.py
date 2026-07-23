@@ -144,6 +144,7 @@ class MinimizeTaskTestUntrusted(
 
     environment.set_value('USE_MINIJAIL', True)
     data_types.Fuzzer(
+        blobstore_key='blobstore_key',
         revision=1,
         file_size='builtin',
         source='builtin',
