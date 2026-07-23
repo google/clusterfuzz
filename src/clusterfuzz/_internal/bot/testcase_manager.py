@@ -595,8 +595,8 @@ def _do_run_testcase_and_return_result_in_queue(
         suffix='.log')
     os.close(fd)
     utils.write_data_to_file(unsymbolized_output, log_file_path)
-    fuzzer_run_output_data = FuzzerRunOutputData(
-        output_or_file_path=log_file_path,
+    fuzzer_run_output_data = FuzzerRunOutputData.from_file_path(
+        file_path=log_file_path,
         crash_path=crash_path,
         return_code=return_code,
         log_time=log_time)
