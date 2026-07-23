@@ -18,6 +18,7 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.platforms.android import fetch_artifact
 from clusterfuzz._internal.tests.test_libs import helpers
 
@@ -29,10 +30,12 @@ class FetchArtifactTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.platforms.android.fetch_artifact._get_client',
         'clusterfuzz._internal.platforms.android.fetch_artifact._use_v4',
+        'clusterfuzz._internal.platforms.android.fetch_artifact._call_android_api_enabled',
         'clusterfuzz._internal.platforms.android.fetch_artifact._execute_request_with_retries',
     ])
     self.mock_client = mock.MagicMock()
     self.mock._get_client.return_value = self.mock_client
+    self.mock._call_android_api_enabled.return_value = True
 
   def test_get_latest_artifact_v4_success(self):
     """Tests get_latest_artifact_info (V4). Expects extraction of {bid, branch, target} when list_builds returns data."""
@@ -116,6 +119,13 @@ class FetchArtifactTest(unittest.TestCase):
     result = fetch_artifact.get_latest_artifact_info('branch1', 'target1')
     self.assertIsNone(result)
 
+  def test_get_latest_artifact_disabled_by_feature_flag(self):
+    """Tests get_latest_artifact_info exits early and returns None when disabled by feature flag."""
+    self.mock._call_android_api_enabled.return_value = False
+
+    result = fetch_artifact.get_latest_artifact_info('branch1', 'target1')
+    self.assertIsNone(result)
+
   def test_get_artifacts_for_build_empty_regexp(self):
     """Tests _get_artifacts_for_build returns [] returning early when regexp is empty, bypassing API calls."""
     result = fetch_artifact._get_artifacts_for_build(
@@ -123,3 +133,42 @@ class FetchArtifactTest(unittest.TestCase):
     self.assertEqual(result, [])
     self.mock_client.list_artifacts.assert_not_called()
     self.mock_client.buildartifact().list.assert_not_called()
+
+
+class CallAndroidApiEnabledTest(unittest.TestCase):
+  """Tests for _call_android_api_enabled."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+    ])
+    self.mock.is_uworker.return_value = False
+
+  def test_is_uworker_returns_false(self):
+    self.mock.is_uworker.return_value = True
+    self.assertFalse(fetch_artifact._call_android_api_enabled())
+
+  def test_flag_none_returns_true(self):
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = None
+      self.assertTrue(fetch_artifact._call_android_api_enabled())
+
+  def test_flag_enabled_returns_true(self):
+    mock_flag_obj = mock.MagicMock()
+    mock_flag_obj.enabled = True
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertTrue(fetch_artifact._call_android_api_enabled())
+
+  def test_flag_disabled_returns_false(self):
+    mock_flag_obj = mock.MagicMock()
+    mock_flag_obj.enabled = False
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertFalse(fetch_artifact._call_android_api_enabled())
