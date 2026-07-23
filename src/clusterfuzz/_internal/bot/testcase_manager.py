@@ -483,7 +483,7 @@ def _get_testcase_time(testcase_path):
   if stats:
     return datetime.datetime.utcfromtimestamp(float(stats.timestamp))
 
-  return None
+  return datetime.datetime.utcnow()
 
 
 def upload_testcase(testcase_path, testcase_data, log_time, fuzzer_name=None):
@@ -588,7 +588,6 @@ def _do_run_testcase_and_return_result_in_queue(
     # Save raw, unsymbolized execution output for deferred postprocessing.
     crash_result_full = CrashResult(return_code, crash_time, output)
     unsymbolized_output = crash_result_full.get_stacktrace(symbolized=False)
-    log_time = log_time or datetime.datetime.utcnow()
     crash_path = file_path if crash else None
     fd, log_file_path = tempfile.mkstemp(
         dir=environment.get_value('BOT_TMPDIR'),
