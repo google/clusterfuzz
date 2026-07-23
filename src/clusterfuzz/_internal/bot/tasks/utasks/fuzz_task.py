@@ -29,6 +29,7 @@ from typing import Optional
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import dates
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import builtin
@@ -1216,15 +1217,15 @@ def write_crashes_to_big_query(group, newly_created_testcase, existing_testcase,
       # Happens in case the big query function is disabled (local development).
       return
 
-    errors = result.get('insertErrors', [])
-    failed_count = len(errors)
+    insert_errors = result.get('insertErrors', [])
+    failed_count = len(insert_errors)
 
     monitoring_metrics.BIG_QUERY_WRITE_COUNT.increment_by(
         row_count - failed_count, {'success': True})
     monitoring_metrics.BIG_QUERY_WRITE_COUNT.increment_by(
         failed_count, {'success': False})
 
-    for error in errors:
+    for error in insert_errors:
       logs.error(
           ('Ignoring error writing the crash '
            f'({group.crashes[error["index"]].crash_type}) to BigQuery.'),
@@ -2290,7 +2291,11 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # Delay adding the fuzz target to logs context until it is chosen in
   # preprocess.
   with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target=None):
-    return _utask_preprocess(fuzzer_name, job_type, uworker_env)
+    try:
+      return _utask_preprocess(fuzzer_name, job_type, uworker_env)
+    except errors.InvalidFuzzerError:
+      logs.error('Fuzzer %s is invalid or no longer exists.' % fuzzer_name)
+      return None
 
 
 def save_fuzz_targets(output):
