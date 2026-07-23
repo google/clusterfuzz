@@ -224,8 +224,8 @@ class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
     data_types.Fuzzer(
         name=self.fuzzer_name,
         data_bundle_name=data_bundle_name,
-        blobstore_key='blobstore_key',
-    ).put()
+        builtin=False,
+        blobstore_key='blobstore_key').put()
     self.data_bundle = data_types.DataBundle(name=data_bundle_name)
     self.data_bundle.put()
     data_types.DataBundle(name=data_bundle_name).put()

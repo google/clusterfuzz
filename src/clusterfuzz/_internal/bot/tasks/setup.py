@@ -593,9 +593,6 @@ def preprocess_update_fuzzer_and_data_bundles(
   if not fuzzer:
     logs.error('No fuzzer exists with name %s.' % fuzzer_name)
     raise errors.InvalidFuzzerError
-  if not fuzzer.blobstore_key:
-    logs.error(f'Fuzzer {fuzzer_name} does not have a blobstore_key.')
-    raise errors.InvalidFuzzerError
 
   update_input = uworker_msg_pb2.SetupInput(  # pylint: disable=no-member
       fuzzer_name=fuzzer_name,
@@ -604,6 +601,11 @@ def preprocess_update_fuzzer_and_data_bundles(
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
   if not fuzzer.builtin:
+    if not fuzzer.blobstore_key:
+      logs.error(f'Blackbox fuzzer {fuzzer_name} does not have a '
+                 'blobstore_key.')
+      raise errors.InvalidFuzzerError
+
     update_input.fuzzer_download_url = blobs.get_signed_download_url(
         fuzzer.blobstore_key)
 
