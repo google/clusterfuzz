@@ -15,8 +15,10 @@
 
 import base64
 import collections
+import dataclasses
 import datetime
 import os
+import queue
 import re
 import tempfile
 import zlib
@@ -357,6 +359,43 @@ class Crash(
     fields."""
 
 
+@dataclasses.dataclass
+class FuzzerRunOutputData:
+  """Output metadata for a single fuzzer run stored in memory or a temp file."""
+  output_or_file_path: str | bytes
+  crash_path: str | None = None
+  return_code: int = 0
+  log_time: datetime.datetime | None = None
+
+  def _is_file_path(self) -> bool:
+    """Returns True if output_or_file_path is an existing file path."""
+    return isinstance(self.output_or_file_path, str) and os.path.exists(
+        self.output_or_file_path)
+
+  def get_output(self) -> str | None:
+    """Reads or decodes the fuzzer output text."""
+    if not self.output_or_file_path:
+      return None
+
+    if self._is_file_path():
+      output = utils.read_data_from_file_and_remove(
+          self.output_or_file_path, eval_data=False)
+      return None if output is None else output.decode(
+          'utf-8', errors='replace')
+
+    if isinstance(self.output_or_file_path, bytes):
+      return self.output_or_file_path.decode('utf-8', errors='replace')
+
+    return self.output_or_file_path
+
+
+@dataclasses.dataclass
+class TestcaseRunResult:
+  """Result of a testcase execution queued for processing."""
+  crash: Crash | None = None
+  fuzzer_run_output_data: FuzzerRunOutputData | None = None
+
+
 def get_resource_paths(output):
   """Read the urls from the output."""
   resource_paths = set()
@@ -463,8 +502,9 @@ def _get_crash_output(output):
   return output[:crash_stacktrace_end_marker_index]
 
 
-def run_testcase_and_return_result_in_queue(crash_queue, thread_index,
-                                            file_path, gestures, env_copy):
+def run_testcase_and_return_result_in_queue(
+    crash_queue: queue.Queue, thread_index: int, file_path: str,
+    gestures: list[str], env_copy: dict) -> None:
   """Run a single testcase and return crash results in the crash queue."""
   # Since this is running in its own process, initialize the log handler again.
   # This is needed for Windows where instances are not shared across child
@@ -480,8 +520,9 @@ def run_testcase_and_return_result_in_queue(crash_queue, thread_index,
                                                 file_path, gestures, env_copy)
 
 
-def _do_run_testcase_and_return_result_in_queue(crash_queue, thread_index,
-                                                file_path, gestures, env_copy):
+def _do_run_testcase_and_return_result_in_queue(
+    crash_queue: queue.Queue, thread_index: int, file_path: str,
+    gestures: list[str], env_copy: dict) -> None:
   """Run a single testcase and return crash results in the crash queue."""
   try:
     # Run testcase and check whether a crash occurred or not.
@@ -533,8 +574,14 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue, thread_index,
         suffix='.log')
     os.close(fd)
     utils.write_data_to_file(unsymbolized_output, log_file_path)
-    fuzzer_run_output_data = (log_file_path, crash_path, return_code, log_time)
-    crash_queue.put((crash, fuzzer_run_output_data))
+    fuzzer_run_output_data = FuzzerRunOutputData(
+        output_or_file_path=log_file_path,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+    crash_queue.put(
+        TestcaseRunResult(
+            crash=crash, fuzzer_run_output_data=fuzzer_run_output_data))
   except Exception as e:
     logs.error(
         'Exception occurred while running '

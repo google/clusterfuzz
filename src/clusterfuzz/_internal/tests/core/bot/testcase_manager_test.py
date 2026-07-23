@@ -23,7 +23,6 @@ from unittest import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz import stacktraces
-from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     constants as libfuzzer_constants
@@ -911,18 +910,19 @@ class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(0, self.mock.error.call_count,
                      f'Unexpected error: {self.mock.error.call_args_list}')
     self.assertFalse(crash_queue.empty())
-    crash, fuzzer_run_output_data = crash_queue.get()
+    result = crash_queue.get()
 
-    self.assertIsNone(crash)
-    log_file_path, crash_path, return_code, log_time = fuzzer_run_output_data
-    self.assertTrue(os.path.exists(log_file_path))
+    self.assertIsNone(result.crash)
+    fuzzer_run_output_data = result.fuzzer_run_output_data
+    self.assertTrue(
+        isinstance(fuzzer_run_output_data.output_or_file_path, str) and
+        os.path.exists(fuzzer_run_output_data.output_or_file_path))
+    self.assertEqual('unsymbolized_raw_trace',
+                     fuzzer_run_output_data.get_output())
+    self.assertIsNone(fuzzer_run_output_data.crash_path)
+    self.assertEqual(0, fuzzer_run_output_data.return_code)
     self.assertEqual(
-        'unsymbolized_raw_trace',
-        utils.read_data_from_file(log_file_path,
-                                  eval_data=False).decode('utf-8'))
-    self.assertIsNone(crash_path)
-    self.assertEqual(0, return_code)
-    self.assertEqual(datetime.datetime(2026, 7, 10), log_time)
+        datetime.datetime(2026, 7, 10), fuzzer_run_output_data.log_time)
     self.assertEqual(0, self.mock.upload_testcase.call_count)
     self.assertEqual(0, self.mock.upload_log.call_count)
 
@@ -943,19 +943,20 @@ class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(0, self.mock.error.call_count,
                      f'Unexpected error: {self.mock.error.call_args_list}')
     self.assertFalse(crash_queue.empty())
-    crash, fuzzer_run_output_data = crash_queue.get()
+    result = crash_queue.get()
 
-    self.assertIsNotNone(crash)
-    self.assertEqual('/testcase', crash.file_path)
-    log_file_path, crash_path, return_code, log_time = fuzzer_run_output_data
-    self.assertTrue(os.path.exists(log_file_path))
+    self.assertIsNotNone(result.crash)
+    self.assertEqual('/testcase', result.crash.file_path)
+    fuzzer_run_output_data = result.fuzzer_run_output_data
+    self.assertTrue(
+        isinstance(fuzzer_run_output_data.output_or_file_path, str) and
+        os.path.exists(fuzzer_run_output_data.output_or_file_path))
+    self.assertEqual('unsymbolized_crash_trace',
+                     fuzzer_run_output_data.get_output())
+    self.assertEqual('/testcase', fuzzer_run_output_data.crash_path)
+    self.assertEqual(1, fuzzer_run_output_data.return_code)
     self.assertEqual(
-        'unsymbolized_crash_trace',
-        utils.read_data_from_file(log_file_path,
-                                  eval_data=False).decode('utf-8'))
-    self.assertEqual('/testcase', crash_path)
-    self.assertEqual(1, return_code)
-    self.assertEqual(datetime.datetime(2026, 7, 10), log_time)
+        datetime.datetime(2026, 7, 10), fuzzer_run_output_data.log_time)
     self.assertEqual(0, self.mock.upload_testcase.call_count)
     self.assertEqual(0, self.mock.upload_log.call_count)
 

@@ -18,6 +18,7 @@ import datetime
 import itertools
 import json
 import os
+import queue
 import random
 import re
 import time
@@ -69,7 +70,6 @@ from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 
 # pylint: disable=no-member
-
 
 # 10 MB limit for proto testcase payload field (see FuzzerRunOutput testcase in
 # src/clusterfuzz/_internal/protos/uworker_msg.proto:L248).
@@ -1696,9 +1696,14 @@ class FuzzingSession:
       else:
         result_crash = None
 
-      fuzzer_run_output = _to_fuzzer_run_output(output, result_crash,
-                                                return_code, log_time)
-      self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
+      fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData(
+          output_or_file_path=output,
+          crash_path=result_crash,
+          return_code=return_code,
+          log_time=log_time)
+      fuzzer_run_output = _to_fuzzer_run_output(fuzzer_run_output_data)
+      if fuzzer_run_output:
+        self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
@@ -1734,15 +1739,16 @@ class FuzzingSession:
               'platform': environment.platform(),
           })
 
-  def _drain_temp_queue(self, temp_queue, crashes):
+  def _drain_temp_queue(self, temp_queue: queue.Queue,
+                        crashes: list[testcase_manager.Crash]) -> None:
     """Pops items from temp_queue and processes crashes and run outputs."""
     while not temp_queue.empty():
-      crash, fuzzer_run_output_data = temp_queue.get()
+      result: testcase_manager.TestcaseRunResult = temp_queue.get()
 
-      if crash:
-        crashes.append(crash)
-      if fuzzer_run_output_data:
-        fuzzer_run_output = _to_fuzzer_run_output(*fuzzer_run_output_data)
+      if result.crash:
+        crashes.append(result.crash)
+      if result.fuzzer_run_output_data:
+        fuzzer_run_output = _to_fuzzer_run_output(result.fuzzer_run_output_data)
         if fuzzer_run_output:
           self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
@@ -2318,25 +2324,13 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
-def _to_fuzzer_run_output(output_or_file_path: str | bytes,
-                          crash_path: str | None, return_code: int,
-                          log_time: datetime.datetime):
-  """Returns a FuzzerRunOutput proto from raw output or a temporary log file."""
-  if not output_or_file_path:
+def _to_fuzzer_run_output(data: testcase_manager.FuzzerRunOutputData
+                         ) -> uworker_msg_pb2.FuzzerRunOutput | None:
+  """Returns a FuzzerRunOutput proto from FuzzerRunOutputData."""
+  if not data:
     return None
 
-  output = None
-  if isinstance(output_or_file_path, str) and os.path.exists(
-      output_or_file_path):
-    output = utils.read_data_from_file_and_remove(
-        output_or_file_path, eval_data=False)
-    if isinstance(output, bytes):
-      output = output.decode('utf-8', errors='replace')
-  elif isinstance(output_or_file_path, bytes):
-    output = output_or_file_path.decode('utf-8', errors='replace')
-  else:
-    output = output_or_file_path
-
+  output = data.get_output()
   if output is None:
     return None
 
@@ -2344,15 +2338,15 @@ def _to_fuzzer_run_output(output_or_file_path: str | bytes,
   if len(output) != len(truncated_output):
     logs.warning('Fuzzer output truncated.')
 
-  proto_timestamp = uworker_io.timestamp_to_proto_timestamp(log_time)
+  proto_timestamp = uworker_io.timestamp_to_proto_timestamp(data.log_time)
   fuzzer_run_output = uworker_msg_pb2.FuzzerRunOutput(
       output=truncated_output.encode('utf-8'),
-      return_code=return_code,
+      return_code=data.return_code,
       timestamp=proto_timestamp)
 
-  if crash_path and os.path.exists(crash_path):
-    if os.path.getsize(crash_path) <= MAX_TESTCASE_PAYLOAD_SIZE:
-      with open(crash_path, 'rb') as fp:
+  if data.crash_path and os.path.exists(data.crash_path):
+    if os.path.getsize(data.crash_path) <= MAX_TESTCASE_PAYLOAD_SIZE:
+      with open(data.crash_path, 'rb') as fp:
         fuzzer_run_output.testcase = fp.read()
 
   return fuzzer_run_output

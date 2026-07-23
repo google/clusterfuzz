@@ -1530,13 +1530,18 @@ class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
 
     temp_queue = queue.Queue()
     crash = testcase_manager.Crash('/test/crash', 1, 1, [], [], '/stack')
-    fuzzer_run_output_data = ('/tmp/trace.log', '/test/crash', 1,
-                              datetime.datetime(2026, 7, 10))
-    temp_queue.put((crash, fuzzer_run_output_data))
+    fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData(
+        output_or_file_path='/tmp/trace.log',
+        crash_path='/test/crash',
+        return_code=1,
+        log_time=datetime.datetime(2026, 7, 10))
+    temp_queue.put(
+        testcase_manager.TestcaseRunResult(
+            crash=crash, fuzzer_run_output_data=fuzzer_run_output_data))
 
     standalone_crash = testcase_manager.Crash('/test/crash2', 1, 2, [], [],
                                               '/stack2')
-    temp_queue.put((standalone_crash, None))
+    temp_queue.put(testcase_manager.TestcaseRunResult(crash=standalone_crash))
 
     crashes = []
     session._drain_temp_queue(temp_queue, crashes)
