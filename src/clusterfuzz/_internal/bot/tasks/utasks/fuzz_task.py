@@ -70,6 +70,9 @@ from clusterfuzz.fuzz import engine
 
 # pylint: disable=no-member
 
+# 10 MB limit for proto testcase payload field (see FuzzerRunOutput testcase in
+# src/clusterfuzz/_internal/protos/uworker_msg.proto:L248).
+MAX_TESTCASE_PAYLOAD_SIZE = 10 * 1024 * 1024
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_NEW_CORPUS_FILES = 500
@@ -1692,9 +1695,14 @@ class FuzzingSession:
       else:
         result_crash = None
 
-      fuzzer_run_output = _to_fuzzer_run_output(output, result_crash,
-                                                return_code, log_time)
-      self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
+      fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData.from_memory(
+          output=output,
+          crash_path=result_crash,
+          return_code=return_code,
+          log_time=log_time)
+      fuzzer_run_output = _to_fuzzer_run_output(fuzzer_run_output_data)
+      if fuzzer_run_output:
+        self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
@@ -2304,25 +2312,30 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
-def _to_fuzzer_run_output(output: str, crash_path: str, return_code: int,
-                          log_time: datetime.datetime):
-  """Returns a FuzzerRunOutput proto."""
+def _to_fuzzer_run_output(data: testcase_manager.FuzzerRunOutputData
+                         ) -> uworker_msg_pb2.FuzzerRunOutput | None:
+  """Returns a FuzzerRunOutput proto from FuzzerRunOutputData."""
+  if not data:
+    return None
+
+  output = data.get_output()
+  if output is None:
+    return None
+
   truncated_output = truncate_fuzzer_output(output, ENGINE_OUTPUT_LIMIT)
   if len(output) != len(truncated_output):
     logs.warning('Fuzzer output truncated.')
 
-  proto_timestamp = uworker_io.timestamp_to_proto_timestamp(log_time)
+  proto_timestamp = uworker_io.timestamp_to_proto_timestamp(data.log_time)
   fuzzer_run_output = uworker_msg_pb2.FuzzerRunOutput(
-      output=bytes(truncated_output, 'utf-8'),
-      return_code=return_code,
+      output=truncated_output.encode('utf-8'),
+      return_code=data.return_code,
       timestamp=proto_timestamp)
 
-  if crash_path is None:
-    return fuzzer_run_output
-  if os.path.getsize(crash_path) > 10 * 1024**2:
-    return fuzzer_run_output
-  with open(crash_path, 'rb') as fp:
-    fuzzer_run_output.testcase = fp.read()
+  if data.crash_path and os.path.exists(data.crash_path):
+    if os.path.getsize(data.crash_path) <= MAX_TESTCASE_PAYLOAD_SIZE:
+      with open(data.crash_path, 'rb') as fp:
+        fuzzer_run_output.testcase = fp.read()
 
   return fuzzer_run_output
 
