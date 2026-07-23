@@ -661,25 +661,19 @@ class IssueFilerTests(unittest.TestCase):
         external_contribution=True,
         primary_owner='owner@example.com').put()
 
-    issue_tracker = google_issue_tracker.IssueTracker('chromium', mock.Mock(), {
+    mock_client = mock.Mock()
+    issue_tracker = google_issue_tracker.IssueTracker('chromium', mock_client, {
         'default_component_id': '123',
         'url': 'mock'
     })
 
-    # Intercept new_issue so we can capture the saved issue object.
-    original_new_issue = issue_tracker.new_issue
-
-    def mock_new_issue():
-      issue = original_new_issue()
-
-      def mock_save(*args, **kwargs):
-        issue_tracker.last_issue = issue
-        issue._data['issueId'] = 12345
-
-      issue.save = mock_save
-      return issue
-
-    issue_tracker.new_issue = mock_new_issue
+    issue_tracker._execute = mock.Mock(return_value={
+        'issueId': 12345,
+        'issueState': {
+            'componentId': '123',
+            'type': 'BUG',
+        },
+    })
 
     self.testcase1.security_flag = True
     self.testcase1.put()
@@ -687,7 +681,10 @@ class IssueFilerTests(unittest.TestCase):
     issue_filer.file_issue(
         self.testcase1, issue_tracker, user_email='reporter@example.com')
 
-    self.assertEqual('owner@example.com', issue_tracker.last_issue.reporter)
+    mock_create = mock_client.issues.return_value.create
+    body = mock_create.call_args[1]['body']
+    self.assertEqual('owner@example.com',
+                     body['issueState']['reporter']['emailAddress'])
 
   def test_filed_issues_external_fuzzer_no_author(self):
     """Tests issue filing for external fuzzer without author."""
@@ -695,25 +692,19 @@ class IssueFilerTests(unittest.TestCase):
 
     data_types.Fuzzer(name='fuzzer', external_contribution=True).put()
 
-    issue_tracker = google_issue_tracker.IssueTracker('chromium', mock.Mock(), {
+    mock_client = mock.Mock()
+    issue_tracker = google_issue_tracker.IssueTracker('chromium', mock_client, {
         'default_component_id': '123',
         'url': 'mock'
     })
 
-    # Intercept new_issue so we can capture the saved issue object.
-    original_new_issue = issue_tracker.new_issue
-
-    def mock_new_issue():
-      issue = original_new_issue()
-
-      def mock_save(*args, **kwargs):
-        issue_tracker.last_issue = issue
-        issue._data['issueId'] = 12345
-
-      issue.save = mock_save
-      return issue
-
-    issue_tracker.new_issue = mock_new_issue
+    issue_tracker._execute = mock.Mock(return_value={
+        'issueId': 12345,
+        'issueState': {
+            'componentId': '123',
+            'type': 'BUG',
+        },
+    })
 
     self.testcase1.security_flag = True
     self.testcase1.put()
@@ -721,7 +712,10 @@ class IssueFilerTests(unittest.TestCase):
     issue_filer.file_issue(
         self.testcase1, issue_tracker, user_email='reporter@example.com')
 
-    self.assertEqual('reporter@example.com', issue_tracker.last_issue.reporter)
+    mock_create = mock_client.issues.return_value.create
+    body = mock_create.call_args[1]['body']
+    self.assertEqual('reporter@example.com',
+                     body['issueState']['reporter']['emailAddress'])
 
   def test_testcase_metadata_labels_and_components(self):
     """Tests issue filing with additional labels and components."""
