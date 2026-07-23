@@ -445,6 +445,25 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     # Ensure list_members was never called for fuzz target discovery.
     self.mock_archive_reader.list_members.assert_not_called()
 
+  def test_manifest_fuzz_targets_with_root_dir(self):
+    """Tests that manifest is read when archive has a root directory prefix."""
+    self.mock_archive_reader.root_dir.return_value = 'build'
+
+    def _mock_file_exists(_, path):
+      return path == 'build/clusterfuzz_manifest.json'
+
+    self.mock.file_exists.side_effect = _mock_file_exists
+    self._generate_manifest({
+        'archive_schema_version': 1,
+        'fuzz_targets': ['out/build/my_fuzzer', 'out/build/other_fuzzer']
+    })
+
+    test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
+    self.assertEqual(test_archive.archive_schema_version(), 1)
+    self.assertCountEqual(test_archive.list_fuzz_targets(),
+                          ['my_fuzzer', 'other_fuzzer'])
+
   def test_manifest_fuzz_targets_invalid(self):
     """Tests that invalid fuzz_targets (e.g. dict) in the manifest are ignored
     and we fallback to discovery."""
