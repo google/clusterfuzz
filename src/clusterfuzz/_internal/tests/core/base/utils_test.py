@@ -720,3 +720,16 @@ class ParseManifestDataTest(unittest.TestCase):
     """Test parsing manifest data with an added prefix."""
     file_data = 'prefix123-20250402153042-utc-40773ac0-username_test123-cad6977-prod'
     self.assertIsNone(utils.parse_manifest_data(file_data))
+
+
+class CreateTempFileTest(unittest.TestCase):
+  """Tests for create_temp_file."""
+
+  def test_create_temp_file(self):
+    """Test create_temp_file creates a file and returns its path."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+      file_path = utils.create_temp_file(tmpdir, 'prefix_', '_suffix')
+      self.assertTrue(os.path.exists(file_path))
+      self.assertTrue(file_path.startswith(tmpdir))
+      self.assertIn('prefix_', file_path)
+      self.assertTrue(file_path.endswith('_suffix'))
