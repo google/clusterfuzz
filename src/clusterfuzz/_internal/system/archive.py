@@ -298,6 +298,11 @@ class TarArchiveReader(ArchiveReader):
       if (_is_attempting_path_traversal(self._archive_path, output_directory,
                                         member)):
         return None
+      member_info = self._archive.getmember(member)
+      if member_info.issym() or member_info.islnk():
+        logs.warning('Link member %s found while unpacking archive %s. '
+                     'Aborting.' % (member, self._archive_path))
+        return None
 
     self._archive.extract(member=member, path=output_directory)
     return os.path.realpath(os.path.join(output_directory, member))
