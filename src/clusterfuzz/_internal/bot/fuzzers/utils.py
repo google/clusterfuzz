@@ -14,6 +14,7 @@
 """Fuzzer utils."""
 
 import functools
+import json
 import os
 import re
 import stat
@@ -98,8 +99,53 @@ def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
     return False
 
 
+def _get_manifest_fuzz_targets(path):
+  """Get list of fuzz targets from clusterfuzz_manifest.json if present."""
+  manifest_path = os.path.join(path, 'clusterfuzz_manifest.json')
+  if not os.path.exists(manifest_path):
+    return None
+
+  try:
+    with open(manifest_path, 'r', encoding='utf-8') as f:
+      manifest = json.load(f)
+  except Exception as e:
+    logs.error(f'Failed to read {manifest_path}: {e}')
+    return None
+
+  manifest_targets = manifest.get('fuzz_targets')
+  if manifest_targets is None:
+    return None
+
+  if not isinstance(manifest_targets, list):
+    logs.error(f'fuzz_targets in {manifest_path} is not a list')
+    return None
+
+  fuzz_target_paths = []
+  for target_path in manifest_targets:
+    if not isinstance(target_path, str):
+      logs.error(f'Entry in fuzz_targets ({manifest_path}) is not a string: '
+                 f'{target_path}')
+      continue
+    file_path = os.path.join(path, target_path)
+    if not os.path.exists(file_path):
+      basename_path = os.path.join(path, os.path.basename(target_path))
+      if os.path.exists(basename_path):
+        file_path = basename_path
+
+    if os.path.exists(file_path) and not os.path.isdir(file_path):
+      fuzz_target_paths.append(file_path)
+    else:
+      logs.warning(f'Fuzz target {target_path} in {manifest_path} not found.')
+
+  return fuzz_target_paths if fuzz_target_paths else None
+
+
 def get_fuzz_targets_local(path):
   """Get list of fuzz targets paths (local)."""
+  manifest_fuzz_targets = _get_manifest_fuzz_targets(path)
+  if manifest_fuzz_targets is not None:
+    return manifest_fuzz_targets
+
   fuzz_target_paths = []
 
   for root, _, files in shell.walk(path):
