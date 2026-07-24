@@ -61,6 +61,7 @@ from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -409,6 +410,35 @@ def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
 
 class _TrackFuzzTime:
   """Track the actual fuzzing time (e.g. excluding preparing binary)."""
+  _active_trackers = set()
+  _callback_registered = False
+
+  @classmethod
+  def get_active_trackers(cls):
+    return cls._active_trackers
+
+  @classmethod
+  def _preemption_callback(cls):
+    """Callback to record wasted fuzzing time on preemption."""
+    logs.info('Running preemption callback to record wasted time.')
+    for tracker in cls.get_active_trackers():
+      duration = tracker.time.time() - tracker.start_time
+      logs.info(f'Recording {int(duration)} seconds of preempted time for '
+                f'{tracker.fuzzer_name} on {tracker.job_type}.')
+      monitoring_metrics.FUZZER_PREEMPTED_TOTAL_FUZZ_TIME.increment_by(
+          int(duration), {
+              'fuzzer': tracker.fuzzer_name,
+              'platform': environment.platform(),
+              'is_batch': environment.is_uworker(),
+              'runtime': environment.get_runtime().value,
+          })
+      monitoring_metrics.JOB_PREEMPTED_TOTAL_FUZZ_TIME.increment_by(
+          int(duration), {
+              'job': tracker.job_type,
+              'platform': environment.platform(),
+              'is_batch': environment.is_uworker(),
+              'runtime': environment.get_runtime().value,
+          })
 
   def __init__(self, fuzzer_name, job_type, time_module=time):
     self.fuzzer_name = fuzzer_name
@@ -418,11 +448,18 @@ class _TrackFuzzTime:
     self.timeout = None
 
   def __enter__(self):
+    if not _TrackFuzzTime._callback_registered:
+      monitor.register_on_sigterm(_TrackFuzzTime._preemption_callback)
+      _TrackFuzzTime._callback_registered = True
+
     self.start_time = self.time.time()
     self.timeout = False
+    self._active_trackers.add(self)
     return self
 
   def __exit__(self, exc_type, value, traceback):
+    self._active_trackers.discard(self)
+
     duration = self.time.time() - self.start_time
     monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
         int(duration), {
