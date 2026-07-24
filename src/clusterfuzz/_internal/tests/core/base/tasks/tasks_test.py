@@ -589,3 +589,72 @@ class TworkerGetTaskTest(unittest.TestCase):
     self.assertEqual(tasks.tworker_get_task(override_queue=''), 'task2')
     self.mock.get_postprocess_task.assert_called_once()
     self.mock.get_preprocess_task.assert_not_called()
+
+
+class GetFuzzTaskFallbackTest(unittest.TestCase):
+  """Tests for get_task when falling back to fuzzing."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.get_regular_task',
+        'clusterfuzz._internal.base.tasks.get_postprocess_task',
+        'clusterfuzz._internal.base.tasks.get_preprocess_task',
+        'clusterfuzz._internal.base.tasks.get_fuzz_task',
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.system.environment.is_android',
+        'clusterfuzz._internal.base.tasks.allow_all_tasks',
+    ])
+    self.mock.get_regular_task.return_value = None
+    self.mock.get_postprocess_task.return_value = None
+    self.mock.get_preprocess_task.return_value = None
+    self.mock.is_android.return_value = False
+    self.mock.allow_all_tasks.return_value = True
+
+    self.mock.get_fuzz_task.return_value = 'fuzz_task'
+    self.mock.platform.return_value = 'LINUX'
+
+  @mock.patch(
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
+      new_callable=mock.PropertyMock)
+  @mock.patch(
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.string_value',
+      new_callable=mock.PropertyMock)
+  def test_fuzzing_disabled_by_flag(self, mock_string_value, mock_enabled):
+    """Test that fuzzing is not picked if flag is disabled."""
+    mock_enabled.return_value = False
+    mock_string_value.return_value = 'linux'
+
+    task = tasks.get_task()
+    self.assertIsNone(task)
+    self.mock.get_fuzz_task.assert_not_called()
+
+  @mock.patch(
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
+      new_callable=mock.PropertyMock)
+  @mock.patch(
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.string_value',
+      new_callable=mock.PropertyMock)
+  def test_fuzzing_disabled_by_platform_mismatch(self, mock_string_value,
+                                                 mock_enabled):
+    """Test that fuzzing is not picked if platform does not match."""
+    mock_enabled.return_value = True
+    mock_string_value.return_value = 'windows'
+
+    task = tasks.get_task()
+    self.assertIsNone(task)
+    self.mock.get_fuzz_task.assert_not_called()
+
+  @mock.patch(
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
+      new_callable=mock.PropertyMock)
+  @mock.patch(
+      'clusterfuzz._internal.base.feature_flags.FeatureFlags.string_value',
+      new_callable=mock.PropertyMock)
+  def test_fuzzing_enabled(self, mock_string_value, mock_enabled):
+    """Test that fuzzing is picked if flag is enabled and platform matches."""
+    mock_enabled.return_value = True
+    mock_string_value.return_value = 'linux,windows'
+
+    task = tasks.get_task()
+    self.assertEqual(task, 'fuzz_task')
+    self.mock.get_fuzz_task.assert_called_once()
