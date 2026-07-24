@@ -20,7 +20,6 @@ import datetime
 import os
 import queue
 import re
-import tempfile
 import zlib
 
 from clusterfuzz._internal.base import utils
@@ -362,31 +361,53 @@ class Crash(
 @dataclasses.dataclass
 class FuzzerRunOutputData:
   """Output metadata for a single fuzzer run stored in memory or a temp file."""
-  output_or_file_path: str | bytes
+  _output: str | bytes | None = None
+  _file_path: str | None = None
   crash_path: str | None = None
   return_code: int = 0
   log_time: datetime.datetime | None = None
 
-  def _is_file_path(self) -> bool:
-    """Returns True if output_or_file_path is an existing file path."""
-    return isinstance(self.output_or_file_path, str) and os.path.exists(
-        self.output_or_file_path)
+  @classmethod
+  def from_file_path(cls,
+                     file_path: str,
+                     crash_path: str | None = None,
+                     return_code: int = 0,
+                     log_time: datetime.datetime | None = None):
+    return cls(
+        _file_path=file_path,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+
+  @classmethod
+  def from_memory(cls,
+                  output: str | bytes,
+                  crash_path: str | None = None,
+                  return_code: int = 0,
+                  log_time: datetime.datetime | None = None):
+    return cls(
+        _output=output,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
 
   def get_output(self) -> str | None:
     """Reads or decodes the fuzzer output text."""
-    if not self.output_or_file_path:
-      return None
-
-    if self._is_file_path():
+    if self._file_path:
+      if not os.path.exists(self._file_path):
+        return None
       output = utils.read_data_from_file_and_remove(
-          self.output_or_file_path, eval_data=False)
+          self._file_path, eval_data=False)
       return None if output is None else output.decode(
           'utf-8', errors='replace')
 
-    if isinstance(self.output_or_file_path, bytes):
-      return self.output_or_file_path.decode('utf-8', errors='replace')
+    if not self._output:
+      return None
 
-    return self.output_or_file_path
+    if isinstance(self._output, bytes):
+      return self._output.decode('utf-8', errors='replace')
+
+    return self._output
 
 
 @dataclasses.dataclass
@@ -461,7 +482,7 @@ def _get_testcase_time(testcase_path):
   if stats:
     return datetime.datetime.utcfromtimestamp(float(stats.timestamp))
 
-  return None
+  return datetime.datetime.utcnow()
 
 
 def upload_testcase(testcase_path, testcase_data, log_time, fuzzer_name=None):
@@ -566,16 +587,14 @@ def _do_run_testcase_and_return_result_in_queue(
     # Save raw, unsymbolized execution output for deferred postprocessing.
     crash_result_full = CrashResult(return_code, crash_time, output)
     unsymbolized_output = crash_result_full.get_stacktrace(symbolized=False)
-    log_time = log_time or datetime.datetime.utcnow()
     crash_path = file_path if crash else None
-    fd, log_file_path = tempfile.mkstemp(
-        dir=environment.get_value('BOT_TMPDIR'),
+    log_file_path = utils.create_temp_file(
+        directory=environment.get_value('BOT_TMPDIR'),
         prefix='fuzzer_output_',
         suffix='.log')
-    os.close(fd)
     utils.write_data_to_file(unsymbolized_output, log_file_path)
-    fuzzer_run_output_data = FuzzerRunOutputData(
-        output_or_file_path=log_file_path,
+    fuzzer_run_output_data = FuzzerRunOutputData.from_file_path(
+        file_path=log_file_path,
         crash_path=crash_path,
         return_code=return_code,
         log_time=log_time)

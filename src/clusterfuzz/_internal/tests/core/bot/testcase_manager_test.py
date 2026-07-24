@@ -915,8 +915,8 @@ class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
     self.assertIsNone(result.crash)
     fuzzer_run_output_data = result.fuzzer_run_output_data
     self.assertTrue(
-        isinstance(fuzzer_run_output_data.output_or_file_path, str) and
-        os.path.exists(fuzzer_run_output_data.output_or_file_path))
+        isinstance(fuzzer_run_output_data._file_path, str) and
+        os.path.exists(fuzzer_run_output_data._file_path))
     self.assertEqual('unsymbolized_raw_trace',
                      fuzzer_run_output_data.get_output())
     self.assertIsNone(fuzzer_run_output_data.crash_path)
@@ -949,8 +949,8 @@ class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
     self.assertEqual('/testcase', result.crash.file_path)
     fuzzer_run_output_data = result.fuzzer_run_output_data
     self.assertTrue(
-        isinstance(fuzzer_run_output_data.output_or_file_path, str) and
-        os.path.exists(fuzzer_run_output_data.output_or_file_path))
+        isinstance(fuzzer_run_output_data._file_path, str) and
+        os.path.exists(fuzzer_run_output_data._file_path))
     self.assertEqual('unsymbolized_crash_trace',
                      fuzzer_run_output_data.get_output())
     self.assertEqual('/testcase', fuzzer_run_output_data.crash_path)

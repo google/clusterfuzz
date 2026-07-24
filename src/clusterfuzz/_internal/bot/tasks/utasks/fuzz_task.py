@@ -1696,8 +1696,8 @@ class FuzzingSession:
       else:
         result_crash = None
 
-      fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData(
-          output_or_file_path=output,
+      fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData.from_memory(
+          output=output,
           crash_path=result_crash,
           return_code=return_code,
           log_time=log_time)
