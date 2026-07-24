@@ -135,8 +135,22 @@ def _flush_metrics():
       logs.error(f'Failed to flush metrics: {e}')
 
 
+_on_sigterm_callbacks = []
+
+
+def register_on_sigterm(callback):
+  """Register a callback to be called on SIGTERM."""
+  _on_sigterm_callbacks.append(callback)
+
+
 def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
-  logs.info('Handling sigterm, stopping monitoring daemon.')
+  logs.info('Handling sigterm, running registered callbacks.')
+  for callback in _on_sigterm_callbacks:
+    try:
+      callback()
+    except Exception as e:
+      logs.error(f'Error in SIGTERM callback: {e}')
+  logs.info('Stopping monitoring daemon.')
   stop()
   logs.info('Sigterm handled, metrics flushed.')
 

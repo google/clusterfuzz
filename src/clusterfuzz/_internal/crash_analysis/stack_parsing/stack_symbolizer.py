@@ -261,6 +261,8 @@ class LLVMSymbolizer(Symbolizer):
         '--inlining=%s' % stack_inlining,
     ]
     if self.system == 'darwin':
+      # TODO(crbug.com/532093354): Remove --cache-size once llvm-symbolizer is fixed.
+      cmd.append('--cache-size=%d' % (5 * 1024 * 1024 * 1024))  # 5 GiB
       for hint in self.dsym_hints:
         cmd.append('--dsym-hint=%s' % hint)
 
@@ -609,11 +611,22 @@ class SymbolizationLoop:
       except ProcessLookupError:
         pass
 
+  def _can_process_trusty_stack_trace(self, trusty_app, trusty_bid) -> bool:
+    symbols_dir = environment.get_value('SYMBOLS_DIR')
+    return bool(
+        trusty_app and trusty_bid and
+        (symbols_dir or not environment.is_uworker()))
+
   def process_trusty_stacktrace(self, unsymbolized_crash_stacktrace):
     """Adds debug line information to a Trusted App stacktrace."""
-    symbols_dir = environment.get_value('SYMBOLS_DIR')
     trusty_app = self._extract_trusty_app_name(unsymbolized_crash_stacktrace)
     trusty_bid = self._extract_trusty_bid(unsymbolized_crash_stacktrace)
+    symbols_dir = environment.get_value('SYMBOLS_DIR')
+    if not self._can_process_trusty_stack_trace(trusty_app, trusty_bid):
+      logs.warning('Wont process trusty stacktrace, missing one of: '
+                   f'trusty_app={trusty_app}, trusty_bid={trusty_bid}, '
+                   f'SYMBOLS_DIR={symbols_dir}')
+      return unsymbolized_crash_stacktrace
 
     symbols_downloader.download_trusty_symbols_if_needed(
         symbols_dir, trusty_app, trusty_bid)
@@ -757,11 +770,12 @@ def symbolize_stacktrace(unsymbolized_crash_stacktrace,
   loop = SymbolizationLoop(
       binary_path_filter=filter_binary_path,
       dsym_hint_producer=chrome_dsym_hints)
+  symbolized_crash_stacktrace = unsymbolized_crash_stacktrace
   if environment.is_android_emulator():
     symbolized_crash_stacktrace = loop.process_trusty_stacktrace(
-        unsymbolized_crash_stacktrace)
+        symbolized_crash_stacktrace)
 
   symbolized_crash_stacktrace = loop.process_stacktrace(
-      unsymbolized_crash_stacktrace)
+      symbolized_crash_stacktrace)
 
   return symbolized_crash_stacktrace

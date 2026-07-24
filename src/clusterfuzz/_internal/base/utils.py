@@ -23,6 +23,7 @@ import os
 import random
 import re
 import sys
+import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -36,6 +37,7 @@ from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import shell
 
 try:
   import psutil
@@ -116,16 +118,46 @@ def encode_as_unicode(obj):
     retries=URL_REQUEST_RETRIES,
     delay=URL_REQUEST_FAIL_WAIT,
     function='base.utils.fetch_url')
-def fetch_url(url):
-  """Fetch url content."""
-  operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
+def fetch_url(url: str,
+              params: dict | None = None,
+              headers: dict | None = None,
+              request_timeout: int | float | None = None,
+              raise_for_not_found: bool = False,
+              stream: bool = False) -> str | requests.Response | None:
+  """Launches an HTTP GET request with retries.
 
-  response = requests.get(url, timeout=operations_timeout)
-  if response.status_code == 404:
+    Args:
+      url: Target URL for the GET request.
+      params: Optional query parameters dictionary.
+      headers: Optional additional headers dictionary.
+      request_timeout: Optional timeout for the request in seconds.
+      raise_for_not_found: False by default, raise an exception for 404
+        response, otherwise returns None on 404.
+      stream: False by default, whether to stream the response content.
+
+    Returns:
+      The HTTP response text on success (or response object if stream=True),
+      None if 404 and raise_for_not_found is False.
+
+    Raises:
+      requests.exceptions.RequestException: If the HTTP request fails or
+        returns an error status.
+    """
+  if request_timeout is None:
+    request_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
+
+  logs.info(f'Request for {url}', params=params, headers=headers, stream=stream)
+  response = requests.get(
+      url,
+      timeout=request_timeout,
+      params=params,
+      headers=headers,
+      stream=stream)
+  if not raise_for_not_found and response.status_code == 404:
     return None
 
   response.raise_for_status()
-  return response.text
+  return response if stream else response.text
 
 
 @retry.wrap(
@@ -658,6 +690,17 @@ def read_data_from_file(file_path, eval_data=True, default=None):
     return None
 
 
+def read_data_from_file_and_remove(file_path, eval_data=False, default=None):
+  """Reads file content and removes the file after read"""
+  if not file_path or not os.path.exists(file_path):
+    return default
+
+  try:
+    return read_data_from_file(file_path, eval_data=eval_data, default=default)
+  finally:
+    shell.remove_file(file_path)
+
+
 def remove_prefix(string, prefix):
   """Strips the prefix from a string."""
   if string.startswith(prefix):
@@ -1088,3 +1131,10 @@ def batched(iterator, batch_size):
 
   if batch:
     yield batch
+
+
+def create_temp_file(directory: str, prefix: str, suffix: str) -> str:
+  """Creates a temporary file and returns its path."""
+  fd, file_path = tempfile.mkstemp(dir=directory, prefix=prefix, suffix=suffix)
+  os.close(fd)
+  return file_path

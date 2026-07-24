@@ -14,6 +14,7 @@
 """Tests testcase_manager."""
 import datetime
 import os
+import queue
 import shutil
 import tempfile
 import unittest
@@ -862,6 +863,102 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             output=self.GREYBOX_FUZZER_CRASH),
         mock.call('Crash is reproducible.'),
     ])
+
+
+class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
+  """Tests for run_testcase_and_return_result_in_queue."""
+
+  def setUp(self):
+    """Setup for run_testcase_and_return_result_in_queue tests."""
+    test_helpers.patch_environ(self)
+    test_utils.set_up_pyfakefs(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.bot.testcase_manager.run_testcase',
+        'clusterfuzz._internal.bot.testcase_manager._get_testcase_time',
+        'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
+        'clusterfuzz._internal.bot.testcase_manager.upload_log',
+        'clusterfuzz._internal.crash_analysis.crash_analyzer.is_crash',
+        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
+        'clusterfuzz._internal.datastore.ndb_init.context',
+        'clusterfuzz._internal.metrics.logs.error',
+    ])
+    os.environ['CRASH_STACKTRACES_DIR'] = '/crashes'
+    os.environ['ROOT_DIR'] = '/root'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['FAIL_WAIT'] = '1'
+    os.environ['BOT_TMPDIR'] = '/bot_tmp'
+    self.fs.create_dir('/crashes')
+    self.fs.create_dir('/root/bot/logs')
+    self.fs.create_dir('/bot_tmp')
+    self.fs.create_dir('/usr/local/google/home/ibarba/clusterfuzz/.worktrees/'
+                       'issue-2-blackbox-raw-logs/bot/logs')
+
+  def test_run_no_crash(self):
+    """Verify run_testcase_and_return_result_in_queue returns unsymbolized output
+    written to file and puts path in queue without uploading when no crash."""
+    crash_queue = queue.Queue()
+    self.mock.run_testcase.return_value = (0, 1.5, 'raw_output_trace')
+    self.mock.is_crash.return_value = False
+    self.mock._get_testcase_time.return_value = datetime.datetime(2026, 7, 10)
+    mock_unsymbolized_info = mock.MagicMock()
+    mock_unsymbolized_info.crash_stacktrace = 'unsymbolized_raw_trace'
+    self.mock.get_crash_data.return_value = mock_unsymbolized_info
+
+    testcase_manager.run_testcase_and_return_result_in_queue(
+        crash_queue, 0, '/testcase', [], {})
+
+    self.assertEqual(0, self.mock.error.call_count,
+                     f'Unexpected error: {self.mock.error.call_args_list}')
+    self.assertFalse(crash_queue.empty())
+    result = crash_queue.get()
+
+    self.assertIsNone(result.crash)
+    fuzzer_run_output_data = result.fuzzer_run_output_data
+    self.assertTrue(
+        isinstance(fuzzer_run_output_data._file_path, str) and
+        os.path.exists(fuzzer_run_output_data._file_path))
+    self.assertEqual('unsymbolized_raw_trace',
+                     fuzzer_run_output_data.get_output())
+    self.assertIsNone(fuzzer_run_output_data.crash_path)
+    self.assertEqual(0, fuzzer_run_output_data.return_code)
+    self.assertEqual(
+        datetime.datetime(2026, 7, 10), fuzzer_run_output_data.log_time)
+    self.assertEqual(0, self.mock.upload_testcase.call_count)
+    self.assertEqual(0, self.mock.upload_log.call_count)
+
+  def test_run_with_crash(self):
+    """Verify run_testcase_and_return_result_in_queue returns crash and log file
+    path without direct uploads on crash."""
+    crash_queue = queue.Queue()
+    self.mock.run_testcase.return_value = (1, 2.0, 'raw_crash_trace')
+    self.mock.is_crash.return_value = True
+    self.mock._get_testcase_time.return_value = datetime.datetime(2026, 7, 10)
+    mock_unsymbolized_info = mock.MagicMock()
+    mock_unsymbolized_info.crash_stacktrace = 'unsymbolized_crash_trace'
+    self.mock.get_crash_data.return_value = mock_unsymbolized_info
+
+    testcase_manager.run_testcase_and_return_result_in_queue(
+        crash_queue, 0, '/testcase', [], {})
+
+    self.assertEqual(0, self.mock.error.call_count,
+                     f'Unexpected error: {self.mock.error.call_args_list}')
+    self.assertFalse(crash_queue.empty())
+    result = crash_queue.get()
+
+    self.assertIsNotNone(result.crash)
+    self.assertEqual('/testcase', result.crash.file_path)
+    fuzzer_run_output_data = result.fuzzer_run_output_data
+    self.assertTrue(
+        isinstance(fuzzer_run_output_data._file_path, str) and
+        os.path.exists(fuzzer_run_output_data._file_path))
+    self.assertEqual('unsymbolized_crash_trace',
+                     fuzzer_run_output_data.get_output())
+    self.assertEqual('/testcase', fuzzer_run_output_data.crash_path)
+    self.assertEqual(1, fuzzer_run_output_data.return_code)
+    self.assertEqual(
+        datetime.datetime(2026, 7, 10), fuzzer_run_output_data.log_time)
+    self.assertEqual(0, self.mock.upload_testcase.call_count)
+    self.assertEqual(0, self.mock.upload_log.call_count)
 
 
 def _get_fuzz_target_from_preprocess(testcase):

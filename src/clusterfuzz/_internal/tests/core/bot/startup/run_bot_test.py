@@ -172,6 +172,27 @@ class TaskLoopTest(unittest.TestCase):
     self.assertEqual(0, self.mock.process_command.call_count)
 
 
+class UpdateTaskEnabledTest(unittest.TestCase):
+  """Test update_task_enabled check"""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.is_gce',
+        'requests.get',
+    ])
+    self.mock.is_uworker.return_value = False
+    self.mock.is_gce.return_value = True
+
+  def test_off_gce(self):
+    """Test that bots off GCE fallback gracefully without triggering requests."""
+    self.mock.is_gce.return_value = False
+
+    self.assertTrue(run_bot.update_task_enabled())
+    # We shouldn't have made a request to the metadata server.
+    self.assertEqual(0, self.mock.get.call_count)
+
+
 class LeaseAllTasksTest(unittest.TestCase):
   """Tests for lease_all_tasks."""
 

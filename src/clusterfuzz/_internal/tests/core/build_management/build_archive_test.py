@@ -353,6 +353,33 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
         'out/build/my_fuzzer.dSYM/Contents/Resources/DWARF/some_dependency',
         to_extract)
 
+  def test_exe_target_dependencies(self):
+    """Tests that a target with .exe extension uses .runtime_deps without .exe."""
+    self._set_archive_schema_version(1)
+    deps_entries = self._generate_possible_fuzzer_dependencies('my_fuzzer')
+    deps_files = self._resolve_relative_dependency_paths(deps_entries)
+    archive_files = deps_files + ['out/build/my_fuzzer.exe']
+    self._add_files_to_archive(archive_files)
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertCountEqual(to_extract, archive_files)
+
+  def test_exe_target_dependencies_legacy(self):
+    """Tests that a target with .exe extension uses .runtime_deps without .exe
+    under legacy schema."""
+    deps_files = self._generate_possible_fuzzer_dependencies_legacy(
+        '', 'my_fuzzer')
+    needed_files = self._generate_possible_fuzzer_dependencies_legacy(
+        'build/', 'my_fuzzer')
+    self._add_files_to_archive(needed_files)
+    self._generate_runtime_deps(deps_files)
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertCountEqual(to_extract, needed_files)
+
 
 class ChromeBuildArchiveManifestTest(unittest.TestCase):
   """Test for reading clusterfuzz_manifest.json for Chrome archives."""

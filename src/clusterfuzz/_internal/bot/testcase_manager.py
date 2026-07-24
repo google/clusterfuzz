@@ -15,8 +15,10 @@
 
 import base64
 import collections
+import dataclasses
 import datetime
 import os
+import queue
 import re
 import zlib
 
@@ -356,6 +358,65 @@ class Crash(
     fields."""
 
 
+@dataclasses.dataclass
+class FuzzerRunOutputData:
+  """Output metadata for a single fuzzer run stored in memory or a temp file."""
+  _output: str | bytes | None = None
+  _file_path: str | None = None
+  crash_path: str | None = None
+  return_code: int = 0
+  log_time: datetime.datetime | None = None
+
+  @classmethod
+  def from_file_path(cls,
+                     file_path: str,
+                     crash_path: str | None = None,
+                     return_code: int = 0,
+                     log_time: datetime.datetime | None = None):
+    return cls(
+        _file_path=file_path,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+
+  @classmethod
+  def from_memory(cls,
+                  output: str | bytes,
+                  crash_path: str | None = None,
+                  return_code: int = 0,
+                  log_time: datetime.datetime | None = None):
+    return cls(
+        _output=output,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+
+  def get_output(self) -> str | None:
+    """Reads or decodes the fuzzer output text."""
+    if self._file_path:
+      if not os.path.exists(self._file_path):
+        return None
+      output = utils.read_data_from_file_and_remove(
+          self._file_path, eval_data=False)
+      return None if output is None else output.decode(
+          'utf-8', errors='replace')
+
+    if not self._output:
+      return None
+
+    if isinstance(self._output, bytes):
+      return self._output.decode('utf-8', errors='replace')
+
+    return self._output
+
+
+@dataclasses.dataclass
+class TestcaseRunResult:
+  """Result of a testcase execution queued for processing."""
+  crash: Crash | None = None
+  fuzzer_run_output_data: FuzzerRunOutputData | None = None
+
+
 def get_resource_paths(output):
   """Read the urls from the output."""
   resource_paths = set()
@@ -421,7 +482,7 @@ def _get_testcase_time(testcase_path):
   if stats:
     return datetime.datetime.utcfromtimestamp(float(stats.timestamp))
 
-  return None
+  return datetime.datetime.utcnow()
 
 
 def upload_testcase(testcase_path, testcase_data, log_time, fuzzer_name=None):
@@ -462,12 +523,9 @@ def _get_crash_output(output):
   return output[:crash_stacktrace_end_marker_index]
 
 
-def run_testcase_and_return_result_in_queue(crash_queue,
-                                            thread_index,
-                                            file_path,
-                                            gestures,
-                                            env_copy,
-                                            upload_output=False):
+def run_testcase_and_return_result_in_queue(
+    crash_queue: queue.Queue, thread_index: int, file_path: str,
+    gestures: list[str], env_copy: dict) -> None:
   """Run a single testcase and return crash results in the crash queue."""
   # Since this is running in its own process, initialize the log handler again.
   # This is needed for Windows where instances are not shared across child
@@ -479,21 +537,13 @@ def run_testcase_and_return_result_in_queue(crash_queue,
 
   # Also reinitialize NDB context for the same reason as above.
   with ndb_init.context():
-    _do_run_testcase_and_return_result_in_queue(
-        crash_queue,
-        thread_index,
-        file_path,
-        gestures,
-        env_copy,
-        upload_output=upload_output)
+    _do_run_testcase_and_return_result_in_queue(crash_queue, thread_index,
+                                                file_path, gestures, env_copy)
 
 
-def _do_run_testcase_and_return_result_in_queue(crash_queue,
-                                                thread_index,
-                                                file_path,
-                                                gestures,
-                                                env_copy,
-                                                upload_output=False):
+def _do_run_testcase_and_return_result_in_queue(
+    crash_queue: queue.Queue, thread_index: int, file_path: str,
+    gestures: list[str], env_copy: dict) -> None:
   """Run a single testcase and return crash results in the crash queue."""
   try:
     # Run testcase and check whether a crash occurred or not.
@@ -511,9 +561,9 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
 
     # To provide consistency between stats and logs, we use timestamp taken
     # from stats when uploading logs and testcase.
-    if upload_output:
-      log_time = _get_testcase_time(file_path)
+    log_time = _get_testcase_time(file_path)
 
+    crash = None
     if crash_result.is_crash():
       # Initialize resource list with the testcase path.
       resource_list = [file_path]
@@ -526,28 +576,36 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
                                      utils.string_hash(file_path))
       utils.write_data_to_file(crash_output, stack_file_path)
 
-      # Put crash/no-crash results in the crash queue.
-      crash_queue.put(
-          Crash(
-              file_path=file_path,
-              crash_time=crash_time,
-              return_code=return_code,
-              resource_list=resource_list,
-              gestures=gestures,
-              stack_file_path=stack_file_path))
+      crash = Crash(
+          file_path=file_path,
+          crash_time=crash_time,
+          return_code=return_code,
+          resource_list=resource_list,
+          gestures=gestures,
+          stack_file_path=stack_file_path)
 
-      # Don't upload uninteresting testcases (no crash) or if there is no log to
-      # correlate it with (not upload_output).
-      if upload_output:
-        upload_testcase(file_path, None, log_time)
-
-    if upload_output:
-      # Include full output for uploaded logs (crash output, merge output, etc).
-      crash_result_full = CrashResult(return_code, crash_time, output)
-      upload_log(crash_result_full.get_stacktrace(), return_code, log_time)
-  except Exception:
-    logs.error('Exception occurred while running '
-               'run_testcase_and_return_result_in_queue.')
+    # Save raw, unsymbolized execution output for deferred postprocessing.
+    crash_result_full = CrashResult(return_code, crash_time, output)
+    unsymbolized_output = crash_result_full.get_stacktrace(symbolized=False)
+    crash_path = file_path if crash else None
+    log_file_path = utils.create_temp_file(
+        directory=environment.get_value('BOT_TMPDIR'),
+        prefix='fuzzer_output_',
+        suffix='.log')
+    utils.write_data_to_file(unsymbolized_output, log_file_path)
+    fuzzer_run_output_data = FuzzerRunOutputData.from_file_path(
+        file_path=log_file_path,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+    crash_queue.put(
+        TestcaseRunResult(
+            crash=crash, fuzzer_run_output_data=fuzzer_run_output_data))
+  except Exception as e:
+    logs.error(
+        'Exception occurred while running '
+        'run_testcase_and_return_result_in_queue.',
+        exception=e)
 
 
 def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
