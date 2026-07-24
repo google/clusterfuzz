@@ -86,6 +86,57 @@ class UnpackTest(unittest.TestCase):
         result = reader.extract_all(output_directory, trusted=False)
         self.assertFalse(result)
 
+  def test_unpack_tar_links_fails_when_untrusted(self):
+    """Test that unpacking TAR symbolic and hard links fails when untrusted."""
+    with tempfile.NamedTemporaryFile(suffix='.tar') as tmp_tar_file:
+      with tarfile.open(tmp_tar_file.name, 'w') as tar:
+        for name, member_type, linkname in [
+            ('absolute-symlink', tarfile.SYMTYPE, '/tmp/pwned'),
+            ('relative-hardlink', tarfile.LNKTYPE, '../pwned'),
+        ]:
+          tarinfo = tarfile.TarInfo(name=name)
+          tarinfo.type = member_type
+          tarinfo.linkname = linkname
+          tar.addfile(tarinfo)
+
+      output_directory = tempfile.mkdtemp()
+      self.addCleanup(shell.remove_directory, output_directory)
+
+      with archive.open(tmp_tar_file.name) as reader:
+        result = reader.extract_all(output_directory, trusted=False)
+
+      self.assertFalse(result)
+      self.assertFalse(
+          os.path.lexists(os.path.join(output_directory, 'absolute-symlink')))
+      self.assertFalse(
+          os.path.lexists(os.path.join(output_directory, 'relative-hardlink')))
+
+  def test_unpack_tar_link_succeeds_when_trusted(self):
+    """Test that trusted TAR archives can still contain symbolic links."""
+    with tempfile.NamedTemporaryFile(suffix='.tar') as tmp_tar_file:
+      with tarfile.open(tmp_tar_file.name, 'w') as tar:
+        file_data = b'contents'
+        tarinfo = tarfile.TarInfo(name='target')
+        tarinfo.size = len(file_data)
+        tar.addfile(tarinfo, io.BytesIO(file_data))
+
+        tarinfo = tarfile.TarInfo(name='link')
+        tarinfo.type = tarfile.SYMTYPE
+        tarinfo.linkname = 'target'
+        tar.addfile(tarinfo)
+
+      output_directory = tempfile.mkdtemp()
+      self.addCleanup(shell.remove_directory, output_directory)
+
+      with archive.open(tmp_tar_file.name) as reader:
+        result = reader.extract_all(output_directory, trusted=True)
+
+      link_path = os.path.join(output_directory, 'link')
+      self.assertTrue(result)
+      self.assertTrue(os.path.islink(link_path))
+      with open(link_path, 'rb') as link_file:
+        self.assertEqual(link_file.read(), b'contents')
+
   def test_zip_extract_permissions_mocked_chmod(self):
     """Test zip extraction only calls chmod when permissions change or execute bit is set."""
     helpers.patch(self, ['os.chmod'])
