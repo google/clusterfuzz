@@ -15,11 +15,14 @@
 
 from flask import request
 
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from handlers import base_handler
 from handlers.testcase_detail import show
+from libs import access
+from libs import auth
 from libs import handler
 from libs import helpers
 
@@ -38,6 +41,17 @@ class Handler(base_handler.Handler):
                                 'Issue (id=%d) is not found!' % issue_id,
                                 'Failed to get the issue (id=%s).' % issue_id,
                                 Exception)
+
+    # Check if the user is allowed to access/modify this issue
+    user_email = helpers.get_user_email()
+    if not auth.is_current_user_admin() and not access._is_privileged_user(user_email):
+      is_associated = (
+          utils.emails_equal(user_email, issue.reporter) or
+          utils.emails_equal(user_email, issue.assignee) or
+          any(utils.emails_equal(user_email, cc) for cc in issue.ccs)
+      )
+      if not is_associated:
+        raise helpers.AccessDeniedError('You do not have access to this issue.')
 
     if not issue.is_open:
       raise helpers.EarlyExitError(
