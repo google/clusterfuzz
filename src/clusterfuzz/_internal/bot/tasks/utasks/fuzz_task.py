@@ -2210,6 +2210,10 @@ def _pick_fuzz_target():
     logs.info('Not engine fuzzer. Not picking fuzz target.')
     return None
 
+  if environment.get_value('LOCAL_DEVELOPMENT'):
+    logs.info('Local development override: picking base64_decode_fuzzer.')
+    return 'base64_decode_fuzzer'
+
   logs.info('Picking fuzz target.')
   target_weights = fuzzer_selection.get_fuzz_target_weights()
   return build_manager.pick_random_fuzz_target(target_weights)
