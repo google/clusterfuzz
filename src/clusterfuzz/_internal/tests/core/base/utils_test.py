@@ -618,8 +618,9 @@ class CurrentSourceVersionTest(unittest.TestCase):
 
   def test_file_exists_empty_content(self):
     """Test reading empty manifest file."""
-    f = open(self.test_path, 'w')
-    f.close()
+    with open(self.test_path, 'w') as _:
+      # Opens file with 'w' to clear it.
+      pass
     self.assertEqual(utils.current_source_version(), '')
 
   def test_file_exists_invalid_content(self):

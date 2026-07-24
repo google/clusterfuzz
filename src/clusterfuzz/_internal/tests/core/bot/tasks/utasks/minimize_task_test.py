@@ -399,7 +399,8 @@ class JsMinimizeTest(unittest.TestCase):
 
     def mock_test_function_unicode_dependent(data_file):
       """If crash -> False, otherwise -> True."""
-      data = open(data_file, 'rb').read()
+      with open(data_file, 'rb') as f:
+        data = f.read()
 
       if data == b'consol\\u0065.log(42);':
         return False
@@ -417,7 +418,8 @@ class JsMinimizeTest(unittest.TestCase):
 
     def mock_test_function_unicode_independent(data_file):
       """If crash -> False, otherwise -> True."""
-      data = open(data_file, 'rb').read()
+      with open(data_file, 'rb') as f:
+        data = f.read()
 
       if data in (b'consol\\u0065.log(42);', b'console.log(42);'):
         return False

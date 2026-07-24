@@ -104,27 +104,25 @@ def package(revision,
   target_zip_path = os.path.join(target_zip_dir, target_zip_name)
   _clear_zip(target_zip_path)
 
-  output_file = zipfile.ZipFile(target_zip_path, 'w', zipfile.ZIP_DEFLATED)
+  with zipfile.ZipFile(target_zip_path, 'w',
+                       zipfile.ZIP_DEFLATED) as output_file:
+    # Add files from git.
+    for file_path in file_paths:
+      if (file_path.startswith('config') or file_path.startswith('local') or
+          file_path.startswith(os.path.join('src', 'appengine')) or
+          file_path.startswith(os.path.join('src', 'local')) or
+          file_path.startswith(
+              os.path.join('src', 'clusterfuzz', '_internal', 'tests'))):
+        continue
+      _add_to_zip(output_file, file_path)
 
-  # Add files from git.
-  for file_path in file_paths:
-    if (file_path.startswith('config') or file_path.startswith('local') or
-        file_path.startswith(os.path.join('src', 'appengine')) or
-        file_path.startswith(os.path.join('src', 'local')) or
-        file_path.startswith(
-            os.path.join('src', 'clusterfuzz', '_internal', 'tests'))):
-      continue
-    _add_to_zip(output_file, file_path)
+    # These are project configuration yamls.
+    for path in _get_files(os.path.join('src', 'appengine', 'config')):
+      _add_to_zip(output_file, path)
 
-  # These are project configuration yamls.
-  for path in _get_files(os.path.join('src', 'appengine', 'config')):
-    _add_to_zip(output_file, path)
-
-  # These are third party dependencies.
-  for path in _get_files(os.path.join('src', 'third_party')):
-    _add_to_zip(output_file, path)
-
-  output_file.close()
+    # These are third party dependencies.
+    for path in _get_files(os.path.join('src', 'third_party')):
+      _add_to_zip(output_file, path)
 
   with open(target_manifest_path, 'w') as f:
     f.write('%s\n' % revision)
