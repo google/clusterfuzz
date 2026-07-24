@@ -25,6 +25,13 @@ fi
 mkdir -p $BOT_TMPDIR
 chmod 777 $BOT_TMPDIR
 
+# Ensure LUCI_CONTEXT file is readable by non-root task user ($USER / clusterfuzz).
+if [[ -n "$LUCI_CONTEXT" && -f "$LUCI_CONTEXT" ]]; then
+  chmod 644 "$LUCI_CONTEXT"
+elif [[ -f /tmp/luci_context.json ]]; then
+  chmod 644 /tmp/luci_context.json
+fi
+
 export HOSTNAME=${HOSTNAME:-$(curl --header "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/hostname)}
 
 # Setup PREEMPTIBLE flag based on hostname.
