@@ -20,6 +20,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import fuzzer_stats
 from handlers import base_handler
+from libs import access
 from libs import handler
 from libs import helpers
 
@@ -47,8 +48,8 @@ def _get_project_report_url(job, date):
   return info.html_report_url
 
 
-def get_report_url(report_type, argument, date):
-  """Get report url for a redirect from the coverage report handler."""
+def _validate_args(report_type, argument, date):
+  """Validate request arguments and return the job name."""
   # It's very easy to add support for per fuzzer reports, but we don't need it.
   if report_type != 'job':
     raise helpers.EarlyExitError('Invalid report type.', 400)
@@ -63,6 +64,12 @@ def get_report_url(report_type, argument, date):
   if not date or not VALID_DATE_REGEX.match(date):
     raise helpers.EarlyExitError('Invalid date.', 400)
 
+  return job
+
+
+def get_report_url(report_type, argument, date):
+  """Get report url for a redirect from the coverage report handler."""
+  job = _validate_args(report_type, argument, date)
   return _get_project_report_url(job, date)
 
 
@@ -74,7 +81,13 @@ class Handler(base_handler.Handler):
   @handler.oauth
   def get(self, report_type=None, argument=None, date=None, extra=None):
     """Handle a get request."""
-    report_url = get_report_url(report_type, argument, date)
+    job = _validate_args(report_type, argument, date)
+
+    if not access.has_access(job_type=job):
+      raise helpers.AccessDeniedError(
+          "You don't have access to this coverage report.")
+
+    report_url = _get_project_report_url(job, date)
     if report_url:
       return self.redirect(report_url)
     raise helpers.EarlyExitError('Failed to get coverage report.', 400)
