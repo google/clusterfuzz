@@ -28,7 +28,6 @@ from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -410,17 +409,14 @@ class UploadHandlerCommon:
       helpers.log(f'User {email} does not have access', helpers.VIEW_OPERATION)
       raise helpers.AccessDeniedError()
 
-    # Chrome is the only ClusterFuzz deployment where there are trusted bots
-    # running utasks. This check also fails on oss-fuzz because of the way it
-    # abuses platform.
-    if (not trusted_agreement_signed and utils.is_chromium() and
-        task_utils.is_remotely_executing_utasks() and
-        ((platform_id and platform_id != 'Linux') or
-         job.platform.lower() != 'linux')):
-      # Trusted agreement was not signed even though the job has privileges and
-      # there are other jobs that don't have privileges.
-      raise helpers.EarlyExitError(
-          'Sign the trusted job statement or upload to a trusted job.', 400)
+    # Ensure the job supports untrusted workloads if the uploader hasn't signed
+    # a trusted agreement.
+    if not trusted_agreement_signed:
+      try:
+        data_handler.check_job_supports_untrusted_workloads(
+            job_type, platform_id)
+      except ValueError as e:
+        raise helpers.EarlyExitError(str(e), 400)
 
     crash_data = None
     if job.is_external():

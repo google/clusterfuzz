@@ -173,8 +173,9 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     jobs = request.get('jobs', [])
     timeout = self._get_integer_value('timeout')
     max_testcases = self._get_integer_value('max_testcases')
-    external_contribution = request.get('external_contribution', False)
-    differential = request.get('differential', False)
+    external_contribution = bool(request.get('external_contribution', False))
+    trusted = bool(request.get('trusted', False))
+    differential = bool(request.get('differential', False))
     environment_string = request.get('additional_environment_string')
     data_bundle_name = request.get('data_bundle_name')
 
@@ -192,8 +193,9 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     fuzzer.result = None
     fuzzer.sample_testcase = None
     fuzzer.console_output = None
-    fuzzer.external_contribution = bool(external_contribution)
-    fuzzer.differential = bool(differential)
+    fuzzer.external_contribution = external_contribution
+    fuzzer.trusted = trusted
+    fuzzer.differential = differential
     fuzzer.additional_environment_string = environment_string
     fuzzer.timestamp = datetime.datetime.now(tz=datetime.timezone.utc).replace(
         tzinfo=None)
@@ -207,6 +209,13 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     # launcher script.
     if launcher_script:
       fuzzer.launcher_script = launcher_script
+
+    if not fuzzer.trusted:
+      for job_name in jobs:
+        try:
+          data_handler.check_job_supports_untrusted_workloads(job_name)
+        except ValueError as e:
+          raise helpers.EarlyExitError(str(e), 400)
 
     fuzzer.put()
 

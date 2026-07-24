@@ -35,6 +35,7 @@ from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -1209,6 +1210,37 @@ def bot_run_timed_out():
 # ------------------------------------------------------------------------------
 # Job database related functions
 # ------------------------------------------------------------------------------
+
+
+def check_job_supports_untrusted_workloads(job_name: str,
+                                           platform_id: str = None) -> None:
+  """Checks that the named job can run untrusted testcases or fuzzers.
+
+  Raises:
+    ValueError: if the job can run on privileged bots and should never run
+      an untrusted workload.
+  """
+  job = data_types.Job.query(data_types.Job.name == job_name).get()
+  if not job:
+    raise ValueError(f'Job "{job_name}" not found.')
+
+  # 1. This restriction is currently specific to Chromium deployments.
+  if not utils.is_chromium():
+    return
+
+  # 2. It only applies when running with Remote Utasks (e.g., GCP Batch),
+  # where privilege separation (tworkers vs uworkers) is enforced.
+  if not task_utils.is_remotely_executing_utasks():
+    return
+
+  # 3. In remote mode, unprivileged uworkers (where untrusted code must run)
+  # are implemented as Linux containers. Thus, non-Linux jobs cannot support
+  # untrusted workloads in this setup.
+
+  if (platform_id or job.platform).lower() != 'linux':
+    raise ValueError(
+        f'Job "{job_name}" does not support running untrusted workloads. '
+        'Untrusted workloads on Chrome are only supported on Linux.')
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))

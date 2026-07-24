@@ -125,6 +125,8 @@ class EditHandlerTest(unittest.TestCase):
         'handlers.fuzzers.EditHandler.get_upload',
         'handlers.fuzzers.EditHandler._get_executable_path',
         'handlers.fuzzers.EditHandler._get_launcher_script',
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
     ])
     self.mock.has_access.return_value = True
     self.mock.get_current_user().email = 'editor@example.com'
@@ -134,6 +136,8 @@ class EditHandlerTest(unittest.TestCase):
 
     self.mock._get_executable_path.return_value = 'executable'
     self.mock._get_launcher_script.return_value = 'launcher'
+    self.mock.is_chromium.return_value = True
+    self.mock.is_remotely_executing_utasks.return_value = True
 
     self.mock_time = datetime.datetime(2026, 1, 1, tzinfo=None)
     self.mock.datetime.datetime.now.return_value = self.mock_time
@@ -179,6 +183,7 @@ class EditHandlerTest(unittest.TestCase):
             'additional_environment_string': 'args=123',
             'data_bundle_name': 'test_bundle',
             'external_contribution': True,
+            'trusted': False,
             'executable_path': 'executable',
             'last_edited_by': 'editor@example.com',
             'launcher_script': 'launcher',
@@ -188,3 +193,70 @@ class EditHandlerTest(unittest.TestCase):
             'source': 'original@example.com',
             'timeout': 30,
         })
+
+  def test_update_fuzzer_untrusted_success(self):
+    """Test updating a fuzzer to untrusted with a Linux job succeeds."""
+    # Create a Linux job.
+    job = data_types.Job(name='linux_job', platform='LINUX')
+    job.put()
+
+    fuzzer_name = 'test_fuzzer'
+    fuzzer = data_types.Fuzzer(
+        name=fuzzer_name,
+        jobs=[],
+        revision=1,
+        source='original@example.com',
+        timeout=10,
+        trusted=True,
+    )
+    fuzzer.put()
+
+    request_payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': fuzzer.key.id(),
+        'name': fuzzer_name,
+        'trusted': False,
+        'jobs': ['linux_job'],
+    }
+
+    resp = self.app.post_json('/fuzzers/edit', request_payload)
+    self.assertEqual(302, resp.status_int)  # Redirects to /fuzzers
+
+    fuzzer = fuzzer.key.get()
+    self.assertFalse(fuzzer.trusted)
+    self.assertEqual(fuzzer.jobs, ['linux_job'])
+
+  def test_update_fuzzer_untrusted_failure_non_linux(self):
+    """Test updating a fuzzer to untrusted with a non-Linux job fails."""
+    # Create a Windows job.
+    job = data_types.Job(name='windows_job', platform='WINDOWS')
+    job.put()
+
+    fuzzer_name = 'test_fuzzer'
+    fuzzer = data_types.Fuzzer(
+        name=fuzzer_name,
+        jobs=[],
+        revision=1,
+        source='original@example.com',
+        timeout=10,
+        trusted=True,
+    )
+    fuzzer.put()
+
+    request_payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': fuzzer.key.id(),
+        'name': fuzzer_name,
+        'trusted': False,
+        'jobs': ['windows_job'],
+    }
+
+    resp = self.app.post_json(
+        '/fuzzers/edit', request_payload, expect_errors=True)
+    self.assertEqual(400, resp.status_int)
+    self.assertIn('does not support running untrusted workloads',
+                  resp.normal_body.decode())
+
+    # Verify fuzzer was not updated (remained trusted).
+    fuzzer = fuzzer.key.get()
+    self.assertTrue(fuzzer.trusted)
