@@ -15,6 +15,7 @@
 
 import base64
 import collections
+import dataclasses
 import datetime
 import os
 import re
@@ -354,6 +355,65 @@ class Crash(
   """Represents a crash in a queue. This class is transformed into
     fuzz_task.Crash. Therefore, please be careful when adding/removing
     fields."""
+
+
+@dataclasses.dataclass
+class FuzzerRunOutputData:
+  """Output metadata for a single fuzzer run stored in memory or a temp file."""
+  _output: str | bytes | None = None
+  _file_path: str | None = None
+  crash_path: str | None = None
+  return_code: int = 0
+  log_time: datetime.datetime | None = None
+
+  @classmethod
+  def from_file_path(cls,
+                     file_path: str,
+                     crash_path: str | None = None,
+                     return_code: int = 0,
+                     log_time: datetime.datetime | None = None):
+    return cls(
+        _file_path=file_path,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+
+  @classmethod
+  def from_memory(cls,
+                  output: str | bytes,
+                  crash_path: str | None = None,
+                  return_code: int = 0,
+                  log_time: datetime.datetime | None = None):
+    return cls(
+        _output=output,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+
+  def get_output(self) -> str | None:
+    """Reads or decodes the fuzzer output text."""
+    if self._file_path:
+      if not os.path.exists(self._file_path):
+        return None
+      output = utils.read_data_from_file_and_remove(
+          self._file_path, eval_data=False)
+      return None if output is None else output.decode(
+          'utf-8', errors='replace')
+
+    if not self._output:
+      return None
+
+    if isinstance(self._output, bytes):
+      return self._output.decode('utf-8', errors='replace')
+
+    return self._output
+
+
+@dataclasses.dataclass
+class TestcaseRunResult:
+  """Result of a testcase execution queued for processing."""
+  crash: Crash | None = None
+  fuzzer_run_output_data: FuzzerRunOutputData | None = None
 
 
 def get_resource_paths(output):
