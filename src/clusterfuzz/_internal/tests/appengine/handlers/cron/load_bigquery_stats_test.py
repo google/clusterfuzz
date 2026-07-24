@@ -48,10 +48,8 @@ class LoadBigQueryStatsTest(unittest.TestCase):
         },
     }
 
-  def test_execute(self):
-    """Tests executing of cron job."""
-    load_bigquery_stats.main()
-
+  def _assert_load_calls(self, expected_date_str):
+    """Helper method to assert BigQuery dataset, table, and load job API calls."""
     self.mock_bigquery.datasets().insert.assert_has_calls([
         mock.call(
             projectId='test-clusterfuzz',
@@ -108,7 +106,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                           'load': {
                               'destinationTable': {
                                   'projectId': 'test-clusterfuzz',
-                                  'tableId': 'JobRun$20160907',
+                                  'tableId': f'JobRun${expected_date_str}',
                                   'datasetId': 'fuzzer_stats'
                               },
                               'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
@@ -117,7 +115,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                                   if i == 0 else 'WRITE_APPEND',
                               'sourceUris': [
                                   'gs://test-bigquery-bucket/fuzzer/JobRun/date/'
-                                  '20160907/' + prefix + '*.json'
+                                  f'{expected_date_str}/' + prefix + '*.json'
                               ],
                               'sourceFormat':
                                   'NEWLINE_DELIMITED_JSON',
@@ -209,9 +207,12 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                       'configuration': {
                           'load': {
                               'destinationTable': {
-                                  'projectId': 'test-clusterfuzz',
-                                  'tableId': 'TestcaseRun$20160907',
-                                  'datasetId': 'fuzzer_stats'
+                                  'projectId':
+                                      'test-clusterfuzz',
+                                  'tableId':
+                                      f'TestcaseRun${expected_date_str}',
+                                  'datasetId':
+                                      'fuzzer_stats'
                               },
                               'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
                               'writeDisposition':
@@ -219,7 +220,8 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                                   if i == 0 else 'WRITE_APPEND',
                               'sourceUris': [
                                   'gs://test-bigquery-bucket/fuzzer/TestcaseRun/'
-                                  'date/20160907/' + prefix + '*.json'
+                                  f'date/{expected_date_str}/' + prefix +
+                                  '*.json'
                               ],
                               'sourceFormat':
                                   'NEWLINE_DELIMITED_JSON',
@@ -234,3 +236,13 @@ class LoadBigQueryStatsTest(unittest.TestCase):
           # Otherwise we need to mock two calls to mock.call().execute().__str__()
           # which does not seem to work well.
           any_order=True)
+
+  def test_execute(self):
+    """Tests executing of cron job."""
+    load_bigquery_stats.main()
+    self._assert_load_calls('20160907')
+
+  def test_execute_with_date(self):
+    """Tests executing of cron job with an explicit date."""
+    load_bigquery_stats.main(['--date', '2016-10-15'])
+    self._assert_load_calls('20161015')

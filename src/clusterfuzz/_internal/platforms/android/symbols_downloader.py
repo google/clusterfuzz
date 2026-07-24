@@ -196,13 +196,22 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
 
   branch = 'polygon-trusty-whitechapel-master'
   if not bid:
-    bid = fetch_artifact.get_latest_artifact_info(branch, ab_target)['bid']
+    build_info = fetch_artifact.get_latest_artifact_info(branch, ab_target)
+    if not build_info:
+      logs.error(f'Unable to fetch build info for branch {branch} '
+                 f'and target {ab_target}.')
+      return
+    bid = build_info['bid']
 
   artifact_filename = f'{ab_target}-{bid}.syms.zip'
   symbols_archive_path = os.path.join(symbols_directory, artifact_filename)
 
   download_artifact_if_needed(bid, symbols_directory, symbols_archive_path,
                               [ab_target], artifact_filename, None)
+
+  if not os.path.exists(symbols_archive_path):
+    logs.error(f'Unable to locate symbols archive {symbols_archive_path}.')
+    return
 
   with zipfile.ZipFile(symbols_archive_path, 'r') as symbols_zipfile:
     for filepath in symbols_zipfile.namelist():
