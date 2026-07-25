@@ -161,6 +161,37 @@ class CrashQueryTest(unittest.TestCase):
         'security': True,
     }, response.json)
 
+  def test_duplicate_not_disclosed_without_project_access(self):
+    """A non-security-flagged duplicate belonging to a project the caller
+    has no relationship to is not disclosed either. find_testcase only
+    filters by project name and crash signature, so without this check any
+    authenticated user could learn about (and get the bug_id for) another
+    project's testcases just by guessing/knowing its project name and crash
+    signature."""
+    self.mock.can_user_access_testcase.return_value = False
+    t = data_types.Testcase(
+        open=True,
+        status='Processed',
+        crash_state='Foo\nBar\nMain\n',
+        crash_type='Heap-buffer-overflow\nWRITE 4',
+        project_name='someone-elses-project',
+        security_flag=False,
+        bug_information='1337')
+    t.put()
+
+    response = self.app.post_json(
+        '/', {
+            'project': 'someone-elses-project',
+            'fuzz_target': 'target',
+            'stacktrace': TEST_STACKTRACE_OVERFLOW,
+        })
+    self.assertEqual({
+        'result': 'new',
+        'type': 'Heap-buffer-overflow\nWRITE 4',
+        'state': 'Foo\nBar\nMain\n',
+        'security': True,
+    }, response.json)
+
   def test_oom(self):
     """Test OOM parsing."""
     response = self.app.post_json(
