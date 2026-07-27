@@ -21,6 +21,7 @@ import os
 import queue
 import random
 import re
+import threading
 import time
 from typing import Any
 from typing import Dict
@@ -412,11 +413,13 @@ def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
 class _TrackFuzzTime:
   """Track the actual fuzzing time (e.g. excluding preparing binary)."""
   _active_trackers = set()
+  _lock = threading.Lock()
   _callback_registered = False
 
   @classmethod
   def get_active_trackers(cls):
-    return cls._active_trackers
+    with cls._lock:
+      return list(cls._active_trackers)
 
   @classmethod
   def _preemption_callback(cls):
@@ -455,11 +458,13 @@ class _TrackFuzzTime:
 
     self.start_time = self.time.time()
     self.timeout = False
-    self._active_trackers.add(self)
+    with self._lock:
+      self._active_trackers.add(self)
     return self
 
   def __exit__(self, exc_type, value, traceback):
-    self._active_trackers.discard(self)
+    with self._lock:
+      self._active_trackers.discard(self)
 
     duration = self.time.time() - self.start_time
     monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
@@ -2267,7 +2272,6 @@ def _pick_fuzz_target():
   if not environment.is_engine_fuzzer_job():
     logs.info('Not engine fuzzer. Not picking fuzz target.')
     return None
-
 
   logs.info('Picking fuzz target.')
   target_weights = fuzzer_selection.get_fuzz_target_weights()
