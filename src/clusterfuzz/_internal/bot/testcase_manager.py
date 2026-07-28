@@ -359,7 +359,14 @@ class Crash(
 
 @dataclasses.dataclass
 class FuzzerRunOutputData:
-  """Output metadata for a single fuzzer run stored in memory or a temp file."""
+  """Output metadata for a single fuzzer run.
+
+  - This class should be constructed either via `from_file_path()` or
+  `from_output()` - directly using the constructor is not recommended.
+
+  - `_output` and `_file_path` are mutually exclusive (oneof); exactly one of
+    them should be set.
+  """
   _output: str | bytes | None = None
   _file_path: str | None = None
   crash_path: str | None = None

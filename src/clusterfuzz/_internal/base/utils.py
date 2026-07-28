@@ -690,7 +690,17 @@ def read_data_from_file(file_path, eval_data=True, default=None):
 
 
 def read_data_from_file_and_remove(file_path, eval_data=False, default=None):
-  """Reads file content and removes the file after read"""
+  """Reads file content and removes the file after reading.
+
+  Args:
+    file_path: Path to the file to read.
+    eval_data: Whether to evaluate file content as a Python literal.
+    default: Value to return if file is empty, missing, or unreadable.
+
+  Returns:
+    The file content (or evaluated object if eval_data is True), or `default`
+    if reading fails or file does not exist.
+  """
   if not file_path or not os.path.exists(file_path):
     return default
 
