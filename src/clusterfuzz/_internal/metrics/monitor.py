@@ -209,9 +209,8 @@ class _PreemptionPoller():
 
   def _poll_loop(self):
     """Polls GCP metadata for preemption status."""
-    metadata_url = ("http://metadata.google.internal/computeMetadata/v1/"
-                    "instance/preempted")
-    metadata_header = {"Metadata-Flavor": "Google"}
+    if not compute_metadata.is_gce():
+      return
 
     while True:
       should_stop = self._poller_thread_stop_event.wait(
@@ -219,15 +218,9 @@ class _PreemptionPoller():
       if should_stop:
         break
 
-      if not compute_metadata.is_gce():
-        continue
-
       try:
-        response = requests.get(
-            metadata_url, headers=metadata_header, timeout=5)
-        response.raise_for_status()
-
-        if response.text.strip().upper() == 'TRUE':
+        status = compute_metadata.get_preempted_status()
+        if status and status.strip().upper() == 'TRUE':
           logs.info('Preemption detected via metadata!')
           handle_sigterm(None, None)
           break
@@ -674,8 +667,9 @@ def initialize():
                                            FLUSH_INTERVAL_SECONDS)
     _monitoring_daemon.start()
 
-    _preemption_poller = _PreemptionPoller(PREEMPTION_CHECK_INTERVAL)
-    _preemption_poller.start()
+    if environment.get_value('PREEMPTIBLE'):
+      _preemption_poller = _PreemptionPoller(PREEMPTION_CHECK_INTERVAL)
+      _preemption_poller.start()
 
 
 def stop():
