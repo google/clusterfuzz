@@ -400,18 +400,16 @@ class FuzzerRunOutputData:
   def get_output(self) -> str | None:
     """Reads or decodes the fuzzer output text."""
     if self._file_path:
-      if not os.path.exists(self._file_path):
-        return None
       output = utils.read_data_from_file_and_remove(
           self._file_path, eval_data=False)
-      return None if output is None else output.decode(
-          'utf-8', errors='replace')
+      self._output = output if output is not None else None
+      self._file_path = None
 
-    if not self._output:
+    if self._output is None:
       return None
 
     if isinstance(self._output, bytes):
-      return self._output.decode('utf-8', errors='replace')
+      self._output = self._output.decode('utf-8', errors='replace')
 
     return self._output
 
