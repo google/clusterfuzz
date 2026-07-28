@@ -411,6 +411,23 @@ class _TrackFuzzTime:
   _active_trackers = set()
   _lock = threading.Lock()
   _callback_registered = False
+  _accumulated_wasted_time = 0
+  _session_fuzzer = None
+  _session_job = None
+
+  @classmethod
+  def reset_session(cls, fuzzer_name, job_type):
+    """Resets the accumulated time at the start of a session."""
+    with cls._lock:
+      cls._accumulated_wasted_time = 0
+      cls._session_fuzzer = fuzzer_name
+      cls._session_job = job_type
+
+  @classmethod
+  def add_wasted_time(cls, duration):
+    """Accumulates time from finished rounds."""
+    with cls._lock:
+      cls._accumulated_wasted_time += duration
 
   @classmethod
   def get_active_trackers(cls):
@@ -418,23 +435,12 @@ class _TrackFuzzTime:
       return list(cls._active_trackers)
 
   @classmethod
-  def _preemption_callback(cls):
-    """Callback to record wasted fuzzing time on preemption."""
-    logs.info('Running preemption callback to record wasted time.')
-    for tracker in cls.get_active_trackers():
-      duration = tracker.time.time() - tracker.start_time
-      logs.info(f'Recording {int(duration)} seconds of preempted time for '
-                f'{tracker.fuzzer_name} on {tracker.job_type}.')
-      tracker.record_metrics(duration, is_preempted=True)
-
-  def __init__(self, fuzzer_name, job_type, time_module=time):
-    self.fuzzer_name = fuzzer_name
-    self.job_type = job_type
-    self.time = time_module
-    self.start_time = None
-    self.timeout = None
-
-  def record_metrics(self, duration, is_preempted=False):
+  def record_metrics(cls,
+                     duration,
+                     fuzzer_name,
+                     job_type,
+                     timeout=None,
+                     is_preempted=False):
     """Helper to record metrics consistently."""
     common_labels = {
         'platform': environment.platform(),
@@ -445,22 +451,70 @@ class _TrackFuzzTime:
     if is_preempted:
       fuzzer_metric = monitoring_metrics.FUZZER_PREEMPTED_TOTAL_FUZZ_TIME
       job_metric = monitoring_metrics.JOB_PREEMPTED_TOTAL_FUZZ_TIME
-      fuzzer_labels = {**common_labels, 'fuzzer': self.fuzzer_name}
-      job_labels = {**common_labels, 'job': self.job_type}
+      fuzzer_labels = {**common_labels, 'fuzzer': fuzzer_name}
+      job_labels = {**common_labels, 'job': job_type}
     else:
       fuzzer_metric = monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME
       job_metric = monitoring_metrics.JOB_TOTAL_FUZZ_TIME
       fuzzer_labels = {
-          **common_labels, 'fuzzer': self.fuzzer_name,
-          'timeout': self.timeout
+          **common_labels, 'fuzzer': fuzzer_name,
+          'timeout': timeout
       }
-      job_labels = {
-          **common_labels, 'job': self.job_type,
-          'timeout': self.timeout
-      }
+      job_labels = {**common_labels, 'job': job_type, 'timeout': timeout}
 
     fuzzer_metric.increment_by(int(duration), fuzzer_labels)
     job_metric.increment_by(int(duration), job_labels)
+
+  @classmethod
+  def _preemption_callback(cls):
+    """Callback to record wasted fuzzing time on preemption."""
+    logs.info('Running preemption callback to record wasted time.')
+    with cls._lock:
+      active_trackers = list(cls._active_trackers)
+
+      if active_trackers:
+        for tracker in active_trackers:
+          tracker.preempted = True  # Mark to avoid double counting in __exit__
+
+          current_duration = tracker.time.time() - tracker.start_time
+          total_wasted = cls._accumulated_wasted_time + current_duration
+
+          logs.info(f'Recording {int(current_duration)}s of total time and '
+                    f'{int(total_wasted)}s of preempted time for '
+                    f'{tracker.fuzzer_name}.')
+
+          # Emit current duration to total_time to fix subtraction math
+          cls.record_metrics(
+              current_duration,
+              tracker.fuzzer_name,
+              tracker.job_type,
+              tracker.timeout,
+              is_preempted=False)
+
+          # Emit total wasted to preempted_total_time
+          cls.record_metrics(
+              total_wasted,
+              tracker.fuzzer_name,
+              tracker.job_type,
+              is_preempted=True)
+      else:
+        if cls._session_fuzzer and cls._session_job:
+          total_wasted = cls._accumulated_wasted_time
+          logs.info(f'Recording {int(total_wasted)}s of preempted time '
+                    f'(between rounds) for {cls._session_fuzzer}.')
+          cls.record_metrics(
+              total_wasted,
+              cls._session_fuzzer,
+              cls._session_job,
+              is_preempted=True)
+
+  def __init__(self, fuzzer_name, job_type, time_module=time):
+    self.fuzzer_name = fuzzer_name
+    self.job_type = job_type
+    self.time = time_module
+    self.start_time = None
+    self.timeout = None
+    self.preempted = False
 
   def __enter__(self):
     if not _TrackFuzzTime._callback_registered:
@@ -478,7 +532,17 @@ class _TrackFuzzTime:
       self._active_trackers.discard(self)
 
     duration = self.time.time() - self.start_time
-    self.record_metrics(duration, is_preempted=False)
+    if not self.preempted:
+      _TrackFuzzTime.record_metrics(
+          duration,
+          self.fuzzer_name,
+          self.job_type,
+          self.timeout,
+          is_preempted=False)
+      _TrackFuzzTime.add_wasted_time(duration)
+    else:
+      logs.info(f'Skipping __exit__ metric emission for {self.fuzzer_name} '
+                'as it was already handled by preemption callback.')
 
 
 def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
@@ -1675,6 +1739,9 @@ class FuzzingSession:
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
+    _TrackFuzzTime.reset_session(self.fully_qualified_fuzzer_name,
+                                 self.job_type)
+
     environment.set_value('FUZZER_NAME',
                           self.fuzz_target.fully_qualified_name())
 
@@ -1775,7 +1842,10 @@ class FuzzingSession:
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
+    _TrackFuzzTime.reset_session(self.fully_qualified_fuzzer_name, job_type)
+
     # Set the thread timeout values.
+
     # TODO(ochang): Remove this hack once engine fuzzing refactor is complete.
     fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
     if fuzz_test_timeout:
