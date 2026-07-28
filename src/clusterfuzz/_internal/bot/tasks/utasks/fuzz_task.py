@@ -425,20 +425,7 @@ class _TrackFuzzTime:
       duration = tracker.time.time() - tracker.start_time
       logs.info(f'Recording {int(duration)} seconds of preempted time for '
                 f'{tracker.fuzzer_name} on {tracker.job_type}.')
-      monitoring_metrics.FUZZER_PREEMPTED_TOTAL_FUZZ_TIME.increment_by(
-          int(duration), {
-              'fuzzer': tracker.fuzzer_name,
-              'platform': environment.platform(),
-              'is_batch': environment.is_uworker(),
-              'runtime': environment.get_runtime().value,
-          })
-      monitoring_metrics.JOB_PREEMPTED_TOTAL_FUZZ_TIME.increment_by(
-          int(duration), {
-              'job': tracker.job_type,
-              'platform': environment.platform(),
-              'is_batch': environment.is_uworker(),
-              'runtime': environment.get_runtime().value,
-          })
+      tracker.record_metrics(duration, is_preempted=True)
 
   def __init__(self, fuzzer_name, job_type, time_module=time):
     self.fuzzer_name = fuzzer_name
@@ -446,6 +433,34 @@ class _TrackFuzzTime:
     self.time = time_module
     self.start_time = None
     self.timeout = None
+
+  def record_metrics(self, duration, is_preempted=False):
+    """Helper to record metrics consistently."""
+    common_labels = {
+        'platform': environment.platform(),
+        'is_batch': environment.is_uworker(),
+        'runtime': environment.get_runtime().value,
+    }
+
+    if is_preempted:
+      fuzzer_metric = monitoring_metrics.FUZZER_PREEMPTED_TOTAL_FUZZ_TIME
+      job_metric = monitoring_metrics.JOB_PREEMPTED_TOTAL_FUZZ_TIME
+      fuzzer_labels = {**common_labels, 'fuzzer': self.fuzzer_name}
+      job_labels = {**common_labels, 'job': self.job_type}
+    else:
+      fuzzer_metric = monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME
+      job_metric = monitoring_metrics.JOB_TOTAL_FUZZ_TIME
+      fuzzer_labels = {
+          **common_labels, 'fuzzer': self.fuzzer_name,
+          'timeout': self.timeout
+      }
+      job_labels = {
+          **common_labels, 'job': self.job_type,
+          'timeout': self.timeout
+      }
+
+    fuzzer_metric.increment_by(int(duration), fuzzer_labels)
+    job_metric.increment_by(int(duration), job_labels)
 
   def __enter__(self):
     if not _TrackFuzzTime._callback_registered:
@@ -463,22 +478,7 @@ class _TrackFuzzTime:
       self._active_trackers.discard(self)
 
     duration = self.time.time() - self.start_time
-    monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
-        int(duration), {
-            'fuzzer': self.fuzzer_name,
-            'timeout': self.timeout,
-            'platform': environment.platform(),
-            'is_batch': environment.is_uworker(),
-            'runtime': environment.get_runtime().value,
-        })
-    monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
-        int(duration), {
-            'job': self.job_type,
-            'timeout': self.timeout,
-            'platform': environment.platform(),
-            'is_batch': environment.is_uworker(),
-            'runtime': environment.get_runtime().value
-        })
+    self.record_metrics(duration, is_preempted=False)
 
 
 def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
