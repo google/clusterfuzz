@@ -1740,8 +1740,9 @@ class FuzzingSession:
               'platform': environment.platform(),
           })
 
-  def _drain_temp_queue(self, temp_queue: queue.Queue,
-                        crashes: list[testcase_manager.Crash]) -> None:
+  def _add_crashes_from_temp_queue(
+      self, temp_queue: queue.Queue,
+      crashes: list[testcase_manager.Crash]) -> None:
     """Pops items from temp_queue and processes crashes and run outputs."""
     while not temp_queue.empty():
       result: testcase_manager.TestcaseRunResult = temp_queue.get()
@@ -1895,7 +1896,7 @@ class FuzzingSession:
         process_handler.terminate_stale_application_instances()
         needs_stale_process_cleanup = False
 
-      self._drain_temp_queue(temp_queue, crashes)
+      self._add_crashes_from_temp_queue(temp_queue, crashes)
       process_handler.close_queue(temp_queue)
       logs.info(f'Upto {test_number}')
       if thread_error_occurred:

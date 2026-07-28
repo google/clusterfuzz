@@ -905,7 +905,11 @@ class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
     self.mock.get_crash_data.return_value = mock_unsymbolized_info
 
     testcase_manager.run_testcase_and_return_result_in_queue(
-        crash_queue, 0, '/testcase', [], {})
+        crash_queue=crash_queue,
+        thread_index=0,
+        file_path='/testcase',
+        gestures=[],
+        env_copy={})
 
     self.assertEqual(0, self.mock.error.call_count,
                      f'Unexpected error: {self.mock.error.call_args_list}')
@@ -938,7 +942,11 @@ class RunTestcaseAndReturnResultInQueueTest(fake_filesystem_unittest.TestCase):
     self.mock.get_crash_data.return_value = mock_unsymbolized_info
 
     testcase_manager.run_testcase_and_return_result_in_queue(
-        crash_queue, 0, '/testcase', [], {})
+        crash_queue=crash_queue,
+        thread_index=0,
+        file_path='/testcase',
+        gestures=[],
+        env_copy={})
 
     self.assertEqual(0, self.mock.error.call_count,
                      f'Unexpected error: {self.mock.error.call_args_list}')

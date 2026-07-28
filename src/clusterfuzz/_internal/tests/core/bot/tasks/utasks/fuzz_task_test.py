@@ -1362,8 +1362,9 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     session.do_blackbox_fuzzing(fuzzer, '/fake-fuzz-dir', 'asan_test')
 
     self.assertEqual(2, mock_thread_cls.call_count)
-    for _, kwargs in mock_thread_cls.call_args_list:
-      self.assertEqual(5, len(kwargs['args']))
+    for i, call in enumerate(mock_thread_cls.call_args_list):
+      _, _, file_path, _, _ = call.kwargs['args']
+      self.assertEqual(file_path, expected_testcase_file_paths[i])
 
   @mock.patch(
       'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
@@ -1411,115 +1412,101 @@ class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     """Setup for blackbox fuzzing deferred logging test."""
     helpers.patch_environ(self)
+    test_utils.set_up_pyfakefs(self)
+    os.environ['BOT_TMPDIR'] = '/tmp'
+    os.environ['CRASH_STACKTRACES_DIR'] = '/crash'
+    os.environ['ROOT_DIR'] = '/root'
+    self.fs.create_dir('/crash')
+    self.fs.create_dir('/root/bot/logs')
+
+  def _run_blackbox_fuzzing_session(self):
+    """Helper to set up mocks and execute do_blackbox_fuzzing."""
     helpers.patch(self, [
-        'clusterfuzz._internal.base.utils.random_element_from_list',
-        'clusterfuzz._internal.base.utils.random_number',
-        'clusterfuzz._internal.bot.fuzzers.engine_common.current_timestamp',
-        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task_knobs.pick_gestures',
-        'clusterfuzz._internal.bot.testcase_manager.upload_log',
-        'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
-        'clusterfuzz._internal.build_management.revisions.get_component_list',
-        'clusterfuzz._internal.crash_analysis.crash_analyzer.is_crash',
-        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
-        'clusterfuzz._internal.datastore.ndb_init.context',
         'clusterfuzz._internal.bot.tasks.trials.Trials',
-        'random.random',
+        'clusterfuzz._internal.build_management.revisions.get_component_list',
+        'clusterfuzz._internal.bot.testcase_manager.run_testcase_and_return_result_in_queue',
         'clusterfuzz._internal.system.process_handler.close_queue',
         'clusterfuzz._internal.system.process_handler.get_process',
         'clusterfuzz._internal.system.process_handler.get_queue',
-        'clusterfuzz._internal.system.process_handler.run_process',
         'clusterfuzz._internal.system.process_handler.terminate_hung_threads',
         'clusterfuzz._internal.system.process_handler.'
         'terminate_stale_application_instances',
     ])
 
-    os.environ['APP_ARGS'] = '-x'
-    os.environ['APP_DIR'] = '/app'
-    os.environ['APP_NAME'] = 'app_1'
-    os.environ['APP_PATH'] = '/app/app_1'
-    os.environ['BOT_TMPDIR'] = '/tmp'
-    os.environ['CRASH_STACKTRACES_DIR'] = '/crash'
-    os.environ['ENABLE_GESTURES'] = 'False'
-    os.environ['FAIL_RETRIES'] = '1'
-    os.environ['FUZZER_DIR'] = '/fuzzer'
-    os.environ['INPUT_DIR'] = '/input'
     os.environ['JOB_NAME'] = 'asan_test'
     os.environ['MAX_FUZZ_THREADS'] = '1'
-    os.environ['MAX_TESTCASES'] = '2'
-    os.environ['ROOT_DIR'] = '/root'
-    os.environ['THREAD_ALIVE_CHECK_INTERVAL'] = '0.001'
     os.environ['THREAD_DELAY'] = '0.001'
-    os.environ['USER_PROFILE_IN_MEMORY'] = 'True'
+    os.environ['THREAD_ALIVE_CHECK_INTERVAL'] = '0.001'
 
-    test_utils.set_up_pyfakefs(self)
-    self.fs.create_dir('/crash')
-    self.fs.create_dir('/root/bot/logs')
     self.fs.create_file('/tests/0', contents='testcase_0_bytes')
     self.fs.create_file('/tests/1', contents='testcase_1_bytes')
 
-    self.mock.random_element_from_list.return_value = 2.0
-    self.mock.random_number.side_effect = [0, 0, 3]
-    self.mock.random.side_effect = [0.3, 0.3]
-    self.mock.pick_gestures.return_value = []
+    now = datetime.datetime(2026, 7, 10)
+
+    def mock_run_testcase(crash_queue, *_unused_args, **_unused_kwargs):
+      crash_queue.put(
+          testcase_manager.TestcaseRunResult(
+              crash=testcase_manager.Crash(
+                  file_path='/tests/0',
+                  crash_time=1,
+                  return_code=1,
+                  resource_list=[],
+                  gestures=[],
+                  stack_file_path='/stack'),
+              fuzzer_run_output_data=testcase_manager.FuzzerRunOutputData.
+              from_memory(
+                  output=b'unsymbolized_stacktrace',
+                  crash_path='/tests/0',
+                  log_time=now)))
+      crash_queue.put(
+          testcase_manager.TestcaseRunResult(
+              crash=None,
+              fuzzer_run_output_data=testcase_manager.FuzzerRunOutputData.
+              from_memory(output=b'unsymbolized_stacktrace', log_time=now)))
+
+    self.mock.run_testcase_and_return_result_in_queue.side_effect = mock_run_testcase
     self.mock.get_component_list.return_value = [{
         'component': 'component',
         'link_text': 'rev',
     }]
-    self.mock.current_timestamp.return_value = 0.0
-    self.mock.run_process.return_value = (0, 0, 'raw_output')
-    self.mock.is_crash.side_effect = [True, False]
-
-    mock_unsymbolized_info = mock.MagicMock()
-    mock_unsymbolized_info.crash_stacktrace = 'unsymbolized_stacktrace'
-    self.mock.get_crash_data.return_value = mock_unsymbolized_info
-
     self.mock.get_queue.return_value = queue.Queue()
-    self.mock.get_process.return_value = threading.Thread
 
-  def test_do_blackbox_fuzzing_packaging(self):
-    """Verify that do_blackbox_fuzzing invokes run_testcase_and_return_result_in_queue
-    and correctly packages raw logs into fuzzer_run_outputs."""
     uworker_input = uworker_msg_pb2.Input(
         fuzzer_name='fantasy_fuzz',
         job_type='asan_test',
         fuzz_task_input=uworker_msg_pb2.FuzzTaskInput())
 
     session = fuzz_task.FuzzingSession(uworker_input, 10)
-    session.generate_blackbox_testcases = mock.MagicMock()
     expected_testcase_file_paths = ['/tests/0', '/tests/1']
-    session.generate_blackbox_testcases.return_value = (
-        fuzz_task.GenerateBlackboxTestcasesResult(
+    session.generate_blackbox_testcases = mock.MagicMock(
+        return_value=fuzz_task.GenerateBlackboxTestcasesResult(
             True, expected_testcase_file_paths,
             {'fuzzer_binary_name': 'fantasy_fuzz'}))
 
-    fuzzer = data_types.Fuzzer()
-    fuzzer.name = 'fantasy_fuzz'
+    fuzzer = data_types.Fuzzer(name='fantasy_fuzz')
 
     mock_thread_cls = mock.MagicMock(wraps=threading.Thread)
     self.mock.get_process.return_value = mock_thread_cls
 
     session.do_blackbox_fuzzing(fuzzer, '/fake-fuzz-dir', 'asan_test')
+    return session
 
-    self.assertEqual(2, mock_thread_cls.call_count)
-    for _, kwargs in mock_thread_cls.call_args_list:
-      self.assertEqual(
-          5, len(kwargs['args']),
-          'run_testcase_and_return_result_in_queue must take 5 positional args')
-
-    # Verify fuzzer_run_outputs packaged in fuzz_task_output.
+  def test_do_blackbox_fuzzing_packages_crashed_testcase(self):
+    """Verify do_blackbox_fuzzing records stacktrace and bytes for crashing testcases."""
+    session = self._run_blackbox_fuzzing_session()
     fuzzer_run_outputs = session.fuzz_task_output.fuzzer_run_outputs
-    self.assertEqual(2, len(fuzzer_run_outputs))
-
-    # First testcase crashed (/tests/0).
     self.assertEqual(b'unsymbolized_stacktrace', fuzzer_run_outputs[0].output)
     self.assertEqual(b'testcase_0_bytes', fuzzer_run_outputs[0].testcase)
 
-    # Second testcase did not crash (/tests/1).
+  def test_do_blackbox_fuzzing_packages_non_crashed_testcase(self):
+    """Verify do_blackbox_fuzzing records stacktrace with empty bytes for non-crashing testcases."""
+    session = self._run_blackbox_fuzzing_session()
+    fuzzer_run_outputs = session.fuzz_task_output.fuzzer_run_outputs
     self.assertEqual(b'unsymbolized_stacktrace', fuzzer_run_outputs[1].output)
     self.assertEqual(b'', fuzzer_run_outputs[1].testcase)
 
-  def test_drain_temp_queue(self):
-    """Verify _drain_temp_queue unpacks tuples correctly and reads log files."""
+  def test_add_crashes_from_temp_queue(self):
+    """Verify _add_crashes_from_temp_queue unpacks tuples correctly and reads log files."""
     uworker_input = uworker_msg_pb2.Input(
         fuzzer_name='fantasy_fuzz',
         job_type='asan_test',
@@ -1529,7 +1516,13 @@ class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
     self.fs.create_file('/tmp/trace.log', contents='output_trace')
 
     temp_queue = queue.Queue()
-    crash = testcase_manager.Crash('/test/crash', 1, 1, [], [], '/stack')
+    crash = testcase_manager.Crash(
+        file_path='/test/crash',
+        crash_time=1,
+        return_code=1,
+        resource_list=[],
+        gestures=[],
+        stack_file_path='/stack')
     fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData.from_file_path(
         file_path='/tmp/trace.log',
         crash_path='/test/crash',
@@ -1539,12 +1532,17 @@ class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
         testcase_manager.TestcaseRunResult(
             crash=crash, fuzzer_run_output_data=fuzzer_run_output_data))
 
-    standalone_crash = testcase_manager.Crash('/test/crash2', 1, 2, [], [],
-                                              '/stack2')
+    standalone_crash = testcase_manager.Crash(
+        file_path='/test/crash2',
+        crash_time=1,
+        return_code=2,
+        resource_list=[],
+        gestures=[],
+        stack_file_path='/stack2')
     temp_queue.put(testcase_manager.TestcaseRunResult(crash=standalone_crash))
 
     crashes = []
-    session._drain_temp_queue(temp_queue, crashes)
+    session._add_crashes_from_temp_queue(temp_queue, crashes)
 
     self.assertTrue(temp_queue.empty())
     self.assertFalse(os.path.exists('/tmp/trace.log'))
