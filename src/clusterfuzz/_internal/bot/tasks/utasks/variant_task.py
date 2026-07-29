@@ -59,7 +59,11 @@ def _get_variant_testcase_for_job(testcase, job_type):
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run a test case with a different job type to see if they reproduce."""
-  testcase = data_handler.get_testcase_by_id(testcase_id)
+  try:
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+  except errors.InvalidTestcaseError:
+    logs.warning(f'Testcase {testcase_id} no longer exists.')
+    return None
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     uworker_io.check_handling_testcase_safe(testcase)
 
@@ -226,7 +230,12 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  try:
+    testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  except errors.InvalidTestcaseError:
+    logs.warning(
+        f'Testcase {output.uworker_input.testcase_id} no longer exists.')
+    return
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
       _ERROR_HANDLER.handle(output)

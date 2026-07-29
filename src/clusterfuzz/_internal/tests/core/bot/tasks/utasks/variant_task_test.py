@@ -115,3 +115,9 @@ class UtaskPreprocessTest(unittest.TestCase):
         uworker_env={})
 
     self.assertIsNone(result)
+
+  def test_invalid_testcase(self):
+    """Test that an invalid testcase returns None and does not raise."""
+    result = variant_task.utask_preprocess(
+        testcase_id='999999', job_type='job_type', uworker_env={})
+    self.assertIsNone(result)
