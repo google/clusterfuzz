@@ -85,6 +85,13 @@ class RunCommandTest(unittest.TestCase):
         ('progression_utask_preprocess',
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_preprocess'
         ),
+        ('corpus_pruning_utask_main',
+         'clusterfuzz._internal.bot.tasks.utasks.corpus_pruning_task.utask_main'
+        ),
+        ('corpus_pruning_utask_preprocess',
+         'clusterfuzz._internal.bot.tasks.utasks.corpus_pruning_task.utask_preprocess'
+        ),
+        'clusterfuzz._internal.bot.tasks.commands.cleanup_task_state',
         'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
         'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
@@ -208,6 +215,55 @@ class RunCommandTest(unittest.TestCase):
         'status': 'started',
         'time': test_utils.CURRENT_TIME,
     }, task_status.to_dict())
+
+  def test_process_command_impl_short_circuit_deleted_testcase(self):
+    """Test process_command_impl short-circuits for non-existent testcase."""
+    job_name = 'job'
+    data_types.Job(name=job_name, platform='LINUX').put()
+
+    result = commands.process_command_impl(
+        task_name='progression',
+        task_argument='99999',
+        job_name=job_name,
+        high_end=False,
+        is_command_override=False)
+
+    self.assertIsNone(result)
+    self.assertEqual(0, self.mock.progression_utask_preprocess.call_count)
+
+  def test_process_command_impl_short_circuit_duplicate_testcase(self):
+    """Test process_command_impl short-circuits for a duplicate testcase."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.status = 'Duplicate'
+    testcase.put()
+    job_name = 'job'
+    data_types.Job(name=job_name, platform='LINUX').put()
+
+    result = commands.process_command_impl(
+        task_name='progression',
+        task_argument=str(testcase.key.id()),
+        job_name=job_name,
+        high_end=False,
+        is_command_override=False)
+
+    self.assertIsNone(result)
+    self.assertEqual(0, self.mock.progression_utask_preprocess.call_count)
+
+  def test_process_command_impl_corpus_pruning_not_short_circuited(self):
+    """Test process_command_impl does not short-circuit for corpus_pruning."""
+    job_name = 'job'
+    data_types.Job(name=job_name, platform='LINUX').put()
+    self.mock.corpus_pruning_utask_preprocess.return_value = (
+        uworker_msg_pb2.Input(job_type=job_name, fuzzer_name='libfuzzer_proj'))
+
+    commands.process_command_impl(
+        task_name='corpus_pruning',
+        task_argument='libfuzzer_proj',
+        job_name=job_name,
+        high_end=False,
+        is_command_override=False)
+
+    self.assertEqual(1, self.mock.corpus_pruning_utask_preprocess.call_count)
 
   def test_run_command_already_running_expired(self):
     """Test run_command with another instance currently running, but its lease
