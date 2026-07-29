@@ -57,6 +57,7 @@ class FuzzerTest(unittest.TestCase):
             'source': 'author',
             'last_edited_by': 'editor',
             'primary_owner': None,
+            'trusted': True,
         },
         config_dict,
     )
