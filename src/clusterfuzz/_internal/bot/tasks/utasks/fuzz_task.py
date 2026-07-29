@@ -2076,13 +2076,6 @@ class FuzzingSession:
     self.fuzz_task_output.crash_groups.extend(crash_groups)
 
     fuzzing_session_duration_seconds = time.time() - start_time
-    monitoring_metrics.FUZZING_SESSION_DURATION.add(
-        fuzzing_session_duration_seconds, {
-            'fuzzer': self.fuzzer_name,
-            'job': self.job_type,
-            'platform': environment.platform(),
-            'runtime': environment.get_runtime().value,
-        })
 
     self.fuzz_task_output.fuzzing_duration.FromTimedelta(
         datetime.timedelta(seconds=fuzzing_session_duration_seconds))
@@ -2369,6 +2362,17 @@ def _utask_postprocess(output):
   fuzzer_name = output.fuzz_task_output.fully_qualified_fuzzer_name
   for fuzzer_run_output in output.fuzz_task_output.fuzzer_run_outputs:
     _upload_fuzzer_run_output(fuzzer_run_output, fuzzer_name)
+
+  if output.fuzz_task_output.HasField('fuzzing_duration'):
+    fuzzing_session_duration_seconds = (
+        output.fuzz_task_output.fuzzing_duration.ToTimedelta().total_seconds())
+    monitoring_metrics.FUZZING_SESSION_DURATION.add(
+        fuzzing_session_duration_seconds, {
+            'fuzzer': output.uworker_input.fuzzer_name,
+            'job': output.uworker_input.job_type,
+            'platform': environment.platform(),
+            'runtime': environment.get_runtime().value,
+        })
 
 
 def utask_postprocess(output):
