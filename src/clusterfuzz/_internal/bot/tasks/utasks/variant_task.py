@@ -73,20 +73,29 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     # a different fuzzing engine.
     original_job_type = testcase.job_type
     testcase = _get_variant_testcase_for_job(testcase, job_type)
-    setup_input = setup.preprocess_setup_testcase(
-        testcase, uworker_env, with_deps=False)
-    variant_input = uworker_msg_pb2.VariantTaskInput(  # pylint: disable=no-member
-        original_job_type=original_job_type)
 
-    uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
-        job_type=job_type,
-        testcase=uworker_io.entity_to_protobuf(testcase),
-        uworker_env=uworker_env,
-        testcase_id=testcase_id,
-        variant_task_input=variant_input,
-        setup_input=setup_input,
-    )
-    testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+    try:
+      setup_input = setup.preprocess_setup_testcase(
+          testcase, uworker_env, with_deps=False)
+      variant_input = uworker_msg_pb2.VariantTaskInput(  # pylint: disable=no-member
+          original_job_type=original_job_type)
+
+      uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
+          job_type=job_type,
+          testcase=uworker_io.entity_to_protobuf(testcase),
+          uworker_env=uworker_env,
+          testcase_id=str(testcase_id),
+          variant_task_input=variant_input,
+          setup_input=setup_input,
+      )
+      testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+    except (testcase_manager.TargetNotFoundError,
+            errors.InvalidFuzzerError) as error:
+      logs.warning(
+          f'Fuzz target or fuzzer not found for variant job {job_type}: {error}'
+      )
+      return None
+
     return uworker_input
 
 
