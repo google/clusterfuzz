@@ -16,7 +16,6 @@
 from collections import namedtuple
 import contextlib
 import datetime
-import json
 import os
 import re
 import shutil
@@ -331,15 +330,14 @@ class BaseBuild:
 
 def _read_schema_version_from_manifest(build_dir: str) -> int:
   """Reads archive_schema_version from clusterfuzz_manifest.json."""
-  manifest_path = os.path.join(build_dir, 'clusterfuzz_manifest.json')
-  if not os.path.exists(manifest_path):
+  from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+  manifest = fuzzer_utils.read_chrome_manifest(build_dir)
+  if not manifest:
     return 0
   try:
-    with open(manifest_path) as f:
-      manifest = json.load(f)
     return int(manifest.get('archive_schema_version') or 0)
   except Exception as e:
-    logs.warning(f'Failed to read schema version from {manifest_path}: {e}')
+    logs.warning(f'Failed to read schema version from {build_dir}: {e}')
     return 0
 
 

@@ -328,21 +328,10 @@ class ChromeBuildArchive(DefaultBuildArchive):
           'archive_schema_version field')
       self._archive_schema_version = default_archive_schema_version
 
-    fuzz_target_paths = manifest.get('fuzz_targets')
-    if fuzz_target_paths is None:
-      return
-
-    if not isinstance(fuzz_target_paths, list):
-      logs.error('fuzz_targets in clusterfuzz_manifest.json is not a list')
-      return
-
-    self._manifest_fuzz_targets = []
-    for target_path in fuzz_target_paths:
-      if isinstance(target_path, str):
-        self._manifest_fuzz_targets.append(target_path)
-      else:
-        logs.error('Entry in fuzz_targets (clusterfuzz_manifest.json) is not a '
-                   f'string: {target_path}')
+    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+    self._manifest_fuzz_targets = (
+        fuzzer_utils.extract_fuzz_targets_from_manifest(
+            manifest, manifest_filename=manifest_path))
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
