@@ -474,7 +474,14 @@ class _TrackFuzzTime:
 
   @classmethod
   def _preemption_callback(cls):
-    """Callback to record wasted fuzzing time on preemption."""
+    """Callback to record wasted fuzzing time on preemption.
+
+    We track `_accumulated_wasted_time` because if a task is preempted at any
+    point, the entire fuzzing session is lost (since `postprocess` never runs),
+    even though individual fuzzing rounds within this session might have
+    completed successfully. All time spent in this session is therefore
+    considered wasted.
+    """
     logs.info('Running preemption callback to record wasted time.')
     with cls._lock:
       active_trackers = list(cls._active_trackers)
