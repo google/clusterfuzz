@@ -85,7 +85,7 @@ def download_latest_build(build_info, image_regexes, image_directory):
       logs.error('Failed to download artifact %s for '
                  'branch %s and target %s.' % (image_file_paths,
                                                build_info['branch'], target))
-      return
+      adb.bad_state_reached()
 
     for file_path in image_file_paths:
       if file_path.endswith('.zip') or file_path.endswith('.tar.gz'):
@@ -97,7 +97,10 @@ def boot_stable_build_cuttlefish(branch, target, image_directory):
   """Boot cuttlefish instance using stable build id fetched from gcs."""
   build_info = fetch_artifact.get_latest_artifact_info(
       branch, target, stable_build=True)
-  download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES, image_directory)
+  if not build_info:
+    logs.error('Unable to fetch stable build info for cuttlefish.')
+  else:
+    download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES, image_directory)
   adb.recreate_cuttlefish_device()
   adb.connect_to_cuttlefish_device()
 

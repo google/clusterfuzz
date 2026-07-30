@@ -222,3 +222,21 @@ class JobsUpdateTest(unittest.TestCase):
     self.assertEqual(200, resp.status_int)
     self.mock.update_mappings_for_job.assert_called_with(
         mock.ANY, ['test_fuzzer'])
+
+  def test_post_empty_fuzzers(self):
+    """Test post method with no fuzzers provided."""
+    self.mock.has_access.return_value = True
+    job = self._create_job('test_job', 'PROJECT_NAME = proj\n')
+
+    resp = self.app.post(
+        '/', {
+            'csrf_token': form.generate_csrf_token(),
+            'name': job.name,
+            'desciption': job.description,
+            'platform': job.platform,
+            'fuzzers': ''
+        },
+        expect_errors=True)
+
+    self.assertEqual(200, resp.status_int)
+    self.mock.update_mappings_for_job.assert_called_with(mock.ANY, [])

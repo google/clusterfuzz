@@ -227,13 +227,12 @@ def _install_chromedriver():
       constants.CHROMEDRIVER_DOWNLOAD_PATTERN.format(
           version=version, archive_name=archive_name))
   archive_io = io.BytesIO(archive_request.read())
-  chromedriver_archive = zipfile.ZipFile(archive_io)
+  with zipfile.ZipFile(archive_io) as chromedriver_archive:
+    chromedriver_path = get_chromedriver_path()
+    output_directory = os.path.dirname(chromedriver_path)
+    chromedriver_binary = os.path.basename(chromedriver_path)
 
-  chromedriver_path = get_chromedriver_path()
-  output_directory = os.path.dirname(chromedriver_path)
-  chromedriver_binary = os.path.basename(chromedriver_path)
-
-  chromedriver_archive.extract(chromedriver_binary, output_directory)
+    chromedriver_archive.extract(chromedriver_binary, output_directory)
   os.chmod(chromedriver_path, 0o750)
   print(f'Installed chromedriver at: {chromedriver_path}')
 

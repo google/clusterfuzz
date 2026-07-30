@@ -116,16 +116,46 @@ def encode_as_unicode(obj):
     retries=URL_REQUEST_RETRIES,
     delay=URL_REQUEST_FAIL_WAIT,
     function='base.utils.fetch_url')
-def fetch_url(url):
-  """Fetch url content."""
-  operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
+def fetch_url(url: str,
+              params: dict | None = None,
+              headers: dict | None = None,
+              request_timeout: int | float | None = None,
+              raise_for_not_found: bool = False,
+              stream: bool = False) -> str | requests.Response | None:
+  """Launches an HTTP GET request with retries.
 
-  response = requests.get(url, timeout=operations_timeout)
-  if response.status_code == 404:
+    Args:
+      url: Target URL for the GET request.
+      params: Optional query parameters dictionary.
+      headers: Optional additional headers dictionary.
+      request_timeout: Optional timeout for the request in seconds.
+      raise_for_not_found: False by default, raise an exception for 404
+        response, otherwise returns None on 404.
+      stream: False by default, whether to stream the response content.
+
+    Returns:
+      The HTTP response text on success (or response object if stream=True),
+      None if 404 and raise_for_not_found is False.
+
+    Raises:
+      requests.exceptions.RequestException: If the HTTP request fails or
+        returns an error status.
+    """
+  if request_timeout is None:
+    request_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
+
+  logs.info(f'Request for {url}', params=params, headers=headers, stream=stream)
+  response = requests.get(
+      url,
+      timeout=request_timeout,
+      params=params,
+      headers=headers,
+      stream=stream)
+  if not raise_for_not_found and response.status_code == 404:
     return None
 
   response.raise_for_status()
-  return response.text
+  return response if stream else response.text
 
 
 @retry.wrap(

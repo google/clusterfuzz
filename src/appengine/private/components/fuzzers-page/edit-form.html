@@ -220,11 +220,16 @@
       </div>
       <div class="inline narrow">
         <paper-checkbox checked="{{fuzzer.external_contribution}}">External contribution</paper-checkbox>
-
-        <!-- TODO: Re-enable after the differential fuzzing is implemented.
-        <paper-checkbox checked="{{fuzzer.differential}}">Differential fuzzer</paper-checkbox>
-        -->
       </div>
+      <div class="inline narrow">
+        <paper-checkbox checked="{{fuzzer.trusted}}">Trusted</paper-checkbox>
+      </div>
+
+      <!-- TODO: Re-enable after the differential fuzzing is implemented.
+      <div class="inline narrow">
+        <paper-checkbox checked="{{fuzzer.differential}}">Differential fuzzer</paper-checkbox>
+      </div>
+      -->
     </ajax-dialog>
     <iron-ajax
       id="ajaxFinish"
@@ -257,6 +262,7 @@
                 'max_testcases',
                 'name',
                 'timeout',
+                'trusted',
             ],
           },
           file: Object,
