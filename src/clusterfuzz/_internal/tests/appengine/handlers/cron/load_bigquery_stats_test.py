@@ -38,7 +38,8 @@ class LoadBigQueryStatsTest(unittest.TestCase):
         'clusterfuzz._internal.cron.load_bigquery_stats._utc_now',
     ])
 
-    self.mock._utc_now.return_value = datetime.datetime(2016, 9, 8)  # pylint: disable=protected-access
+    self.mocked_today = datetime.datetime(2016, 9, 8)
+    self.mock._utc_now.return_value = self.mocked_today  # pylint: disable=protected-access
     self.mock_bigquery = mock.MagicMock()
     self.mock.get_api_client.return_value = self.mock_bigquery
     self.mock.get.return_value = {'schema': 'schema'}
@@ -238,9 +239,12 @@ class LoadBigQueryStatsTest(unittest.TestCase):
           any_order=True)
 
   def test_execute(self):
-    """Tests executing of cron job."""
+    """Tests executing of cron job without a date argument (defaults to yesterday)."""
     load_bigquery_stats.main()
-    self._assert_load_calls('20160907')
+    expected_yesterday = (
+        self.mocked_today.date() -
+        datetime.timedelta(days=1)).strftime('%Y%m%d')
+    self._assert_load_calls(expected_yesterday)
 
   def test_execute_with_date(self):
     """Tests executing of cron job with an explicit date."""
