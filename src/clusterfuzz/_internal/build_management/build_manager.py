@@ -337,7 +337,8 @@ def _read_schema_version_from_manifest(build_dir: str) -> int:
   try:
     return int(manifest.get('archive_schema_version') or 0)
   except Exception as e:
-    logs.warning(f'Failed to read schema version from {build_dir}: {e}')
+    logs.warning(f'Failed to read schema version from chrome manifest in '
+                 f'{build_dir}: {e}')
     return 0
 
 
