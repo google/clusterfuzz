@@ -105,16 +105,25 @@ def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
 def extract_fuzz_targets_from_manifest(
     manifest_dict: dict,
     manifest_path: str = CHROME_MANIFEST_FILENAME) -> list[str] | None:
-  """Extract list of target paths from a loaded manifest dict.
+  """Extracts the list of target paths from a loaded manifest dict.
 
-  Looks for `fuzz_targets` property in the dict and checks that the whole dict
-  is in the expected format. For example, `manifest` might look like:
+  Looks for the `fuzz_targets` property in the dictionary and validates that
+  the dictionary is in the expected format. For example, `manifest_dict` might
+  look like:
   {
-    fuzz_targets: [
-      "fuzz_target_a",
-      "fuzz_target_b"
-    ]
+      "fuzz_targets": [
+          "fuzz_target_a",
+          "fuzz_target_b"
+      ]
   }
+
+  Args:
+      manifest_dict: the loaded manifest dictionary
+      manifest_path: the path or filename of the manifest (used for logging)
+
+  Returns:
+      the list of fuzz target paths, or None if invalid or missing
+      `fuzz_targets`
   """
   if not isinstance(manifest_dict, dict):
     logs.error(f'{manifest_path} is not a dict')
@@ -142,10 +151,12 @@ def extract_fuzz_targets_from_manifest(
 def read_chrome_manifest(build_dir: str) -> dict | None:
   """Reads and parses clusterfuzz_manifest.json from build_dir.
 
-  Returns the contents of 'clusterfuzz_manifest.json' if found and read,
-  otherwise returns None.
+  Args:
+      build_dir: the directory to read clusterfuzz_manifest.json from
 
-  build_dir: The directory 'clusterfuzz_manifest.json' is to be read from.
+  Returns:
+      the parsed dictionary from clusterfuzz_manifest.json, or None if missing
+      or unreadable
   """
   manifest_path = os.path.join(build_dir, CHROME_MANIFEST_FILENAME)
   if not os.path.exists(manifest_path):
@@ -160,10 +171,14 @@ def read_chrome_manifest(build_dir: str) -> dict | None:
 
 
 def _get_manifest_fuzz_targets(build_dir: str) -> list[str] | None:
-  """Get list of fuzz targets from clusterfuzz_manifest.json.
+  """Gets the list of fuzz targets from clusterfuzz_manifest.json.
 
-  Returns list of fuzz targets to pick for fuzzing. Returns None, if it
-  encounters an error parsing clusterfuzz_manifest.json for `fuzz_targets`.
+  Args:
+      build_dir: the directory containing clusterfuzz_manifest.json
+
+  Returns:
+      the list of existing fuzz target paths in build_dir, or None if missing
+      or invalid
   """
   manifest = read_chrome_manifest(build_dir)
   if manifest is None:
@@ -186,11 +201,17 @@ def _get_manifest_fuzz_targets(build_dir: str) -> list[str] | None:
 
 
 def get_fuzz_targets_local(path):
-  """Get list of fuzz target paths (local).
+  """Gets the list of local fuzz target paths.
 
-  If clusterfuzz_manifest.json is present and defines fuzz_targets, those
+  If clusterfuzz_manifest.json is present and defines `fuzz_targets`, those
   targets are returned. Otherwise, falls back to scanning the directory for
   executables ending in `_fuzzer`.
+
+  Args:
+      path: the directory path to search for fuzz targets
+
+  Returns:
+      the list of local fuzz target paths
   """
   manifest_fuzz_targets = _get_manifest_fuzz_targets(path)
   if manifest_fuzz_targets is not None:
