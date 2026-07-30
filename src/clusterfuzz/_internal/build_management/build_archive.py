@@ -330,8 +330,8 @@ class ChromeBuildArchive(DefaultBuildArchive):
 
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
     self._manifest_fuzz_targets = (
-        fuzzer_utils.extract_fuzz_targets_from_manifest(
-            manifest, manifest_filename=manifest_path))
+        fuzzer_utils.extract_fuzz_targets_from_manifest(manifest,
+                                                        manifest_path))
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
@@ -344,7 +344,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
 
   @override
   def find_fuzz_targets(self) -> List[str]:
-    if self._manifest_fuzz_targets:
+    if self._manifest_fuzz_targets is not None:
       return self._manifest_fuzz_targets
     return super().find_fuzz_targets()
 
