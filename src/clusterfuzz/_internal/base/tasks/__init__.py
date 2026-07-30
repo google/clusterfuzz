@@ -361,6 +361,7 @@ def get_preprocess_task():
     queue_name = f'{queue_name}-{base_os_version}'
 
   pubsub_puller = PubSubPuller(queue_name)
+  logs.info('Pulling from preprocess queue')
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
