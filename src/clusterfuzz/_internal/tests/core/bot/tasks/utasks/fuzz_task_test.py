@@ -1366,6 +1366,44 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
       _, _, file_path, _, _ = call.kwargs['args']
       self.assertEqual(file_path, expected_testcase_file_paths[i])
 
+  def test_do_blackbox_fuzzing_breaks_early_on_proto_limit(self):
+    """Verify do_blackbox_fuzzing breaks early when PROTOBUF_MSG_LIMIT is exceeded."""
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name='fantasy_fuzz',
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input)
+
+    session = fuzz_task.FuzzingSession(uworker_input, 10)
+    session.generate_blackbox_testcases = mock.MagicMock()
+    expected_testcase_file_paths = ['/tests/0', '/tests/1', '/tests/2']
+    session.generate_blackbox_testcases.return_value = (
+        fuzz_task.GenerateBlackboxTestcasesResult(
+            True, expected_testcase_file_paths,
+            {'fuzzer_binary_name': 'fantasy_fuzz'}))
+
+    self.fs.create_file('/tests/0', contents='testcase_0')
+    self.fs.create_file('/tests/1', contents='testcase_1')
+    self.fs.create_file('/tests/2', contents='testcase_2')
+
+    mock_thread_cls = mock.MagicMock(wraps=threading.Thread)
+    self.mock.get_process.return_value = mock_thread_cls
+
+    fuzzer = data_types.Fuzzer()
+    fuzzer.name = 'fantasy_fuzz'
+
+    with mock.patch.object(
+        session, '_is_fuzz_task_output_limit_exceeded', return_value=True):
+      _, testcase_file_paths, testcases_metadata, _ = (
+          session.do_blackbox_fuzzing(fuzzer, '/fake-fuzz-dir', 'asan_test'))
+
+    self.assertEqual(1, mock_thread_cls.call_count)
+    self.assertEqual(['/tests/0'], testcase_file_paths)
+    self.assertEqual(['/tests/0'], list(testcases_metadata.keys()))
+    self.assertTrue(os.path.exists('/tests/0'))
+    self.assertFalse(os.path.exists('/tests/1'))
+    self.assertFalse(os.path.exists('/tests/2'))
+
   @mock.patch(
       'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
   )
@@ -1550,6 +1588,134 @@ class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(1, len(session.fuzz_task_output.fuzzer_run_outputs))
     self.assertEqual(b'output_trace',
                      session.fuzz_task_output.fuzzer_run_outputs[0].output)
+
+
+class FuzzTaskOutputLimitTest(fake_filesystem_unittest.TestCase):
+  """Unit tests for fuzz task output limit checks and unexecuted testcase cleanup."""
+
+  def setUp(self):
+    """Setup for fuzz task output limit test."""
+    helpers.patch_environ(self)
+    test_utils.set_up_pyfakefs(self)
+    os.environ['BOT_TMPDIR'] = '/tmp'
+    os.environ['CRASH_STACKTRACES_DIR'] = '/crash'
+    os.environ['ROOT_DIR'] = '/root'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['THREAD_ALIVE_CHECK_INTERVAL'] = '0.001'
+    os.environ['THREAD_DELAY'] = '0.001'
+    os.environ['MAX_FUZZ_THREADS'] = '1'
+    self.fs.create_dir('/crash')
+    self.fs.create_dir('/root/bot/logs')
+
+  def _create_session(self):
+    """Creates a dummy FuzzingSession."""
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name='fantasy_fuzz',
+        job_type='asan_test',
+        fuzz_task_input=uworker_msg_pb2.FuzzTaskInput())
+    return fuzz_task.FuzzingSession(uworker_input, 10)
+
+  def test_is_fuzz_task_output_limit_exceeded_below_limit(self):
+    """Verify _is_fuzz_task_output_limit_exceeded returns False below PROTOBUF_MSG_LIMIT."""
+    session = self._create_session()
+    self.assertFalse(session._is_fuzz_task_output_limit_exceeded())
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.PROTOBUF_MSG_LIMIT', 0)
+  def test_is_fuzz_task_output_limit_exceeded_at_or_above_limit(self):
+    """Verify _is_fuzz_task_output_limit_exceeded returns True at PROTOBUF_MSG_LIMIT."""
+    session = self._create_session()
+    self.assertTrue(session._is_fuzz_task_output_limit_exceeded())
+
+  def test_handle_unexecuted_testcases_all_executed(self):
+    """Verify _handle_unexecuted_testcases preserves all files when all executed."""
+    session = self._create_session()
+    self.fs.create_file('/tests/0', contents='a')
+    self.fs.create_file('/tests/1', contents='b')
+    testcase_file_paths = ['/tests/0', '/tests/1']
+    testcases_metadata = {'/tests/0': {'g': 1}, '/tests/1': {'g': 2}}
+
+    paths, metadata = session._handle_unexecuted_testcases(
+        testcase_file_paths, testcases_metadata, 2)
+
+    self.assertTrue(os.path.exists('/tests/0'))
+    self.assertTrue(os.path.exists('/tests/1'))
+    self.assertEqual(['/tests/0', '/tests/1'], paths)
+    self.assertEqual(testcases_metadata, metadata)
+
+  def test_handle_unexecuted_testcases_partial_execution(self):
+    """Verify _handle_unexecuted_testcases removes unexecuted files and slices metadata."""
+    session = self._create_session()
+    self.fs.create_file('/tests/0', contents='a')
+    self.fs.create_file('/tests/1', contents='b')
+    self.fs.create_file('/tests/2', contents='c')
+    testcase_file_paths = ['/tests/0', '/tests/1', '/tests/2']
+    testcases_metadata = {
+        '/tests/0': {
+            'g': 1
+        },
+        '/tests/1': {
+            'g': 2
+        },
+        '/tests/2': {
+            'g': 3
+        }
+    }
+
+    paths, metadata = session._handle_unexecuted_testcases(
+        testcase_file_paths, testcases_metadata, 1)
+
+    self.assertTrue(os.path.exists('/tests/0'))
+    self.assertFalse(os.path.exists('/tests/1'))
+    self.assertFalse(os.path.exists('/tests/2'))
+    self.assertEqual(['/tests/0'], paths)
+    self.assertEqual({'/tests/0': {'g': 1}}, metadata)
+
+  def test_handle_unexecuted_testcases_zero_executed(self):
+    """Verify _handle_unexecuted_testcases removes all files when zero executed."""
+    session = self._create_session()
+    self.fs.create_file('/tests/0', contents='a')
+    self.fs.create_file('/tests/1', contents='b')
+    testcase_file_paths = ['/tests/0', '/tests/1']
+    testcases_metadata = {'/tests/0': {'g': 1}, '/tests/1': {'g': 2}}
+
+    paths, metadata = session._handle_unexecuted_testcases(
+        testcase_file_paths, testcases_metadata, 0)
+
+    self.assertFalse(os.path.exists('/tests/0'))
+    self.assertFalse(os.path.exists('/tests/1'))
+    self.assertEqual([], paths)
+    self.assertEqual({}, metadata)
+
+  def test_add_crashes_from_temp_queue_limit_exceeded(self):
+    """Verify _add_crashes_from_temp_queue adds crashes but skips outputs when
+      PROTOBUF_MSG_LIMIT is exceeded."""
+    session = self._create_session()
+    self.fs.create_file('/tmp/trace.log', contents='output_trace')
+    temp_queue = queue.Queue()
+    crash = testcase_manager.Crash(
+        file_path='/test/crash',
+        crash_time=1,
+        return_code=1,
+        resource_list=[],
+        gestures=[],
+        stack_file_path='/stack')
+    fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData.from_file_path(
+        file_path='/tmp/trace.log',
+        crash_path='/test/crash',
+        return_code=1,
+        log_time=datetime.datetime(2026, 7, 10))
+    temp_queue.put(
+        testcase_manager.TestcaseRunResult(
+            crash=crash, fuzzer_run_output_data=fuzzer_run_output_data))
+
+    crashes = []
+    with mock.patch.object(
+        session, '_is_fuzz_task_output_limit_exceeded', return_value=True):
+      session._add_crashes_from_temp_queue(temp_queue, crashes)
+
+    self.assertEqual([crash], crashes)
+    self.assertEqual(0, len(session.fuzz_task_output.fuzzer_run_outputs))
 
 
 @test_utils.with_cloud_emulators('datastore')

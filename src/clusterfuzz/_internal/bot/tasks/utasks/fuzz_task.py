@@ -75,6 +75,9 @@ from clusterfuzz.fuzz import engine
 # 10 MB limit for proto testcase payload field (see FuzzerRunOutput testcase in
 # src/clusterfuzz/_internal/protos/uworker_msg.proto:L248).
 MAX_TESTCASE_PAYLOAD_SIZE = 10 * 1024 * 1024
+# PROTO msg limit is 2 GB, reserving 200 MB for safety
+# https://protobuf.dev/programming-guides/proto-limits/
+PROTOBUF_MSG_LIMIT = 1.8 * 1024 * 1024 * 1024
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_NEW_CORPUS_FILES = 500
@@ -1740,10 +1743,48 @@ class FuzzingSession:
               'platform': environment.platform(),
           })
 
+  def _is_fuzz_task_output_limit_exceeded(self) -> bool:
+    """Checks if the fuzz_task_output protobuf message exceeds the size limit.
+
+    Returns:
+      True if fuzz_task_output exceeds PROTOBUF_MSG_LIMIT, False otherwise.
+    """
+    return self.fuzz_task_output.ByteSize() >= PROTOBUF_MSG_LIMIT
+
+  def _handle_unexecuted_testcases(
+      self, testcase_file_paths: list[str], testcases_metadata: dict[str, dict],
+      testcases_executed: int) -> tuple[list[str], dict[str, dict]]:
+    """Cleans up unexecuted testcase files and slices execution metadata.
+
+    Args:
+      testcase_file_paths: List of all generated testcase file paths.
+      testcases_metadata: Dictionary mapping testcase file paths to metadata.
+      testcases_executed: Number of testcases that were actually executed.
+
+    Returns:
+      A tuple of (executed_testcase_file_paths, executed_testcases_metadata).
+    """
+    for unexecuted_path in testcase_file_paths[testcases_executed:]:
+      shell.remove_file(unexecuted_path)
+
+    executed_testcase_file_paths = testcase_file_paths[:testcases_executed]
+    executed_testcases_metadata = {
+        path: testcases_metadata[path]
+        for path in executed_testcase_file_paths
+        if path in testcases_metadata
+    }
+    return executed_testcase_file_paths, executed_testcases_metadata
+
   def _add_crashes_from_temp_queue(
       self, temp_queue: queue.Queue,
       crashes: list[testcase_manager.Crash]) -> None:
-    """Pops items from temp_queue and processes crashes and run outputs."""
+    """Pops items from temp_queue and processes crashes and run outputs.
+
+    Args:
+      temp_queue: Queue containing TestcaseRunResult objects from worker
+        threads.
+      crashes: List to append any discovered crashes to.
+    """
     while not temp_queue.empty():
       result: testcase_manager.TestcaseRunResult = temp_queue.get()
 
@@ -1751,7 +1792,7 @@ class FuzzingSession:
         crashes.append(result.crash)
       if result.fuzzer_run_output_data:
         fuzzer_run_output = _to_fuzzer_run_output(result.fuzzer_run_output_data)
-        if fuzzer_run_output:
+        if fuzzer_run_output and not self._is_fuzz_task_output_limit_exceeded():
           self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
@@ -1901,6 +1942,10 @@ class FuzzingSession:
       logs.info(f'Upto {test_number}')
       if thread_error_occurred:
         break
+      if self._is_fuzz_task_output_limit_exceeded():
+        logs.warning('Fuzz task output size limit exceeded. '
+                     'Stopping testcase execution early.')
+        break
 
     execution_time = datetime.timedelta(seconds=time.time() -
                                         testcase_execution_start)
@@ -1928,8 +1973,13 @@ class FuzzingSession:
       crashes = [
           Crash.from_testcase_manager_crash(crash) for crash in crashes if crash
       ]
-    return (generate_result.fuzzer_metadata, testcase_file_paths,
-            testcases_metadata, crashes)
+    executed_testcase_file_paths, executed_testcases_metadata = (
+        self._handle_unexecuted_testcases(
+            testcase_file_paths=testcase_file_paths,
+            testcases_metadata=testcases_metadata,
+            testcases_executed=test_number))
+    return (generate_result.fuzzer_metadata, executed_testcase_file_paths,
+            executed_testcases_metadata, crashes)
 
   def run(self):
     """Run the fuzzing session."""
