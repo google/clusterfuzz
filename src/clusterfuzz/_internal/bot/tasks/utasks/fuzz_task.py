@@ -2105,6 +2105,9 @@ class FuzzingSession:
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
     if not fuzz_task_output.fuzz_targets:
       new_targets_count = 0
+      logs.warning(
+          f"Bad fuzz target: {fuzz_task_output.fully_qualified_fuzzer_name}"
+          " setting the weight to 0.")
     else:
       new_targets_count = len(fuzz_task_output.fuzz_targets)
     if (not targets_count or targets_count.count != new_targets_count):
