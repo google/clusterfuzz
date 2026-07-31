@@ -20,6 +20,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import fuzzer_stats
 from handlers import base_handler
+from libs import access
 from libs import handler
 from libs import helpers
 
@@ -74,6 +75,10 @@ class Handler(base_handler.Handler):
   @handler.oauth
   def get(self, report_type=None, argument=None, date=None, extra=None):
     """Handle a get request."""
+    job = argument
+    if job and not access.has_access(job_type=job):
+      raise helpers.AccessDeniedError()
+
     report_url = get_report_url(report_type, argument, date)
     if report_url:
       return self.redirect(report_url)
