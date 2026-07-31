@@ -1620,9 +1620,11 @@ class FuzzTaskOutputLimitTest(fake_filesystem_unittest.TestCase):
     session = self._create_session()
     self.assertFalse(session._is_fuzz_task_output_limit_exceeded())
 
-  @mock.patch(
-      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.PROTOBUF_MSG_LIMIT', 0)
-  def test_is_fuzz_task_output_limit_exceeded_at_or_above_limit(self):
+  @mock.patch.object(
+      uworker_msg_pb2.FuzzTaskOutput,
+      'ByteSize',
+      return_value=fuzz_task.PROTOBUF_MSG_LIMIT)
+  def test_is_fuzz_task_output_limit_exceeded_at_or_above_limit(self, _):
     """Verify _is_fuzz_task_output_limit_exceeded returns True at PROTOBUF_MSG_LIMIT."""
     session = self._create_session()
     self.assertTrue(session._is_fuzz_task_output_limit_exceeded())

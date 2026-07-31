@@ -1973,11 +1973,14 @@ class FuzzingSession:
       crashes = [
           Crash.from_testcase_manager_crash(crash) for crash in crashes if crash
       ]
-    executed_testcase_file_paths, executed_testcases_metadata = (
-        self._handle_unexecuted_testcases(
-            testcase_file_paths=testcase_file_paths,
-            testcases_metadata=testcases_metadata,
-            testcases_executed=test_number))
+    executed_testcase_file_paths = testcase_file_paths
+    executed_testcases_metadata = testcases_metadata
+    if test_number < len(testcase_file_paths):
+      executed_testcase_file_paths, executed_testcases_metadata = (
+          self._handle_unexecuted_testcases(
+              testcase_file_paths=testcase_file_paths,
+              testcases_metadata=testcases_metadata,
+              testcases_executed=test_number))
     return (generate_result.fuzzer_metadata, executed_testcase_file_paths,
             executed_testcases_metadata, crashes)
 
