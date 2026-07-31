@@ -146,16 +146,21 @@ def register_on_sigterm(callback):
   _on_sigterm_callbacks.append(callback)
 
 
-def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
-  logs.info('Handling sigterm, running registered callbacks.')
+def _trigger_shutdown_cleanup():
+  """Runs registered callbacks and stops the monitoring daemon."""
   for callback in _on_sigterm_callbacks:
     try:
       callback()
     except Exception as e:
-      logs.error(f'Error in SIGTERM callback: {e}')
+      logs.error(f'Error in callback: {e}')
   logs.info('Stopping monitoring daemon.')
   stop()
-  logs.info('Sigterm handled, metrics flushed.')
+
+
+def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
+  logs.info('Handling SIGTERM.')
+  _trigger_shutdown_cleanup()
+  logs.info('SIGTERM handled, metrics flushed.')
 
 
 @contextlib.contextmanager
@@ -222,7 +227,7 @@ class _PreemptionPoller():
         status = compute_metadata.get_preempted_status()
         if status and status.strip().upper() == 'TRUE':
           logs.info('Preemption detected via metadata!')
-          handle_sigterm(None, None)
+          _trigger_shutdown_cleanup()
           break
       except requests.exceptions.HTTPError as e:
         if e.response.status_code != 404:
