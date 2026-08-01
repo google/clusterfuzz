@@ -19,7 +19,6 @@ classifiers = [
 dependencies = [
     "click",
     "docker",
-    "google",
     "google-auth"
 ]
 
