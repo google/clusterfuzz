@@ -232,6 +232,30 @@ def cleanup_unused_fuzz_targets_and_jobs():
       f'{len(valid_target_jobs)} valid FuzzTargetJob entities remain.')
 
 
+def cleanup_invalid_fuzzer_jobs():
+  """Clean up FuzzerJob entities that reference non-existent Fuzzers or Jobs."""
+  valid_fuzzers = {
+      fuzzer.name
+      for fuzzer in ndb_utils.get_all_from_model(data_types.Fuzzer)
+      if fuzzer.name
+  }
+  valid_jobs = {
+      job.name
+      for job in ndb_utils.get_all_from_model(data_types.Job)
+      if job.name
+  }
+
+  to_delete = []
+  for fuzzer_job in ndb_utils.get_all_from_model(data_types.FuzzerJob):
+    if (fuzzer_job.fuzzer not in valid_fuzzers or
+        fuzzer_job.job not in valid_jobs):
+      to_delete.append(fuzzer_job.key)
+
+  if to_delete:
+    ndb_utils.delete_multi(to_delete)
+  logs.info(f'Deleted {len(to_delete)} invalid FuzzerJob entities.')
+
+
 def get_jobs_and_platforms_for_project():
   """Return a map of projects to jobs and platforms map to use for picking top
   crashes."""
@@ -1473,6 +1497,7 @@ def main():
   cleanup_reports_metadata()
   leak_blacklist.cleanup_global_blacklist()
   cleanup_unused_fuzz_targets_and_jobs()
+  cleanup_invalid_fuzzer_jobs()
   cleanup_unused_heartbeats()
   logs.info('Cleanup task finished successfully.')
   return True
