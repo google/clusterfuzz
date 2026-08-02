@@ -304,10 +304,10 @@ def process_command_impl(task_name,
   environment.set_value('CF_TASK_JOB_NAME', job_name)
   if job_name != 'none':
     job = data_types.Job.query(data_types.Job.name == job_name).get()
-    # Job might be removed. In that case, we don't want an exception
+    # Job might be removed or deleted. In that case, we don't want an exception
     # raised and causing this task to be retried by another bot.
-    if not job:
-      logs.error("Job '%s' not found." % job_name)
+    if not job or job.deleted:
+      logs.error("Job '%s' not found or deleted." % job_name)
       return None
 
     if not job.platform:
@@ -428,6 +428,21 @@ def process_command_impl(task_name,
 
       minimize_fuzzer_override = job_environment.get('MINIMIZE_FUZZER_OVERRIDE')
       fuzzer_name = minimize_fuzzer_override or fuzzer_name
+
+    if task_name == 'fuzz' and fuzzer_name:
+      fuzzer = data_types.Fuzzer.query(
+          data_types.Fuzzer.name == fuzzer_name).get()
+      if not fuzzer or fuzzer.deleted:
+        logs.error("Fuzzer '%s' not found or deleted." % fuzzer_name)
+        return None
+
+      fuzzer_job = data_types.FuzzerJob.query(
+          data_types.FuzzerJob.fuzzer == fuzzer_name,
+          data_types.FuzzerJob.job == job_name).get()
+      if not fuzzer_job or fuzzer_job.deleted:
+        logs.error(f"FuzzerJob mapping for fuzzer '{fuzzer_name}' and job "
+                   f"'{job_name}' not found or deleted.")
+        return None
 
     if fuzzer_name and not environment.is_engine_fuzzer_job(job_name):
       fuzzer = data_types.Fuzzer.query(

@@ -584,3 +584,17 @@ class CrashProcessingTest(unittest.TestCase, BaseTest):
     shutil.rmtree('a')
     shutil.rmtree('c')
     shutil.rmtree(self.temp_dir)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class CorpusPruningPreprocessPoisonedTest(unittest.TestCase):
+  """Tests for corpus pruning preprocess with missing entities."""
+
+  def setUp(self):
+    """Set up test environment."""
+    helpers.patch_environ(self)
+
+  def test_preprocess_fuzz_target_missing(self):
+    """Test utask_preprocess returns None when fuzz target is not found."""
+    result = corpus_pruning_task.utask_preprocess('nonexistent', 'job', {})
+    self.assertIsNone(result)

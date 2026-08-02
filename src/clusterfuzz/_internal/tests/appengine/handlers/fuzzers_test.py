@@ -260,3 +260,55 @@ class EditHandlerTest(unittest.TestCase):
     # Verify fuzzer was not updated (remained trusted).
     fuzzer = fuzzer.key.get()
     self.assertTrue(fuzzer.trusted)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class DeleteHandlerTest(unittest.TestCase):
+  """Tests for DeleteHandler."""
+
+  def setUp(self):
+    """Set up test environment and handler."""
+    test_helpers.patch(self, [
+        'libs.access.has_access',
+        'libs.auth.get_current_user',
+        'libs.helpers.get_user_email',
+    ])
+    self.mock.has_access.return_value = True
+    self.mock.get_current_user().email = 'admin@example.com'
+    self.mock.get_user_email.return_value = 'admin@example.com'
+
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/fuzzers/delete',
+        view_func=fuzzers.DeleteHandler.as_view('/fuzzers/delete'))
+    self.app = webtest.TestApp(flaskapp)
+
+  def test_delete_fuzzer_soft_deletes(self):
+    """Test that deleting a fuzzer marks it deleted and soft-deletes mappings."""
+    fuzzer = data_types.Fuzzer(name='my_fuzzer', jobs=['job1'])
+    fuzzer.put()
+
+    mapping = data_types.FuzzerJob(fuzzer='my_fuzzer', job='job1')
+    mapping.put()
+
+    payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': fuzzer.key.id(),
+    }
+    resp = self.app.post_json('/fuzzers/delete', payload)
+    self.assertEqual(302, resp.status_int)
+
+    fuzzer = fuzzer.key.get()
+    self.assertTrue(fuzzer.deleted)
+
+  def test_delete_already_deleted_fuzzer_fails(self):
+    """Test that deleting an already deleted fuzzer returns 400."""
+    fuzzer = data_types.Fuzzer(name='my_fuzzer', deleted=True)
+    fuzzer.put()
+
+    payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': fuzzer.key.id(),
+    }
+    resp = self.app.post_json('/fuzzers/delete', payload, expect_errors=True)
+    self.assertEqual(400, resp.status_int)

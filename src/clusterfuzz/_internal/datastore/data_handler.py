@@ -1886,10 +1886,10 @@ def get_all_fuzzer_names_including_children(include_parents=False,
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_all_job_type_names(project=None):
   """Return all job type names."""
-  query = data_types.Job.query(projection=['name'])
+  query = data_types.Job.query()
   if project:
     query = query.filter(data_types.Job.project == project)
-  return sorted([job.name for job in query])
+  return sorted([job.name for job in query if not job.deleted])
 
 
 def get_coverage_information(fuzzer_name, date, create_if_needed=False):

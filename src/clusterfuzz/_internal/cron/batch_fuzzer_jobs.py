@@ -29,8 +29,10 @@ def batch_fuzzer_jobs():
   ]
 
   for platform in platforms:
-    fuzzer_jobs = list(
-        data_types.FuzzerJob.query(data_types.FuzzerJob.platform == platform))
+    fuzzer_jobs = [
+        job for job in data_types.FuzzerJob.query(
+            data_types.FuzzerJob.platform == platform) if not job.deleted
+    ]
     fuzzer_jobs.sort(key=lambda item: item.job)
 
     batches_to_remove = {

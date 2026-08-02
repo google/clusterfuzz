@@ -28,6 +28,7 @@ from google.auth.transport import requests as google_auth_requests
 from google.cloud import ndb
 from google.protobuf import timestamp_pb2
 
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -1155,10 +1156,8 @@ def _create_backup_urls(fuzz_target: data_types.FuzzTarget,
   corpus_pruning_task_input.dated_backup_signed_url = dated_backup_signed_url
 
 
-def _utask_preprocess(fuzzer_name, job_type, uworker_env):
+def _utask_preprocess(fuzzer_name, job_type, uworker_env, fuzz_target):
   """Runs preprocessing for corpus pruning task."""
-  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
-
   task_name = f'corpus_pruning_{fuzzer_name}_{job_type}'
 
   # Get status of last execution.
@@ -1243,8 +1242,16 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Sets logs context and runs preprocessing for corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+  if not fuzz_target:
+    logs.error(f'FuzzTarget {fuzzer_name} not found.')
+    return None
   with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target):
-    return _utask_preprocess(fuzzer_name, job_type, uworker_env)
+    try:
+      return _utask_preprocess(fuzzer_name, job_type, uworker_env, fuzz_target)
+    except errors.InvalidFuzzerError:
+      logs.error(
+          f'Engine fuzzer {fuzz_target.engine} is invalid or no longer exists.')
+      return None
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({

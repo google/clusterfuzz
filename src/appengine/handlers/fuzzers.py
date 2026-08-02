@@ -50,7 +50,11 @@ class Handler(base_handler.Handler):
   def get(self):
     """Handle a get request."""
     fuzzer_logs_bucket = fuzzer_logs.get_bucket()
-    fuzzers = list(data_types.Fuzzer.query().order(data_types.Fuzzer.name))
+    fuzzers = [
+        fuzzer
+        for fuzzer in data_types.Fuzzer.query().order(data_types.Fuzzer.name)
+        if not fuzzer.deleted
+    ]
     jobs = data_handler.get_all_job_type_names()
     corpora = [
         bundle.name for bundle in data_types.DataBundle.query().order(
@@ -297,11 +301,12 @@ class DeleteHandler(base_handler.Handler):
     key = helpers.get_integer_key(request)
 
     fuzzer = ndb.Key(data_types.Fuzzer, key).get()
-    if not fuzzer:
+    if not fuzzer or fuzzer.deleted:
       raise helpers.EarlyExitError('Fuzzer not found.', 400)
 
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer, mappings=[])
-    fuzzer.key.delete()
+    fuzzer.deleted = True
+    fuzzer.put()
 
     helpers.log('Deleted fuzzer %s' % fuzzer.name, helpers.MODIFY_OPERATION)
     return self.redirect('/fuzzers')
@@ -316,7 +321,7 @@ class LogHandler(base_handler.Handler):
     helpers.log('LogHandler', fuzzer_name)
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_name).get()
-    if not fuzzer:
+    if not fuzzer or fuzzer.deleted:
       raise helpers.EarlyExitError('Fuzzer not found.', 400)
 
     return self.render('viewer.html', {
