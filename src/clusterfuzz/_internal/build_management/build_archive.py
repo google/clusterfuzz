@@ -24,6 +24,7 @@ from typing import Union
 
 from typing_extensions import override
 
+from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import archive
 
@@ -96,9 +97,6 @@ class BuildArchive(archive.ArchiveReader):
         The list of fuzz targets.
     """
     if self._fuzz_targets is None:
-      # Import here as this path is not available in App Engine context.
-      from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
-
       self._fuzz_targets = {
           fuzzer_utils.normalize_target_name(path): path
           for path in self.find_fuzz_targets()
@@ -207,9 +205,6 @@ class DefaultBuildArchive(BuildArchive):
 
   @override
   def find_fuzz_targets(self) -> List[str]:
-    # Import here as this path is not available in App Engine context.
-    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
-
     return [
         member.name
         for member in self.list_members()
@@ -328,10 +323,8 @@ class ChromeBuildArchive(DefaultBuildArchive):
           'archive_schema_version field')
       self._archive_schema_version = default_archive_schema_version
 
-    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
     self._manifest_fuzz_targets = (
-        fuzzer_utils.extract_fuzz_targets_from_manifest(manifest,
-                                                        manifest_path))
+        fuzzer_utils.extract_fuzz_targets_from_manifest(manifest))
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):

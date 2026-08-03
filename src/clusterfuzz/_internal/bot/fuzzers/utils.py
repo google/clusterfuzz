@@ -102,9 +102,7 @@ def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
     return False
 
 
-def extract_fuzz_targets_from_manifest(
-    manifest_dict: dict,
-    manifest_path: str = CHROME_MANIFEST_FILENAME) -> list[str] | None:
+def extract_fuzz_targets_from_manifest(manifest_dict: dict) -> list[str] | None:
   """Extracts the list of target paths from a loaded manifest dict.
 
   Looks for the `fuzz_targets` property in the dictionary and validates that
@@ -119,14 +117,13 @@ def extract_fuzz_targets_from_manifest(
 
   Args:
       manifest_dict: the loaded manifest dictionary
-      manifest_path: the path or filename of the manifest (used for logging)
 
   Returns:
       the list of fuzz target paths, or None if invalid or missing
       `fuzz_targets`
   """
   if not isinstance(manifest_dict, dict):
-    logs.error(f'{manifest_path} is not a dict')
+    logs.error(f'Manifest is not a dict: {manifest_dict}')
     return None
 
   manifest_targets = manifest_dict.get('fuzz_targets')
@@ -134,14 +131,13 @@ def extract_fuzz_targets_from_manifest(
     return None
 
   if not isinstance(manifest_targets, list):
-    logs.error(f'fuzz_targets in {manifest_path} is not a list')
+    logs.error(f'fuzz_targets in manifest is not a list: {manifest_dict}')
     return None
 
   fuzz_target_paths = []
   for target_path in manifest_targets:
     if not isinstance(target_path, str):
-      logs.error(f'Entry in fuzz_targets ({manifest_path}) is not a string: '
-                 f'{target_path}')
+      logs.error(f'Entry in fuzz_targets is not a string: {target_path}')
       continue
     fuzz_target_paths.append(target_path)
 
@@ -185,7 +181,7 @@ def _get_manifest_fuzz_targets(build_dir: str) -> list[str] | None:
     return None
 
   manifest_path = os.path.join(build_dir, CHROME_MANIFEST_FILENAME)
-  manifest_targets = extract_fuzz_targets_from_manifest(manifest, manifest_path)
+  manifest_targets = extract_fuzz_targets_from_manifest(manifest)
   if manifest_targets is None:
     return None
 
