@@ -1013,3 +1013,47 @@ class PreprocessTestcaseManagerTest(unittest.TestCase):
     testcase_manager.preprocess_testcase_manager(blackbox_testcase,
                                                  uworker_input)
     self.assertFalse(uworker_input.HasField('fuzz_target'))
+
+
+class FuzzerRunOutputDataTest(fake_filesystem_unittest.TestCase):
+  """Tests for FuzzerRunOutputData output retrieval and file cleanup behavior."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_utils.set_up_pyfakefs(self)
+
+  def test_get_output_from_memory_str(self):
+    """Tests that get_output returns in-memory string output repeatably."""
+    output_data = testcase_manager.FuzzerRunOutputData.from_memory(
+        output='test output')
+    self.assertEqual(output_data.get_output(), 'test output')
+    self.assertEqual(output_data.get_output(), 'test output')
+
+  def test_get_output_from_memory_bytes(self):
+    """Tests that get_output decodes and caches in-memory bytes output as string."""
+    output_data = testcase_manager.FuzzerRunOutputData.from_memory(
+        output=b'test bytes output')
+    self.assertEqual(output_data.get_output(), 'test bytes output')
+    self.assertEqual(output_data.get_output(), 'test bytes output')
+
+  def test_get_output_from_file_path(self):
+    """Tests that get_output reads file content, deletes the file, and caches output for subsequent calls."""
+    file_path = '/tmp/fuzzer_output.txt'
+    self.fs.create_file(file_path, contents='file content')
+
+    output_data = testcase_manager.FuzzerRunOutputData.from_file_path(file_path)
+    self.assertEqual(output_data.get_output(), 'file content')
+    self.assertFalse(os.path.exists(file_path))
+    self.assertEqual(output_data.get_output(), 'file content')
+
+  def test_get_output_from_missing_file_path(self):
+    """Tests that get_output returns None when the backed file path does not exist."""
+    file_path = '/tmp/nonexistent.txt'
+    output_data = testcase_manager.FuzzerRunOutputData.from_file_path(file_path)
+    self.assertIsNone(output_data.get_output())
+    self.assertIsNone(output_data.get_output())
+
+  def test_get_output_empty(self):
+    """Tests that get_output returns None when neither output nor file path is set."""
+    output_data = testcase_manager.FuzzerRunOutputData()
+    self.assertIsNone(output_data.get_output())
