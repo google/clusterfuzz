@@ -128,6 +128,7 @@ def extract_fuzz_targets_from_manifest(manifest_dict: dict) -> list[str] | None:
 
   manifest_targets = manifest_dict.get('fuzz_targets')
   if manifest_targets is None:
+    logs.info(f'No fuzz_targets found in manifest: {manifest_dict}')
     return None
 
   if not isinstance(manifest_targets, list):
@@ -141,6 +142,7 @@ def extract_fuzz_targets_from_manifest(manifest_dict: dict) -> list[str] | None:
       continue
     fuzz_target_paths.append(target_path)
 
+  logs.info(f'{len(fuzz_target_paths)} found in manifest.')
   return fuzz_target_paths
 
 
