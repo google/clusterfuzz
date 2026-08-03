@@ -52,3 +52,15 @@ def is_gce():
     return False
 
   return True
+
+
+def get_preempted_status():
+  """Gets the preemption status of the instance."""
+  attribute_url = 'http://{}/computeMetadata/v1/instance/preempted'.format(
+      _METADATA_SERVER)
+  headers = {'Metadata-Flavor': 'Google'}
+  # We use a short timeout and no retries because this is called frequently
+  # in a background loop and should fail fast.
+  response = requests.get(attribute_url, headers=headers, timeout=5)
+  response.raise_for_status()
+  return response.text
