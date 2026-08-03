@@ -23,6 +23,7 @@ import os
 import random
 import re
 import sys
+import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -1140,3 +1141,22 @@ def batched(iterator, batch_size):
 
   if batch:
     yield batch
+
+
+def create_temp_file(directory: str, prefix: str, suffix: str) -> str:
+  """Creates a temporary file and returns its path.
+
+  Args:
+    directory: The directory in which to create the temporary file.
+    prefix: Prefix to use for the temporary file name.
+    suffix: Suffix to use for the temporary file name.
+
+  Returns:
+    The absolute path to the created temporary file.
+
+  Raises:
+    OSError: If the file cannot be created in the specified directory.
+  """
+  fd, file_path = tempfile.mkstemp(dir=directory, prefix=prefix, suffix=suffix)
+  os.close(fd)
+  return file_path
