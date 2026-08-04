@@ -18,7 +18,6 @@ on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
-from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.bot.tasks import utasks
@@ -156,6 +155,7 @@ class UTask(BaseUTask):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
+    from clusterfuzz._internal.base.tasks import pub_sub_task_queue
     queue = pub_sub_task_queue.UTASK_MAIN_QUEUE
     if swarming.is_swarming_task(job_type):
       queue = pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE
@@ -245,7 +245,7 @@ COMMAND_TYPES = {
     'analyze': UTask,
     'blame': TrustedTask,
     'corpus_pruning': UTask,
-    'fuzz': UTaskLocalExecutor,
+    'fuzz': UTask,
     'impact': TrustedTask,
     'minimize': UTask,
     'progression': UTask,
@@ -256,3 +256,15 @@ COMMAND_TYPES = {
     'uworker_main': UworkerMainTask,
     'variant': UTask,
 }
+
+
+def is_trusted_task(task_name: str) -> bool:
+  """Returns True if the task is a trusted task."""
+  task_type = COMMAND_TYPES.get(task_name)
+  return task_type is not None and issubclass(task_type, TrustedTask)
+
+
+def is_untrusted_task(task_name: str) -> bool:
+  """Returns True if the task is an untrusted utask."""
+  task_type = COMMAND_TYPES.get(task_name)
+  return task_type is not None and issubclass(task_type, BaseUTask)
