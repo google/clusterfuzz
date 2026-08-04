@@ -662,3 +662,53 @@ class GetTaskFuzzingFeatureFlagTest(unittest.TestCase):
       mock_flag.return_value = mock_flag_obj
       self.assertIsNone(tasks.get_task())
       self.mock.get_fuzz_task.assert_not_called()
+
+
+@mock.patch(
+    'clusterfuzz._internal.swarming.is_swarming_task', return_value=False)
+class TaskQueueResolutionTest(unittest.TestCase):
+  """Tests for task-aware queue resolution in add_task."""
+
+  def test_task_types_classification(self, _):
+    """Test that task_types correctly identifies untrusted and trusted tasks."""
+    from clusterfuzz._internal.bot.tasks import task_types
+    self.assertTrue(task_types.is_untrusted_task('fuzz'))
+    self.assertTrue(task_types.is_untrusted_task('minimize'))
+    self.assertTrue(task_types.is_untrusted_task('variant'))
+    self.assertTrue(task_types.is_untrusted_task('analyze'))
+    self.assertTrue(task_types.is_untrusted_task('progression'))
+    self.assertTrue(task_types.is_untrusted_task('regression'))
+    self.assertTrue(task_types.is_untrusted_task('symbolize'))
+    self.assertTrue(task_types.is_untrusted_task('corpus_pruning'))
+
+    self.assertTrue(task_types.is_trusted_task('blame'))
+    self.assertTrue(task_types.is_trusted_task('impact'))
+    self.assertTrue(task_types.is_trusted_task('unpack'))
+    self.assertFalse(task_types.is_untrusted_task('blame'))
+    self.assertFalse(task_types.is_trusted_task('fuzz'))
+
+  @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
+  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  def test_add_task_untrusted(self, mock_job_query, mock_bulk_add, _):
+    """Test that add_task automatically routes untrusted tasks to preprocess."""
+    mock_job = mock.MagicMock(platform='LINUX', base_os_version=None)
+    mock_job.is_external.return_value = False
+    mock_job_query.return_value.get.return_value = mock_job
+
+    tasks.add_task('minimize', '123', 'linux_asan_d8_dbg')
+    mock_bulk_add.assert_called_once()
+    self.assertEqual(mock_bulk_add.call_args[1]['queue'],
+                     tasks.PREPROCESS_QUEUE)
+
+  @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
+  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  def test_add_task_trusted_without_queue(self, mock_job_query, mock_bulk_add,
+                                          _):
+    """Test that add_task automatically routes trusted tasks to platform queue."""
+    mock_job = mock.MagicMock(platform='LINUX', base_os_version=None)
+    mock_job.is_external.return_value = False
+    mock_job_query.return_value.get.return_value = mock_job
+
+    tasks.add_task('blame', '123', 'linux_asan_d8_dbg')
+    mock_bulk_add.assert_called_once()
+    self.assertEqual(mock_bulk_add.call_args[1]['queue'], 'jobs-linux')

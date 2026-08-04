@@ -25,6 +25,7 @@ from typing import Optional
 
 from google.cloud import monitoring_v3
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
@@ -51,6 +52,15 @@ HIGH_END_JOBS_PREFIX = 'high-end-jobs'
 # different platforms with the platform name added as suffix later.
 JOBS_TASKQUEUE = JOBS_PREFIX
 HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
+
+POSTPROCESS_QUEUE = 'postprocess'
+UTASK_MAIN_QUEUE = 'utask_main'
+PREPROCESS_QUEUE = 'preprocess'
+
+SWARMING_QUEUES = {
+    PREPROCESS_QUEUE: 'preprocess-swarming',
+    UTASK_MAIN_QUEUE: 'utask_main-swarming',
+}
 
 # Limits on number of tasks leased at once and in total.
 MAX_LEASED_TASKS_LIMIT = 1000
@@ -98,15 +108,6 @@ LEASE_RETRIES = 5
 
 TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
-
-POSTPROCESS_QUEUE = 'postprocess'
-UTASK_MAIN_QUEUE = 'utask_main'
-PREPROCESS_QUEUE = 'preprocess'
-
-SWARMING_QUEUES = {
-    PREPROCESS_QUEUE: 'preprocess-swarming',
-    UTASK_MAIN_QUEUE: 'utask_main-swarming',
-}
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
@@ -939,6 +940,18 @@ def add_task(command,
       external_tasks.add_external_task(command, argument, job)
       return
 
+  from clusterfuzz._internal.bot.tasks import task_types
+  if task_types.is_untrusted_task(command):
+    if job_type != 'none' and swarming.is_swarming_task(job_type):
+      queue = SWARMING_QUEUES[PREPROCESS_QUEUE]
+    else:
+      queue = PREPROCESS_QUEUE
+  elif queue is None:
+    if job_type != 'none':
+      queue = queue_for_job(job_type)
+    else:
+      queue = default_queue()
+
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   extra_info = extra_info or {}
@@ -987,6 +1000,11 @@ def queue_for_job(job_name, is_high_end=False):
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job:
     raise Error('Job {} not found.'.format(job_name))
+
+  if full_utask_task_model():
+    if swarming.is_swarming_task(job_name, job):
+      return SWARMING_QUEUES[PREPROCESS_QUEUE]
+    return PREPROCESS_QUEUE
 
   return queue_for_platform(job.platform, is_high_end)
 
@@ -1073,45 +1091,20 @@ def redo_testcase(testcase, tasks, user_email):
   # If we are re-doing minimization, other tasks will be done automatically
   # after minimization completes. So, don't add those tasks.
   if minimize:
-    add_task(
-        'minimize',
-        testcase_id,
-        testcase.job_type,
-        queue_for_testcase(testcase),
-        wait_time=wait_time)
+    add_task('minimize', testcase_id, testcase.job_type, wait_time=wait_time)
     return
 
   if regression:
-    add_task(
-        'regression',
-        testcase_id,
-        testcase.job_type,
-        queue_for_testcase(testcase),
-        wait_time=wait_time)
+    add_task('regression', testcase_id, testcase.job_type, wait_time=wait_time)
 
   if progression:
-    add_task(
-        'progression',
-        testcase_id,
-        testcase.job_type,
-        queue_for_testcase(testcase),
-        wait_time=wait_time)
+    add_task('progression', testcase_id, testcase.job_type, wait_time=wait_time)
 
   if impact:
-    add_task(
-        'impact',
-        testcase_id,
-        testcase.job_type,
-        queue_for_testcase(testcase),
-        wait_time=wait_time)
+    add_task('impact', testcase_id, testcase.job_type, wait_time=wait_time)
 
   if blame:
-    add_task(
-        'blame',
-        testcase_id,
-        testcase.job_type,
-        queue_for_testcase(testcase),
-        wait_time=wait_time)
+    add_task('blame', testcase_id, testcase.job_type, wait_time=wait_time)
 
 
 def get_task_payload():
