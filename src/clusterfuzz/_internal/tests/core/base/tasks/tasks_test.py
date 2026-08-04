@@ -15,6 +15,7 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.datastore import data_types
@@ -589,3 +590,75 @@ class TworkerGetTaskTest(unittest.TestCase):
     self.assertEqual(tasks.tworker_get_task(override_queue=''), 'task2')
     self.mock.get_postprocess_task.assert_called_once()
     self.mock.get_preprocess_task.assert_not_called()
+
+
+class GetTaskFuzzingFeatureFlagTest(unittest.TestCase):
+  """Tests for ENABLE_FUZZ_FOR_BOTS feature flag in get_task."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.get_command_override_task',
+        'clusterfuzz._internal.base.tasks.get_postprocess_task',
+        'clusterfuzz._internal.base.tasks.get_high_end_task',
+        'clusterfuzz._internal.base.tasks.get_regular_task',
+        'clusterfuzz._internal.base.tasks.get_fuzz_task',
+        'clusterfuzz._internal.system.environment.is_android',
+        'clusterfuzz._internal.system.environment.platform',
+    ])
+    self.mock.get_command_override_task.return_value = None
+    self.mock.get_postprocess_task.return_value = None
+    self.mock.get_high_end_task.return_value = None
+    self.mock.get_regular_task.return_value = None
+    self.mock.is_android.return_value = False
+    self.mock.platform.return_value = 'LINUX'
+    self.mock_fuzz_task = mock.Mock()
+    self.mock.get_fuzz_task.return_value = self.mock_fuzz_task
+
+  def test_flag_none(self):
+    """Test that fuzz task is not returned when feature flag is not set."""
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = None
+      self.assertIsNone(tasks.get_task())
+      self.mock.get_fuzz_task.assert_not_called()
+
+  def test_flag_disabled(self):
+    """Test that fuzz task is not returned when feature flag is disabled."""
+    mock_flag_obj = mock.MagicMock(enabled=False, string_value='linux')
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertIsNone(tasks.get_task())
+      self.mock.get_fuzz_task.assert_not_called()
+
+  def test_platform_in_string_value(self):
+    """Test that fuzz task is returned when platform matches string value."""
+    mock_flag_obj = mock.MagicMock(enabled=True, string_value='linux,windows')
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertEqual(tasks.get_task(), self.mock_fuzz_task)
+      self.mock.get_fuzz_task.assert_called_once()
+
+  def test_platform_not_in_string_value(self):
+    """Test fuzz task is not returned when platform not in string value."""
+    mock_flag_obj = mock.MagicMock(enabled=True, string_value='windows,mac')
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertIsNone(tasks.get_task())
+      self.mock.get_fuzz_task.assert_not_called()
+
+  def test_empty_string_value(self):
+    """Test that fuzz task is not returned when string value is empty."""
+    mock_flag_obj = mock.MagicMock(enabled=True, string_value='')
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertIsNone(tasks.get_task())
+      self.mock.get_fuzz_task.assert_not_called()
