@@ -597,7 +597,7 @@ class GetTaskFuzzingFeatureFlagTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.base.tasks.get_command_override_task',
+        'clusterfuzz._internal.base.tasks.get_command_override',
         'clusterfuzz._internal.base.tasks.get_postprocess_task',
         'clusterfuzz._internal.base.tasks.get_high_end_task',
         'clusterfuzz._internal.base.tasks.get_regular_task',
@@ -605,7 +605,7 @@ class GetTaskFuzzingFeatureFlagTest(unittest.TestCase):
         'clusterfuzz._internal.system.environment.is_android',
         'clusterfuzz._internal.system.environment.platform',
     ])
-    self.mock.get_command_override_task.return_value = None
+    self.mock.get_command_override.return_value = None
     self.mock.get_postprocess_task.return_value = None
     self.mock.get_high_end_task.return_value = None
     self.mock.get_regular_task.return_value = None
