@@ -157,6 +157,147 @@ QUERY_CLIENT_ERROR: StateQuery.ValueType  # 14
 """Query for all tasks that are TaskState.CLIENT_ERROR."""
 global___StateQuery = StateQuery
 
+class _TaskState:
+    ValueType = typing.NewType("ValueType", builtins.int)
+    V: typing_extensions.TypeAlias = ValueType
+
+class _TaskStateEnumTypeWrapper(google.protobuf.internal.enum_type_wrapper._EnumTypeWrapper[_TaskState.ValueType], builtins.type):
+    DESCRIPTOR: google.protobuf.descriptor.EnumDescriptor
+    INVALID: _TaskState.ValueType  # 0
+    """Invalid state, do not use."""
+    RUNNING: _TaskState.ValueType  # 16
+    """The task is currently running. This is in fact 3 phases: the initial
+    overhead to fetch input files, the actual task running, and the tear down
+    overhead to archive output files to the server.
+    """
+    PENDING: _TaskState.ValueType  # 32
+    """The task is currently pending. This means that no bot reaped the task. It
+    will stay in this state until either a task reaps it or the expiration
+    elapsed. The task pending expiration is specified as
+    TaskSlice.expiration_secs, one per task slice.
+    """
+    EXPIRED: _TaskState.ValueType  # 48
+    """The task is not pending anymore, and never ran due to lack of capacity. This
+    means that other higher priority tasks ran instead and that not enough bots
+    were available to run this task for TaskSlice.expiration_secs seconds.
+    """
+    TIMED_OUT: _TaskState.ValueType  # 64
+    """The task ran for longer than the allowed time in
+    TaskProperties.execution_timeout_secs or TaskProperties.io_timeout_secs.
+    This means the bot forcefully killed the task process as described in the
+    graceful termination dance in the documentation.
+    """
+    BOT_DIED: _TaskState.ValueType  # 80
+    """The task ran but the bot had an internal failure, unrelated to the task
+    itself. It can be due to the server being unavailable to get task update,
+    the host on which the bot is running crashing or rebooting, etc.
+    """
+    CANCELED: _TaskState.ValueType  # 96
+    """The task never ran, and was manually cancelled via the 'cancel' API before
+    it was reaped.
+    """
+    COMPLETED: _TaskState.ValueType  # 112
+    """The task ran and completed normally. The task process exit code may be 0 or
+    another value.
+    """
+    KILLED: _TaskState.ValueType  # 128
+    """The task ran but was manually killed via the 'cancel' API. This means the
+    bot forcefully killed the task process as described in the graceful
+    termination dance in the documentation.
+    """
+    NO_RESOURCE: _TaskState.ValueType  # 256
+    """The task was never set to PENDING and was immediately refused, as the server
+    determined that there is no bot capacity to run this task. This happens
+    because no bot exposes a superset of the requested task dimensions.
+
+    Set TaskSlice.wait_for_capacity to True to force the server to keep the task
+    slice pending even in this case. Generally speaking, the task will
+    eventually switch to EXPIRED, as there's no bot to run it. That said, there
+    are situations where it is known that in some not-too-distant future a wild
+    bot will appear that will be able to run this task.
+    """
+    CLIENT_ERROR: _TaskState.ValueType  # 512
+    """The task run into an issue that was caused by the client. It can be due to
+    a bad CIPD or CAS package. Retrying the task with the same parameters will
+    not change the result.
+    """
+
+class TaskState(_TaskState, metaclass=_TaskStateEnumTypeWrapper):
+    """Represents the current task state.
+
+    Some states are still mutable: PENDING and RUNNING. The others are final and
+    will not change afterward.
+
+    A task is guaranteed to be in exactly one state at any point of time.
+
+    Do not confuse StateQuery and TaskState. StateQuery is to query tasks
+    via the API. TaskState is the current task state.
+
+    As you read the following constants, astute readers may wonder why these
+    constants look like a bitmask. This is because of historical reasons and this
+    is effectively an enum, not a bitmask.
+    """
+
+INVALID: TaskState.ValueType  # 0
+"""Invalid state, do not use."""
+RUNNING: TaskState.ValueType  # 16
+"""The task is currently running. This is in fact 3 phases: the initial
+overhead to fetch input files, the actual task running, and the tear down
+overhead to archive output files to the server.
+"""
+PENDING: TaskState.ValueType  # 32
+"""The task is currently pending. This means that no bot reaped the task. It
+will stay in this state until either a task reaps it or the expiration
+elapsed. The task pending expiration is specified as
+TaskSlice.expiration_secs, one per task slice.
+"""
+EXPIRED: TaskState.ValueType  # 48
+"""The task is not pending anymore, and never ran due to lack of capacity. This
+means that other higher priority tasks ran instead and that not enough bots
+were available to run this task for TaskSlice.expiration_secs seconds.
+"""
+TIMED_OUT: TaskState.ValueType  # 64
+"""The task ran for longer than the allowed time in
+TaskProperties.execution_timeout_secs or TaskProperties.io_timeout_secs.
+This means the bot forcefully killed the task process as described in the
+graceful termination dance in the documentation.
+"""
+BOT_DIED: TaskState.ValueType  # 80
+"""The task ran but the bot had an internal failure, unrelated to the task
+itself. It can be due to the server being unavailable to get task update,
+the host on which the bot is running crashing or rebooting, etc.
+"""
+CANCELED: TaskState.ValueType  # 96
+"""The task never ran, and was manually cancelled via the 'cancel' API before
+it was reaped.
+"""
+COMPLETED: TaskState.ValueType  # 112
+"""The task ran and completed normally. The task process exit code may be 0 or
+another value.
+"""
+KILLED: TaskState.ValueType  # 128
+"""The task ran but was manually killed via the 'cancel' API. This means the
+bot forcefully killed the task process as described in the graceful
+termination dance in the documentation.
+"""
+NO_RESOURCE: TaskState.ValueType  # 256
+"""The task was never set to PENDING and was immediately refused, as the server
+determined that there is no bot capacity to run this task. This happens
+because no bot exposes a superset of the requested task dimensions.
+
+Set TaskSlice.wait_for_capacity to True to force the server to keep the task
+slice pending even in this case. Generally speaking, the task will
+eventually switch to EXPIRED, as there's no bot to run it. That said, there
+are situations where it is known that in some not-too-distant future a wild
+bot will appear that will be able to run this task.
+"""
+CLIENT_ERROR: TaskState.ValueType  # 512
+"""The task run into an issue that was caused by the client. It can be due to
+a bad CIPD or CAS package. Retrying the task with the same parameters will
+not change the result.
+"""
+global___TaskState = TaskState
+
 @typing_extensions.final
 class StringPair(google.protobuf.message.Message):
     """Messages
@@ -327,6 +468,33 @@ class CipdInput(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["client_package", b"client_package", "packages", b"packages", "server", b"server"]) -> None: ...
 
 global___CipdInput = CipdInput
+
+@typing_extensions.final
+class CipdPins(google.protobuf.message.Message):
+    """Defines pinned CIPD packages that were installed during the task."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    CLIENT_PACKAGE_FIELD_NUMBER: builtins.int
+    PACKAGES_FIELD_NUMBER: builtins.int
+    @property
+    def client_package(self) -> global___CipdPackage:
+        """The pinned package + version of the CIPD client that was actually used."""
+    @property
+    def packages(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CipdPackage]:
+        """List of CIPD packages that were installed in the task with fully resolved
+        package names and versions.
+        """
+    def __init__(
+        self,
+        *,
+        client_package: global___CipdPackage | None = ...,
+        packages: collections.abc.Iterable[global___CipdPackage] | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["client_package", b"client_package"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["client_package", b"client_package", "packages", b"packages"]) -> None: ...
+
+global___CipdPins = CipdPins
 
 @typing_extensions.final
 class CacheEntry(google.protobuf.message.Message):
@@ -614,6 +782,35 @@ class TaskSlice(google.protobuf.message.Message):
 global___TaskSlice = TaskSlice
 
 @typing_extensions.final
+class ResultDBInfo(google.protobuf.message.Message):
+    """ResultDB properties of a completed task."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    HOSTNAME_FIELD_NUMBER: builtins.int
+    INVOCATION_FIELD_NUMBER: builtins.int
+    hostname: builtins.str
+    """ResultDB hostname, e.g. "results.api.cr.dev" """
+    invocation: builtins.str
+    """Name of the task's ResultDB invocation.
+
+    For example "invocations/task-chromium-swarm.appspot.com-deadbeef1".
+    Unset if Swarming:ResultDB integration was not enabled for this task.
+
+    If the task was deduplicated, this equals invocation name of the original
+    task.
+    """
+    def __init__(
+        self,
+        *,
+        hostname: builtins.str = ...,
+        invocation: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["hostname", b"hostname", "invocation", b"invocation"]) -> None: ...
+
+global___ResultDBInfo = ResultDBInfo
+
+@typing_extensions.final
 class ResultDBCfg(google.protobuf.message.Message):
     """Swarming:ResultDB integration configuration for a task.
     See NewTaskRequest.resultdb for more details.
@@ -798,6 +995,33 @@ class NewTaskRequest(google.protobuf.message.Message):
 global___NewTaskRequest = NewTaskRequest
 
 @typing_extensions.final
+class TaskRequestMetadataResponse(google.protobuf.message.Message):
+    """Provides the ID of the requested TaskRequest."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TASK_ID_FIELD_NUMBER: builtins.int
+    REQUEST_FIELD_NUMBER: builtins.int
+    TASK_RESULT_FIELD_NUMBER: builtins.int
+    task_id: builtins.str
+    @property
+    def request(self) -> global___TaskRequestResponse: ...
+    @property
+    def task_result(self) -> global___TaskResultResponse:
+        """Set to finished task result in case task was deduplicated."""
+    def __init__(
+        self,
+        *,
+        task_id: builtins.str = ...,
+        request: global___TaskRequestResponse | None = ...,
+        task_result: global___TaskResultResponse | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["request", b"request", "task_result", b"task_result"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["request", b"request", "task_id", b"task_id", "task_result", b"task_result"]) -> None: ...
+
+global___TaskRequestMetadataResponse = TaskRequestMetadataResponse
+
+@typing_extensions.final
 class TaskRequestResponse(google.protobuf.message.Message):
     """Description of a task request as registered by the server.
     This message is used when retrieving information about an existing task.
@@ -882,6 +1106,191 @@ class TaskRequestResponse(google.protobuf.message.Message):
 global___TaskRequestResponse = TaskRequestResponse
 
 @typing_extensions.final
+class TaskResultResponse(google.protobuf.message.Message):
+    """Representation of the TaskResultSummary or TaskRunResult ndb model."""
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TASK_ID_FIELD_NUMBER: builtins.int
+    BOT_DIMENSIONS_FIELD_NUMBER: builtins.int
+    BOT_ID_FIELD_NUMBER: builtins.int
+    BOT_IDLE_SINCE_TS_FIELD_NUMBER: builtins.int
+    BOT_VERSION_FIELD_NUMBER: builtins.int
+    BOT_LOGS_CLOUD_PROJECT_FIELD_NUMBER: builtins.int
+    COMPLETED_TS_FIELD_NUMBER: builtins.int
+    COST_SAVED_USD_FIELD_NUMBER: builtins.int
+    CREATED_TS_FIELD_NUMBER: builtins.int
+    DEDUPED_FROM_FIELD_NUMBER: builtins.int
+    DURATION_FIELD_NUMBER: builtins.int
+    EXIT_CODE_FIELD_NUMBER: builtins.int
+    FAILURE_FIELD_NUMBER: builtins.int
+    INTERNAL_FAILURE_FIELD_NUMBER: builtins.int
+    MODIFIED_TS_FIELD_NUMBER: builtins.int
+    CAS_OUTPUT_ROOT_FIELD_NUMBER: builtins.int
+    SERVER_VERSIONS_FIELD_NUMBER: builtins.int
+    STARTED_TS_FIELD_NUMBER: builtins.int
+    STATE_FIELD_NUMBER: builtins.int
+    ABANDONED_TS_FIELD_NUMBER: builtins.int
+    COSTS_USD_FIELD_NUMBER: builtins.int
+    NAME_FIELD_NUMBER: builtins.int
+    TAGS_FIELD_NUMBER: builtins.int
+    USER_FIELD_NUMBER: builtins.int
+    PERFORMANCE_STATS_FIELD_NUMBER: builtins.int
+    CIPD_PINS_FIELD_NUMBER: builtins.int
+    RUN_ID_FIELD_NUMBER: builtins.int
+    CURRENT_TASK_SLICE_FIELD_NUMBER: builtins.int
+    RESULTDB_INFO_FIELD_NUMBER: builtins.int
+    MISSING_CAS_FIELD_NUMBER: builtins.int
+    MISSING_CIPD_FIELD_NUMBER: builtins.int
+    task_id: builtins.str
+    """Summary task ID (ending with '0') when creating a new task."""
+    @property
+    def bot_dimensions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___StringListPair]:
+        """Time when the task was abandoned instead of normal completion (e.g.
+        EXPIRED, BOT_DIED, KILLED).
+
+        The same key cannot be repeated.
+        """
+    bot_id: builtins.str
+    """Unique ID of the bot."""
+    @property
+    def bot_idle_since_ts(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """Time the bot became ready for a next task."""
+    bot_version: builtins.str
+    """Hash of the bot code which ran the task."""
+    bot_logs_cloud_project: builtins.str
+    """The cloud project id where the bot saves its logs."""
+    @property
+    def completed_ts(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """Time the task completed normally. Only one of abandoned_ts or completed_ts
+        can be set except for state == KILLED.
+
+        In case of KILLED, completed_ts is the time the task completed.
+        """
+    cost_saved_usd: builtins.float
+    """$ saved for task with state DEDUPED."""
+    @property
+    def created_ts(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """Time the task was requested."""
+    deduped_from: builtins.str
+    """Task ID which results was reused for state DEDUPED."""
+    duration: builtins.float
+    """Duration of the task in seconds. This excludes overheads."""
+    exit_code: builtins.int
+    """Process exit code if relevant. May be forcibly set to -1 in exceptional
+    cases.
+    """
+    failure: builtins.bool
+    """True if exit_code != 0."""
+    internal_failure: builtins.bool
+    """True if state is BOT_DIED."""
+    @property
+    def modified_ts(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """Time the results was last updated in the DB."""
+    @property
+    def cas_output_root(self) -> global___CASReference:
+        """CAS Digest of the output root uploaded to RBE-CAS.
+        This MUST be digest of [build.bazel.remote.execution.v2.Directory].
+        """
+    @property
+    def server_versions(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Server versions that touched this task."""
+    @property
+    def started_ts(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """Time the task started being run by a bot."""
+    state: global___TaskState.ValueType
+    """Current state of the task (e.g. PENDING, RUNNING, COMPLETED, EXPIRED, etc)."""
+    @property
+    def abandoned_ts(self) -> google.protobuf.timestamp_pb2.Timestamp:
+        """In the case of KILLED, this records the time the user requested the task to
+        stop.
+        """
+    @property
+    def costs_usd(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.float]:
+        """Can be multiple values only in TaskResultSummary."""
+    name: builtins.str
+    """Name of the task. Only set when requesting task ID summary, ending with '0'."""
+    @property
+    def tags(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]:
+        """Tags associated with the task when it was requested. Only set when
+        requesting task ID summary, ending with '0'.
+        """
+    user: builtins.str
+    """User on behalf this task was requested. Only set when requesting task ID
+    summary, ending with '0'.
+    """
+    @property
+    def performance_stats(self) -> global___PerformanceStats:
+        """Statistics about overhead for an isolated task. Only sent when requested."""
+    @property
+    def cipd_pins(self) -> global___CipdPins:
+        """Listing of the ACTUAL pinned CipdPackages that the task used. These can vary
+        from the input packages if the inputs included non-identity versions (e.g. a
+        ref like "latest").
+        """
+    run_id: builtins.str
+    """Actual executed task id that this task represents. For deduped tasks, it is
+    the same value as deduped_from. This value can be empty if there is no
+    execution, for example the task was cancelled.
+    """
+    current_task_slice: builtins.int
+    """Index in the TaskRequest.task_slices (TaskSlice instance) that this result
+    represents. This is updated when a TaskSlice is enqueued to run.
+
+    The TaskSlice contains a TaskProperties, which defines what is run.
+    """
+    @property
+    def resultdb_info(self) -> global___ResultDBInfo:
+        """ResultDB related information.
+        None if the integration was not enabled for this task.
+        """
+    @property
+    def missing_cas(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CASReference]:
+        """Reported missing CAS packages on CLIENT_ERROR state"""
+    @property
+    def missing_cipd(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CipdPackage]:
+        """Reported missing CIPD packages on CLIENT_ERROR state"""
+    def __init__(
+        self,
+        *,
+        task_id: builtins.str = ...,
+        bot_dimensions: collections.abc.Iterable[global___StringListPair] | None = ...,
+        bot_id: builtins.str = ...,
+        bot_idle_since_ts: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        bot_version: builtins.str = ...,
+        bot_logs_cloud_project: builtins.str = ...,
+        completed_ts: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        cost_saved_usd: builtins.float = ...,
+        created_ts: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        deduped_from: builtins.str = ...,
+        duration: builtins.float = ...,
+        exit_code: builtins.int = ...,
+        failure: builtins.bool = ...,
+        internal_failure: builtins.bool = ...,
+        modified_ts: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        cas_output_root: global___CASReference | None = ...,
+        server_versions: collections.abc.Iterable[builtins.str] | None = ...,
+        started_ts: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        state: global___TaskState.ValueType = ...,
+        abandoned_ts: google.protobuf.timestamp_pb2.Timestamp | None = ...,
+        costs_usd: collections.abc.Iterable[builtins.float] | None = ...,
+        name: builtins.str = ...,
+        tags: collections.abc.Iterable[builtins.str] | None = ...,
+        user: builtins.str = ...,
+        performance_stats: global___PerformanceStats | None = ...,
+        cipd_pins: global___CipdPins | None = ...,
+        run_id: builtins.str = ...,
+        current_task_slice: builtins.int = ...,
+        resultdb_info: global___ResultDBInfo | None = ...,
+        missing_cas: collections.abc.Iterable[global___CASReference] | None = ...,
+        missing_cipd: collections.abc.Iterable[global___CipdPackage] | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["abandoned_ts", b"abandoned_ts", "bot_idle_since_ts", b"bot_idle_since_ts", "cas_output_root", b"cas_output_root", "cipd_pins", b"cipd_pins", "completed_ts", b"completed_ts", "created_ts", b"created_ts", "modified_ts", b"modified_ts", "performance_stats", b"performance_stats", "resultdb_info", b"resultdb_info", "started_ts", b"started_ts"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["abandoned_ts", b"abandoned_ts", "bot_dimensions", b"bot_dimensions", "bot_id", b"bot_id", "bot_idle_since_ts", b"bot_idle_since_ts", "bot_logs_cloud_project", b"bot_logs_cloud_project", "bot_version", b"bot_version", "cas_output_root", b"cas_output_root", "cipd_pins", b"cipd_pins", "completed_ts", b"completed_ts", "cost_saved_usd", b"cost_saved_usd", "costs_usd", b"costs_usd", "created_ts", b"created_ts", "current_task_slice", b"current_task_slice", "deduped_from", b"deduped_from", "duration", b"duration", "exit_code", b"exit_code", "failure", b"failure", "internal_failure", b"internal_failure", "missing_cas", b"missing_cas", "missing_cipd", b"missing_cipd", "modified_ts", b"modified_ts", "name", b"name", "performance_stats", b"performance_stats", "resultdb_info", b"resultdb_info", "run_id", b"run_id", "server_versions", b"server_versions", "started_ts", b"started_ts", "state", b"state", "tags", b"tags", "task_id", b"task_id", "user", b"user"]) -> None: ...
+
+global___TaskResultResponse = TaskResultResponse
+
+@typing_extensions.final
 class TasksCountRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -930,3 +1339,114 @@ class TasksCount(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["count", b"count", "now", b"now"]) -> None: ...
 
 global___TasksCount = TasksCount
+
+@typing_extensions.final
+class PerformanceStats(google.protobuf.message.Message):
+    """Performance stats of task execution.
+    See task_result.PerformanceStats for details.
+    """
+
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    BOT_OVERHEAD_FIELD_NUMBER: builtins.int
+    ISOLATED_DOWNLOAD_FIELD_NUMBER: builtins.int
+    ISOLATED_UPLOAD_FIELD_NUMBER: builtins.int
+    PACKAGE_INSTALLATION_FIELD_NUMBER: builtins.int
+    CACHE_TRIM_FIELD_NUMBER: builtins.int
+    NAMED_CACHES_INSTALL_FIELD_NUMBER: builtins.int
+    NAMED_CACHES_UNINSTALL_FIELD_NUMBER: builtins.int
+    CLEANUP_FIELD_NUMBER: builtins.int
+    bot_overhead: builtins.float
+    @property
+    def isolated_download(self) -> global___CASOperationStats: ...
+    @property
+    def isolated_upload(self) -> global___CASOperationStats: ...
+    @property
+    def package_installation(self) -> global___OperationStats: ...
+    @property
+    def cache_trim(self) -> global___OperationStats: ...
+    @property
+    def named_caches_install(self) -> global___OperationStats: ...
+    @property
+    def named_caches_uninstall(self) -> global___OperationStats: ...
+    @property
+    def cleanup(self) -> global___OperationStats: ...
+    def __init__(
+        self,
+        *,
+        bot_overhead: builtins.float = ...,
+        isolated_download: global___CASOperationStats | None = ...,
+        isolated_upload: global___CASOperationStats | None = ...,
+        package_installation: global___OperationStats | None = ...,
+        cache_trim: global___OperationStats | None = ...,
+        named_caches_install: global___OperationStats | None = ...,
+        named_caches_uninstall: global___OperationStats | None = ...,
+        cleanup: global___OperationStats | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["cache_trim", b"cache_trim", "cleanup", b"cleanup", "isolated_download", b"isolated_download", "isolated_upload", b"isolated_upload", "named_caches_install", b"named_caches_install", "named_caches_uninstall", b"named_caches_uninstall", "package_installation", b"package_installation"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["bot_overhead", b"bot_overhead", "cache_trim", b"cache_trim", "cleanup", b"cleanup", "isolated_download", b"isolated_download", "isolated_upload", b"isolated_upload", "named_caches_install", b"named_caches_install", "named_caches_uninstall", b"named_caches_uninstall", "package_installation", b"package_installation"]) -> None: ...
+
+global___PerformanceStats = PerformanceStats
+
+@typing_extensions.final
+class OperationStats(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    DURATION_FIELD_NUMBER: builtins.int
+    duration: builtins.float
+    """Duration in seconds."""
+    def __init__(
+        self,
+        *,
+        duration: builtins.float = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["duration", b"duration"]) -> None: ...
+
+global___OperationStats = OperationStats
+
+@typing_extensions.final
+class CASOperationStats(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    DURATION_FIELD_NUMBER: builtins.int
+    INITIAL_NUMBER_ITEMS_FIELD_NUMBER: builtins.int
+    INITIAL_SIZE_FIELD_NUMBER: builtins.int
+    ITEMS_COLD_FIELD_NUMBER: builtins.int
+    ITEMS_HOT_FIELD_NUMBER: builtins.int
+    NUM_ITEMS_COLD_FIELD_NUMBER: builtins.int
+    TOTAL_BYTES_ITEMS_COLD_FIELD_NUMBER: builtins.int
+    NUM_ITEMS_HOT_FIELD_NUMBER: builtins.int
+    TOTAL_BYTES_ITEMS_HOT_FIELD_NUMBER: builtins.int
+    duration: builtins.float
+    """Duration in seconds."""
+    initial_number_items: builtins.int
+    initial_size: builtins.int
+    items_cold: builtins.bytes
+    """These buffers are compressed as deflate'd delta-encoded varints. They are
+    all the items for an isolated operation, which can scale in the 100k range.
+    So can be large! See //client/utils/large.py for the code to handle these.
+    """
+    items_hot: builtins.bytes
+    num_items_cold: builtins.int
+    """Corresponding summaries; for each list above, sum of the number of files
+    and the sum bytes of the files.
+    """
+    total_bytes_items_cold: builtins.int
+    num_items_hot: builtins.int
+    total_bytes_items_hot: builtins.int
+    def __init__(
+        self,
+        *,
+        duration: builtins.float = ...,
+        initial_number_items: builtins.int = ...,
+        initial_size: builtins.int = ...,
+        items_cold: builtins.bytes = ...,
+        items_hot: builtins.bytes = ...,
+        num_items_cold: builtins.int = ...,
+        total_bytes_items_cold: builtins.int = ...,
+        num_items_hot: builtins.int = ...,
+        total_bytes_items_hot: builtins.int = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["duration", b"duration", "initial_number_items", b"initial_number_items", "initial_size", b"initial_size", "items_cold", b"items_cold", "items_hot", b"items_hot", "num_items_cold", b"num_items_cold", "num_items_hot", b"num_items_hot", "total_bytes_items_cold", b"total_bytes_items_cold", "total_bytes_items_hot", b"total_bytes_items_hot"]) -> None: ...
+
+global___CASOperationStats = CASOperationStats
