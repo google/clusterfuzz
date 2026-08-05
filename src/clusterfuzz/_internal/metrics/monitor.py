@@ -672,7 +672,7 @@ def initialize():
                                            FLUSH_INTERVAL_SECONDS)
     _monitoring_daemon.start()
 
-    if environment.get_value('PREEMPTIBLE'):
+    if compute_metadata.is_preemptible():
       _preemption_poller = _PreemptionPoller(PREEMPTION_CHECK_INTERVAL)
       _preemption_poller.start()
 
