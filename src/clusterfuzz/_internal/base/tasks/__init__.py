@@ -53,15 +53,6 @@ HIGH_END_JOBS_PREFIX = 'high-end-jobs'
 JOBS_TASKQUEUE = JOBS_PREFIX
 HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
 
-POSTPROCESS_QUEUE = 'postprocess'
-UTASK_MAIN_QUEUE = 'utask_main'
-PREPROCESS_QUEUE = 'preprocess'
-
-SWARMING_QUEUES = {
-    PREPROCESS_QUEUE: 'preprocess-swarming',
-    UTASK_MAIN_QUEUE: 'utask_main-swarming',
-}
-
 # Limits on number of tasks leased at once and in total.
 MAX_LEASED_TASKS_LIMIT = 1000
 MAX_TASKS_LIMIT = 100000
@@ -79,7 +70,6 @@ TASK_LEASE_SECONDS_BY_COMMAND = {
     'corpus_pruning': 24 * 60 * 60,
     'regression': 24 * 60 * 60,
 }
-
 
 def get_task_duration(command):
   """Gets the duration of a task."""
@@ -108,6 +98,15 @@ LEASE_RETRIES = 5
 
 TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
+
+POSTPROCESS_QUEUE = 'postprocess'
+UTASK_MAIN_QUEUE = 'utask_main'
+PREPROCESS_QUEUE = 'preprocess'
+
+SWARMING_QUEUES = {
+    PREPROCESS_QUEUE: 'preprocess-swarming',
+    UTASK_MAIN_QUEUE: 'utask_main-swarming',
+}
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
