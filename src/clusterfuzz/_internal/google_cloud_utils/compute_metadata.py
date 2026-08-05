@@ -64,3 +64,24 @@ def get_preempted_status():
   response = requests.get(attribute_url, headers=headers, timeout=5)
   response.raise_for_status()
   return response.text
+
+
+def is_preemptible():
+  """Returns True if the instance is preemptible (or Spot)."""
+  if is_gce():
+    # We ignore exceptions (mainly HTTPError if a key doesn't exist) to avoid
+    # log noise for standard VMs where these keys might not be present.
+    try:
+      if get('instance/scheduling/preemptible').strip().upper() == 'TRUE':
+        return True
+    except Exception:
+      pass
+
+    try:
+      if get(
+          'instance/scheduling/provisioning-model').strip().upper() == 'SPOT':
+        return True
+    except Exception:
+      pass
+
+  return bool(environment.get_value('PREEMPTIBLE'))
