@@ -320,6 +320,9 @@ class EntityMigrator:
       entities_to_sync = entities_to_sync.decode('utf-8').split('\n')
     for entity in self._target_cls.query():
       if entity.name not in entities_to_sync:
+        if isinstance(entity, data_types.Fuzzer) and not entity.trusted:
+          logs.info(f'Skipping cleanup for untrusted fuzzer: {entity.name}')
+          continue
         entity.key.delete()
     for entity_name in entities_to_sync:
       entity_location = f'{entity_bucket_prefix}/{entity_name}'
