@@ -26,21 +26,26 @@ _RETRIES = 3
 _DELAY = 1
 
 
+def _get_raw(path, timeout=None):
+  """Internal helper to get metadata without retries."""
+  attribute_url = 'http://{}/computeMetadata/v1/{}'.format(
+      _METADATA_SERVER, path)
+  headers = {'Metadata-Flavor': 'Google'}
+  if timeout is None:
+    timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
+
+  response = requests.get(attribute_url, headers=headers, timeout=timeout)
+  response.raise_for_status()
+  return response.text
+
+
 @retry.wrap(
     retries=_RETRIES,
     delay=_DELAY,
     function='python.google_cloud_utils.compute_metadata.get')
 def get(path):
   """Get GCE metadata value."""
-  attribute_url = (
-      'http://{}/computeMetadata/v1/'.format(_METADATA_SERVER) + path)
-  headers = {'Metadata-Flavor': 'Google'}
-  operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
-
-  response = requests.get(
-      attribute_url, headers=headers, timeout=operations_timeout)
-  response.raise_for_status()
-  return response.text
+  return _get_raw(path)
 
 
 def is_gce():
@@ -56,30 +61,33 @@ def is_gce():
 
 def get_preempted_status():
   """Gets the preemption status of the instance."""
-  attribute_url = 'http://{}/computeMetadata/v1/instance/preempted'.format(
-      _METADATA_SERVER)
-  headers = {'Metadata-Flavor': 'Google'}
   # We use a short timeout and no retries because this is called frequently
   # in a background loop and should fail fast.
-  response = requests.get(attribute_url, headers=headers, timeout=5)
-  response.raise_for_status()
-  return response.text
+  return _get_raw('instance/preempted', timeout=5)
 
 
 def is_preemptible():
   """Returns True if the instance is preemptible (or Spot)."""
-  if is_gce():
-    try:
-      if get('instance/scheduling/preemptible').strip().upper() == 'TRUE':
-        return True
-    except Exception:
-      pass
+  # Skip metadata queries on App Engine or K8s to avoid errors and latency.
+  if environment.is_running_on_app_engine() or environment.is_running_on_k8s():
+    return bool(environment.get_value('PREEMPTIBLE'))
 
-    try:
-      if get('instance/scheduling/provisioning-model').strip().upper() == 'SPOT':
-        return True
-    except Exception:
-      pass
+  if is_gce():
+    # We ignore exceptions (mainly HTTPError if a key doesn't exist) to avoid
+    # log noise for standard VMs where these keys might not be present.
+    for path in [
+        'instance/scheduling/preemptible',
+        'instance/scheduling/provisioning-model'
+    ]:
+      try:
+        value = _get_raw(path, timeout=2).strip().upper()
+        if value in ['TRUE', 'SPOT']:
+          return True
+      except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+          continue
+      except Exception:
+        pass
 
   return bool(environment.get_value('PREEMPTIBLE'))
 
