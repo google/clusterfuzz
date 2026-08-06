@@ -43,7 +43,7 @@ class SwarmingAPITest(unittest.TestCase):
 
   def test_push_task(self):
     """Tests that push_task works as expected."""
-    self.mock.post_url.return_value = '{"taskId": "123"}'
+    self.mock.post_url.return_value = '{"request": {"taskId": "123"}}'
     expected_response = swarming_pb2.TaskRequestResponse(task_id="123")
     task_request = swarming_pb2.NewTaskRequest(
         name='test_task',
