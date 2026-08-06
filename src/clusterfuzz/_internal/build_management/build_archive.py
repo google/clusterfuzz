@@ -24,6 +24,7 @@ from typing import Union
 
 from typing_extensions import override
 
+from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import archive
 
@@ -96,9 +97,6 @@ class BuildArchive(archive.ArchiveReader):
         The list of fuzz targets.
     """
     if self._fuzz_targets is None:
-      # Import here as this path is not available in App Engine context.
-      from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
-
       self._fuzz_targets = {
           fuzzer_utils.normalize_target_name(path): path
           for path in self.find_fuzz_targets()
@@ -207,9 +205,6 @@ class DefaultBuildArchive(BuildArchive):
 
   @override
   def find_fuzz_targets(self) -> List[str]:
-    # Import here as this path is not available in App Engine context.
-    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
-
     return [
         member.name
         for member in self.list_members()
@@ -314,7 +309,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     self._manifest_fuzz_targets = None
     # The manifest may not exist for earlier versions of archives. In this
     # case, default to schema version 0.
-    manifest_path = CHROME_MANIFEST_FILENAME
+    manifest_path = os.path.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
     if not self.file_exists(manifest_path):
       self._archive_schema_version = default_archive_schema_version
       return
@@ -328,21 +323,8 @@ class ChromeBuildArchive(DefaultBuildArchive):
           'archive_schema_version field')
       self._archive_schema_version = default_archive_schema_version
 
-    fuzz_target_paths = manifest.get('fuzz_targets')
-    if fuzz_target_paths is None:
-      return
-
-    if not isinstance(fuzz_target_paths, list):
-      logs.error('fuzz_targets in clusterfuzz_manifest.json is not a list')
-      return
-
-    self._manifest_fuzz_targets = []
-    for target_path in fuzz_target_paths:
-      if isinstance(target_path, str):
-        self._manifest_fuzz_targets.append(target_path)
-      else:
-        logs.error('Entry in fuzz_targets (clusterfuzz_manifest.json) is not a '
-                   f'string: {target_path}')
+    self._manifest_fuzz_targets = (
+        fuzzer_utils.extract_fuzz_targets_from_manifest(manifest))
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
@@ -355,7 +337,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
 
   @override
   def find_fuzz_targets(self) -> List[str]:
-    if self._manifest_fuzz_targets:
+    if self._manifest_fuzz_targets is not None:
       return self._manifest_fuzz_targets
     return super().find_fuzz_targets()
 

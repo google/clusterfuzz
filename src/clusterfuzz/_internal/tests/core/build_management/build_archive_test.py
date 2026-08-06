@@ -386,6 +386,8 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.metrics.logs.warning',
         'clusterfuzz._internal.system.archive.ArchiveReader.file_exists',
         'clusterfuzz._internal.system.archive.ArchiveReader',
         'clusterfuzz._internal.system.archive.open',
@@ -445,6 +447,25 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     # Ensure list_members was never called for fuzz target discovery.
     self.mock_archive_reader.list_members.assert_not_called()
 
+  def test_manifest_fuzz_targets_with_root_dir(self):
+    """Tests that manifest is read when archive has a root directory prefix."""
+    self.mock_archive_reader.root_dir.return_value = 'build'
+
+    def _mock_file_exists(_, path):
+      return path == 'build/clusterfuzz_manifest.json'
+
+    self.mock.file_exists.side_effect = _mock_file_exists
+    self._generate_manifest({
+        'archive_schema_version': 1,
+        'fuzz_targets': ['out/build/my_fuzzer', 'out/build/other_fuzzer']
+    })
+
+    test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
+    self.assertEqual(test_archive.archive_schema_version(), 1)
+    self.assertCountEqual(test_archive.list_fuzz_targets(),
+                          ['my_fuzzer', 'other_fuzzer'])
+
   def test_manifest_fuzz_targets_invalid(self):
     """Tests that invalid fuzz_targets (e.g. dict) in the manifest are ignored
     and we fallback to discovery."""
@@ -477,33 +498,31 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     self.mock_archive_reader.list_members.assert_called_once()
 
   def test_manifest_fuzz_targets_empty(self):
-    """Tests that empty fuzz_targets list in the manifest is ignored
-    and we fallback to discovery."""
+    """Tests that empty fuzz_targets list in the manifest returns empty list
+    without falling back to discovery."""
     self.mock.file_exists.return_value = True
     self._generate_manifest({'archive_schema_version': 1, 'fuzz_targets': []})
-    self.mock_archive_reader.list_members.return_value = []
 
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
 
     self.assertEqual(test_archive.archive_schema_version(), 1)
-    test_archive.list_fuzz_targets()
-    self.mock_archive_reader.list_members.assert_called_once()
+    self.assertEqual(test_archive.list_fuzz_targets(), [])
+    self.mock_archive_reader.list_members.assert_not_called()
 
   def test_manifest_fuzz_targets_all_invalid(self):
-    """Tests that fuzz_targets list with only invalid entries in the manifest is
-    ignored and we fallback to discovery."""
+    """Tests that fuzz_targets list with only invalid entries in the manifest
+    returns empty list without falling back to discovery."""
     self.mock.file_exists.return_value = True
     self._generate_manifest({
         'archive_schema_version': 1,
         'fuzz_targets': [1, 2]
     })
-    self.mock_archive_reader.list_members.return_value = []
 
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
 
     self.assertEqual(test_archive.archive_schema_version(), 1)
-    test_archive.list_fuzz_targets()
-    self.mock_archive_reader.list_members.assert_called_once()
+    self.assertEqual(test_archive.list_fuzz_targets(), [])
+    self.mock_archive_reader.list_members.assert_not_called()
 
   def test_manifest_fuzz_targets_mixed(self):
     """Tests that fuzz_targets list with mixed valid and invalid entries in the

@@ -14,6 +14,7 @@
 """Fuzzer utils."""
 
 import functools
+import json
 import os
 import re
 import stat
@@ -31,6 +32,9 @@ FUZZ_TARGET_SEARCH_BYTES = [b'LLVMFuzzerTestOneInput', b'LLVMFuzzerRunDriver']
 VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9@_.-]+$')
 BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*|jazzerjs)$')
 EXTRA_BUILD_DIR = '__extra_build'
+# Manifest file present in Chrome build archives. Specifies the archive
+# schema version along with optional build metadata (e.g., fuzz targets).
+CHROME_MANIFEST_FILENAME = 'clusterfuzz_manifest.json'
 
 
 def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
@@ -98,8 +102,119 @@ def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
     return False
 
 
+def extract_fuzz_targets_from_manifest(manifest_dict: dict) -> list[str] | None:
+  """Extracts the list of target paths from a loaded manifest dict.
+
+  Looks for the `fuzz_targets` property in the dictionary and validates that
+  the dictionary is in the expected format. For example, `manifest_dict` might
+  look like:
+  {
+      "fuzz_targets": [
+          "fuzz_target_a",
+          "fuzz_target_b"
+      ]
+  }
+
+  Args:
+      manifest_dict: the loaded manifest dictionary
+
+  Returns:
+      the list of fuzz target paths, or None if invalid or missing
+      `fuzz_targets`
+  """
+  if not isinstance(manifest_dict, dict):
+    logs.error(f'Manifest is not a dict: {manifest_dict}')
+    return None
+
+  manifest_targets = manifest_dict.get('fuzz_targets')
+  if manifest_targets is None:
+    logs.info(f'No fuzz_targets found in manifest: {manifest_dict}')
+    return None
+
+  if not isinstance(manifest_targets, list):
+    logs.error(f'fuzz_targets in manifest is not a list: {manifest_dict}')
+    return None
+
+  fuzz_target_paths = []
+  for target_path in manifest_targets:
+    if not isinstance(target_path, str):
+      logs.error(f'Entry in fuzz_targets is not a string: {target_path}')
+      continue
+    fuzz_target_paths.append(target_path)
+
+  logs.info(f'{len(fuzz_target_paths)} found in manifest.')
+  return fuzz_target_paths
+
+
+def read_chrome_manifest(build_dir: str) -> dict | None:
+  """Reads and parses clusterfuzz_manifest.json from build_dir.
+
+  Args:
+      build_dir: the directory to read clusterfuzz_manifest.json from
+
+  Returns:
+      the parsed dictionary from clusterfuzz_manifest.json, or None if missing
+      or unreadable
+  """
+  manifest_path = os.path.join(build_dir, CHROME_MANIFEST_FILENAME)
+  if not os.path.exists(manifest_path):
+    return None
+
+  try:
+    with open(manifest_path, 'r', encoding='utf-8') as f:
+      return json.load(f)
+  except Exception as e:
+    logs.error(f'Failed to read {manifest_path}: {e}')
+    return None
+
+
+def _get_manifest_fuzz_targets(build_dir: str) -> list[str] | None:
+  """Gets the list of fuzz targets from clusterfuzz_manifest.json.
+
+  Args:
+      build_dir: the directory containing clusterfuzz_manifest.json
+
+  Returns:
+      the list of existing fuzz target paths in build_dir, or None if missing
+      or invalid
+  """
+  manifest = read_chrome_manifest(build_dir)
+  if manifest is None:
+    return None
+
+  manifest_path = os.path.join(build_dir, CHROME_MANIFEST_FILENAME)
+  manifest_targets = extract_fuzz_targets_from_manifest(manifest)
+  if manifest_targets is None:
+    return None
+
+  fuzz_target_paths = []
+  for target_path in manifest_targets:
+    file_path = os.path.join(build_dir, target_path)
+    if os.path.exists(file_path):
+      fuzz_target_paths.append(file_path)
+    else:
+      logs.warning(f'Fuzz target {target_path} in {manifest_path} not found.')
+
+  return fuzz_target_paths
+
+
 def get_fuzz_targets_local(path):
-  """Get list of fuzz targets paths (local)."""
+  """Gets the list of local fuzz target paths.
+
+  If clusterfuzz_manifest.json is present and defines `fuzz_targets`, those
+  targets are returned. Otherwise, falls back to scanning the directory for
+  executables ending in `_fuzzer`.
+
+  Args:
+      path: the directory path to search for fuzz targets
+
+  Returns:
+      the list of local fuzz target paths
+  """
+  manifest_fuzz_targets = _get_manifest_fuzz_targets(path)
+  if manifest_fuzz_targets is not None:
+    return manifest_fuzz_targets
+
   fuzz_target_paths = []
 
   for root, _, files in shell.walk(path):
