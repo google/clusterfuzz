@@ -712,3 +712,20 @@ class TaskQueueResolutionTest(unittest.TestCase):
     tasks.add_task('blame', '123', 'linux_asan_d8_dbg')
     mock_bulk_add.assert_called_once()
     self.assertEqual(mock_bulk_add.call_args[1]['queue'], 'jobs-linux')
+
+  @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
+  @mock.patch('clusterfuzz._internal.base.tasks.data_types.Job.query')
+  def test_add_task_untrusted_with_explicit_queue(self, mock_job_query,
+                                                  mock_bulk_add, _):
+    """Test that add_task respects explicit queue for untrusted tasks (e.g. add_utask_main)."""
+    mock_job = mock.MagicMock(platform='LINUX', base_os_version=None)
+    mock_job.is_external.return_value = False
+    mock_job_query.return_value.get.return_value = mock_job
+
+    tasks.add_task(
+        'fuzz',
+        'https://storage.googleapis.com/uworker-input...',
+        'linux_asan_d8_dbg',
+        queue='utask_main')
+    mock_bulk_add.assert_called_once()
+    self.assertEqual(mock_bulk_add.call_args[1]['queue'], 'utask_main')

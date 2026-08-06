@@ -940,14 +940,14 @@ def add_task(command,
       external_tasks.add_external_task(command, argument, job)
       return
 
-  from clusterfuzz._internal.bot.tasks import task_types
-  if task_types.is_untrusted_task(command):
-    if job_type != 'none' and swarming.is_swarming_task(job_type):
-      queue = SWARMING_QUEUES[PREPROCESS_QUEUE]
-    else:
-      queue = PREPROCESS_QUEUE
-  elif queue is None:
-    if job_type != 'none':
+  if queue is None:
+    from clusterfuzz._internal.bot.tasks import task_types
+    if task_types.is_untrusted_task(command):
+      if job_type != 'none' and swarming.is_swarming_task(job_type):
+        queue = SWARMING_QUEUES[PREPROCESS_QUEUE]
+      else:
+        queue = PREPROCESS_QUEUE
+    elif job_type != 'none':
       queue = queue_for_job(job_type)
     else:
       queue = default_queue()
