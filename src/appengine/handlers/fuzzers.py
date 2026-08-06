@@ -178,6 +178,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     differential = bool(request.get('differential', False))
     environment_string = request.get('additional_environment_string')
     data_bundle_name = request.get('data_bundle_name')
+    primary_owner = request.get('primary_owner')
 
     # Save the fuzzer file metadata.
     if upload_info:
@@ -193,7 +194,8 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     fuzzer.result = None
     fuzzer.sample_testcase = None
     fuzzer.console_output = None
-    fuzzer.external_contribution = external_contribution
+    fuzzer.external_contribution = bool(external_contribution)
+    fuzzer.primary_owner = primary_owner
     fuzzer.trusted = trusted
     fuzzer.differential = differential
     fuzzer.additional_environment_string = environment_string
