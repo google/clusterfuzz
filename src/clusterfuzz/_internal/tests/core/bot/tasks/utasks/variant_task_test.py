@@ -14,9 +14,11 @@
 """variant_task tests."""
 import unittest
 
+from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -85,3 +87,31 @@ class GetVariantTestcaseForJob(unittest.TestCase):
     variant_testcase.put()
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     self.assertEqual('', testcase.comments)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UtaskPreprocessTest(unittest.TestCase):
+  """Test utask_preprocess."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.testcase_manager.preprocess_testcase_manager',
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase',
+        'clusterfuzz._internal.metrics.logs.warning',
+    ])
+    self.mock.preprocess_setup_testcase.return_value = (
+        uworker_msg_pb2.SetupInput())
+
+  def test_target_not_found(self):
+    """Test that TargetNotFoundError returns None"""
+    testcase = test_utils.create_generic_testcase()
+    error = testcase_manager.TargetNotFoundError('Target target_foo not found')
+    self.mock.preprocess_testcase_manager.side_effect = error
+
+    result = variant_task.utask_preprocess(
+        testcase_id=str(testcase.key.id()),
+        job_type=testcase.job_type,
+        uworker_env={})
+
+    self.assertIsNone(result)
