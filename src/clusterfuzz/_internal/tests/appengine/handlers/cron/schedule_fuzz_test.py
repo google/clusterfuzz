@@ -194,6 +194,42 @@ class OssfuzzFuzzTaskScheduler(unittest.TestCase):
     self.assertEqual(task.job, job_name)
     self.assertIsNone(task.extra_info.get('base_os_version'))
 
+  def test_deleted_jobs_and_fuzzers_ignored(self):
+    """Tests that soft-deleted jobs and fuzzers are not scheduled."""
+    data_types.Fuzzer(name='libFuzzer').put()
+    data_types.Fuzzer(name='deleted_fuzzer', deleted=True).put()
+
+    data_types.Job(
+        name='active_job',
+        environment_string='PROJECT_NAME = myproject',
+        platform='LINUX',
+    ).put()
+    data_types.Job(
+        name='deleted_job',
+        environment_string='PROJECT_NAME = myproject',
+        platform='LINUX',
+        deleted=True,
+    ).put()
+
+    data_types.FuzzerJob(
+        job='active_job', platform='LINUX', fuzzer='libFuzzer',
+        weight=1.0).put()
+    data_types.FuzzerJob(
+        job='active_job', platform='LINUX', fuzzer='deleted_fuzzer',
+        weight=1.0).put()
+    data_types.FuzzerJob(
+        job='deleted_job', platform='LINUX', fuzzer='libFuzzer',
+        weight=1.0).put()
+
+    data_types.OssFuzzProject(name='myproject').put()
+
+    provider = schedule_fuzz.OssfuzzFuzzTaskProvider()
+    tasks = provider.get_fuzz_tasks(num_tasks=5)
+    self.assertEqual(len(tasks), 5)
+    for task in tasks:
+      self.assertEqual(task.job, 'active_job')
+      self.assertEqual(task.argument, 'libFuzzer')
+
 
 @test_utils.with_cloud_emulators('datastore')
 class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
@@ -233,3 +269,22 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
     self._setup_chrome_entities()
     task = self._run_and_get_task()
     self.assertIsNone(task.extra_info.get('base_os_version'))
+
+  def test_deleted_job_not_scheduled(self):
+    """Tests that soft-deleted chrome jobs are not scheduled."""
+    data_types.Fuzzer(name='libFuzzer').put()
+    data_types.Job(
+        name='deleted_chrome_job',
+        project='chrome',
+        platform='LINUX',
+        deleted=True).put()
+    data_types.FuzzerJob(
+        job='deleted_chrome_job',
+        platform='LINUX',
+        fuzzer='libFuzzer',
+        weight=1.0).put()
+
+    jobs = list(data_types.Job.query())
+    provider = schedule_fuzz.ChromeFuzzTaskProvider(jobs)
+    tasks = provider.get_fuzz_tasks(num_tasks=1)
+    self.assertEqual(len(tasks), 0)

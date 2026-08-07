@@ -240,3 +240,63 @@ class JobsUpdateTest(unittest.TestCase):
 
     self.assertEqual(200, resp.status_int)
     self.mock.update_mappings_for_job.assert_called_with(mock.ANY, [])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class DeleteJobHandlerTest(unittest.TestCase):
+  """Tests for DeleteJobHandler."""
+
+  def setUp(self):
+    """Set up test environment and handler."""
+    test_helpers.patch(self, [
+        'libs.access.has_access',
+        'libs.auth.get_current_user',
+        'libs.helpers.get_user_email',
+    ])
+    self.mock.has_access.return_value = True
+    self.mock.get_current_user().email = 'admin@example.com'
+    self.mock.get_user_email.return_value = 'admin@example.com'
+
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule(
+        '/jobs/delete', view_func=jobs.DeleteJobHandler.as_view('/jobs/delete'))
+    self.app = webtest.TestApp(flaskapp)
+
+  def test_delete_job_soft_deletes(self):
+    """Test that deleting a job marks it deleted and soft-deletes mappings."""
+    job = data_types.Job(name='my_job')
+    job.put()
+
+    fuzzer = data_types.Fuzzer(name='my_fuzzer', jobs=['my_job'])
+    fuzzer.put()
+
+    mapping = data_types.FuzzerJob(fuzzer='my_fuzzer', job='my_job')
+    mapping.put()
+
+    payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': job.key.id(),
+    }
+    resp = self.app.post_json('/jobs/delete', payload)
+    self.assertEqual(302, resp.status_int)
+
+    job = job.key.get()
+    self.assertTrue(job.deleted)
+
+    mapping = mapping.key.get()
+    self.assertTrue(mapping.deleted)
+
+    fuzzer = fuzzer.key.get()
+    self.assertNotIn('my_job', fuzzer.jobs)
+
+  def test_delete_already_deleted_job_fails(self):
+    """Test that deleting an already deleted job returns 400."""
+    job = data_types.Job(name='my_job', deleted=True)
+    job.put()
+
+    payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': job.key.id(),
+    }
+    resp = self.app.post_json('/jobs/delete', payload, expect_errors=True)
+    self.assertEqual(400, resp.status_int)

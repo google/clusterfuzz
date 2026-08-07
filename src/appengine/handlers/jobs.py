@@ -61,7 +61,9 @@ def _job_to_dict(job):
   # Adding all associated fuzzers with each job.
   fuzzers = data_types.Fuzzer.query()
   result['fuzzers'] = [
-      fuzzer.name for fuzzer in fuzzers if job.name in fuzzer.jobs
+      fuzzer.name
+      for fuzzer in fuzzers
+      if not fuzzer.deleted and job.name in fuzzer.jobs
   ]
   return result
 
@@ -82,7 +84,7 @@ def get_results():
 
   result = {
       'hasMore': has_more,
-      'items': [_job_to_dict(item) for item in items],
+      'items': [_job_to_dict(item) for item in items if not item.deleted],
       'page': page,
       'pageSize': PAGE_SIZE,
       'totalItems': total_items,
@@ -103,7 +105,9 @@ class Handler(base_handler.Handler):
         data_types.JobTemplate.name))
     queues = get_queues()
     fuzzers = [
-        fuzzer.name for fuzzer in data_types.Fuzzer.query(projection=['name'])
+        fuzzer.name
+        for fuzzer in data_types.Fuzzer.query()
+        if not fuzzer.deleted
     ]
     result, params = get_results()
 
@@ -183,6 +187,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
     job.description = description
     job.environment_string = environment_string
     job.templates = templates
+    job.deleted = False
 
     blob_info = self.get_upload()
     if blob_info:
@@ -268,7 +273,7 @@ class DeleteJobHandler(base_handler.Handler):
     """Handle a post request."""
     key = helpers.get_integer_key(request)
     job = ndb.Key(data_types.Job, key).get()
-    if not job:
+    if not job or job.deleted:
       raise helpers.EarlyExitError('Job not found.', 400)
 
     # Delete from fuzzers' jobs' list.
@@ -280,11 +285,14 @@ class DeleteJobHandler(base_handler.Handler):
     # Delete associated fuzzer-job mapping(s).
     query = data_types.FuzzerJob.query()
     query = query.filter(data_types.FuzzerJob.job == job.name)
-    for mapping in ndb_utils.get_all_from_query(query):
-      mapping.key.delete()
+    mappings = list(ndb_utils.get_all_from_query(query))
+    for mapping in mappings:
+      mapping.deleted = True
+    ndb_utils.put_multi(mappings)
 
-    # Delete job.
-    job.key.delete()
+    # Soft delete job.
+    job.deleted = True
+    job.put()
 
     helpers.log('Deleted job %s' % job.name, helpers.MODIFY_OPERATION)
     return self.redirect('/jobs')
@@ -313,7 +321,7 @@ class GetEnvironmentHandler(base_handler.Handler):
       raise helpers.EarlyExitError('No job name provided.', 400)
 
     job = data_types.Job.query(data_types.Job.name == name).get()
-    if not job:
+    if not job or job.deleted:
       raise helpers.EarlyExitError('Job not found.', 404)
 
     environment = job.get_environment()

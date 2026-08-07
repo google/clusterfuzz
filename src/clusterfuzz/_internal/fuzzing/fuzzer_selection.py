@@ -46,7 +46,7 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
   if mappings:
     jobs = ndb_utils.get_all_from_query(data_types.Job.query().filter(
         data_types.Job.name.IN(mappings)))
-    jobs = {job.name: job for job in jobs}
+    jobs = {job.name: job for job in jobs if not job.deleted}
   else:
     jobs = {}
 
@@ -71,6 +71,7 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
     mapping.fuzzer = fuzzer.name
     mapping.job = job_name
     mapping.platform = jobs[job_name].platform
+    mapping.deleted = False
     new_mappings.append(mapping)
 
   ndb_utils.put_multi(new_mappings)
@@ -159,6 +160,12 @@ def get_fuzz_task_payload(platform=None):
     query = query.filter(data_types.FuzzerJob.platform.IN(platforms))
     mappings = list(ndb_utils.get_all_from_query(query))[:1]
 
+  if not mappings:
+    return None, None
+
+  mappings = [
+      entity for entity in mappings if not getattr(entity, 'deleted', False)
+  ]
   if not mappings:
     return None, None
 
