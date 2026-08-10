@@ -20,7 +20,6 @@ import multiprocessing
 import os
 import platform
 import signal
-import site
 import sys
 import time
 import traceback
@@ -247,7 +246,6 @@ def execute(args):
     appengine_third_party = os.path.abspath(
         os.path.join('src', 'appengine', 'third_party'))
     sys.path.insert(0, appengine_third_party)
-    site.addsitedir(appengine_third_party)
 
   elif args.target == 'core':
     test_directory = CORE_TEST_DIRECTORY

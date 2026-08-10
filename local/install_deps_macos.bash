@@ -26,15 +26,11 @@ fi
 
 brew bundle --file=$(dirname "$0")/Brewfile
 
-if ! command -v pipx &> /dev/null; then
-  brew install pipx
-fi
-
 if ! command -v uv &> /dev/null; then
   pipx install uv==0.12.3
 fi
 
-uv sync
+uv sync --frozen
 source .venv/bin/activate
 
 # Install other dependencies (e.g. bower).

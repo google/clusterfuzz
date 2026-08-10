@@ -304,9 +304,9 @@ Set-Content $packageSetupFilePath "Skipped package install"
 echo y | chkdsk C: /F /I /C
 
 # Install dependencies using uv
-$env:Path += ";c:\python311;c:\python311\scripts;$env:USERPROFILE\.local\bin"
+$env:Path += ";c:\python311;c:\python311\scripts"
 cd c:\clusterfuzz
-cmd /c uv sync
+cmd /c uv sync --frozen
 
 # Run the scripts.
 Write-Host "Run scripts"

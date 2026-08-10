@@ -108,7 +108,7 @@ fi
 if ! command -v uv &> /dev/null; then
   pipx install uv==0.12.3
 fi
-uv sync
+uv sync --frozen
 source .venv/bin/activate
 
 if [ -z "$ANDROID_SERIAL" ]; then
