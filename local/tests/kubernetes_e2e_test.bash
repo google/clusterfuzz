@@ -16,9 +16,6 @@
 
 # This script is for running the Kubernetes end-to-end test in CI.
 
-pip install pipx==1.10.0
-pipx install uv==0.12.3
-
 ./local/install_deps.bash
 
 # Run the test.
