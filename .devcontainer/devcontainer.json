@@ -23,6 +23,6 @@
       }
     }
   },
-  "postCreateCommand": "python --version && java --version && pip install --upgrade pip && pip install pipx && pipx install uv && bash local/install_deps.bash",
+  "postCreateCommand": "python --version && java --version && pip install --upgrade pip && pip install pipx==1.10.0 && pipx install uv==0.12.3 && bash local/install_deps.bash",
   "remoteUser": "vscode"
 }

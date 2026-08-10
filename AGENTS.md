@@ -43,7 +43,7 @@ asdf install
 Once `asdf` has installed the correct python version, you need to install `uv` (recommended via `pipx`):
 
 ```bash
-pipx install uv
+pipx install uv==0.12.3
 ```
 
 ### 5. Install Project Dependencies
