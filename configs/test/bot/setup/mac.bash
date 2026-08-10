@@ -84,16 +84,20 @@ else
 fi
 unzip -q clusterfuzz-source.zip
 
-echo "Installing ClusterFuzz package dependencies using pipenv."
+echo "Installing ClusterFuzz package dependencies using uv."
 cd clusterfuzz
 if ! python3 -m pip > /dev/null ; then
   curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
   python3 get-pip.py
 fi
-python3 -m pip install --upgrade pipenv
-pipenv --python 3.11
-pipenv sync
-source "$(pipenv --venv)/bin/activate"
+if ! command -v pipx &> /dev/null; then
+  python3 -m pip install --upgrade pipx
+fi
+if ! command -v uv &> /dev/null; then
+  pipx install uv
+fi
+uv sync
+source .venv/bin/activate
 
 echo "Running ClusterFuzz."
 GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$ROOT_DIR" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $ROOT_DIR/src/python/bot/startup/run.py &

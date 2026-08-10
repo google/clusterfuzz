@@ -32,12 +32,12 @@ IMAGES=(
 VERSION_TAG="latest"
 GIT_HASH_ARG=""
 PUSH="true"
-NEEDS_ROOT_PIPFILE=false
+NEEDS_ROOT_PYPROJECT=false
 
-# Set up a trap to clean up Pipfiles on exit.
+# Set up a trap to clean up pyproject files on exit.
 function cleanup() {
-  if [[ "$NEEDS_ROOT_PIPFILE" == "true" ]]; then
-    rm -f base/Pipfile base/Pipfile.lock
+  if [[ "$NEEDS_ROOT_PYPROJECT" == "true" ]]; then
+    rm -f base/pyproject.toml base/uv.lock
   fi
 }
 trap cleanup EXIT
@@ -102,19 +102,19 @@ for image_name in "${IMAGES[@]}"; do
   image_with_version_tag="$image_name:$VERSION_TAG"
   image_with_stamp="$image_name:$stamp"
 
-  # Copy Pipfile to base for the ubuntu-24.04 build, as it's
+  # Copy pyproject.toml to base for the ubuntu-24.04 build, as it's
   # needed but not in the build context.
   if [[ "$image_dir" == "base" && "$dockerfile" == *"ubuntu-24-04"* ]]; then
-    NEEDS_ROOT_PIPFILE=true
-    cp ../Pipfile ../Pipfile.lock base/
+    NEEDS_ROOT_PYPROJECT=true
+    cp ../pyproject.toml ../uv.lock base/
   fi
 
   docker build -t "$image_with_version_tag" -f "$dockerfile" "$image_dir"
 
   # Clean up the copied files.
-  if [[ "$NEEDS_ROOT_PIPFILE" == "true" ]]; then
-    rm base/Pipfile base/Pipfile.lock
-    NEEDS_ROOT_PIPFILE=false
+  if [[ "$NEEDS_ROOT_PYPROJECT" == "true" ]]; then
+    rm base/pyproject.toml base/uv.lock
+    NEEDS_ROOT_PYPROJECT=false
   fi
 
   docker tag "$image_with_version_tag" "$image_with_stamp"

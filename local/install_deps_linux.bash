@@ -80,7 +80,7 @@ sudo apt-get install -y \
     blackbox \
     curl \
     libpython3-all-dev \
-    pipenv \
+    pipx \
     python3-dev \
     python3-pip \
     unzip \
