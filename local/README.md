@@ -20,7 +20,6 @@ This project uses a `.tool-versions` file. Follow these steps to install the cor
 
     ```bash
     asdf install
-    pipx install uv==0.12.3
     ```
 
 4.  **Install Deps**
