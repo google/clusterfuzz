@@ -20,7 +20,7 @@ docker run -i --rm \
   -e IS_GITHUB_ACTIONS=true \
   -v $(pwd):/workspace \
   $IMAGE \
-  uv sync
+  uv sync --frozen
 docker run -i --rm \
   -e IS_GITHUB_ACTIONS=true \
   -v $(pwd):/workspace \

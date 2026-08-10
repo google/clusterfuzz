@@ -153,6 +153,6 @@ COPY pyproject.toml uv.lock setup_common.sh setup_clusterfuzz.sh start_clusterfu
 RUN cd /data && \
     # Make pip3.11 the default so that pip install works.
     mv /usr/local/bin/pip3.11 /usr/local/bin/pip && \
-    uv pip install --system --upgrade --no-deps -e /data
+    uv pip install --system -e /data
 
 CMD ["bash", "-ex", "/data/start.sh"]
