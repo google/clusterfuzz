@@ -50,7 +50,8 @@ dev = [
     "yapf==0.22.0",
 ]
 
-vendor-core = [
+[project.optional-dependencies]
+core = [
     # Core bot & engine runtime dependencies (vendored to src/third_party)
     "aiohttp==3.10.5",
     "antlr4-python3-runtime==4.7.2",
@@ -93,7 +94,7 @@ vendor-core = [
     "wrapt==1.16.0",
 ]
 
-vendor-appengine = [
+appengine = [
     # App Engine specific dependencies (vendored to src/appengine/third_party)
     "charset-normalizer==3.3.2",
     "firebase-admin==6.2.0",
@@ -111,7 +112,10 @@ vendor-appengine = [
     "werkzeug==2.2.2",
 ]
 
-vendor-platform-specific = [
+# Note: platform-specific dependencies are binary wheels downloaded via `pip download`
+# for target platform/ABI (see common.py `_install_platform_pip`) rather than installed
+# directly into the current host environment.
+platform-specific = [
     # Platform-specific packages (replacing src/platform_requirements.txt)
     "grpcio==1.62.2",
     "kubernetes==34.1.0",
