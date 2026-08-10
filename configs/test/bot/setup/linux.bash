@@ -103,7 +103,7 @@ fi
 if ! command -v uv &> /dev/null; then
   pipx install uv==0.12.3
 fi
-uv sync --frozen
+uv sync
 source .venv/bin/activate
 
 run_bot &

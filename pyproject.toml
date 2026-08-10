@@ -4,9 +4,27 @@ version = "0.1.0"
 description = "ClusterFuzz"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
-dependencies = [
-    "setuptools==80.9.0",
-]
+
+# We do something a bit peculiar that probably predates Python dependency
+# managers. Instead of installing dependencies into a virtual environment and
+# executing within said environment, dependencies are vendored (as source or
+# binary distributions) into `src/third_party` and `src/appengine/third_party`.
+# The resulting codebase is then shipped as is to bots for execution.
+#
+# In practice `butler.py bootstrap` runs `uv export` to convert this file into
+# several `requirements.txt` passed to `(uv) pip install --target $3P_DIR`.
+# We then rely on PYTHONPATH shenanigans to get project code to find dependency
+# packages.
+#
+# TODO: This whole setup should likely be replaced by using `uv` and virtualenvs
+# directly, both within and without docker images. It used to be the case that
+# docker images were updated much less frequently than the source code, but
+# this is not the case anymore - each release of ClusterFuzz runs
+# `local/install_deps.bash` to build the image, which includes installing
+# Python dependencies. Still, some bots run ClusterFuzz natively, which includes
+# another peculiarity: the self-update mechanism in `update_task.py`. Someone
+# would need to figure out how to mesh that with a virtualenv-based release.
+dependencies = []
 
 [dependency-groups]
 dev = [
@@ -26,6 +44,7 @@ dev = [
     "pywinauto==0.6.8; sys_platform == 'win32'",
     "pyyaml==6.0.2",
     "selenium==3.141.0",
+    "setuptools==80.9.0",
     "twine",
     "WebTest==3.0.0",
     "yapf==0.22.0",
