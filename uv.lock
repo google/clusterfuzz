@@ -245,9 +245,6 @@ wheels = [
 name = "clusterfuzz"
 version = "0.1.0"
 source = { virtual = "." }
-dependencies = [
-    { name = "setuptools" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -266,6 +263,7 @@ dev = [
     { name = "pywinauto", marker = "sys_platform == 'win32'" },
     { name = "pyyaml" },
     { name = "selenium" },
+    { name = "setuptools" },
     { name = "twine" },
     { name = "webtest" },
     { name = "yapf" },
@@ -335,7 +333,6 @@ vendor-platform-specific = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "setuptools", specifier = "==80.9.0" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -354,6 +351,7 @@ dev = [
     { name = "pywinauto", marker = "sys_platform == 'win32'", specifier = "==0.6.8" },
     { name = "pyyaml", specifier = "==6.0.2" },
     { name = "selenium", specifier = "==3.141.0" },
+    { name = "setuptools", specifier = "==80.9.0" },
     { name = "twine" },
     { name = "webtest", specifier = "==3.0.0" },
     { name = "yapf", specifier = "==0.22.0" },

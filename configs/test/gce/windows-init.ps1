@@ -306,7 +306,7 @@ echo y | chkdsk C: /F /I /C
 # Install dependencies using uv
 $env:Path += ";c:\python311;c:\python311\scripts"
 cd c:\clusterfuzz
-cmd /c uv sync --frozen
+cmd /c uv sync
 
 # Run the scripts.
 Write-Host "Run scripts"
