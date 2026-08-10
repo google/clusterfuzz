@@ -16,23 +16,25 @@
 
 IMAGE=gcr.io/clusterfuzz-images/ci:bc696af-202407021946
 
+SETUP_UV="pip install pipx==1.10.0 && pipx install uv==0.12.3 && export PATH=\$HOME/.local/bin:\$PATH"
+
 docker run -i --rm \
   -e IS_GITHUB_ACTIONS=true \
   -v $(pwd):/workspace \
   $IMAGE \
-  uv sync
+  bash -c "$SETUP_UV && uv sync"
 docker run -i --rm \
   -e IS_GITHUB_ACTIONS=true \
   -v $(pwd):/workspace \
   $IMAGE \
-  uv run butler.py bootstrap
+  bash -c "$SETUP_UV && uv run butler.py bootstrap"
 docker run -i --rm \
   -e IS_GITHUB_ACTIONS=true \
   -v $(pwd):/workspace \
   $IMAGE \
-  uv run butler.py lint
+  bash -c "$SETUP_UV && uv run butler.py lint"
 docker run -i --rm --privileged --cap-add=all \
   -e IS_GITHUB_ACTIONS=true \
   -v $(pwd):/workspace \
   $IMAGE \
-  uv run local/tests/run_tests
+  bash -c "$SETUP_UV && uv run local/tests/run_tests"
