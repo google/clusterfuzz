@@ -172,9 +172,9 @@ cmd /c c:\python27\python -m pip install -U wheel
 cmd /c c:\python27\python -m pip install crcmod==1.7 cryptography==3.3.2 pyOpenSSL==17.4.0 pywinauto==0.6.4 psutil==5.4.7 future==0.17.1
 
 cmd /c c:\python311\python -m pip install -U pip
-cmd /c c:\python311\python -m pip install pipx
+cmd /c c:\python311\python -m pip install pipx==1.10.0
 cmd /c c:\python311\python -m pipx ensurepath
-cmd /c c:\python311\python -m pipx install uv
+cmd /c c:\python311\python -m pipx install uv==0.12.3
 
 # Install NodeJS.
 $fileName = "$tmp\nodejs.zip"

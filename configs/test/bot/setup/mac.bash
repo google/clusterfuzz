@@ -91,10 +91,10 @@ if ! python3 -m pip > /dev/null ; then
   python3 get-pip.py
 fi
 if ! command -v pipx &> /dev/null; then
-  python3 -m pip install --upgrade pipx
+  python3 -m pip install --upgrade pipx==1.10.0
 fi
 if ! command -v uv &> /dev/null; then
-  pipx install uv
+  pipx install uv==0.12.3
 fi
 uv sync
 source .venv/bin/activate

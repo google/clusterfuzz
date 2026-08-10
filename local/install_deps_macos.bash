@@ -31,7 +31,7 @@ if ! command -v pipx &> /dev/null; then
 fi
 
 if ! command -v uv &> /dev/null; then
-  pipx install uv
+  pipx install uv==0.12.3
 fi
 
 uv sync
