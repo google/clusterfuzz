@@ -5,6 +5,11 @@ description = "ClusterFuzz"
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
+
 # We do something a bit peculiar that probably predates Python dependency
 # managers. Instead of installing dependencies into a virtual environment and
 # executing within said environment, dependencies are vendored (as source or
