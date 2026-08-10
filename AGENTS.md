@@ -38,15 +38,7 @@ asdf plugin add gcloud https://github.com/jthegedus/asdf-gcloud
 asdf install
 ```
 
-### 4. Install `uv`
-
-Once `asdf` has installed the correct python version, you need to install `uv` (recommended via `pipx`):
-
-```bash
-pipx install uv==0.12.3
-```
-
-### 5. Install Project Dependencies
+### 4. Install Project Dependencies
 
 Now you are ready to install the project's dependencies. Run the following command from the root of the repository:
 

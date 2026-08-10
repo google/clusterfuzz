@@ -99,22 +99,16 @@ appengine = [
     "charset-normalizer==3.3.2",
     "firebase-admin==6.2.0",
     "Flask==2.2.2",
-    "google-api-core==2.11.1",
-    "google-auth==2.22.0",
-    "google-auth-oauthlib==0.4.1",
-    "google-cloud-core==2.3.3",
-    "google-cloud-storage==2.10.0",
     "itsdangerous==2.0.1",
     "parameterized==0.9.0",
     "PyJWT==2.7.0",
-    "requests==2.21.0",
     "requests-toolbelt==0.9.1",
     "werkzeug==2.2.2",
 ]
 
 # Note: platform-specific dependencies are binary wheels downloaded via `pip download`
-# for target platform/ABI (see common.py `_install_platform_pip`) rather than installed
-# directly into the current host environment.
+# for target platform/ABI (see common.py `_install_platform_pip`) rather than vendored
+# via `uv pip install --target`.
 platform-specific = [
     # Platform-specific packages (replacing src/platform_requirements.txt)
     "grpcio==1.62.2",
