@@ -242,14 +242,14 @@ def _pip():
   return 'pip3'
 
 
-def _install_third_party(target_path, group):
-  """Directly install packages for a dependency group into target_path."""
+def _install_third_party(target_path, extra):
+  """Directly install packages for an extra into target_path."""
   if os.path.exists(target_path):
     shutil.rmtree(target_path)
 
   root_dir = os.environ.get('ROOT_DIR', '.')
   execute(
-      f'uv export --group {group} --no-hashes | '
+      f'uv export --extra {extra} --no-dev --no-hashes | '
       f'uv pip install --target {target_path} -r /dev/stdin '
       '--python 3.11 --upgrade',
       cwd=root_dir)
@@ -275,7 +275,7 @@ def _install_platform_pip(target_path, platform_name):
   for pip_platform in pip_platforms:
     temp_dir = tempfile.mkdtemp()
     return_code, _ = execute(
-        'uv export --only-group vendor-platform-specific --no-hashes '
+        'uv export --extra platform-specific --no-dev --no-hashes '
         '--no-header | '
         f'{_pip()} download --no-deps --only-binary=:all: '
         f'--platform={pip_platform} --abi={pip_abi} -r /dev/stdin '
@@ -305,13 +305,13 @@ def _remove_invalid_files():
 
 def install_dependencies(platform_name=None):
   """Install dependencies for bots."""
-  _install_third_party(target_path='src/third_party', group='vendor-core')
+  _install_third_party(target_path='src/third_party', extra='core')
   if platform_name:
     _install_platform_pip(
         target_path='src/third_party', platform_name=platform_name)
 
   _install_third_party(
-      target_path='src/appengine/third_party', group='vendor-appengine')
+      target_path='src/appengine/third_party', extra='appengine')
 
   _remove_invalid_files()
   execute('bower install --allow-root')
