@@ -20,6 +20,7 @@ import multiprocessing
 import os
 import platform
 import signal
+import site
 import sys
 import time
 import traceback
@@ -243,11 +244,10 @@ def execute(args):
     test_directory = APPENGINE_TEST_DIRECTORY
     sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
 
-    for i, path in enumerate(sys.path):
-      if 'third_party' in path:
-        # Replace third_party with App Engine third_party/.
-        sys.path[i] = os.path.abspath(
-            os.path.join('src', 'appengine', 'third_party'))
+    appengine_third_party = os.path.abspath(
+        os.path.join('src', 'appengine', 'third_party'))
+    sys.path.insert(0, appengine_third_party)
+    site.addsitedir(appengine_third_party)
 
   elif args.target == 'core':
     test_directory = CORE_TEST_DIRECTORY
