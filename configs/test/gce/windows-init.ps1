@@ -172,7 +172,9 @@ cmd /c c:\python27\python -m pip install -U wheel
 cmd /c c:\python27\python -m pip install crcmod==1.7 cryptography==3.3.2 pyOpenSSL==17.4.0 pywinauto==0.6.4 psutil==5.4.7 future==0.17.1
 
 cmd /c c:\python311\python -m pip install -U pip
-cmd /c c:\python311\python -m pip install pipenv
+cmd /c c:\python311\python -m pip install pipx
+cmd /c c:\python311\python -m pipx ensurepath
+cmd /c c:\python311\python -m pipx install uv
 
 # Install NodeJS.
 $fileName = "$tmp\nodejs.zip"
@@ -301,13 +303,10 @@ Set-Content $packageSetupFilePath "Skipped package install"
 # Schedule chkdsk on every reboot.
 echo y | chkdsk C: /F /I /C
 
-# Install Pipfile dependencies
-$env:Path += ";c:\python311;c:\python311\scripts"
+# Install dependencies using uv
+$env:Path += ";c:\python311;c:\python311\scripts;$env:USERPROFILE\.local\bin"
 cd c:\clusterfuzz
-cmd /c c:\python311\scripts\pipenv install --deploy --system
-
-# Can't be managed by pipenv due to https://github.com/pypa/pipenv/issues/3193.
-cmd /c c:\python311\python -m pip install pywinauto==0.6.8
+cmd /c uv sync
 
 # Run the scripts.
 Write-Host "Run scripts"

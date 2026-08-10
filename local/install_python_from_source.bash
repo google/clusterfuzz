@@ -21,7 +21,8 @@ make -j$(nproc)
 make install
 curl -O https://bootstrap.pypa.io/get-pip.py
 $HOME/.localpython/bin/python3 get-pip.py
-$HOME/.localpython/bin/python3.11 -m pip install pipenv
+$HOME/.localpython/bin/python3.11 -m pip install pipx
+pipx install uv
 
 # Copy distutils to this new install
 git clone --branch v3.11.9 https://github.com/python/cpython.git	

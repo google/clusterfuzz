@@ -26,9 +26,16 @@ fi
 
 brew bundle --file=$(dirname "$0")/Brewfile
 
-pipenv --python 3.11
-pipenv sync --dev
-source "$(pipenv --venv)/bin/activate"
+if ! command -v pipx &> /dev/null; then
+  brew install pipx
+fi
+
+if ! command -v uv &> /dev/null; then
+  pipx install uv
+fi
+
+uv sync
+source .venv/bin/activate
 
 # Install other dependencies (e.g. bower).
 nodeenv -p --prebuilt
@@ -50,6 +57,6 @@ set +x
 echo "
 
 Installation succeeded!
-Please load environment by running 'pipenv shell'.
+Please load environment by running 'source .venv/bin/activate' or use 'uv run butler.py'.
 
 "
