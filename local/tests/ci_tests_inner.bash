@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 #
-# Copyright 2020 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-IMAGE=gcr.io/clusterfuzz-images/ci:bc696af-202407021946
+pip install pipx==1.10.0
+pipx install uv==0.12.3
+export PATH=$PATH:/root/.local/bin
 
-docker run -i --rm --privileged --cap-add=all \
-  -e IS_GITHUB_ACTIONS=true \
-  -v $(pwd):/workspace \
-  $IMAGE \
-  local/tests/ci_tests_inner.bash
+uv sync
+uv run butler.py bootstrap
+uv run butler.py lint
+uv run local/tests/run_tests
