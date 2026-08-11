@@ -24,10 +24,12 @@ from clusterfuzz._internal.issue_management import issue_tracker_utils
 
 def get_open_testcases_with_bugs():
   """Return iterator to open testcases with bugs."""
+  # We use `> ''` instead of `!= ''` because the Datastore emulator does not
+  # support gRPC NOT_EQUAL (operator 9) filters.
   return data_types.Testcase.query(
       ndb_utils.is_true(data_types.Testcase.open),
       data_types.Testcase.status == 'Processed',
-      data_types.Testcase.bug_information != '').order(  # pylint: disable=g-explicit-bool-comparison
+      data_types.Testcase.bug_information > '').order(
           data_types.Testcase.bug_information, data_types.Testcase.key)
 
 

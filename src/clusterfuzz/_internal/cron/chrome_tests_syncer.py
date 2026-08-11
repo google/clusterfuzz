@@ -55,10 +55,12 @@ def unpack_crash_testcases(crash_testcases_directory):
   # uploaded repros. Check if the testcase is fixed. If not, skip.
   # Only use testcases that have bugs associated with them.
   # Sort latest first.
+  # We use `> ''` instead of `!= ''` because the Datastore emulator does not
+  # support gRPC NOT_EQUAL (operator 9) filters.
   testcases = data_types.Testcase.query(
       ndb_utils.is_false(
           data_types.Testcase.open), data_types.Testcase.status == 'Processed',
-      data_types.Testcase.bug_information !=
+      data_types.Testcase.bug_information >
       '').order(-data_types.Testcase.timestamp)
   for testcase in testcases:
     count += 1

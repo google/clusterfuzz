@@ -314,9 +314,12 @@ def update_target_weights_for_engine(client, engine, specifications):
   # All fuzzers with non-default weights must be tracked with a special
   # specification. This ensures that they will be restored to normal weight
   # once conditions causing adjustments are no longer met.
+  # Range inequality filters (< / >) are used instead of `!= 1.0` because the
+  # Datastore emulator does not support gRPC NOT_EQUAL (operator 9) filters.
   target_jobs = data_types.FuzzTargetJob.query(
-      data_types.FuzzTarget.engine == engine).filter(
-          data_types.FuzzTargetJob.weight != 1.0)
+      data_types.FuzzTargetJob.engine == engine).filter(
+          ndb.OR(data_types.FuzzTargetJob.weight < 1.0,
+                 data_types.FuzzTargetJob.weight > 1.0))
 
   for target_job in target_jobs:
     matches[(target_job.fuzz_target_name,

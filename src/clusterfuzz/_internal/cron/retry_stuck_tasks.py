@@ -144,6 +144,7 @@ def _get_stuck_testcase_candidates_query(stuck_deadline: datetime.datetime,
   in 'Processed' or 'Duplicate' status and those not marked as 'NA' for the
   'fixed' property, although this last filter has significant performance
   implications.
+  in 'Processed' or 'Duplicate' status.
 
   Args:
     stuck_deadline: The datetime threshold. Testcases updated more recently
@@ -152,8 +153,11 @@ def _get_stuck_testcase_candidates_query(stuck_deadline: datetime.datetime,
   Returns:
     An ndb.Query object for the candidate testcases.
   """
+  # Range inequality filters (< / >) are used instead of `!= 'NA'` because the
+  # Datastore emulator does not support gRPC NOT_EQUAL (operator 9) filters.
   return data_types.Testcase.query(
-      data_types.Testcase.fixed != 'NA',
+      ndb.OR(data_types.Testcase.fixed < 'NA',
+             data_types.Testcase.fixed > 'NA'),
       ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag),
       ndb_utils.is_true(data_types.Testcase.open),
       ndb.OR(data_types.Testcase.status == 'Processed',
