@@ -1346,7 +1346,7 @@ def fuzz_target_project_qualified_name(project, binary):
 
 class FuzzTargetsCount(Model):
   """Fuzz targets count for every job. Key IDs are the job name."""
-  count = ndb.IntegerProperty(indexed=False)
+  count = ndb.IntegerProperty()
 
 
 class FuzzTargetJob(Model):

@@ -23,6 +23,7 @@ import os
 import random
 import re
 import sys
+import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -36,6 +37,7 @@ from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import shell
 
 try:
   import psutil
@@ -688,6 +690,27 @@ def read_data_from_file(file_path, eval_data=True, default=None):
     return None
 
 
+def read_data_from_file_and_remove(file_path, eval_data=False, default=None):
+  """Reads file content and removes the file after reading.
+
+  Args:
+    file_path: Path to the file to read.
+    eval_data: Whether to evaluate file content as a Python literal.
+    default: Value to return if file is empty, missing, or unreadable.
+
+  Returns:
+    The file content (or evaluated object if eval_data is True), or `default`
+    if reading fails or file does not exist.
+  """
+  if not file_path or not os.path.exists(file_path):
+    return default
+
+  try:
+    return read_data_from_file(file_path, eval_data=eval_data, default=default)
+  finally:
+    shell.remove_file(file_path)
+
+
 def remove_prefix(string, prefix):
   """Strips the prefix from a string."""
   if string.startswith(prefix):
@@ -1118,3 +1141,22 @@ def batched(iterator, batch_size):
 
   if batch:
     yield batch
+
+
+def create_temp_file(directory: str, prefix: str, suffix: str) -> str:
+  """Creates a temporary file and returns its path.
+
+  Args:
+    directory: The directory in which to create the temporary file.
+    prefix: Prefix to use for the temporary file name.
+    suffix: Suffix to use for the temporary file name.
+
+  Returns:
+    The absolute path to the created temporary file.
+
+  Raises:
+    OSError: If the file cannot be created in the specified directory.
+  """
+  fd, file_path = tempfile.mkstemp(dir=directory, prefix=prefix, suffix=suffix)
+  os.close(fd)
+  return file_path

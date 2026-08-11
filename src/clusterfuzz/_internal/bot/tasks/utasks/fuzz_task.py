@@ -18,8 +18,10 @@ import datetime
 import itertools
 import json
 import os
+import queue
 import random
 import re
+import threading
 import time
 from typing import Any
 from typing import Dict
@@ -61,6 +63,7 @@ from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -71,6 +74,12 @@ from clusterfuzz.fuzz import engine
 
 # pylint: disable=no-member
 
+# 10 MB limit for proto testcase payload field (see FuzzerRunOutput testcase in
+# src/clusterfuzz/_internal/protos/uworker_msg.proto:L248).
+MAX_TESTCASE_PAYLOAD_SIZE = 10 * 1024 * 1024
+# PROTO msg limit is 2 GB, reserving 200 MB for safety
+# https://protobuf.dev/programming-guides/proto-limits/
+PROTOBUF_MSG_LIMIT = 1.8 * 1024 * 1024 * 1024
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
 MAX_NEW_CORPUS_FILES = 500
@@ -406,6 +415,111 @@ def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
 
 class _TrackFuzzTime:
   """Track the actual fuzzing time (e.g. excluding preparing binary)."""
+  _active_trackers = set()
+  _lock = threading.Lock()
+  _callback_registered = False
+  _accumulated_wasted_time = 0
+  _session_fuzzer = None
+  _session_job = None
+
+  @classmethod
+  def reset_session(cls, fuzzer_name, job_type):
+    """Resets the accumulated time at the start of a session."""
+    with cls._lock:
+      cls._accumulated_wasted_time = 0
+      cls._session_fuzzer = fuzzer_name
+      cls._session_job = job_type
+
+  @classmethod
+  def add_wasted_time(cls, duration):
+    """Accumulates time from finished rounds."""
+    with cls._lock:
+      cls._accumulated_wasted_time += duration
+
+  @classmethod
+  def get_active_trackers(cls):
+    with cls._lock:
+      return list(cls._active_trackers)
+
+  @classmethod
+  def record_metrics(cls,
+                     duration,
+                     fuzzer_name,
+                     job_type,
+                     timeout=None,
+                     is_preempted=False):
+    """Helper to record metrics consistently."""
+    common_labels = {
+        'platform': environment.platform(),
+        'is_batch': environment.is_uworker(),
+        'runtime': environment.get_runtime().value,
+    }
+
+    if is_preempted:
+      fuzzer_metric = monitoring_metrics.FUZZER_PREEMPTED_TOTAL_FUZZ_TIME
+      job_metric = monitoring_metrics.JOB_PREEMPTED_TOTAL_FUZZ_TIME
+      fuzzer_labels = {**common_labels, 'fuzzer': fuzzer_name}
+      job_labels = {**common_labels, 'job': job_type}
+    else:
+      fuzzer_metric = monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME
+      job_metric = monitoring_metrics.JOB_TOTAL_FUZZ_TIME
+      fuzzer_labels = {
+          **common_labels, 'fuzzer': fuzzer_name,
+          'timeout': timeout
+      }
+      job_labels = {**common_labels, 'job': job_type, 'timeout': timeout}
+
+    fuzzer_metric.increment_by(int(duration), fuzzer_labels)
+    job_metric.increment_by(int(duration), job_labels)
+
+  @classmethod
+  def _preemption_callback(cls):
+    """Callback to record wasted fuzzing time on preemption.
+
+    We track `_accumulated_wasted_time` because if a task is preempted at any
+    point, the entire fuzzing session is lost (since `postprocess` never runs),
+    even though individual fuzzing rounds within this session might have
+    completed successfully. All time spent in this session is therefore
+    considered wasted.
+    """
+    logs.info('Running preemption callback to record wasted time.')
+    with cls._lock:
+      active_trackers = list(cls._active_trackers)
+      if active_trackers:
+        for tracker in active_trackers:
+          tracker.preempted = True  # Mark to avoid double counting in __exit__
+
+          current_duration = tracker.time.time() - tracker.start_time
+          total_wasted = cls._accumulated_wasted_time + current_duration
+
+          logs.info(f'Recording {int(current_duration)}s of total time and '
+                    f'{int(total_wasted)}s of preempted time for '
+                    f'{tracker.fuzzer_name}.')
+
+          # Emit current duration to total_time to fix subtraction math
+          cls.record_metrics(
+              current_duration,
+              tracker.fuzzer_name,
+              tracker.job_type,
+              tracker.timeout,
+              is_preempted=False)
+
+          # Emit total wasted to preempted_total_time
+          cls.record_metrics(
+              total_wasted,
+              tracker.fuzzer_name,
+              tracker.job_type,
+              is_preempted=True)
+      else:
+        if cls._session_fuzzer and cls._session_job:
+          total_wasted = cls._accumulated_wasted_time
+          logs.info(f'Recording {int(total_wasted)}s of preempted time '
+                    f'(between rounds) for {cls._session_fuzzer}.')
+          cls.record_metrics(
+              total_wasted,
+              cls._session_fuzzer,
+              cls._session_job,
+              is_preempted=True)
 
   def __init__(self, fuzzer_name, job_type, time_module=time):
     self.fuzzer_name = fuzzer_name
@@ -413,30 +527,35 @@ class _TrackFuzzTime:
     self.time = time_module
     self.start_time = None
     self.timeout = None
+    self.preempted = False
 
   def __enter__(self):
+    if not _TrackFuzzTime._callback_registered:
+      monitor.register_on_sigterm(_TrackFuzzTime._preemption_callback)
+      _TrackFuzzTime._callback_registered = True
+
     self.start_time = self.time.time()
     self.timeout = False
+    with self._lock:
+      self._active_trackers.add(self)
     return self
 
   def __exit__(self, exc_type, value, traceback):
+    with self._lock:
+      self._active_trackers.discard(self)
+
     duration = self.time.time() - self.start_time
-    monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME.increment_by(
-        int(duration), {
-            'fuzzer': self.fuzzer_name,
-            'timeout': self.timeout,
-            'platform': environment.platform(),
-            'is_batch': environment.is_uworker(),
-            'runtime': environment.get_runtime().value,
-        })
-    monitoring_metrics.JOB_TOTAL_FUZZ_TIME.increment_by(
-        int(duration), {
-            'job': self.job_type,
-            'timeout': self.timeout,
-            'platform': environment.platform(),
-            'is_batch': environment.is_uworker(),
-            'runtime': environment.get_runtime().value
-        })
+    if not self.preempted:
+      _TrackFuzzTime.record_metrics(
+          duration,
+          self.fuzzer_name,
+          self.job_type,
+          self.timeout,
+          is_preempted=False)
+      _TrackFuzzTime.add_wasted_time(duration)
+    else:
+      logs.info(f'Skipping __exit__ metric emission for {self.fuzzer_name} '
+                'as it was already handled by preemption callback.')
 
 
 def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
@@ -1633,6 +1752,9 @@ class FuzzingSession:
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
+    _TrackFuzzTime.reset_session(self.fully_qualified_fuzzer_name,
+                                 self.job_type)
+
     environment.set_value('FUZZER_NAME',
                           self.fuzz_target.fully_qualified_name())
 
@@ -1693,9 +1815,14 @@ class FuzzingSession:
       else:
         result_crash = None
 
-      fuzzer_run_output = _to_fuzzer_run_output(output, result_crash,
-                                                return_code, log_time)
-      self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
+      fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData.from_memory(
+          output=output,
+          crash_path=result_crash,
+          return_code=return_code,
+          log_time=log_time)
+      fuzzer_run_output = _to_fuzzer_run_output(fuzzer_run_output_data)
+      if fuzzer_run_output:
+        self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
@@ -1731,9 +1858,64 @@ class FuzzingSession:
               'platform': environment.platform(),
           })
 
+  def _is_fuzz_task_output_limit_exceeded(self) -> bool:
+    """Checks if the fuzz_task_output protobuf message exceeds the size limit.
+
+    Returns:
+      True if fuzz_task_output exceeds PROTOBUF_MSG_LIMIT, False otherwise.
+    """
+    return self.fuzz_task_output.ByteSize() >= PROTOBUF_MSG_LIMIT
+
+  def _handle_unexecuted_testcases(
+      self, testcase_file_paths: list[str], testcases_metadata: dict[str, dict],
+      testcases_executed: int) -> tuple[list[str], dict[str, dict]]:
+    """Cleans up unexecuted testcase files and slices execution metadata.
+
+    Args:
+      testcase_file_paths: List of all generated testcase file paths.
+      testcases_metadata: Dictionary mapping testcase file paths to metadata.
+      testcases_executed: Number of testcases that were actually executed.
+
+    Returns:
+      A tuple of (executed_testcase_file_paths, executed_testcases_metadata).
+    """
+    for unexecuted_path in testcase_file_paths[testcases_executed:]:
+      shell.remove_file(unexecuted_path)
+
+    executed_testcase_file_paths = testcase_file_paths[:testcases_executed]
+    executed_testcases_metadata = {
+        path: testcases_metadata[path]
+        for path in executed_testcase_file_paths
+        if path in testcases_metadata
+    }
+    return executed_testcase_file_paths, executed_testcases_metadata
+
+  def _add_crashes_from_temp_queue(
+      self, temp_queue: queue.Queue,
+      crashes: list[testcase_manager.Crash]) -> None:
+    """Pops items from temp_queue and processes crashes and run outputs.
+
+    Args:
+      temp_queue: Queue containing TestcaseRunResult objects from worker
+        threads.
+      crashes: List to append any discovered crashes to.
+    """
+    while not temp_queue.empty():
+      result: testcase_manager.TestcaseRunResult = temp_queue.get()
+
+      if result.crash:
+        crashes.append(result.crash)
+      if result.fuzzer_run_output_data:
+        fuzzer_run_output = _to_fuzzer_run_output(result.fuzzer_run_output_data)
+        if fuzzer_run_output and not self._is_fuzz_task_output_limit_exceeded():
+          self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
+
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
+    _TrackFuzzTime.reset_session(self.fully_qualified_fuzzer_name, job_type)
+
     # Set the thread timeout values.
+
     # TODO(ochang): Remove this hack once engine fuzzing refactor is complete.
     fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
     if fuzz_test_timeout:
@@ -1840,7 +2022,7 @@ class FuzzingSession:
         thread = process_handler.get_process()(
             target=testcase_manager.run_testcase_and_return_result_in_queue,
             args=(temp_queue, thread_index, testcase_file_path, gestures,
-                  env_copy, not environment.is_uworker()))
+                  env_copy))
 
         try:
           thread.start()
@@ -1873,12 +2055,14 @@ class FuzzingSession:
         process_handler.terminate_stale_application_instances()
         needs_stale_process_cleanup = False
 
-      while not temp_queue.empty():
-        crashes.append(temp_queue.get())
-
+      self._add_crashes_from_temp_queue(temp_queue, crashes)
       process_handler.close_queue(temp_queue)
       logs.info(f'Upto {test_number}')
       if thread_error_occurred:
+        break
+      if self._is_fuzz_task_output_limit_exceeded():
+        logs.warning('Fuzz task output size limit exceeded. '
+                     'Stopping testcase execution early.')
         break
 
     execution_time = datetime.timedelta(seconds=time.time() -
@@ -1907,8 +2091,16 @@ class FuzzingSession:
       crashes = [
           Crash.from_testcase_manager_crash(crash) for crash in crashes if crash
       ]
-    return (generate_result.fuzzer_metadata, testcase_file_paths,
-            testcases_metadata, crashes)
+    executed_testcase_file_paths = testcase_file_paths
+    executed_testcases_metadata = testcases_metadata
+    if test_number < len(testcase_file_paths):
+      executed_testcase_file_paths, executed_testcases_metadata = (
+          self._handle_unexecuted_testcases(
+              testcase_file_paths=testcase_file_paths,
+              testcases_metadata=testcases_metadata,
+              testcases_executed=test_number))
+    return (generate_result.fuzzer_metadata, executed_testcase_file_paths,
+            executed_testcases_metadata, crashes)
 
   def run(self):
     """Run the fuzzing session."""
@@ -2105,6 +2297,9 @@ class FuzzingSession:
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
     if not fuzz_task_output.fuzz_targets:
       new_targets_count = 0
+      logs.warning(
+          f"Bad fuzz target: {fuzz_task_output.fully_qualified_fuzzer_name}"
+          " setting the weight to 0.")
     else:
       new_targets_count = len(fuzz_task_output.fuzz_targets)
     if (not targets_count or targets_count.count != new_targets_count):
@@ -2309,25 +2504,30 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
-def _to_fuzzer_run_output(output: str, crash_path: str, return_code: int,
-                          log_time: datetime.datetime):
-  """Returns a FuzzerRunOutput proto."""
+def _to_fuzzer_run_output(data: testcase_manager.FuzzerRunOutputData
+                         ) -> uworker_msg_pb2.FuzzerRunOutput | None:
+  """Returns a FuzzerRunOutput proto from FuzzerRunOutputData."""
+  if not data:
+    return None
+
+  output = data.get_output()
+  if output is None:
+    return None
+
   truncated_output = truncate_fuzzer_output(output, ENGINE_OUTPUT_LIMIT)
   if len(output) != len(truncated_output):
     logs.warning('Fuzzer output truncated.')
 
-  proto_timestamp = uworker_io.timestamp_to_proto_timestamp(log_time)
+  proto_timestamp = uworker_io.timestamp_to_proto_timestamp(data.log_time)
   fuzzer_run_output = uworker_msg_pb2.FuzzerRunOutput(
-      output=bytes(truncated_output, 'utf-8'),
-      return_code=return_code,
+      output=truncated_output.encode('utf-8'),
+      return_code=data.return_code,
       timestamp=proto_timestamp)
 
-  if crash_path is None:
-    return fuzzer_run_output
-  if os.path.getsize(crash_path) > 10 * 1024**2:
-    return fuzzer_run_output
-  with open(crash_path, 'rb') as fp:
-    fuzzer_run_output.testcase = fp.read()
+  if data.crash_path and os.path.exists(data.crash_path):
+    if os.path.getsize(data.crash_path) <= MAX_TESTCASE_PAYLOAD_SIZE:
+      with open(data.crash_path, 'rb') as fp:
+        fuzzer_run_output.testcase = fp.read()
 
   return fuzzer_run_output
 

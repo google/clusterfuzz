@@ -353,6 +353,14 @@ class UTaskPostprocessTest(unittest.TestCase):
     # contains blob keys for uploaded testcase and stacktrace.
     self.assertFalse(self.mock.delete_blob.called)
 
+  def test_invalid_testcase_does_not_raise(self):
+    """Checks that an output with a non-existent testcase id returns cleanly."""
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self._get_generic_input())
+    uworker_output.uworker_input.testcase_id = '999999'
+    minimize_task.utask_postprocess(uworker_output)
+    self.assertFalse(self.mock.finalize_testcase.called)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UTaskMainTest(unittest.TestCase):
