@@ -1245,6 +1245,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     os.environ['DATA_BUNDLES_DIR'] = '/tmp/data-bundles'
     os.environ['FUZZ_DATA'] = '/tmp/fuzz-data'
     os.environ['BOT_NAME'] = 'test-bot'
+    os.environ['UWORKER'] = 'True'
 
     self.fs.create_dir('/tmp/fuzz-data')
     self.fs.create_dir('/tmp/data-bundles')

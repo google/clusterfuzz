@@ -170,6 +170,19 @@ def get_fuzz_task_payload(platform=None):
     jobs = get_job_list(jobs_selection)
     selected_mappings = [entity for entity in mappings if entity.job in jobs]
 
+  if not environment.is_uworker():
+    untrusted_fuzzers = {
+        fuzzer.name for fuzzer in ndb_utils.get_all_from_query(
+            data_types.Fuzzer.query(
+                ndb_utils.is_false(data_types.Fuzzer.trusted)))
+    }
+
+    if untrusted_fuzzers:
+      selected_mappings = [
+          mapping for mapping in selected_mappings
+          if mapping.fuzzer not in untrusted_fuzzers
+      ]
+
   if not selected_mappings:
     return None, None
 
