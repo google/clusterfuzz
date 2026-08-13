@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+TEST_CMD=${1:-local/tests/run_tests}
+
 pip install pipx==1.10.0
 pipx install uv==0.12.3
 export PATH=$PATH:/root/.local/bin
@@ -21,4 +23,4 @@ export PATH=$PATH:/root/.local/bin
 uv sync
 uv run butler.py bootstrap
 uv run butler.py lint
-uv run local/tests/run_tests
+uv run $TEST_CMD

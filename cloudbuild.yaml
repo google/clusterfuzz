@@ -29,7 +29,7 @@ steps:
     mv tmp/.git .git
     rm -rf tmp
 - name: 'gcr.io/clusterfuzz-images/ci:d41d82f-202601161634'
-  args: ['local/tests/cloudbuild_ci.bash']
+  args: ['local/tests/ci_tests_inner.bash', 'local/tests/run_all_tests']
   env:
     - TEST_BLOBS_BUCKET=clusterfuzz-ci-blobs
     - TEST_BUCKET=clusterfuzz-ci-test
