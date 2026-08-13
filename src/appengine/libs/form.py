@@ -35,7 +35,7 @@ def generate_csrf_token(length: int = 64,
       data_types.CSRFToken.user_email == helpers.get_user_email())
   tokens_to_delete = []
   for token in tokens:
-    if token.expiration_time > now:  # pyright: ignore
+    if token.expiration_time and token.expiration_time > now:
       valid_token = token
       continue
     tokens_to_delete.append(token.key)
@@ -44,7 +44,7 @@ def generate_csrf_token(length: int = 64,
   # Generate a new token.
   if not valid_token:
     valid_token = data_types.CSRFToken()
-    valid_token.value = base64.b64encode(os.urandom(length))  # pyright: ignore
+    valid_token.value = base64.b64encode(os.urandom(length)).decode('utf-8')
     valid_token.expiration_time = (
         now + datetime.timedelta(seconds=valid_seconds))
     valid_token.user_email = helpers.get_user_email()
@@ -53,4 +53,4 @@ def generate_csrf_token(length: int = 64,
   value = cast(data_types.CSRFToken, valid_token).value
   if html:
     return '<input type="hidden" name="csrf_token" value="%s" />' % value
-  return value  # pyright: ignore
+  return value

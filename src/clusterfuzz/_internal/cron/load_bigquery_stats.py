@@ -151,6 +151,8 @@ def _load_data(fuzzer: str, target_date: datetime.date) -> None:
       continue
 
     gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
+    if not gcs_path:
+      continue
     # Shard loads by prefix to avoid causing BigQuery to run out of memory.
     first_write = True
     for prefix in _HEX_DIGITS:
@@ -163,7 +165,7 @@ def _load_data(fuzzer: str, target_date: datetime.date) -> None:
           'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
           'sourceFormat':
               'NEWLINE_DELIMITED_JSON',
-          'sourceUris': ['gs:/' + gcs_path + prefix + '*.json'],  # type: ignore
+          'sourceUris': ['gs:/' + gcs_path + prefix + '*.json'],
           # Truncate on the first shard, then append the rest.
           'writeDisposition':
               'WRITE_TRUNCATE' if first_write else 'WRITE_APPEND',
@@ -227,8 +229,10 @@ def main(argv: list[str] | None = None) -> bool:
   # Retrieve list of fuzzers before iterating them, since the query can expire
   # as we create the load jobs.
   for fuzzer in list(data_types.Fuzzer.query()):
+    if not fuzzer.name:
+      continue
     logs.info('Loading stats to BigQuery for %s.' % fuzzer.name)
-    thread_pool.submit(_load_data, fuzzer.name, target_date)  # pyright: ignore
+    thread_pool.submit(_load_data, fuzzer.name, target_date)
 
   thread_pool.shutdown(wait=True)
   logs.info('Load big query task finished successfully.')

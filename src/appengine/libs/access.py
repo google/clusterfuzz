@@ -166,14 +166,14 @@ def get_access(need_privileged_access: bool = False,
 def can_user_access_testcase(testcase: data_types.Testcase) -> bool:
   """Checks if the current user can access the testcase."""
   config = db_config.get()
-  need_privileged_access = (
+  need_privileged_access = bool(
       testcase.security_flag and
-      not config.relax_security_bug_restrictions)  # type: ignore
+      not (config and config.relax_security_bug_restrictions))
 
   if has_access(
       fuzzer_name=testcase.actual_fuzzer_name(),
       job_type=testcase.job_type,
-      need_privileged_access=need_privileged_access):  # pyright: ignore
+      need_privileged_access=need_privileged_access):
     return True
 
   user_email = helpers.get_user_email()
@@ -186,7 +186,9 @@ def can_user_access_testcase(testcase: data_types.Testcase) -> bool:
     return False
 
   issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
-  associated_issue = issue_tracker.get_issue(issue_id)  # type: ignore
+  if not issue_tracker:
+    return False
+  associated_issue = issue_tracker.get_issue(issue_id)
   if not associated_issue:
     return False
 
@@ -194,13 +196,12 @@ def can_user_access_testcase(testcase: data_types.Testcase) -> bool:
   # is a duplicate of the original issue).
   issues_to_check = [associated_issue]
   if associated_issue.merged_into:
-    original_issue = issue_tracker.get_original_issue(issue_id)  # type: ignore
+    original_issue = issue_tracker.get_original_issue(issue_id)
     if original_issue:
       issues_to_check.append(original_issue)
 
-  relaxed_restrictions = (
-      config.relax_testcase_restrictions or  # type: ignore
-      _is_trusted_domain_user(auth.get_current_user()))
+  relaxed_restrictions = bool((config and config.relax_testcase_restrictions) or
+                              _is_trusted_domain_user(auth.get_current_user()))
   for issue in issues_to_check:
     if relaxed_restrictions:
       if (any(utils.emails_equal(user_email, cc) for cc in issue.ccs) or

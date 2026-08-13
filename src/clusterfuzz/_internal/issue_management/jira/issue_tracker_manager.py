@@ -50,8 +50,11 @@ class IssueTrackerManager:
   def _create_client(self) -> jira.JIRA:
     """Return a client object for querying the issue tracker."""
     config = db_config.get()
-    credentials = json.loads(config.jira_credentials)  # type: ignore
-    jira_url = config.jira_url  # type: ignore
+    assert config is not None
+    assert config.jira_credentials is not None
+    assert config.jira_url is not None
+    credentials = json.loads(config.jira_credentials)
+    jira_url = config.jira_url
     jira_client = jira.JIRA(
         jira_url, auth=(credentials['username'], credentials['password']))
     return jira_client

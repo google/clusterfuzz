@@ -675,8 +675,9 @@ def _initialize_monitored_resource() -> None:
 
   # The project ID must be the same as the one we write metrics to, not the ID
   # where the instance lives.
-  _monitored_resource.labels[
-      'project_id'] = utils.get_application_id()  # type: ignore
+  app_id = utils.get_application_id()
+  assert app_id is not None
+  _monitored_resource.labels['project_id'] = app_id
 
   _monitored_resource.labels['instance_id'] = utils.get_instance_name()
 

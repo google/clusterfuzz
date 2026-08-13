@@ -16,7 +16,6 @@
 import os
 import re
 from typing import Any
-from typing import cast
 import uuid
 
 from google.cloud import ndb
@@ -188,8 +187,14 @@ def read_blob_to_disk(blob_key: str, local_file: str) -> bool:
 
 def read_key(blob_key: str | None) -> bytes | None:
   """Returns data associated with a blobstore key."""
-  gcs_path = get_gcs_path(cast(str, blob_key))
-  return storage.read_data(cast(str, gcs_path))
+  if not blob_key:
+    return None
+
+  gcs_path = get_gcs_path(blob_key)
+  if not gcs_path:
+    return None
+
+  return storage.read_data(gcs_path)
 
 
 def get_legacy_blob_info(blob_key: str) -> BlobInfo | None:

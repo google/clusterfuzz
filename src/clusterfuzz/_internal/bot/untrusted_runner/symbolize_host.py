@@ -19,15 +19,13 @@ from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz._internal.protos import untrusted_runner_pb2_grpc
 
 from . import host
-from . import protobuf_utils
 
 
 def symbolize_stacktrace(unsymbolized_crash_stacktrace: str,
                          enable_inline_frames: bool = True) -> str:
   """Symbolize stacktrace."""
   request = untrusted_runner_pb2.SymbolizeStacktraceRequest(  # pylint: disable=no-member
-      unsymbolized_crash_stacktrace=protobuf_utils.encode_utf8_if_unicode(
-          unsymbolized_crash_stacktrace),  # type: ignore
+      unsymbolized_crash_stacktrace=unsymbolized_crash_stacktrace,
       enable_inline_frames=enable_inline_frames)
 
   stub = cast(untrusted_runner_pb2_grpc.UntrustedRunnerStub, host.stub())

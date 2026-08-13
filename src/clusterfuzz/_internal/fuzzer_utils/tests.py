@@ -36,9 +36,8 @@ def create_testcase_list_file(testcase_file_paths: Sequence[str],
     return
 
   bot_testcases_file_path = utils.get_bot_testcases_file_path(input_directory)
-  with open(bot_testcases_file_path, 'wb') as bot_testcases_file_handle:
-    bot_testcases_file_handle.write(
-        '\n'.join(testcase_file_paths))  # type: ignore
+  with open(bot_testcases_file_path, 'w') as bot_testcases_file_handle:
+    bot_testcases_file_handle.write('\n'.join(testcase_file_paths))
 
 
 def is_valid_testcase_file(
@@ -70,7 +69,7 @@ def get_testcases(input_directory: str) -> list[str]:
   if not os.path.exists(testcase_list_file_path):
     return []
 
-  with open(testcase_list_file_path, 'rb') as testcase_list_file_handle:
+  with open(testcase_list_file_path, 'r') as testcase_list_file_handle:
     testcase_relative_file_paths = testcase_list_file_handle.read().splitlines()
 
   testcase_file_paths: list[str] = []
@@ -79,9 +78,8 @@ def get_testcases(input_directory: str) -> list[str]:
     if not testcase_relative_file_path.strip():
       continue
 
-    testcase_file_path = os.path.join(input_directory,
-                                      testcase_relative_file_path.replace(
-                                          '/', os.sep))  # type: ignore
+    testcase_file_path = os.path.join(
+        input_directory, testcase_relative_file_path.replace('/', os.sep))
     testcase_file_paths.append(testcase_file_path)
 
   return testcase_file_paths

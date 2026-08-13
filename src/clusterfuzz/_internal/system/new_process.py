@@ -220,11 +220,13 @@ class ChildProcess:
     stderr = b''
 
     if self._interactive:
-      if input:
-        self._popen.stdin.write(input)  # type: ignore
+      if input and self._popen.stdin:
+        self._popen.stdin.write(input)
 
       while True:
-        line = self._popen.stdout.readline()  # type: ignore
+        if not self._popen.stdout:
+          break
+        line = self._popen.stdout.readline()
         if not line:
           break
 
@@ -239,7 +241,7 @@ class ChildProcess:
     else:
       stdout, stderr = self._popen.communicate(input)
 
-    if not self._max_stdout_len:
+    if not self._max_stdout_len or self._stdout_file is None:
       return stdout, stderr
 
     with self._stdout_file:

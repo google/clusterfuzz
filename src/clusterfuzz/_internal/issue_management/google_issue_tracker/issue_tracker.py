@@ -1095,8 +1095,10 @@ class IssueTracker(BaseIssueTracker):
       component_name = component.get('name', '')
       if parent_component_id == str(self._default_component_id):
         return component_name
-      return self._get_relative_component_path(
-          parent_component_id) + ">" + component_name  # type: ignore
+      parent_path = self._get_relative_component_path(parent_component_id)
+      if not parent_path:
+        return None
+      return parent_path + ">" + component_name
     return None
 
   def get_issue(self, issue_id: Union[int, str]) -> Optional[Issue]:
@@ -1257,13 +1259,22 @@ def _get_query(
     query_filters: Optional[Iterable[str]],
 ) -> str:
   """Gets a search query."""
-  query = ' '.join(
-      '"{}"'.format(keyword) for keyword in string_keywords)  # type: ignore
+  if not string_keywords:
+    query = ''
+  elif isinstance(string_keywords, str):
+    query = f'"{string_keywords}"'
+  else:
+    query = ' '.join('"{}"'.format(keyword) for keyword in string_keywords)
+
   if query_filters:
-    query += ' '
+    if query:
+      query += ' '
     query += ' '.join('{}'.format(keyword) for keyword in query_filters)
   if only_open:
-    query += ' status:open'
+    if query:
+      query += ' status:open'
+    else:
+      query = 'status:open'
   return query
 
 

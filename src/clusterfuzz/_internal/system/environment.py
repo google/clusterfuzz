@@ -25,7 +25,6 @@ import socket
 import subprocess
 import sys
 from typing import Any
-from typing import cast
 from typing import overload
 from typing import ParamSpec
 from typing import TypeVar
@@ -1010,7 +1009,10 @@ def set_default_vars() -> None:
     env_file_contents = file_handle.read()
 
   env_vars_and_values = yaml.safe_load(env_file_contents)
-  for variable, value in env_vars_and_values.items():  # pyright: ignore
+  if not isinstance(env_vars_and_values, dict):
+    return
+
+  for variable, value in env_vars_and_values.items():
     # We cannot call set_value here.
     os.environ[str(variable)] = str(value)
 
@@ -1154,9 +1156,10 @@ def get_initial_task_name() -> str | None:
 
 def tool_matches(tool_name: str, job_name: str | None) -> bool:
   """Return if the memory debugging tool is used in this job."""
+  if not job_name:
+    return False
   match_prefix = '(.*[^a-zA-Z]|^)%s'
-  matches_tool = re.match(match_prefix % tool_name.lower(),
-                          job_name.lower())  # type: ignore
+  matches_tool = re.match(match_prefix % tool_name.lower(), job_name.lower())
   return bool(matches_tool)
 
 
@@ -1268,8 +1271,11 @@ def if_redis_available(func: Callable[_P, _R]) -> Callable[_P, _R | None]:
 
 def is_testcase_deprecated(platform_id: str | None = None) -> bool:
   """Whether or not the device or branch is deprecated."""
-  if is_android(cast(str, platform_id).upper()) and not is_android_cuttlefish(
-      cast(str, platform_id).upper()):
+  if not platform_id:
+    return False
+
+  if is_android(
+      platform_id.upper()) and not is_android_cuttlefish(platform_id.upper()):
     # FIXME: Handle these imports in a cleaner way.
     from clusterfuzz._internal.platforms import android
 

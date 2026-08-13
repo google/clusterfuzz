@@ -65,7 +65,7 @@ async def _async_download_files(urls: Sequence[str],
         asyncio.create_task(_error_tolerant_download_file(session, url, path))
         for url, path in zip(urls, paths)
     ]
-    return await asyncio.gather(*tasks)
+    return list(await asyncio.gather(*tasks))
 
 
 async def _error_tolerant_download_file(session: aiohttp.ClientSession,
@@ -115,7 +115,7 @@ async def delete_blob_async(bucket_name: str, blob_name: str,
         logs.error(f'Failed to delete blob {blob_name}. Status code + resp: '
                    f'{response.status} {response_text}.')
   except google.api_core.exceptions.NotFound:
-    logs.info(f'Not found: {blob_name} {response_text}.')  # pyright: ignore
+    logs.info(f'Not found: {blob_name}.')
   except Exception as e:
     logs.error(f'Couldn\'t delete {blob_name}: {e}.')
 

@@ -461,10 +461,10 @@ def _set_regression_testcase_upload_url(
     logs.error('Not saving uploaded testcase to regression corpus '
                '(uploaded and email not set).')
     return
+  assert fuzz_target.engine is not None
   progression_input.regression_testcase_url = (
       corpus_manager.get_regressions_signed_upload_url(
-          fuzz_target.engine,  # pyright: ignore
-          fuzz_target.project_qualified_name()))
+          fuzz_target.engine, fuzz_target.project_qualified_name()))
 
 
 def utask_preprocess(
@@ -697,10 +697,10 @@ def find_fixed_range(
         max_index -= 1
         continue
       # Only bad build errors are recoverable.
-      progression_task_output.last_progression_min = int(
-          last_progression_min)  # type: ignore
-      progression_task_output.last_progression_max = int(
-          last_progression_max)  # type: ignore
+      if last_progression_min is not None:
+        progression_task_output.last_progression_min = int(last_progression_min)
+      if last_progression_max is not None:
+        progression_task_output.last_progression_max = int(last_progression_max)
       error.progression_task_output.CopyFrom(progression_task_output)
       return error
 
