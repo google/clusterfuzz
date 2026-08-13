@@ -29,18 +29,7 @@ steps:
     mv tmp/.git .git
     rm -rf tmp
 - name: 'gcr.io/clusterfuzz-images/ci:d41d82f-202601161634'
-  entrypoint: /bin/bash
-  args:
-  - -exc
-  - |
-    pip install pipx==1.10.0
-    pipx install uv==0.12.3
-    export PATH=$PATH:/root/.local/bin
-
-    uv sync
-    uv run butler.py bootstrap
-    uv run butler.py lint
-    uv run local/tests/run_all_tests
+  args: ['local/tests/cloudbuild_ci.bash']
   env:
     - TEST_BLOBS_BUCKET=clusterfuzz-ci-blobs
     - TEST_BUCKET=clusterfuzz-ci-test
