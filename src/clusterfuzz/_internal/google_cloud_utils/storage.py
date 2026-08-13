@@ -246,7 +246,8 @@ class GcsProvider(StorageProvider):
       request_body['location'] = location
 
     client = create_discovery_storage_client()
-    assert client is not None
+    if not client:
+      return False
     try:
       client.buckets().insert(project=project_id, body=request_body).execute()
     except HttpError as e:
@@ -258,7 +259,8 @@ class GcsProvider(StorageProvider):
   def get_bucket(self, name: str) -> Optional[dict]:
     """Get a bucket."""
     client = create_discovery_storage_client()
-    assert client is not None
+    if not client:
+      return None
     try:
       return client.buckets().get(bucket=name).execute()
     except HttpError as e:
@@ -452,7 +454,8 @@ class GcsProvider(StorageProvider):
   def get(self, remote_path: str) -> Optional[dict]:
     """Get information about a remote file."""
     client = create_discovery_storage_client()
-    assert client is not None
+    if not client:
+      return None
     bucket, path = get_bucket_name_and_path(remote_path)
 
     try:
@@ -921,8 +924,9 @@ def add_single_bucket_iam(storage: Any, iam_policy: dict, role: str,
                           bucket_name: str, member: str) -> Any:
   """Attempt to add a single bucket IAM. Returns the modified iam policy, or
   None on failure."""
-  binding = get_bucket_iam_binding(iam_policy, role)
-  assert binding is not None
+  binding = get_or_create_bucket_iam_binding(iam_policy, role)
+  if not binding:
+    return None
   binding['members'].append(member)
 
   result = set_bucket_iam_policy(storage, bucket_name, iam_policy)
@@ -1225,7 +1229,8 @@ def get(cloud_storage_file_path: str) -> Optional[dict]:
 def get_acl(cloud_storage_file_path: str, entity: str) -> Optional[dict]:
   """Get the access control for a file."""
   client = create_discovery_storage_client()
-  assert client is not None
+  if not client:
+    return None
   bucket, path = get_bucket_name_and_path(cloud_storage_file_path)
 
   try:
@@ -1247,7 +1252,8 @@ def set_acl(cloud_storage_file_path: str, entity: str,
             role: str = 'READER') -> Optional[dict]:
   """Set the access control for a file."""
   client = create_discovery_storage_client()
-  assert client is not None
+  if not client:
+    return None
   bucket, path = get_bucket_name_and_path(cloud_storage_file_path)
 
   try:
@@ -1548,7 +1554,7 @@ def _sign_urls_for_existing_file(
 def _mappable_sign_urls_for_existing_file(
     url_and_include_delete_urls: Tuple[str, bool]) -> Tuple[str, str]:
   url, include_delete_urls = url_and_include_delete_urls
-  return _sign_urls_for_existing_file(url, include_delete_urls)  # type: ignore
+  return _sign_urls_for_existing_file((url, include_delete_urls))
 
 
 def sign_urls_for_existing_files(

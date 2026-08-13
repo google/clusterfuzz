@@ -16,7 +16,6 @@
 import datetime
 import json
 from typing import Any
-from typing import cast
 from typing import NamedTuple
 
 from googleapiclient.errors import HttpError
@@ -253,6 +252,9 @@ def get_jobs_and_platforms_for_project() -> dict[str, ProjectMap]:
   all_jobs = ndb_utils.get_all_from_model(data_types.Job)
   projects_to_jobs_and_platforms: dict[str, ProjectMap] = {}
   for job in all_jobs:
+    if not job.project or not job.name or not job.platform:
+      continue
+
     job_environment = job.get_environment()
 
     # Skip experimental jobs.
@@ -268,13 +270,12 @@ def get_jobs_and_platforms_for_project() -> dict[str, ProjectMap]:
     if utils.string_is_true(job_environment.get('EXCLUDE_FROM_TOP_CRASHES')):
       continue
 
-    project = cast(str, job.project)
-    if project not in projects_to_jobs_and_platforms:
-      projects_to_jobs_and_platforms[project] = ProjectMap(set(), set())
+    if job.project not in projects_to_jobs_and_platforms:
+      projects_to_jobs_and_platforms[job.project] = ProjectMap(set(), set())
 
-    projects_to_jobs_and_platforms[project].jobs.add(cast(str, job.name))
-    projects_to_jobs_and_platforms[project].platforms.add(
-        job_platform_to_real_platform(cast(str, job.platform)))
+    projects_to_jobs_and_platforms[job.project].jobs.add(job.name)
+    projects_to_jobs_and_platforms[job.project].platforms.add(
+        job_platform_to_real_platform(job.platform))
 
   return projects_to_jobs_and_platforms
 
@@ -770,7 +771,7 @@ def mark_testcase_as_triaged_if_needed(testcase: data_types.Testcase,
   if issue:
     # Get latest issue object to ensure our update went through.
     issue = issue_tracker_utils.get_issue_for_testcase(testcase)
-    if issue.is_open:  # type: ignore
+    if issue and issue.is_open:
       return
 
   testcase.triaged = True
@@ -1025,9 +1026,10 @@ def _update_issue_when_uploaded_testcase_is_processed(
 
   # Testcase is a data_types.Testcase
   testcase_id = testcase.key.id()
+  if not testcase_id:
+    return
   testcase_utils.emit_testcase_triage_duration_metric(
-      testcase_id,  # pyright: ignore
-      testcase_utils.TESTCASE_TRIAGE_DURATION_ISSUE_UPDATED_STEP)
+      testcase_id, testcase_utils.TESTCASE_TRIAGE_DURATION_ISSUE_UPDATED_STEP)
 
 
 def notify_uploader_when_testcase_is_processed(
@@ -1035,6 +1037,8 @@ def notify_uploader_when_testcase_is_processed(
     testcase: data_types.Testcase, issue: Any) -> None:
   """Notify uploader by email when all the testcase tasks are finished."""
   testcase_id = testcase.key.id()
+  if not testcase_id:
+    return
 
   # Check if this is a user upload. If not, bail out.
   upload_metadata = data_types.TestcaseUploadMetadata.query(
@@ -1053,7 +1057,7 @@ def notify_uploader_when_testcase_is_processed(
     return
 
   # Check if the notification is already sent once. If yes, bail out.
-  if data_handler.is_notification_sent(cast(Any, testcase_id), to_email):
+  if data_handler.is_notification_sent(testcase_id, to_email):
     return
 
   # Make sure all testcase taks are done (e.g. minimization, regression, etc).
@@ -1072,11 +1076,11 @@ def notify_uploader_when_testcase_is_processed(
   if notify:
     issue_description_without_crash_state = data_handler.get_issue_description(
         testcase, hide_crash_state=True)
-    _send_email_to_uploader(
-        cast(Any, testcase_id), to_email, issue_description_without_crash_state)
+    _send_email_to_uploader(testcase_id, to_email,
+                            issue_description_without_crash_state)
 
   # Make sure to create notification entry, as we use this to update bug.
-  data_handler.create_notification_entry(cast(Any, testcase_id), to_email)
+  data_handler.create_notification_entry(testcase_id, to_email)
 
 
 def update_os_labels(policy: issue_tracker_policy.IssueTrackerPolicy,
@@ -1155,7 +1159,7 @@ def _should_update_component_id(issue: Any,
   if not hasattr(issue, 'component_id'):
     return False
 
-  return cast(bool, component_id and issue.component_id != component_id)
+  return bool(component_id and issue.component_id != component_id)
 
 
 def update_component_labels_and_id(

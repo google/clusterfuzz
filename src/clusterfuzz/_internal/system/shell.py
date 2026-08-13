@@ -287,7 +287,7 @@ def execute_command(shell_command: str) -> bytes:
     output, _ = process_handle.communicate()
   except:
     logs.error('Error while executing command %s.' % shell_command)
-    return ''  # type: ignore
+    return b''
 
   return output
 

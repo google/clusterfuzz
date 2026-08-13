@@ -150,7 +150,7 @@ def write_range(table_id: str, testcase: 'data_types.Testcase', range_name: str,
           insert_id='%s:%s:%s' % (testcase.key.id(), start, end))
   ])
 
-  for error in result.get('insertErrors', []):  # type: ignore
+  for error in (result.get('insertErrors', []) if result else []):
     logs.error(
         ("Ignoring error writing the testcase's %s range (%s) to "
          'BigQuery.' % (range_name, testcase.key.id())),
@@ -400,15 +400,15 @@ class Client:
 
       if not result:
         # Use result from the first batch, appending errors from the rest.
-        result = response
+        result = response or {}
         continue
 
       # If there are new errors from the current batch, append to the result.
-      new_errors = response.get('insertErrors')  # type: ignore
+      new_errors = response.get('insertErrors') if response else None
       if not new_errors:
         continue
 
       # Apparently result may not have errors, use |setdefault| to be careful.
       result.setdefault('insertErrors', []).extend(new_errors)
 
-    return result  # type: ignore
+    return result

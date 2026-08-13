@@ -95,7 +95,7 @@ def handle_update(testcase: data_types.Testcase, revision: int,
   last_tested_revision = (
       testcase.get_metadata('last_tested_revision') or testcase.crash_revision)
 
-  if revision < last_tested_revision:  # pyright: ignore
+  if last_tested_revision is not None and revision < int(last_tested_revision):
     logs.warning(f'Revision {revision} less than previously tested '
                  f'revision {last_tested_revision}.')
     return
@@ -115,15 +115,10 @@ def handle_update(testcase: data_types.Testcase, revision: int,
   fuzz_target = testcase.get_fuzz_target()
   if fuzz_target:
     fuzz_target_name = fuzz_target.binary
-  else:
-    fuzz_target_name = None
-
-  # Record use of fuzz target to avoid garbage collection (since fuzz_task does
-  # not run).
-  if fuzz_target:
     data_handler.record_fuzz_target(fuzz_target.engine, fuzz_target.binary,
                                     testcase.job_type)
-
+  else:
+    fuzz_target_name = None
   for st_index, stacktrace in enumerate(stacktraces):
     if is_still_crashing(st_index, stacktrace):
       logs.info(f'stacktrace {st_index} of {testcase_id} still crashes.')
@@ -144,15 +139,16 @@ class Handler(base_handler.Handler):
   @handler.pubsub_push
   def post(self, message: pubsub.Message) -> str:
     """Handle a post request."""
-    testcase_id = message.attributes.get('testcaseId')  # type: ignore
+    attributes = message.attributes or {}
+    testcase_id = attributes.get('testcaseId')
     if not testcase_id:
       raise helpers.EarlyExitError('Missing testcaseId.', 400)
 
-    revision = message.attributes.get('revision')  # type: ignore
+    revision = attributes.get('revision')
     if not revision or not revision.isdigit():
       raise helpers.EarlyExitError('Missing revision.', 400)
 
-    revision = int(revision)
+    revision_int = int(revision)
     testcase = data_handler.get_testcase_by_id(testcase_id)
     job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
     if not job or not job.is_external():
@@ -164,8 +160,7 @@ class Handler(base_handler.Handler):
       logs.info(f'No stacktrace provided (testcase_id={testcase_id}).')
       stacktrace = ''
 
-    protocol_version = (message.attributes or {}).get('protocolVersion',
-                                                      OLD_PROTOCOL)
+    protocol_version = attributes.get('protocolVersion', OLD_PROTOCOL)
     if protocol_version == OLD_PROTOCOL:
       # Old: stacktrace is a str.
       stacktraces = [stacktrace]
@@ -180,6 +175,6 @@ class Handler(base_handler.Handler):
       # Invalid: stacktrace is presumably ill-formed.
       stacktraces = []
 
-    error = message.attributes.get('error')  # type: ignore
-    handle_update(testcase, revision, stacktraces, error, protocol_version)
+    error = attributes.get('error')
+    handle_update(testcase, revision_int, stacktraces, error, protocol_version)
     return 'OK'

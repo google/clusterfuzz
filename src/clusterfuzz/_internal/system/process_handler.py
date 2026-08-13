@@ -220,22 +220,14 @@ def run_process(
       # so that the next check is after 1 second.
       gesture_start_time += 1
 
-      if plt == 'LINUX':
-        linux.gestures.run_gestures(
-            gestures,
-            process_handle.pid,  # type: ignore
-            process_status,
-            start_time,
-            timeout,
-            window_list)
-      elif plt == 'WINDOWS':
-        windows.gestures.run_gestures(
-            gestures,
-            process_handle.pid,  # type: ignore
-            process_status,
-            start_time,
-            timeout,
-            window_list)
+      if plt == 'LINUX' and process_handle:
+        linux.gestures.run_gestures(gestures, process_handle.pid,
+                                    process_status, start_time, timeout,
+                                    window_list)
+      elif plt == 'WINDOWS' and process_handle:
+        windows.gestures.run_gestures(gestures, process_handle.pid,
+                                      process_status, start_time, timeout,
+                                      window_list)
       elif is_android:
         android.gestures.run_gestures(gestures, start_time, timeout)
 
@@ -264,7 +256,8 @@ def run_process(
       # On desktop, we bail out as soon as the process finishes.
       if process_status and process_status.finished:
         # Wait for process shutdown and set return code.
-        process_handle.wait(timeout=PROCESS_CLEANUP_WAIT_TIME)  # type: ignore
+        if process_handle:
+          process_handle.wait(timeout=PROCESS_CLEANUP_WAIT_TIME)
         break
 
   # Process output based on platform.
@@ -318,10 +311,10 @@ def run_process(
     # Get the return code in case the process has finished already.
     # If the process hasn't finished, return_code will be None which is what
     # callers expect unless the output indicates a crash.
-    return_code = process_handle.poll()  # type: ignore
+    return_code = process_handle.poll() if process_handle else None
 
     # If the process is still running, then terminate it.
-    if not process_status.finished:  # type: ignore
+    if process_status and not process_status.finished:
       launcher_with_interpreter = shell.get_execute_command(
           launcher) if launcher else None
       if (launcher_with_interpreter and
@@ -330,11 +323,13 @@ def run_process(
         # except for APP_NAME.
         # It is expected that, if the launcher script terminated normally, it
         # cleans up all the child processes it created itself.
-        terminate_root_and_child_processes(process_handle.pid)  # type: ignore
+        if process_handle:
+          terminate_root_and_child_processes(process_handle.pid)
       else:
         try:
           # kill() here actually sends SIGTERM on posix.
-          process_handle.kill()  # type: ignore
+          if process_handle:
+            process_handle.kill()
         except:
           pass
 
@@ -645,6 +640,9 @@ def terminate_processes_matching_cmd_line(
     kill: bool = False,
     exclude_strings: Sequence[str] | None = None) -> None:
   """Terminates processes matching particular command line (case sensitive)."""
+  if not match_strings:
+    return
+
   if exclude_strings is None:
     exclude_strings = []
 
@@ -661,7 +659,7 @@ def terminate_processes_matching_cmd_line(
     except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
       continue
 
-    if any(x in process_path for x in match_strings if x):  # type: ignore
+    if any(x in process_path for x in match_strings if x):
       if not any(x in process_path for x in exclude_strings):
         terminate_process(process_info['pid'], kill)
 

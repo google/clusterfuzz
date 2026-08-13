@@ -19,7 +19,6 @@ import random
 import subprocess
 import sys
 import time
-from typing import cast
 
 GCLOUD_STORAGE_CMD: list[str] = ['gcloud', 'storage']
 RETRY_COUNT: int = 5
@@ -40,8 +39,8 @@ def _run_command(command: list[str]) -> str:
 
   for _ in range(RETRY_COUNT):
     try:
-      return cast(str, subprocess.check_output(
-          command, stderr=subprocess.STDOUT))
+      return subprocess.check_output(
+          command, stderr=subprocess.STDOUT, text=True)
     except subprocess.CalledProcessError as e:
       print('Command failed with non-zero exit code. Output:\n%s' % e.output)
 

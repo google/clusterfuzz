@@ -18,7 +18,8 @@ import os
 from typing import Any
 from unittest import mock
 
-from clusterfuzz._internal.google_cloud_utils import batch  # type: ignore
+from clusterfuzz._internal.batch import service
+from clusterfuzz._internal.remote_task import remote_task_types
 
 
 def _create_many() -> None:
@@ -29,23 +30,24 @@ def _create_many() -> None:
 
 
 @mock.patch(
-    'clusterfuzz._internal.google_cloud_utils.batch._get_job',
-    return_value=mock.Mock(platform='LINUX'))
+    'clusterfuzz._internal.batch.service._get_specs_from_config',
+    return_value={})
 @mock.patch(
     'clusterfuzz._internal.system.environment.get_config_directory',
     return_value=os.environ.get('BATCH_TEST_CONFIG_PATH', ''))
 def _send_test_job(
     _: Any = None,
     get_config_directory: Any = None,
-    get_job: Any = None,
+    get_specs_from_config: Any = None,
 ) -> None:
   """Creates a test batch job for local manual testing to ensure job creation
   actually works."""
   del _
   del get_config_directory
-  del get_job
+  del get_specs_from_config
   tasks = [
-      batch.BatchTask('variant', 'libfuzzer_chrome_asan', 'https://fake/')
-      for _ in range(10)
+      remote_task_types.RemoteTask('variant', 'libfuzzer_chrome_asan',
+                                   'https://fake/') for _ in range(10)
   ]
-  batch.create_utask_main_jobs(tasks)
+  batch_service = service.GcpBatchService()
+  batch_service.create_utask_main_jobs(tasks)

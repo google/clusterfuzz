@@ -1141,9 +1141,9 @@ def _utask_main(uworker_input: uworker_msg_pb2.Input) -> uworker_msg_pb2.Output:
       uworker_input.corpus_pruning_task_input.cross_pollinate_fuzzers)
   context = Context(uworker_input, fuzz_target, cross_pollinate_fuzzers)
 
-  if uworker_input.global_blacklisted_functions:
+  if uworker_input.setup_input.global_blacklisted_functions:
     leak_blacklist.copy_global_to_local_blacklist(
-        cast(Any, uworker_input).corpus_task_input.global_blacklisted_functions)
+        uworker_input.setup_input.global_blacklisted_functions)
 
   uworker_output = None
   try:

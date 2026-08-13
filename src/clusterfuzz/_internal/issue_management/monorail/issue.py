@@ -125,7 +125,8 @@ class Issue:
   def __getattribute__(self, item: str) -> Any:
     if item in ['body'] and not object.__getattribute__(self, item):
       comment = self.get_first_comment()
-      self.__setattr__(item, comment.comment)  # type: ignore
+      if comment:
+        self.__setattr__(item, comment.comment)
 
     return object.__getattribute__(self, item)
 
@@ -184,7 +185,7 @@ class Issue:
   def remove_components_by_prefix(self, prefix: str) -> None:
     components = self.get_components_by_prefix(prefix)
     for component in components:
-      self.remove_label(component)
+      self.remove_component(component)
 
   def add_label(self, label: str) -> None:
     if not self.has_label(label):
@@ -254,13 +255,19 @@ class Issue:
     return has_value(self.cc, value)
 
   def has_comment_with_label(self, label: str) -> bool:
-    for comment in self.get_comments():  # type: ignore
+    comments = self.get_comments()
+    if not comments:
+      return False
+    for comment in comments:
       if comment.has_label(label):
         return True
     return False
 
   def has_comment_with_label_by_prefix(self, prefix: str) -> bool:
-    for comment in self.get_comments():  # type: ignore
+    comments = self.get_comments()
+    if not comments:
+      return False
+    for comment in comments:
       if comment.get_labels_by_prefix(prefix):
         return True
     return False

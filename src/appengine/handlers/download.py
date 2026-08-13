@@ -29,7 +29,6 @@ from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.issue_management.issue_tracker import Issue
-from clusterfuzz._internal.issue_management.issue_tracker import IssueTracker
 from handlers import base_handler
 from libs import access
 from libs import gcs
@@ -172,8 +171,8 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     if testcase.bug_information:
       issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
           testcase)
-      issue = cast(IssueTracker,
-                   issue_tracker).get_issue(testcase.bug_information)
+      if issue_tracker:
+        issue = issue_tracker.get_issue(testcase.bug_information)
 
     if utils.is_oss_fuzz() and self.check_public_testcase(
         issue, blob_info, testcase):

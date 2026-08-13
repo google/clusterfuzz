@@ -21,11 +21,12 @@ import subprocess
 import tempfile
 import types
 from typing import Any
-from typing import cast
 from typing import IO
 from typing import NamedTuple
 from typing import Self
 
+from clusterfuzz._internal.bot.untrusted_runner import \
+    environment as untrusted_environment
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
@@ -115,7 +116,8 @@ class MinijailChroot:
     if not use_existing_base:
       self._chroot_dir = _create_chroot_dir(base_dir=base_dir)
     else:
-      self._chroot_dir = cast(str, base_dir)
+      assert base_dir is not None
+      self._chroot_dir = base_dir
 
     # Create /tmp, /proc directories.
     os.mkdir(os.path.join(self._chroot_dir, 'tmp'))
@@ -391,8 +393,6 @@ class MinijailProcessRunner(new_process.ProcessRunner):
     command.insert(2, pid_file.name)
 
     passed_env = popen_args.pop('env', None)
-    from clusterfuzz._internal.bot.untrusted_runner import \
-        environment as untrusted_environment
     env = untrusted_environment.get_env_for_untrusted_process(passed_env)
     if extra_env is not None:
       env.update(extra_env)

@@ -21,6 +21,7 @@ from typing import Optional
 from typing import Union
 
 from firebase_admin import auth
+from firebase_admin import exceptions
 from google.auth.transport import requests as google_requests
 from google.cloud import ndb
 from google.oauth2 import id_token
@@ -247,7 +248,7 @@ def create_session_cookie(token: str,
   """Create a new session cookie."""
   try:
     return auth.create_session_cookie(token, expires_in=expires_in)
-  except auth.AuthError:  # type: ignore
+  except exceptions.FirebaseError:
     raise AuthError('Failed to create session cookie.')
 
 
@@ -266,5 +267,5 @@ def decode_claims(session_cookie: str) -> dict[str, Any]:
   """Decode the claims for the current session cookie."""
   try:
     return auth.verify_session_cookie(session_cookie, check_revoked=True)
-  except (ValueError, auth.AuthError):  # type: ignore
+  except (ValueError, exceptions.FirebaseError):
     raise AuthError('Invalid session cookie.')

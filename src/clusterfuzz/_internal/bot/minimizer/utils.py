@@ -17,6 +17,7 @@ import os
 import shlex
 import subprocess
 
+from clusterfuzz._internal.base import utils as base_utils
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.HTMLLexer import HTMLLexer
 
@@ -116,10 +117,11 @@ def single_test_run(test_path: str) -> bool:
     console_output = error.output
 
   # If we meet one of these conditions, assume we crashed.
-  if ((
-      has_marker(console_output, STACKTRACE_TOOL_MARKERS) and  # type: ignore
-      has_marker(console_output, STACKTRACE_END_MARKERS)) or  # type: ignore
-      has_marker(console_output, CHECK_FAILURE_MARKERS)):  # type: ignore
+  stacktrace = base_utils.decode_to_unicode(
+      console_output) if console_output else ''
+  if ((has_marker(stacktrace, STACKTRACE_TOOL_MARKERS) and
+       has_marker(stacktrace, STACKTRACE_END_MARKERS)) or
+      has_marker(stacktrace, CHECK_FAILURE_MARKERS)):
     print('Crashed, current test size %s.' % (get_size_string(
         os.path.getsize(test_path))))
     return False
