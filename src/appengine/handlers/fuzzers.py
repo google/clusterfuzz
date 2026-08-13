@@ -194,7 +194,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     fuzzer.result = None
     fuzzer.sample_testcase = None
     fuzzer.console_output = None
-    fuzzer.external_contribution = bool(external_contribution)
+    fuzzer.external_contribution = external_contribution
     fuzzer.primary_owner = primary_owner
     fuzzer.trusted = trusted
     fuzzer.differential = differential
