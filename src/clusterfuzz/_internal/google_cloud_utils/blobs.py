@@ -189,7 +189,10 @@ def read_blob_to_disk(blob_key: str, local_file: str) -> bool:
 
 def read_key(blob_key: Optional[str]) -> Optional[bytes]:
   """Returns data associated with a blobstore key."""
-  gcs_path = get_gcs_path(blob_key)  # type: ignore
+  if not blob_key:
+    return None
+
+  gcs_path = get_gcs_path(blob_key)
   return storage.read_data(cast(str, gcs_path))
 
 

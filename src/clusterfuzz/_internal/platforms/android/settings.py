@@ -147,11 +147,14 @@ def get_build_product() -> str | None:
 def get_sanitizer_tool_name() -> str | None:
   """Return sanitizer tool name e.g. ASAN if found on device."""
   build_flavor = get_build_flavor()
-  if 'hwasan' in build_flavor:  # type: ignore
+  if not build_flavor:
+    return None
+
+  if 'hwasan' in build_flavor:
     return 'hwasan'
-  if 'kasan' in build_flavor:  # type: ignore
+  if 'kasan' in build_flavor:
     return 'kasan'
-  if 'asan' in build_flavor:  # type: ignore
+  if 'asan' in build_flavor:
     return 'asan'
 
   return None
@@ -160,7 +163,10 @@ def get_sanitizer_tool_name() -> str | None:
 def is_mte_build() -> bool:
   """Return True if device is using Memory Tagging Extension."""
   build_flavor = get_build_flavor()
-  return 'mte' in build_flavor  # type: ignore
+  if not build_flavor:
+    return False
+
+  return 'mte' in build_flavor
 
 
 def get_security_patch_level() -> str | None:
@@ -169,7 +175,10 @@ def get_security_patch_level() -> str | None:
 
 
 def get_kernel_version_string() -> str:
-  return adb.run_shell_command('cat /proc/version').strip()  # type: ignore
+  output = adb.run_shell_command('cat /proc/version')
+  if not output:
+    return ''
+  return output.strip()
 
 
 def is_google_device() -> bool | None:

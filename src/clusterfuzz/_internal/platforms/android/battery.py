@@ -39,7 +39,9 @@ LAST_BATTERY_CHECK_TIME_KEY: str = 'android_last_battery_check'
 def get_battery_level_and_temperature() -> dict[str, float] | None:
   """Return device's battery and temperature levels."""
   output = adb.run_shell_command(['dumpsys', 'battery'])
-  assert output is not None
+  if not output:
+    logs.error('Error occurred while getting battery status.')
+    return None
 
   # Get battery level.
   m_battery_level = re.match(r'.*\n[\t ]*level: (\d+).*', output, re.DOTALL)

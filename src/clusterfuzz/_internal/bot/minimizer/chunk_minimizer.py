@@ -13,7 +13,6 @@
 # limitations under the License.
 """Fast minimizer that attempts to remove tokens grouped in chunks."""
 
-import functools
 from typing import Any
 from typing import cast
 
@@ -64,11 +63,10 @@ class ChunkMinimizer(minimizer.Minimizer):
         chunk_sizes=[80, 40, 20],
         file_extension=file_extension)
 
-    full_tokenizer = functools.partial(utils.tokenize, level=1)  # type: ignore
     minimizer_round_2 = ChunkMinimizer(
         utils.test,
         max_threads=thread_count,
-        tokenizer=full_tokenizer,
+        tokenizer=utils.tokenize,
         token_combiner=utils.token_combiner,
         chunk_sizes=[10, 4, 1],
         file_extension=file_extension)

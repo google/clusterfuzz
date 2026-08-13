@@ -41,7 +41,8 @@ def get_local_path(device_path: str) -> str | None:
 
 def is_testcase_deprecated(platform_id: str | None = None) -> bool:
   """Whether or not the Android device is deprecated."""
-  assert platform_id is not None
+  if not platform_id:
+    return False
 
   # Platform ID for Android is of the form as shown below
   # |android:{codename}_{sanitizer}:{build_version}|

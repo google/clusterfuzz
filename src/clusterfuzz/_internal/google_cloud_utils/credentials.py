@@ -69,12 +69,13 @@ def get_default(scopes: Sequence[str] | None = None
 
 
 def get_storage_signing_service_account() -> dict[str, Any] | None:
-  """Returns service account credentials dict for signing."""
+  """Gets a dedicated signing account for signing storage objects."""
   if _use_anonymous_credentials():
     return None
   project_id = utils.get_application_id()
-  return json.loads(secret_manager.get(_SIGNING_KEY_SECRET_ID,
-                                       project_id))  # type: ignore
+  if not project_id:
+    return None
+  return json.loads(secret_manager.get(_SIGNING_KEY_SECRET_ID, project_id))
 
 
 def get_signing_credentials(

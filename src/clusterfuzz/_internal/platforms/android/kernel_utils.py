@@ -15,7 +15,6 @@
 
 import os
 import re
-from typing import cast
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
@@ -133,11 +132,14 @@ def get_kernel_name() -> str | None:
   build_product = settings.get_build_product()
 
   # Strip _kasan off of the end as we will add it later if needed.
-  utils.strip_from_right(cast(str, product_name), '_kasan')
+  if product_name:
+    utils.strip_from_right(product_name, '_kasan')
 
   # Some devices have a different kernel name than product_name, if so use the
   # kernel name.
-  return constants.PRODUCT_TO_KERNEL.get(cast(str, build_product), product_name)
+  if build_product:
+    return constants.PRODUCT_TO_KERNEL.get(build_product, product_name)
+  return product_name
 
 
 def get_kernel_hash_and_build_id() -> tuple[str | None, str | None]:
