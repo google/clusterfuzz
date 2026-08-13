@@ -26,28 +26,30 @@ from libs import helpers
 VALID_DATE_REGEX = re.compile(r'^([0-9\-]+|latest)$')
 
 
-def _get_project_report_url(job, date):
+def _get_project_report_url(job: str, date: str) -> str | None:
   """Return url for the report requested."""
   project = data_handler.get_project_name(job)
   if not project:
     return None
 
+  coverage_date: datetime.date | None
   if date == 'latest':
-    date = None
+    coverage_date = None
   else:
     try:
-      date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+      coverage_date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
     except:
       raise helpers.EarlyExitError('Invalid date.', 400)
 
-  info = fuzzer_stats.get_coverage_info(project, date)
+  info = fuzzer_stats.get_coverage_info(project, coverage_date)
   if not info:
     return None
 
   return info.html_report_url
 
 
-def get_report_url(report_type, argument, date):
+def get_report_url(report_type: str | None, argument: str | None,
+                   date: str | None) -> str | None:
   """Get report url for a redirect from the coverage report handler."""
   # It's very easy to add support for per fuzzer reports, but we don't need it.
   if report_type != 'job':
@@ -72,7 +74,11 @@ class Handler(base_handler.Handler):
   # pylint: disable=unused-argument
   @handler.get(handler.HTML)
   @handler.oauth
-  def get(self, report_type=None, argument=None, date=None, extra=None):
+  def get(self,
+          report_type: str | None = None,
+          argument: str | None = None,
+          date: str | None = None,
+          extra: str | None = None) -> base_handler.Response:
     """Handle a get request."""
     report_url = get_report_url(report_type, argument, date)
     if report_url:

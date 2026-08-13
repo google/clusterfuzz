@@ -13,7 +13,11 @@
 # limitations under the License.
 """Handler for the crash query api."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
+from flask import Response
 
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -30,14 +34,14 @@ class Handler(base_handler.Handler):
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.oauth
-  def post(self):
+  def post(self) -> Response:
     """Handle a post request."""
     if not auth.get_current_user():
       raise helpers.AccessDeniedError()
 
-    project = request.get('project')
-    fuzz_target = request.get('fuzz_target')
-    stacktrace = request.get('stacktrace')
+    project = cast(Any, request).get('project')
+    fuzz_target = cast(Any, request).get('fuzz_target')
+    stacktrace = cast(Any, request).get('stacktrace')
 
     state = stack_analyzer.get_crash_data(
         stacktrace,

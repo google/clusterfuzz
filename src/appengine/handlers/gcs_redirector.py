@@ -25,7 +25,7 @@ class Handler(base_handler.Handler):
   """Gcs redirector."""
 
   @handler.get(handler.HTML)
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Handle a get request."""
     gcs_path = request.args.get('path', '')
     if not gcs_path:

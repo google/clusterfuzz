@@ -16,6 +16,8 @@
 
 import os
 import re
+from typing import Any
+from typing import cast
 
 from google.cloud import ndb
 from google.protobuf import any_pb2
@@ -29,7 +31,7 @@ from clusterfuzz._internal.google_cloud_utils import gsutil
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 
-target_entities = [
+target_entities: list[tuple[type[ndb.Model], list[str], str]] = [
     (data_types.Fuzzer, ['blobstore_key', 'sample_testcase'], 'fuzzer'),
     (data_types.Job, ['custom_binary_key'], 'job'),
     (data_types.DataBundle, [], 'databundle'),
@@ -40,10 +42,10 @@ target_entities = [
 class RSyncClient:
   """Interface that defines the rsync contract."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     pass
 
-  def rsync(self, source: str, target: str):
+  def rsync(self, source: str, target: str) -> bool:  # type: ignore
     pass
 
 
@@ -51,10 +53,10 @@ class GCloudCLIRSync(RSyncClient):
   """RSyncClient implementation that delegates to the gcloud cli.
     Unsuitable for unit testing."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     self._runner = gsutil.GSUtilRunner()
 
-  def rsync(self, source: str, target: str):
+  def rsync(self, source: str, target: str) -> bool:
     """Rsyncs a source to a target destination. Returns True if
     successful, False if there was any failure. Considers successful
      any gsutil execution with a 0 return code."""
@@ -67,10 +69,10 @@ class StorageRSync(RSyncClient):
   """RSyncClient implementation for unit testing,
     meant for use with GCS emulator."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     pass
 
-  def rsync(self, source: str, target: str):
+  def rsync(self, source: str, target: str) -> bool:
     """Lists all files under the source path, and uploads
       them to the target path. Since list_blobs returns
       fully qualified names, the source prefix is trimmed
@@ -107,12 +109,12 @@ class EntityMigrator:
   """Serializes entities to GCS, and imports them back."""
 
   def __init__(self,
-               target_cls: ndb.Model,
+               target_cls: type[ndb.Model],
                blobstore_keys: list[str],
                entity_type: str,
                rsync_client: RSyncClient,
                export_bucket: str,
-               env_string_substitutions: dict[str, str] | None = None):
+               env_string_substitutions: dict[str, str] | None = None) -> None:
     self._target_cls = target_cls
     self.blobstore_keys = blobstore_keys
     self._entity_type = entity_type
@@ -120,24 +122,28 @@ class EntityMigrator:
     self._export_bucket = export_bucket
     self._env_string_substitutions = env_string_substitutions or {}
 
-  def _serialize(self, entity) -> bytes:
+  def _serialize(self, entity: ndb.Model) -> bytes:
     return uworker_io.entity_to_protobuf(entity).SerializeToString()
 
   def _deserialize(self, proto_as_str: bytes) -> ndb.Model:
-    deserialized_any = any_pb2.Any()  # pylint: disable=no-member
+    # pylint: disable=no-member
+    deserialized_any = (
+        any_pb2.Any()  # pyright: ignore[reportAttributeAccessIssue]
+    )
     # Parse the bytes into the Any message
     deserialized_any.ParseFromString(proto_as_str)
     return uworker_io.entity_from_protobuf(deserialized_any, self._target_cls)
 
-  def _serialize_entity_to_gcs(self, entity: ndb.Model, upload_path: str):
+  def _serialize_entity_to_gcs(self, entity: ndb.Model,
+                               upload_path: str) -> None:
     entity_as_bytes = self._serialize(entity)
     storage.write_data(entity_as_bytes, upload_path)
 
-  def _deserialize_entity_from_gcs(self, download_path: str):
+  def _deserialize_entity_from_gcs(self, download_path: str) -> ndb.Model:
     entity_as_bytes = storage.read_data(download_path)
-    return self._deserialize(entity_as_bytes)
+    return self._deserialize(cast(bytes, entity_as_bytes))
 
-  def _export_blobs(self, entity: ndb.Model, bucket_prefix: str):
+  def _export_blobs(self, entity: ndb.Model, bucket_prefix: str) -> None:
     """Exports blobs for an entity, if applicable (fuzzer/job only)."""
     for blobstore_key in self.blobstore_keys:
       blob_id = getattr(entity, blobstore_key, None)
@@ -145,13 +151,13 @@ class EntityMigrator:
         blob_gcs_path = blobs.get_gcs_path(blob_id)
         if not storage.get(blob_gcs_path):
           logs.warning(f'{blobstore_key} with id {blob_id} not present '
-                       f'for {entity.name}, skipping.')
+                       f'for {cast(Any, entity).name}, skipping.')
           continue
         blob_destination_path = f'{bucket_prefix}/{blobstore_key}'
         storage.copy_blob(blob_gcs_path, blob_destination_path)
 
   def _export_data_bundle_contents_if_applicable(self, entity: ndb.Model,
-                                                 bucket_prefix: str):
+                                                 bucket_prefix: str) -> None:
     """Uploads data bundle proto and rsyncs the respective bucket contents."""
     if not isinstance(entity, data_types.DataBundle):
       logs.info(
@@ -173,7 +179,7 @@ class EntityMigrator:
           f'Failed to rsync {source_location} to {target_location}.')
 
   def _export_entity(self, entity: ndb.Model, entity_bucket_prefix: str,
-                     entity_name: str):
+                     entity_name: str) -> None:
     """Exports entity as protobuf and its respective blobs to GCS."""
     # Entitites get their name from the 'name' field in datastore
     bucket_prefix = f'{entity_bucket_prefix}/{entity_name}'
@@ -182,16 +188,17 @@ class EntityMigrator:
     self._export_blobs(entity, bucket_prefix)
     self._export_data_bundle_contents_if_applicable(entity, bucket_prefix)
 
-  def _export_entity_names(self, entities: set[str], entity_bucket_prefix: str):
+  def _export_entity_names(self, entities: set[str],
+                           entity_bucket_prefix: str) -> None:
     """Writes entity name list to GCS."""
     entity_list = '\n'.join(entities)
     storage.write_data(
         entity_list.encode('utf-8'), f'{entity_bucket_prefix}/entities')
 
-  def export_entities(self):
+  def export_entities(self) -> None:
     """Exports individual entities of a certain type, and populates a list
        the individual names of entities for future importing."""
-    entity_names = set()
+    entity_names: set[str] = set()
     entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
     for entity in self._target_cls.query():
       entity_name = getattr(entity, 'name', None)
@@ -202,10 +209,10 @@ class EntityMigrator:
     self._export_entity_names(entity_names, entity_bucket_prefix)
 
   def _import_blobs(self, entity: ndb.Model, entity_name: str,
-                    entity_location: str):
+                    entity_location: str) -> dict[str, str | None]:
     """Copies exported blobs to a new blob id, and returns a map with
         the new blob ids."""
-    new_blob_ids = {}
+    new_blob_ids: dict[str, str | None] = {}
     for blobstore_key in self.blobstore_keys:
       source_blob_location = f'{entity_location}/{blobstore_key}'
       if not getattr(entity, blobstore_key, None):
@@ -225,7 +232,8 @@ class EntityMigrator:
       new_blob_ids[blobstore_key] = new_blob_id
     return new_blob_ids
 
-  def _substitute_environment_string(self, env_string: str | None):
+  def _substitute_environment_string(self,
+                                     env_string: str | None) -> str | None:
     """Performs raw text substitution in an environment
       string, given a substitution dictionary."""
     if not env_string:
@@ -237,7 +245,7 @@ class EntityMigrator:
     return env_string
 
   def _import_data_bundle_contents(self, source_location: str,
-                                   bundle_name: str):
+                                   bundle_name: str) -> str:
     """Imports data bundle contents from the export bucket to the new 
       data bundle bucket in the target project. Skips if the contents
       are absent during export, and throws an exception if the rsync 
@@ -258,7 +266,7 @@ class EntityMigrator:
           f'to {target_location}.')
     return new_bundle_bucket
 
-  def _persist_entity(self, entity: ndb.Model):
+  def _persist_entity(self, entity: ndb.Model) -> None:
     """A raw deserialization and put() call will cause an exception, since the
       project from which the entity was serialized will mistmatch the project to
       which we are writing it to datastore. This forces creation of a new 
@@ -268,7 +276,7 @@ class EntityMigrator:
       setattr(entity_to_persist, key, value)
     entity_to_persist.put()
 
-  def _import_entity(self, entity_name: str, entity_location: str):
+  def _import_entity(self, entity_name: str, entity_location: str) -> None:
     """Imports entity into datastore, blobs, databundle contents
         and substitutes environment strings, if applicable."""
     entity_to_import = self._deserialize_entity_from_gcs(
@@ -298,7 +306,7 @@ class EntityMigrator:
     # Do not assume that name is a primary key, avoid having two
     # different keys with the same name.
     preexisting_entities = list(
-        self._target_cls.query(self._target_cls.name == entity_name))
+        self._target_cls.query(cast(Any, self._target_cls).name == entity_name))
     logs.info(f'Found {len(preexisting_entities)} of type {self._entity_type}'
               f' and name {entity_name}, deleting.')
     for preexisting_entity in preexisting_entities:
@@ -306,27 +314,27 @@ class EntityMigrator:
 
     self._persist_entity(entity_to_import)
 
-  def import_entities(self):
+  def import_entities(self) -> None:
     """Iterates over all entitiy names declared in the last export, and imports
       its contents."""
     entity_bucket_prefix = f'gs://{self._export_bucket}/{self._entity_type}'
     entity_list_location = f'{entity_bucket_prefix}/entities'
     if not storage.get(entity_list_location):
       raise ValueError(f'Missing entity list in {entity_list_location}')
-    entities_to_sync = storage.read_data(entity_list_location)
-    if not entities_to_sync:
-      entities_to_sync = []
+    entities_to_sync_bytes = storage.read_data(entity_list_location)
+    if not entities_to_sync_bytes:
+      entities_to_sync: list[str] = []
     else:
-      entities_to_sync = entities_to_sync.decode('utf-8').split('\n')
+      entities_to_sync = entities_to_sync_bytes.decode('utf-8').split('\n')
     for entity in self._target_cls.query():
-      if entity.name not in entities_to_sync:
+      if cast(Any, entity).name not in entities_to_sync:
         entity.key.delete()
     for entity_name in entities_to_sync:
       entity_location = f'{entity_bucket_prefix}/{entity_name}'
       self._import_entity(entity_name, entity_location)
 
 
-def main():
+def main() -> bool:
   """Exports datastore entities and respective blobs."""
   export_bucket = os.getenv('EXPORT_BUCKET', None)
   operation_mode = os.getenv('OPERATION_MODE', None)

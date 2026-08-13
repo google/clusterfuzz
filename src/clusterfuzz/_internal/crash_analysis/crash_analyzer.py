@@ -13,25 +13,27 @@
 # limitations under the License.
 """Functions for helping in crash analysis."""
 
+from collections.abc import Sequence
 import re
+from typing import cast
 
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-ASSERT_CRASH_ADDRESSES = [
+ASSERT_CRASH_ADDRESSES: list[int] = [
     0x0000bbadbeef,
     0x0000fbadbeef,
     0x00001f75b7dd,
     0x0000977537dd,
     0x00009f7537dd,
 ]
-GENERIC_CRASH_TYPES = [
+GENERIC_CRASH_TYPES: list[str] = [
     'Null-dereference', 'Null-dereference READ', 'Null-dereference WRITE',
     'READ', 'UNKNOWN', 'UNKNOWN READ', 'UNKNOWN WRITE', 'WRITE',
     'Uncaught exception'
 ]
-CRASH_TYPES_NON_SECURITY = [
+CRASH_TYPES_NON_SECURITY: list[str] = [
     'Stack-overflow',
     'Fatal-signal',
     'Missing-library',
@@ -49,14 +51,14 @@ CRASH_TYPES_NON_SECURITY = [
     # Release SECURITY_CHECK in Blink shouldn't be marked as a security bug
     'Security CHECK failure',
 ]
-SIGNAL_SIGNATURES_NOT_SECURITY = [
+SIGNAL_SIGNATURES_NOT_SECURITY: list[str] = [
     'Sanitizer: ABRT',
     'Sanitizer: BUS',
     'Sanitizer: FPE',
     'Sanitizer: ILL',
     'Sanitizer: breakpoint',
 ]
-STACKTRACE_TOOL_MARKERS = [
+STACKTRACE_TOOL_MARKERS: list[str] = [
     'AddressSanitizer',
     'ASAN:',
     'CFI: Most likely a control flow integrity violation;',
@@ -68,7 +70,7 @@ STACKTRACE_TOOL_MARKERS = [
     'UndefinedBehaviorSanitizer',
     'UndefinedSanitizer',
 ]
-STACKTRACE_END_MARKERS = [
+STACKTRACE_END_MARKERS: list[str] = [
     'ABORTING',
     'END MEMORY TOOL REPORT',
     'End of process memory map.',
@@ -79,8 +81,8 @@ STACKTRACE_END_MARKERS = [
     '\nExiting',
     'minidump has been written',
 ]
-UBSAN_RUNTIME_ERROR = ' runtime error: '
-UBSAN_CRASH_TYPES_NON_SECURITY = [
+UBSAN_RUNTIME_ERROR: str = ' runtime error: '
+UBSAN_CRASH_TYPES_NON_SECURITY: list[str] = [
     'Divide-by-zero',
     'Float-cast-overflow',
     'Implicit-conversion',
@@ -106,54 +108,55 @@ UBSAN_CRASH_TYPES_NON_SECURITY = [
     'Assumption-violation',
     'Upcast-of-null-pointer',
 ]
-UBSAN_CRASH_TYPES_SECURITY = [
+UBSAN_CRASH_TYPES_SECURITY: list[str] = [
     'Bad-cast',
     'Index-out-of-bounds',
     'Incorrect-function-pointer-type',
     'Non-positive-vla-bound-value',
     'Object-size',
 ]
-GOLANG_CRASH_TYPES_NON_SECURITY = [
+GOLANG_CRASH_TYPES_NON_SECURITY: list[str] = [
     'Index out of range',
     'Integer divide by zero',
     'Makeslice: len out of range',
     'Slice bounds out of range',
     'Stack overflow',
 ]
-EXTRA_SANITIZERS_SECURITY = [
+EXTRA_SANITIZERS_SECURITY: list[str] = [
     'Arbitrary DNS resolution',
     'Arbitrary file open',
     'Command injection',
     'PySecSan',
 ]
 
-EXTERNAL_TOOL_SECURITY = [
+EXTERNAL_TOOL_SECURITY: list[str] = [
     'Wycheproof error',
 ]
 
-EXPERIMENTAL_CRASH_TYPES = EXTRA_SANITIZERS_SECURITY
+EXPERIMENTAL_CRASH_TYPES: list[str] = EXTRA_SANITIZERS_SECURITY
 
 # Default page size of 4KB.
-NULL_DEREFERENCE_BOUNDARY = 0x1000
+NULL_DEREFERENCE_BOUNDARY: int = 0x1000
 
-CHROMIUM_MIRACLEPTR_REGEX = re.compile(r'.*MiraclePtr Status:.+')
+CHROMIUM_MIRACLEPTR_REGEX: re.Pattern[str] = re.compile(
+    r'.*MiraclePtr Status:.+')
 
-MIRACLEPTR_STATUS = {
+MIRACLEPTR_STATUS: dict[str, str] = {
     'PROTECTED': 'MiraclePtr-Protected',
     'MANUAL ANALYSIS REQUIRED': 'MiraclePtr-ManualAnalysisRequired',
     'NOT PROTECTED': 'MiraclePtr-NotProtected'
 }
 
 
-def address_to_integer(address):
+def address_to_integer(address: str | None) -> int:
   """Attempt to convert an address from a string (hex) to an integer."""
   try:
-    return int(address, 16)
+    return int(cast(str, address), 16)
   except:
     return 0
 
 
-def has_marker(stacktrace, marker_list):
+def has_marker(stacktrace: str, marker_list: Sequence[str]) -> bool:
   """Return true if the stacktrace has atleast one marker in the marker list."""
   for marker in marker_list:
     if marker in stacktrace:
@@ -162,7 +165,7 @@ def has_marker(stacktrace, marker_list):
   return False
 
 
-def ignore_stacktrace(crash_stacktrace):
+def ignore_stacktrace(crash_stacktrace: str) -> bool:
   """Return whether the stacktrace needs to be ignored."""
   # Filter crash based on search exclude pattern specified in job definition.
   search_excludes = environment.get_value('SEARCH_EXCLUDES')
@@ -183,19 +186,19 @@ def ignore_stacktrace(crash_stacktrace):
   return False
 
 
-def is_crash(return_code, console_output):
+def is_crash(return_code: int | None, console_output: str) -> bool:
   """Analyze the return code and console output to see if this was a crash."""
   if not return_code:
     return False
 
   crash_signature = environment.get_value('CRASH_SIGNATURE')
   if crash_signature:
-    return re.search(crash_signature, console_output)
+    return cast(bool, re.search(crash_signature, console_output))
 
   return True
 
 
-def is_check_failure_crash(stacktrace):
+def is_check_failure_crash(stacktrace: str) -> bool:
   """Return true if it a CHECK failure crash."""
   # Android-specific exception patterns.
   if environment.is_android():
@@ -227,7 +230,7 @@ def is_check_failure_crash(stacktrace):
   return False
 
 
-def is_memory_tool_crash(stacktrace):
+def is_memory_tool_crash(stacktrace: str) -> bool:
   """Return true if it is a memory debugging tool crash."""
   # Job-specific generic checks.
   crash_signature = environment.get_value('CRASH_SIGNATURE')
@@ -256,17 +259,17 @@ def is_memory_tool_crash(stacktrace):
   return False
 
 
-def is_null_dereference(int_address):
+def is_null_dereference(int_address: int) -> bool:
   """Check to see if this is a null dereference crash address."""
   return int_address < NULL_DEREFERENCE_BOUNDARY
 
 
-def is_assert_crash_address(int_address):
+def is_assert_crash_address(int_address: int) -> bool:
   """Check to see if this is an ASSERT crash based on the address."""
   return int_address in ASSERT_CRASH_ADDRESSES
 
 
-def has_signal_for_non_security_bug_type(stacktrace):
+def has_signal_for_non_security_bug_type(stacktrace: str) -> bool:
   """Checks if any signal which means not security bug presented."""
   if re.search(r'^[ \t]+#0[ \t]+0x[0-9a-f]+[ \t]+in gsignal ', stacktrace,
                re.MULTILINE):
@@ -279,7 +282,7 @@ def has_signal_for_non_security_bug_type(stacktrace):
   return False
 
 
-def check_miracleptr_status(stacktrace):
+def check_miracleptr_status(stacktrace: str) -> str | None:
   """Look for MiraclePtr status string and return the appropriate label."""
   for line in stacktrace.split('\n'):
     if CHROMIUM_MIRACLEPTR_REGEX.match(line):
@@ -292,7 +295,8 @@ def check_miracleptr_status(stacktrace):
   return None
 
 
-def is_security_issue(crash_stacktrace, crash_type, crash_address):
+def is_security_issue(crash_stacktrace: str, crash_type: str,
+                      crash_address: str | None) -> bool:
   """Based on unsymbolized crash parameters, determine whether it has security
   consequences or not."""
   # MiraclePtr protected crashes are not security issues.
@@ -326,7 +330,7 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
     # DCHECKs from CHECKs.
     checks_have_security_implication = environment.get_value(
         'CHECKS_HAVE_SECURITY_IMPLICATION', False)
-    return checks_have_security_implication
+    return cast(bool, checks_have_security_implication)
 
   # Debug CHECK failure should be marked with security implications.
   if crash_type in ('Security DCHECK failure', 'DCHECK failure'):
@@ -364,7 +368,7 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if crash_type == 'ASSERT' or 'ASSERTION FAILED' in crash_stacktrace:
     asserts_have_security_implication = environment.get_value(
         'ASSERTS_HAVE_SECURITY_IMPLICATION', True)
-    return asserts_have_security_implication
+    return cast(bool, asserts_have_security_implication)
 
   # Kernel Failures are security bugs
   if crash_type.startswith('Kernel failure'):
@@ -405,7 +409,7 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   return False
 
 
-def has_ubsan_error(stacktrace):
+def has_ubsan_error(stacktrace: str) -> bool:
   """Return a bool whether the process output contains UBSan errors that should
   be handled as crashes. Suppressions file alone does not provide granular
   control, e.g. to ignore left shift of negative value which can cause false
@@ -438,6 +442,6 @@ def has_ubsan_error(stacktrace):
   return False
 
 
-def is_experimental_crash(crash_type):
+def is_experimental_crash(crash_type: str | None) -> bool:
   """Return whether or not the crash type is experimental."""
-  return crash_type in EXPERIMENTAL_CRASH_TYPES
+  return bool(crash_type and crash_type in EXPERIMENTAL_CRASH_TYPES)

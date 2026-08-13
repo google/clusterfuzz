@@ -13,13 +13,17 @@
 # limitations under the License.
 """Simple minimizers for common tasks."""
 
+from collections.abc import Callable
+from typing import Any
+from typing import cast
+
 from . import minimizer
 
 
 class SinglePassMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   """Do a single pass over the token list."""
 
-  def _execute(self, data):
+  def _execute(self, data: Any) -> minimizer.Testcase:
     """Attempt to remove each token starting from the last one."""
     testcase = minimizer.Testcase(data, self)
     for i in reversed(list(range(len(testcase.tokens)))):
@@ -33,16 +37,18 @@ class SinglePassMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-metho
 class EmptyTokenRemover(minimizer.Minimizer):  # pylint:disable=abstract-method
   """Attempt to remove empty tokens."""
 
-  def __init__(self, *args, **kwargs):
-    self.is_empty = self._handle_constructor_argument(
-        'is_empty', kwargs, default=lambda s: not s.strip())
+  def __init__(self, *args: Any, **kwargs: Any) -> None:
+    self.is_empty: Callable[[Any], bool] = cast(
+        Callable[[Any], bool],
+        self._handle_constructor_argument(
+            'is_empty', kwargs, default=lambda s: not s.strip()))
     minimizer.Minimizer.__init__(self, *args, **kwargs)
 
-  def _execute(self, data):
+  def _execute(self, data: Any) -> minimizer.Testcase:
     """Try to remove all blank tokens, then individual ones."""
     testcase = minimizer.Testcase(data, self)
     tokens = testcase.tokens
-    empty_tokens = []
+    empty_tokens: list[int] = []
 
     for i, token in enumerate(tokens):
       if self.is_empty(token):

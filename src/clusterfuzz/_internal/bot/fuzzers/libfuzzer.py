@@ -13,18 +13,22 @@
 # limitations under the License.
 """libFuzzer runners."""
 
-import collections
 import contextlib
 import copy
 import os
 import random
 import re
 import shutil
+from typing import Any
+from typing import cast
+from typing import Iterator
+from typing import NamedTuple
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
+from clusterfuzz._internal.bot.fuzzers import strategy_selection
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.fuzzing import strategy
@@ -37,21 +41,22 @@ from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import shell
 
 # Maximum length of a random chosen length for `-max_len`.
-MAX_VALUE_FOR_MAX_LENGTH = 10000
+MAX_VALUE_FOR_MAX_LENGTH: int = 10000
 
-StrategyInfo = collections.namedtuple('StrategiesInfo', [
-    'fuzzing_strategies',
-    'arguments',
-    'additional_corpus_dirs',
-    'extra_env',
-    'is_mutations_run',
-])
 
-MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
+class StrategyInfo(NamedTuple):
+  fuzzing_strategies: list[str]
+  arguments: fuzzer_options.FuzzerArguments
+  additional_corpus_dirs: list[str]
+  extra_env: dict[str, str]
+  is_mutations_run: bool
+
+
+MAX_OUTPUT_LEN: int = 1 * 1024 * 1024  # 1 MB
 
 # Regex to find testcase path from a crash.
-CRASH_TESTCASE_REGEX = (r'.*Test unit written to\s*'
-                        r'(.*(crash|oom|timeout|leak)-.*)')
+CRASH_TESTCASE_REGEX: str = (r'.*Test unit written to\s*'
+                             r'(.*(crash|oom|timeout|leak)-.*)')
 
 # pylint: disable=no-member
 
@@ -64,24 +69,25 @@ class LibFuzzerCommon:
   """Provides common libFuzzer functionality."""
 
   # Window of time for libFuzzer to exit gracefully before we KILL it.
-  LIBFUZZER_CLEAN_EXIT_TIME = 10.0
+  LIBFUZZER_CLEAN_EXIT_TIME: float = 10.0
 
   # Additional window of time for libFuzzer fork mode to exit gracefully.
-  LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME = 100.0
+  LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME: float = 100.0
 
   # Time to wait for SIGTERM handler.
-  SIGTERM_WAIT_TIME = 10.0
+  SIGTERM_WAIT_TIME: float = 10.0
 
-  def __init__(self):
+  def __init__(self) -> None:
     pass
 
-  def _normalize_artifact_prefix(self, artifact_prefix, sep=os.sep):
+  def _normalize_artifact_prefix(self, artifact_prefix: str,
+                                 sep: str = os.sep) -> str:
     if artifact_prefix.endswith(sep):
       return artifact_prefix
 
     return artifact_prefix + sep
 
-  def get_testcase_path(self, log_lines):
+  def get_testcase_path(self, log_lines: list[str]) -> str | None:
     """Get testcase path from log lines."""
     for line in log_lines:
       match = re.match(CRASH_TESTCASE_REGEX, line)
@@ -90,7 +96,7 @@ class LibFuzzerCommon:
 
     return None
 
-  def get_total_timeout(self, timeout):
+  def get_total_timeout(self, timeout: float | int) -> int:
     """Calculate the total process timeout.
 
     Args:
@@ -99,7 +105,7 @@ class LibFuzzerCommon:
     timeout = timeout + self.LIBFUZZER_CLEAN_EXIT_TIME
     return int(timeout)
 
-  def get_minimize_total_time(self, timeout):
+  def get_minimize_total_time(self, timeout: float | int) -> float | int:
     # We do timeout / 2 here because libFuzzer uses max_total_time for
     # individual runs of the target and not for the entire minimization.
     # Internally, libFuzzer does 2 runs of the target every iteration. This is
@@ -108,12 +114,26 @@ class LibFuzzerCommon:
     assert max_total_time > 0
     return max_total_time
 
-  def fuzz(self,
-           corpus_directories,
-           fuzz_timeout,
-           artifact_prefix=None,
-           additional_args=None,
-           extra_env=None):
+  def run_and_wait(
+      self,
+      additional_args: list[str] | None = None,
+      timeout: float | None = None,
+      terminate_before_kill: bool = False,
+      terminate_wait_time: float | None = None,
+      max_stdout_len: int | None = None,
+      extra_env: dict[str, str] | None = None,
+      **kwargs: Any,
+  ) -> new_process.ProcessResult:
+    """Runs the process and waits for it to finish."""
+    raise NotImplementedError
+
+  def fuzz(
+      self,
+      corpus_directories: list[str],
+      fuzz_timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None,
+      extra_env: dict[str, str] | None = None) -> new_process.ProcessResult:
     """Running fuzzing command.
 
     Args:
@@ -131,7 +151,8 @@ class LibFuzzerCommon:
     Returns:
       A process.ProcessResult.
     """
-    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    arguments = fuzzer_options.FuzzerArguments.from_list(
+        cast(list[str], additional_args))
     assert arguments is not None
 
     max_total_time = fuzz_timeout
@@ -159,12 +180,12 @@ class LibFuzzerCommon:
         extra_env=extra_env)
 
   def merge(self,
-            corpus_directories,
-            merge_timeout,
-            artifact_prefix=None,
-            tmp_dir=None,
-            additional_args=None,
-            merge_control_file=None):
+            corpus_directories: list[str],
+            merge_timeout: float | int,
+            artifact_prefix: str | None = None,
+            tmp_dir: str | None = None,
+            additional_args: list[str] | None = None,
+            merge_control_file: str | None = None) -> new_process.ProcessResult:
     """Runs a corpus merge command.
 
     Args:
@@ -182,7 +203,8 @@ class LibFuzzerCommon:
     Returns:
       A process.ProcessResult.
     """
-    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    arguments = fuzzer_options.FuzzerArguments.from_list(
+        cast(list[str], additional_args))
     assert arguments is not None
 
     arguments[constants.MERGE_FLAGNAME] = 1
@@ -193,7 +215,7 @@ class LibFuzzerCommon:
     if merge_control_file:
       arguments[constants.MERGE_CONTROL_FILE_FLAGNAME] = merge_control_file
 
-    extra_env = {}
+    extra_env: dict[str, str] = {}
     if tmp_dir:
       extra_env['TMPDIR'] = tmp_dir
 
@@ -203,10 +225,11 @@ class LibFuzzerCommon:
         max_stdout_len=MAX_OUTPUT_LEN,
         extra_env=extra_env)
 
-  def run_single_testcase(self,
-                          testcase_path,
-                          timeout=None,
-                          additional_args=None):
+  def run_single_testcase(
+      self,
+      testcase_path: str,
+      timeout: float | int | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """Runs a single testcase.
 
     Args:
@@ -229,12 +252,13 @@ class LibFuzzerCommon:
         timeout=timeout,
         max_stdout_len=MAX_OUTPUT_LEN)
 
-  def minimize_crash(self,
-                     testcase_path,
-                     output_path,
-                     timeout,
-                     artifact_prefix=None,
-                     additional_args=None):
+  def minimize_crash(
+      self,
+      testcase_path: str,
+      output_path: str,
+      timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """Minimize crasher with libFuzzer.
 
     Args:
@@ -244,7 +268,8 @@ class LibFuzzerCommon:
       additional_args: A sequence of additional arguments to be passed to the
           executable.
     """
-    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    arguments = fuzzer_options.FuzzerArguments.from_list(
+        cast(list[str], additional_args))
     assert arguments is not None
 
     max_total_time = self.get_minimize_total_time(timeout)
@@ -261,12 +286,13 @@ class LibFuzzerCommon:
         timeout=timeout,
         max_stdout_len=MAX_OUTPUT_LEN)
 
-  def cleanse_crash(self,
-                    testcase_path,
-                    output_path,
-                    timeout,
-                    artifact_prefix=None,
-                    additional_args=None):
+  def cleanse_crash(
+      self,
+      testcase_path: str,
+      output_path: str,
+      timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """Cleanse crasher with libFuzzer. This attempts to remove non-essential
     bits of the testcase by replacing them with garbage.
 
@@ -277,7 +303,8 @@ class LibFuzzerCommon:
       additional_args: A sequence of additional arguments to be passed to the
           executable.
     """
-    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    arguments = fuzzer_options.FuzzerArguments.from_list(
+        cast(list[str], additional_args))
     assert arguments is not None
 
     arguments[constants.CLEANSE_CRASH_FLAGNAME] = 1
@@ -299,7 +326,10 @@ class LibFuzzerRunner(new_process.ModifierProcessRunnerMixin,
                       new_process.UnicodeProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when minijail is not used)."""
 
-  def __init__(self, executable_path, default_args=None, cwd=None):
+  def __init__(self,
+               executable_path: str,
+               default_args: list[str] | None = None,
+               cwd: str | None = None) -> None:
     """Inits the LibFuzzerRunner.
 
     Args:
@@ -310,12 +340,13 @@ class LibFuzzerRunner(new_process.ModifierProcessRunnerMixin,
     super().__init__(
         executable_path=executable_path, default_args=default_args, cwd=cwd)
 
-  def fuzz(self,
-           corpus_directories,
-           fuzz_timeout,
-           artifact_prefix=None,
-           additional_args=None,
-           extra_env=None):
+  def fuzz(
+      self,
+      corpus_directories: list[str],
+      fuzz_timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None,
+      extra_env: dict[str, str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.fuzz override."""
     additional_args = copy.copy(additional_args)
     if additional_args is None:
@@ -337,36 +368,43 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
   # go much higher than that to account for variability in the virtualized
   # environment, and because this is after all intended solely as a second line
   # of defense.
-  TIMEOUT_PADDING = 30 * 60
+  TIMEOUT_PADDING: int = 30 * 60
 
-  def __init__(self, executable_path, instance_handle, default_args=None):
+  handle: str
+
+  def __init__(self,
+               executable_path: str,
+               instance_handle: str,
+               default_args: list[str] | None = None) -> None:
     # An instance_handle from undercoat is required, and should be set up by the
     # build_manager.
     # Note: In this case executable_path is simply `package/fuzzer`
     super().__init__(executable_path=executable_path, default_args=default_args)
     self.handle = instance_handle
 
-  def _corpus_directories_libfuzzer(self, corpus_directories):
+  def _corpus_directories_libfuzzer(self,
+                                    corpus_directories: list[str]) -> list[str]:
     """Returns the corpus directory paths expected by libfuzzer itself."""
     return [
         self._target_corpus_path(os.path.basename(corpus_dir))
         for corpus_dir in corpus_directories
     ]
 
-  def _new_corpus_dir_host(self, corpus_directories):
+  def _new_corpus_dir_host(self, corpus_directories: list[str]) -> str:
     """Returns the path of the 'new' corpus directory on the host."""
     return corpus_directories[0]
 
-  def _new_corpus_dir_target(self, corpus_directories):
+  def _new_corpus_dir_target(self, corpus_directories: list[str]) -> str:
     """Returns the path of the 'new' corpus directory on the target."""
     return self._target_corpus_path(
         os.path.basename(self._new_corpus_dir_host(corpus_directories)))
 
-  def _target_corpus_path(self, corpus_name):
+  def _target_corpus_path(self, corpus_name: str) -> str:
     """Returns the path of a given corpus directory on the target."""
     return 'data/corpus/' + corpus_name
 
-  def _push_corpora_from_host_to_target(self, corpus_directories):
+  def _push_corpora_from_host_to_target(self,
+                                        corpus_directories: list[str]) -> None:
     # Push corpus directories to the device.
     self._clear_all_target_corpora()
     logs.info('Push corpora from host to target.')
@@ -374,7 +412,8 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
       undercoat.put_data(self.handle, self.executable_path, corpus_dir,
                          'data/corpus')
 
-  def _pull_new_corpus_from_target_to_host(self, corpus_directories):
+  def _pull_new_corpus_from_target_to_host(
+      self, corpus_directories: list[str]) -> None:
     """Pull corpus directories from device to host."""
     # Appending '/*' indicates we want all the *files* in the target's
     # directory, rather than the directory itself.
@@ -385,13 +424,13 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                        new_corpus_files_target,
                        self._new_corpus_dir_host(corpus_directories))
 
-  def _clear_all_target_corpora(self):
+  def _clear_all_target_corpora(self) -> None:
     """Clears out all the corpora on the target."""
     logs.info('Clearing corpora on target')
     # prepare_fuzzer resets the data/ directory
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
 
-  def _ensure_target_exists(self):
+  def _ensure_target_exists(self) -> None:
     """Check that the target fuzzer exists, raising an error if it does not.
 
     We do this check by looking at the list of fuzzers, instead of relying on
@@ -410,18 +449,20 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
       raise testcase_manager.TargetNotFoundError(
           f'Failed to find target {self.executable_path}')
 
-  def get_total_timeout(self, timeout):
+  def get_total_timeout(self, timeout: float | int) -> int:
     """LibFuzzerCommon.fuzz override."""
     return super().get_total_timeout(timeout) + self.TIMEOUT_PADDING
 
-  def fuzz(self,
-           corpus_directories,
-           fuzz_timeout,
-           artifact_prefix=None,
-           additional_args=None,
-           extra_env=None):
+  def fuzz(
+      self,
+      corpus_directories: list[str],
+      fuzz_timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None,
+      extra_env: dict[str, str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.fuzz override."""
-    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    arguments = fuzzer_options.FuzzerArguments.from_list(
+        cast(list[str], additional_args))
     assert arguments is not None
 
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
@@ -451,17 +492,18 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     return result
 
   def merge(self,
-            corpus_directories,
-            merge_timeout,
-            artifact_prefix=None,
-            tmp_dir=None,
-            additional_args=None,
-            merge_control_file=None):
+            corpus_directories: list[str],
+            merge_timeout: float | int,
+            artifact_prefix: str | None = None,
+            tmp_dir: str | None = None,
+            additional_args: list[str] | None = None,
+            merge_control_file: str | None = None) -> new_process.ProcessResult:
 
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
     self._push_corpora_from_host_to_target(corpus_directories)
 
-    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    arguments = fuzzer_options.FuzzerArguments.from_list(
+        cast(list[str], additional_args))
     assert arguments is not None
 
     arguments[constants.MAX_TOTAL_TIME_FLAGNAME] = int(merge_timeout)
@@ -492,10 +534,11 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     self._clear_all_target_corpora()
     return result
 
-  def run_single_testcase(self,
-                          testcase_path,
-                          timeout=None,
-                          additional_args=None):
+  def run_single_testcase(
+      self,
+      testcase_path: str,
+      timeout: float | int | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """Run a single testcase."""
     # TODO(eep): Are all these copy.copy() calls still necessary?
     additional_args = copy.copy(additional_args)
@@ -520,14 +563,16 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
         timeout=timeout)
     return result
 
-  def minimize_crash(self,
-                     testcase_path,
-                     output_path,
-                     timeout,
-                     artifact_prefix=None,
-                     additional_args=None):
+  def minimize_crash(
+      self,
+      testcase_path: str,
+      output_path: str,
+      timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
 
-    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    arguments = fuzzer_options.FuzzerArguments.from_list(
+        cast(list[str], additional_args))
     assert arguments is not None
 
     arguments[constants.MINIMIZE_CRASH_FLAGNAME] = 1
@@ -566,7 +611,10 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
                               LibFuzzerCommon):
   """Minijail libFuzzer runner."""
 
-  def __init__(self, executable_path, chroot, default_args=None):
+  def __init__(self,
+               executable_path: str,
+               chroot: minijail.MinijailChroot,
+               default_args: list[str] | None = None) -> None:
     """Inits the LibFuzzerRunner.
 
     Args:
@@ -579,7 +627,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
         chroot=chroot,
         default_args=default_args)
 
-  def get_testcase_path(self, log_lines):
+  def get_testcase_path(self, log_lines: list[str]) -> str | None:
     """Get testcase path from log lines."""
     path = LibFuzzerCommon.get_testcase_path(self, log_lines)
     if not path:
@@ -592,7 +640,8 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
 
     raise LibFuzzerError('Invalid testcase path ' + path)
 
-  def _get_chroot_corpus_paths(self, corpus_directories):
+  def _get_chroot_corpus_paths(self,
+                               corpus_directories: list[str]) -> list[str]:
     """Return chroot relative paths for the given corpus directories.
 
     Args:
@@ -603,7 +652,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
     """
     return [self._get_chroot_directory(path) for path in corpus_directories]
 
-  def _get_chroot_directory(self, directory_path):
+  def _get_chroot_directory(self, directory_path: str) -> str:
     """Return chroot relative path for the given directory.
 
     Args:
@@ -618,7 +667,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
           f'Failed to get chroot binding for "{directory_path}".')
     return binding.dest_path
 
-  def _bind_corpus_dirs(self, corpus_directories):
+  def _bind_corpus_dirs(self, corpus_directories: list[str]) -> None:
     """Bind corpus directories to the minijail chroot.
 
     Also makes sure that the directories are world writeable.
@@ -631,18 +680,19 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
       self.chroot.add_binding(
           minijail.ChrootBinding(corpus_directory, target_dir, writeable=True))
 
-  def fuzz(self,
-           corpus_directories,
-           fuzz_timeout,
-           artifact_prefix=None,
-           additional_args=None,
-           extra_env=None):
+  def fuzz(
+      self,
+      corpus_directories: list[str],
+      fuzz_timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None,
+      extra_env: dict[str, str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.fuzz override."""
     bind_directories = copy.copy(corpus_directories)
     if artifact_prefix:
       bind_directories.append(artifact_prefix)
 
-    ld_preload = None
+    ld_preload: str | None = None
     if extra_env and 'LD_PRELOAD' in extra_env:
       ld_preload = extra_env['LD_PRELOAD']
       bind_directories.append(os.path.dirname(ld_preload))
@@ -651,6 +701,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
     corpus_directories = self._get_chroot_corpus_paths(corpus_directories)
 
     if ld_preload:
+      assert extra_env is not None
       extra_env['LD_PRELOAD'] = os.path.join(
           self._get_chroot_directory(os.path.dirname(ld_preload)),
           os.path.basename(ld_preload))
@@ -667,12 +718,12 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
         extra_env=extra_env)
 
   def merge(self,
-            corpus_directories,
-            merge_timeout,
-            artifact_prefix=None,
-            tmp_dir=None,
-            additional_args=None,
-            merge_control_file=None):
+            corpus_directories: list[str],
+            merge_timeout: float | int,
+            artifact_prefix: str | None = None,
+            tmp_dir: str | None = None,
+            additional_args: list[str] | None = None,
+            merge_control_file: str | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.merge override."""
     additional_args = copy.copy(additional_args)
     if additional_args is None:
@@ -706,21 +757,23 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
         additional_args=additional_args,
         merge_control_file=chroot_merge_control_file)
 
-  def run_single_testcase(self,
-                          testcase_path,
-                          timeout=None,
-                          additional_args=None):
+  def run_single_testcase(
+      self,
+      testcase_path: str,
+      timeout: float | int | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.run_single_testcase override."""
     with self._chroot_testcase(testcase_path) as chroot_testcase_path:
       return LibFuzzerCommon.run_single_testcase(self, chroot_testcase_path,
                                                  timeout, additional_args)
 
-  def minimize_crash(self,
-                     testcase_path,
-                     output_path,
-                     timeout,
-                     artifact_prefix=None,
-                     additional_args=None):
+  def minimize_crash(
+      self,
+      testcase_path: str,
+      output_path: str,
+      timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.minimize_crash override."""
     with self._chroot_testcase(testcase_path) as chroot_testcase_path:
       chroot_output_name = 'minimized_crash'
@@ -739,12 +792,13 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
 
       return result
 
-  def cleanse_crash(self,
-                    testcase_path,
-                    output_path,
-                    timeout,
-                    artifact_prefix=None,
-                    additional_args=None):
+  def cleanse_crash(
+      self,
+      testcase_path: str,
+      output_path: str,
+      timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.cleanse_crash override."""
     with self._chroot_testcase(testcase_path) as chroot_testcase_path:
       chroot_output_name = 'cleanse_crash'
@@ -767,9 +821,12 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
 class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
   """Android libFuzzer runner."""
   # This temp directory is used by libFuzzer merge tool. DONT CHANGE.
-  LIBFUZZER_TEMP_DIR = '/data/local/tmp'
+  LIBFUZZER_TEMP_DIR: str = '/data/local/tmp'
 
-  def __init__(self, executable_path, build_directory, default_args=None):
+  def __init__(self,
+               executable_path: str,
+               build_directory: str,
+               default_args: list[str] | None = None) -> None:
     """Inits the AndroidLibFuzzerRunner.
 
     Args:
@@ -784,7 +841,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     android.adb.create_directory_if_needed(self.LIBFUZZER_TEMP_DIR)
     self.copy_local_directory_to_device(build_directory)
 
-  def _get_default_args(self, executable_path, extra_args):
+  def _get_default_args(self, executable_path: str,
+                        extra_args: list[str] | None) -> list[str]:
     """Return a set of default arguments to pass to adb binary."""
     default_args = ['shell']
 
@@ -812,17 +870,18 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
     return default_args
 
-  def _get_device_corpus_paths(self, corpus_directories):
+  def _get_device_corpus_paths(self,
+                               corpus_directories: list[str]) -> list[str]:
     """Return device paths for the given corpus directories."""
     return [self._get_device_path(path) for path in corpus_directories]
 
-  def _get_device_path(self, local_path):
+  def _get_device_path(self, local_path: str) -> str:
     """Return device path for the given local path."""
     root_directory = environment.get_root_directory()
     return os.path.join(android.constants.DEVICE_FUZZING_DIR,
                         os.path.relpath(local_path, root_directory))
 
-  def _get_local_path(self, device_path):
+  def _get_local_path(self, device_path: str) -> str | None:
     """Return local path for the given device path."""
     if not device_path.startswith(android.constants.DEVICE_FUZZING_DIR + '/'):
       logs.error('Bad device path: ' + device_path)
@@ -833,19 +892,21 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
         root_directory,
         os.path.relpath(device_path, android.constants.DEVICE_FUZZING_DIR))
 
-  def _copy_local_directories_to_device(self, local_directories):
+  def _copy_local_directories_to_device(self,
+                                        local_directories: list[str]) -> None:
     """Copies local directories to device."""
     for local_directory in sorted(set(local_directories)):
       self.copy_local_directory_to_device(local_directory)
 
-  def copy_local_directory_to_device(self, local_directory):
+  def copy_local_directory_to_device(self, local_directory: str) -> None:
     """Copy local directory to device."""
     device_directory = self._get_device_path(local_directory)
     android.adb.remove_directory(device_directory, recreate=True)
     android.adb.copy_local_directory_to_remote(local_directory,
                                                device_directory)
 
-  def _copy_local_directories_from_device(self, local_directories):
+  def _copy_local_directories_from_device(self,
+                                          local_directories: list[str]) -> None:
     """Copies directories from device to local."""
     for local_directory in sorted(set(local_directories)):
       device_directory = self._get_device_path(local_directory)
@@ -853,9 +914,9 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
-  def _extract_trusty_stacktrace_from_logcat(self, logcat):
+  def _extract_trusty_stacktrace_from_logcat(self, logcat: str) -> str:
     """Finds and returns a TA stacktrace from a logcat"""
-    begin = android.constants.TRUSTY_STACKTRACE_BEGIN
+    begin: Any = android.constants.TRUSTY_STACKTRACE_BEGIN
     end = android.constants.TRUSTY_STACKTRACE_END
     target_idx = logcat.rfind(begin)
 
@@ -880,13 +941,13 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if target_idx == -1:
       return 'No TA crash stacktrace found in logcat.\n'
 
-    begin_idx = logcat[:target_idx].rfind(begin)
+    begin = logcat[:target_idx].rfind(begin)
     end_idx = target_idx + logcat[target_idx:].find(end)
     end_idx += logcat[end_idx:].find('\n')
 
-    return logcat[begin_idx:end_idx]
+    return logcat[begin:end_idx]
 
-  def _add_trusty_stacktrace_if_needed(self, output):
+  def _add_trusty_stacktrace_if_needed(self, output: str) -> str:
     """Add trusty stacktrace to beginning of output if found in logcat."""
 
     if android.adb.get_device_state() == 'is-ramdump-mode:yes':
@@ -905,9 +966,9 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     return ('+-- Logcat excerpt: Trusted App crash stacktrace --+'
             f'\n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat}')
 
-  def _extract_mte_stacktrace_from_logcat(self, logcat):
+  def _extract_mte_stacktrace_from_logcat(self, logcat: str) -> str:
     """Finds and returns the MTE stacktrace from a logcat."""
-    begin = android.constants.MTE_STACKTRACE_BEGIN
+    begin: Any = android.constants.MTE_STACKTRACE_BEGIN
     end = android.constants.MTE_STACKTRACE_END
     target_idx = logcat.rfind(begin)
 
@@ -930,13 +991,13 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if target_idx == -1:
       return 'No MTE crash stacktrace found in logcat.\n'
 
-    begin_idx = logcat[:target_idx].rfind(begin)
+    begin = logcat[:target_idx].rfind(begin)
     end_idx = target_idx + logcat[target_idx:].find(end)
     end_idx += logcat[end_idx:].find('\n')
 
-    return logcat[begin_idx:end_idx]
+    return logcat[begin:end_idx]
 
-  def _add_mte_stacktrace_if_needed(self, output):
+  def _add_mte_stacktrace_if_needed(self, output: str) -> str:
     """Add mte stacktrace to beginning of output if found in logcat."""
     logcat = android.logger.log_output()
     mte_stacktrace = self._extract_mte_stacktrace_from_logcat(logcat)
@@ -944,7 +1005,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     return ('+-- Logcat excerpt: MTE crash stacktrace --+'
             f'\n{mte_stacktrace}\n\n{output}\n\nLogcat:\n{logcat}')
 
-  def _add_logcat_output_if_needed(self, output):
+  def _add_logcat_output_if_needed(self, output: str) -> str:
     """Add logcat output to end of output to capture crashes from related
     processes if current output has no sanitizer crash."""
     if 'Sanitizer: ' in output:
@@ -959,7 +1020,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     return f'{output}\n\nLogcat:\n{android.logger.log_output()}'
 
   @contextlib.contextmanager
-  def _device_file(self, file_path):
+  def _device_file(self, file_path: str) -> Iterator[str]:
     """Context manager for device files.
     Args:
       file_path: Host path to file.
@@ -972,7 +1033,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     # Cleanup
     android.adb.remove_file(device_file_path)
 
-  def get_testcase_path(self, log_lines):
+  def get_testcase_path(self, log_lines: list[str]) -> str | None:
     """Get testcase path from log lines."""
     path = LibFuzzerCommon.get_testcase_path(self, log_lines)
     if not path:
@@ -980,12 +1041,13 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
     return self._get_local_path(path)
 
-  def fuzz(self,
-           corpus_directories,
-           fuzz_timeout,
-           artifact_prefix=None,
-           additional_args=None,
-           extra_env=None):
+  def fuzz(
+      self,
+      corpus_directories: list[str],
+      fuzz_timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None,
+      extra_env: dict[str, str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.fuzz override."""
     android.logger.clear_log()
 
@@ -1000,7 +1062,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       artifact_prefix = self._get_device_path(artifact_prefix)
 
     # Extract local dict path from arguments list and subsitute with device one.
-    arguments = fuzzer_options.FuzzerArguments.from_list(additional_args)
+    arguments = fuzzer_options.FuzzerArguments.from_list(
+        cast(list[str], additional_args))
     assert arguments is not None
 
     dict_path = arguments.get(
@@ -1025,12 +1088,12 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     return result
 
   def merge(self,
-            corpus_directories,
-            merge_timeout,
-            artifact_prefix=None,
-            tmp_dir=None,
-            additional_args=None,
-            merge_control_file=None):
+            corpus_directories: list[str],
+            merge_timeout: float | int,
+            artifact_prefix: str | None = None,
+            tmp_dir: str | None = None,
+            additional_args: list[str] | None = None,
+            merge_control_file: str | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.merge override."""
     additional_args = copy.copy(additional_args)
     if additional_args is None:
@@ -1064,10 +1127,11 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     self._copy_local_directories_from_device(sync_directories)
     return result
 
-  def run_single_testcase(self,
-                          testcase_path,
-                          timeout=None,
-                          additional_args=None):
+  def run_single_testcase(
+      self,
+      testcase_path: str,
+      timeout: float | int | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.run_single_testcase override."""
     android.logger.clear_log()
 
@@ -1077,12 +1141,13 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       result.output = self._add_logcat_output_if_needed(result.output)
       return result
 
-  def minimize_crash(self,
-                     testcase_path,
-                     output_path,
-                     timeout,
-                     artifact_prefix=None,
-                     additional_args=None):
+  def minimize_crash(
+      self,
+      testcase_path: str,
+      output_path: str,
+      timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.minimize_crash override."""
     with self._device_file(testcase_path) as device_testcase_path:
       device_output_path = self._get_device_path(output_path)
@@ -1099,12 +1164,13 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
       return result
 
-  def cleanse_crash(self,
-                    testcase_path,
-                    output_path,
-                    timeout,
-                    artifact_prefix=None,
-                    additional_args=None):
+  def cleanse_crash(
+      self,
+      testcase_path: str,
+      output_path: str,
+      timeout: float | int,
+      artifact_prefix: str | None = None,
+      additional_args: list[str] | None = None) -> new_process.ProcessResult:
     """LibFuzzerCommon.cleanse_crash override."""
     with self._device_file(testcase_path) as device_testcase_path:
       device_output_path = self._get_device_path(output_path)
@@ -1122,7 +1188,13 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return result
 
 
-def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
+def get_runner(
+    fuzzer_path: str,
+    temp_dir: str | None = None,
+    use_minijail: bool | None = None) -> (MinijailLibFuzzerRunner
+                                          | FuchsiaUndercoatLibFuzzerRunner
+                                          | AndroidLibFuzzerRunner
+                                          | LibFuzzerRunner):
   """Get a libfuzzer runner."""
   if use_minijail is None:
     use_minijail = environment.get_value('USE_MINIJAIL')
@@ -1148,12 +1220,20 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
 
   is_chromeos_system_job = environment.is_chromeos_system_job()
 
+  minijail_chroot: minijail.MinijailChroot | minijail.ChromeOSChroot | None = (
+      None)
   if is_chromeos_system_job:
     minijail_chroot = minijail.ChromeOSChroot(build_dir)
   elif use_minijail:
     minijail_chroot = minijail.MinijailChroot(base_dir=temp_dir)
 
+  runner: (
+      MinijailLibFuzzerRunner
+      | FuchsiaUndercoatLibFuzzerRunner
+      | AndroidLibFuzzerRunner
+      | LibFuzzerRunner)
   if use_minijail or is_chromeos_system_job:
+    assert minijail_chroot is not None
     # While it's possible for dynamic binaries to run without this, they need
     # to be accessible for symbolization etc. For simplicity we bind BUILD_DIR
     # to the same location within the chroot, which leaks the directory
@@ -1175,6 +1255,7 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     llvm_symbolizer_destination_path = os.path.join(minijail_bin,
                                                     'llvm-symbolizer')
     if not os.path.exists(llvm_symbolizer_destination_path):
+      assert llvm_symbolizer_source_path is not None
       shutil.copy(llvm_symbolizer_source_path, llvm_symbolizer_destination_path)
 
     # copy /bin/sh, necessary for system().
@@ -1201,10 +1282,11 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   return runner
 
 
-def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
+def copy_from_corpus(dest_corpus_path: str, src_corpus_path: str,
+                     num_testcases: int) -> None:
   """Choose |num_testcases| testcases from the src corpus directory (and its
   subdirectories) and copy it into the dest directory."""
-  src_corpus_files = []
+  src_corpus_files: list[str] = []
   for root, _, files in shell.walk(src_corpus_path):
     for f in files:
       src_corpus_files.append(os.path.join(root, f))
@@ -1214,9 +1296,11 @@ def copy_from_corpus(dest_corpus_path, src_corpus_path, num_testcases):
     shutil.copy(os.path.join(to_copy), os.path.join(dest_corpus_path, str(i)))
 
 
-def strip_fuzzing_arguments(arguments, is_merge=False):
+def strip_fuzzing_arguments(arguments: list[str],
+                            is_merge: bool = False) -> list[str]:
   """Remove arguments used during fuzzing."""
   args = fuzzer_options.FuzzerArguments.from_list(arguments)
+  assert args is not None
   for argument in [
       # Remove as it overrides `-merge` argument.
       constants.FORK_FLAGNAME,  # It overrides `-merge` argument.
@@ -1244,10 +1328,11 @@ def strip_fuzzing_arguments(arguments, is_merge=False):
   return args.list()
 
 
-def fix_timeout_argument_for_reproduction(arguments):
+def fix_timeout_argument_for_reproduction(arguments: list[str]) -> list[str]:
   """Changes timeout argument for reproduction. This is slightly less than the
   |TEST_TIMEOUT| value for the job."""
   args = fuzzer_options.FuzzerArguments.from_list(arguments)
+  assert args is not None
   if constants.TIMEOUT_FLAGNAME in args:
     del args[constants.TIMEOUT_FLAGNAME]
 
@@ -1260,9 +1345,9 @@ def fix_timeout_argument_for_reproduction(arguments):
   return args.list()
 
 
-def parse_log_stats(log_lines):
+def parse_log_stats(log_lines: list[str]) -> dict[str, int]:
   """Parse libFuzzer log output."""
-  log_stats = {}
+  log_stats: dict[str, int] = {}
 
   # Parse libFuzzer generated stats (`-print_final_stats=1`).
   stats_regex = re.compile(r'stat::([A-Za-z_]+):\s*([^\s]+)')
@@ -1271,7 +1356,7 @@ def parse_log_stats(log_lines):
     if not match:
       continue
 
-    value = match.group(2)
+    value: Any = match.group(2)
     if not value.isdigit():
       # We do not expect any non-numeric stats from libFuzzer, skip those.
       logs.error('Corrupted stats reported by libFuzzer: "%s".' % line)
@@ -1289,18 +1374,20 @@ def parse_log_stats(log_lines):
   return log_stats
 
 
-def set_sanitizer_options(fuzzer_path):
+def set_sanitizer_options(fuzzer_path: str) -> None:
   """Sets sanitizer options based on .options file overrides and what this
   script requires."""
   engine_common.process_sanitizer_options_overrides(fuzzer_path)
   sanitizer_options_var = environment.get_current_memory_tool_var()
+  assert sanitizer_options_var is not None
   sanitizer_options = environment.get_memory_tool_options(
       sanitizer_options_var, {})
   sanitizer_options['exitcode'] = constants.TARGET_ERROR_EXITCODE
   environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
 
 
-def get_fuzz_timeout(is_mutations_run, total_timeout=None):
+def get_fuzz_timeout(is_mutations_run: bool,
+                     total_timeout: float | int | None = None) -> float | int:
   """Get the fuzz timeout."""
   fuzz_timeout = (
       engine_common.get_hard_timeout(total_timeout=total_timeout) -
@@ -1312,12 +1399,14 @@ def get_fuzz_timeout(is_mutations_run, total_timeout=None):
   return fuzz_timeout
 
 
-def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
-                    existing_arguments):
+def pick_strategies(
+    strategy_pool: strategy_selection.StrategyPool, fuzzer_path: str,
+    corpus_directory: str,
+    existing_arguments: fuzzer_options.FuzzerArguments) -> StrategyInfo:
   """Pick strategies."""
-  fuzzing_strategies = []
+  fuzzing_strategies: list[str] = []
   arguments = fuzzer_options.FuzzerArguments({})
-  additional_corpus_dirs = []
+  additional_corpus_dirs: list[str] = []
 
   # Select a generator to attempt to use for existing testcase mutations.
   candidate_generator = engine_common.select_generator(strategy_pool,
@@ -1356,7 +1445,7 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
     fuzzing_strategies.append(
         '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
 
-  extra_env = {}
+  extra_env: dict[str, str] = {}
 
   if (environment.platform() == 'LINUX' and utils.is_oss_fuzz() and
       strategy_pool.do_strategy(strategy.USE_EXTRA_SANITIZERS_STRATEGY)):
@@ -1366,7 +1455,9 @@ def pick_strategies(strategy_pool, fuzzer_path, corpus_directory,
                       extra_env, is_mutations_run)
 
 
-def should_set_fork_flag(existing_arguments, strategy_pool):
+def should_set_fork_flag(
+    existing_arguments: fuzzer_options.FuzzerArguments,
+    strategy_pool: strategy_selection.StrategyPool) -> bool:
   """Returns True if fork flag should be set."""
   # FIXME: Disable for now to avoid severe battery drainage. Stabilize and
   # re-enable with a lower process count.

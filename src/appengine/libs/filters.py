@@ -18,25 +18,31 @@
 
 import re
 import sys
+from typing import Any
+from typing import Callable
+from typing import Mapping
+from typing import Optional
+from typing import Sequence
 
 from clusterfuzz._internal.datastore import search_tokenizer
 from libs import helpers
 
-KEYWORD_FIELD_REGEX = (
+KEYWORD_FIELD_REGEX: str = (
     '(?: +|^)%s:((?:"[^"]*")|(?:\'[^\']*\')|(?:[^ ]*))(?: +|$)')
 
 
-def is_empty(value):
+def is_empty(value: Any) -> bool:
   """Determine if the param's value is considered as empty."""
   return not value
 
 
-def has_params(params, filters):
+def has_params(params: Mapping[str, Any], filters: Sequence['Filter']) -> bool:
   """Check if there's any param."""
   return any(params.get(fltr.param_key) for fltr in filters)
 
 
-def extract_keyword_field(keyword, field):
+def extract_keyword_field(keyword: str,
+                          field: str) -> tuple[str, Optional[str]]:
   """Extract the value from the keyword given the field and return the new
     keyword."""
   regex = re.compile(KEYWORD_FIELD_REGEX % field, flags=re.IGNORECASE)
@@ -52,7 +58,7 @@ def extract_keyword_field(keyword, field):
   return keyword, None
 
 
-def get_boolean(value):
+def get_boolean(value: Any) -> bool:
   """Convert yes/no to boolean or raise Exception."""
   if value == 'yes':
     return True
@@ -61,15 +67,16 @@ def get_boolean(value):
   raise ValueError("The value must be 'yes' or 'no'.")
 
 
-def get_string(value):
+def get_string(value: str) -> str:
   """Get sanitized string."""
   return value.strip()
 
 
 class Filter:
   """Base filter."""
+  param_key: str = ''
 
-  def add(self, query, params):
+  def add(self, query: Any, params: Mapping[str, Any]) -> None:
     """Set query according to params."""
     raise NotImplementedError
 
@@ -77,12 +84,18 @@ class Filter:
 class SimpleFilter(Filter):
   """A simple filter that reads value from only one key."""
 
+  field: str
+  param_key: str
+  transformers: Sequence[Callable[[Any], Any]]
+  required: bool
+  extras: dict[str, Any]
+
   def __init__(self,
-               field,
-               param_key,
-               transformers=None,
-               required=False,
-               operator=None):
+               field: str,
+               param_key: str,
+               transformers: Optional[Sequence[Callable[[Any], Any]]] = None,
+               required: bool = False,
+               operator: Optional[str] = None):
     self.field = field
     self.param_key = param_key
     self.transformers = transformers or []
@@ -91,7 +104,7 @@ class SimpleFilter(Filter):
     if operator:
       self.extras['operator'] = operator
 
-  def add(self, query, params):
+  def add(self, query: Any, params: Mapping[str, Any]) -> None:
     """Set query according to params."""
     value = params.get(self.param_key)
     if is_empty(value):
@@ -109,19 +122,20 @@ class SimpleFilter(Filter):
     query.filter(self.field, value, **self.extras)
 
 
-def String(field, param_key, required=False):
+def String(field: str, param_key: str, required: bool = False) -> SimpleFilter:
   """Return a string filter."""
   return SimpleFilter(
       field, param_key, transformers=[get_string], required=required)
 
 
-def Boolean(field, param_key, required=False):
+def Boolean(field: str, param_key: str, required: bool = False) -> SimpleFilter:
   """Return a boolean filter that converts yes/no to True/False."""
   return SimpleFilter(
       field, param_key, transformers=[get_boolean], required=required)
 
 
-def NegativeBoolean(field, param_key, required=False):
+def NegativeBoolean(field: str, param_key: str,
+                    required: bool = False) -> SimpleFilter:
   """Return a boolean filter that converts yes/no to False/True."""
   return SimpleFilter(
       field,
@@ -130,7 +144,10 @@ def NegativeBoolean(field, param_key, required=False):
       required=required)
 
 
-def Int(field, param_key, required=False, operator=None):
+def Int(field: str,
+        param_key: str,
+        required: bool = False,
+        operator: Optional[str] = None) -> SimpleFilter:
   """return an int filter."""
   return SimpleFilter(
       field,
@@ -143,11 +160,14 @@ def Int(field, param_key, required=False, operator=None):
 class Keyword(SimpleFilter):
   """Extract keyword fields and filter by the rest."""
 
-  def __init__(self, keyword_filters, field, param_key):
+  keyword_filters: Sequence[Filter]
+
+  def __init__(self, keyword_filters: Sequence[Filter], field: str,
+               param_key: str):
     self.keyword_filters = keyword_filters
     super().__init__(field, param_key, required=False)
 
-  def add(self, query, params):
+  def add(self, query: Any, params: Mapping[str, Any]) -> None:
     """Add filter."""
     value = params.get(self.param_key, '')
     for fltr in self.keyword_filters:
@@ -161,7 +181,8 @@ class Keyword(SimpleFilter):
       query.filter(self.field, keyword)
 
 
-def add(query, params, filters):
+def add(query: Any, params: Mapping[str, Any],
+        filters: Sequence[Filter]) -> None:
   """Add filters to query, given the param."""
   for fltr in filters:
     fltr.add(query, params)

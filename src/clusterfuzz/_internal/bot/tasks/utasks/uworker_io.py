@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# pyright: reportAttributeAccessIssue=none
 """Module for dealing with input and output (I/O) to a uworker."""
 
+import datetime
 from typing import Tuple
 from typing import Type
 from typing import TypeVar
@@ -23,17 +25,16 @@ from google.cloud import ndb
 from google.cloud.datastore_v1.types import entity as entity_pb2
 from google.cloud.ndb import model
 from google.protobuf import any_pb2
-from google.protobuf import timestamp_pb2
 import google.protobuf.message
+from google.protobuf.timestamp_pb2 import \
+    Timestamp  # pylint: disable=no-name-in-module
 
 from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
-
-# Define an alias to appease pylint.
-Timestamp = timestamp_pb2.Timestamp  # pylint: disable=no-member
 
 
 def generate_new_input_file_name() -> str:
@@ -45,13 +46,14 @@ def get_uworker_input_gcs_path() -> str:
   """Returns a GCS path for uworker I/O."""
   # Inspired by blobs.write_blob.
   io_bucket = storage.uworker_input_bucket()
+  assert io_bucket is not None
   io_file_name = generate_new_input_file_name()
   if storage.get(storage.get_cloud_storage_file_path(io_bucket, io_file_name)):
     raise RuntimeError(f'UUID collision found: {io_file_name}.')
   return f'/{io_bucket}/{io_file_name}'
 
 
-def get_uworker_output_urls(input_gcs_path: str) -> str:
+def get_uworker_output_urls(input_gcs_path: str) -> Tuple[str, str]:
   """Returns a signed download URL for the uworker to upload the output and a
   GCS url for the tworker to download the output. Make sure we can infer the
   actual input since the output is not trusted."""
@@ -61,23 +63,29 @@ def get_uworker_output_urls(input_gcs_path: str) -> str:
 
 
 def uworker_input_path_to_output_path(input_gcs_path: str) -> str:
-  return input_gcs_path.replace(storage.uworker_input_bucket(),
-                                storage.uworker_output_bucket())
+  input_bucket = storage.uworker_input_bucket()
+  output_bucket = storage.uworker_output_bucket()
+  assert input_bucket is not None
+  assert output_bucket is not None
+  return input_gcs_path.replace(input_bucket, output_bucket)
 
 
 def uworker_output_path_to_input_path(output_gcs_path: str) -> str:
-  return output_gcs_path.replace(storage.uworker_output_bucket(),
-                                 storage.uworker_input_bucket())
+  input_bucket = storage.uworker_input_bucket()
+  output_bucket = storage.uworker_output_bucket()
+  assert input_bucket is not None
+  assert output_bucket is not None
+  return output_gcs_path.replace(output_bucket, input_bucket)
 
 
-def get_uworker_input_urls():
+def get_uworker_input_urls() -> Tuple[str, str]:
   """Returns a signed download URL for the uworker to download the input and a
   GCS url for the tworker to upload it (this happens first)."""
   gcs_path = get_uworker_input_gcs_path()
   return storage.get_signed_download_url(gcs_path), gcs_path
 
 
-def upload_uworker_input(uworker_input: bytes, gcs_path: str):
+def upload_uworker_input(uworker_input: bytes, gcs_path: str) -> None:
   """Uploads input for the untrusted portion of a task."""
   storage.write_data(uworker_input, gcs_path)
 
@@ -125,6 +133,7 @@ def download_and_deserialize_uworker_input(
   """Downloads and deserializes the input to the uworker from the signed
   download URL."""
   data = storage.download_signed_url(uworker_input_download_url)
+  assert data is not None
   try:
     data = zlib.decompress(data)
   except zlib.error:
@@ -154,7 +163,7 @@ def deserialize_uworker_output(serialized: bytes) -> uworker_msg_pb2.Output:  # 
 
 def serialize_and_upload_uworker_output(
     uworker_output: uworker_msg_pb2.Output,  # pylint: disable=no-member
-    upload_url: str):
+    upload_url: str) -> None:
   """Serializes |uworker_output| and uploads it to |upload_url."""
   serialized_uworker_output = zlib.compress(uworker_output.SerializeToString())
   storage.upload_signed_url(serialized_uworker_output, upload_url)
@@ -166,6 +175,7 @@ def download_input_based_on_output_url(
     location) downloads the input based on the output_url."""
   input_url = uworker_output_path_to_input_path(output_url)
   data = storage.read_data(input_url)
+  assert data is not None
   try:
     serialized_uworker_input = zlib.decompress(data)
   except zlib.error:
@@ -173,6 +183,7 @@ def download_input_based_on_output_url(
     serialized_uworker_input = data
   if serialized_uworker_input is None:
     logs.error(f'No corresponding input for output: {output_url}.')
+  assert serialized_uworker_input is not None
   return deserialize_uworker_input(serialized_uworker_input)
 
 
@@ -180,12 +191,14 @@ def download_and_deserialize_uworker_output(
     output_url: str) -> uworker_msg_pb2.Output:  # pylint: disable=no-member
   """Downloads and deserializes uworker output."""
   data = storage.read_data(output_url)
+  assert data is not None
   try:
     serialized_uworker_output = zlib.decompress(data)
   except zlib.error:
     # For backwards compatability support uncompressed.
     serialized_uworker_output = data
 
+  assert serialized_uworker_output is not None
   uworker_output = deserialize_uworker_output(serialized_uworker_output)
 
   # Now download the input, which is stored securely so that the uworker cannot
@@ -196,19 +209,19 @@ def download_and_deserialize_uworker_output(
   return uworker_output
 
 
-def entity_to_protobuf(entity: ndb.Model) -> entity_pb2.Entity:
+def entity_to_protobuf(entity: ndb.Model) -> any_pb2.Any:  # pylint: disable=no-member
   """Helper function to convert entity to protobuf format."""
   #_entity_to_protobuf returns google.cloud.datastore_v1.types.Entity
   ndb_proto = model._entity_to_protobuf(entity)  # pylint: disable=protected-access
   return entity_to_any_message(ndb_proto)
 
 
-def db_entity_to_entity_message(entity):
+def db_entity_to_entity_message(entity: entity_pb2.Entity) -> None:
   any_entity_message = entity_to_any_message(entity)
-  entity = uworker_msg_pb2.Entity(any_wrapper=any_entity_message)  # pylint: disable=no-member
+  entity = uworker_msg_pb2.Entity(any_wrapper=any_entity_message)  # ty: ignore[unresolved-attribute] # pylint: disable=no-member,unused-variable
 
 
-def entity_to_any_message(entity_proto):
+def entity_to_any_message(entity_proto: entity_pb2.Entity) -> any_pb2.Any:  # pylint: disable=no-member
   any_entity_message = any_pb2.Any()  # pylint: disable=no-member
   any_entity_message.Pack(entity_proto._pb)  # pylint: disable=protected-access
   return any_entity_message  # pylint: disable=protected-access
@@ -231,7 +244,7 @@ def entity_from_protobuf(entity_proto: any_pb2.Any, model_type: Type[T]) -> T:  
   return entity
 
 
-def check_handling_testcase_safe(testcase):
+def check_handling_testcase_safe(testcase: data_types.Testcase) -> None:
   """Exits when the current task execution model is trusted but the testcase is
   untrusted. This will allow uploading testcases to trusted jobs (e.g. Mac) more
   safely."""
@@ -243,7 +256,7 @@ def check_handling_testcase_safe(testcase):
     logs.warning(f'Cannot handle {testcase.key.id()} in trusted task.')
 
 
-def check_running_fuzzer_safe(fuzzer):
+def check_running_fuzzer_safe(fuzzer: data_types.Fuzzer) -> bool:
   """Exits when the fuzzer is untrusted but the execution environment is
   trusted."""
   if fuzzer.trusted:
@@ -256,11 +269,12 @@ def check_running_fuzzer_safe(fuzzer):
   return False
 
 
-def timestamp_to_proto_timestamp(pydt) -> Timestamp:
+def timestamp_to_proto_timestamp(pydt: datetime.datetime) -> Timestamp:
   proto_timestamp = Timestamp()
   proto_timestamp.FromDatetime(pydt)
   return proto_timestamp
 
 
-def proto_timestamp_to_timestamp(proto_timestamp: Timestamp):
+def proto_timestamp_to_timestamp(
+    proto_timestamp: Timestamp) -> datetime.datetime:
   return proto_timestamp.ToDatetime()

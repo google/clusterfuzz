@@ -20,10 +20,10 @@ from libs import auth
 class CSPBuilder:
   """Helper to build a Content Security Policy string."""
 
-  def __init__(self):
-    self.directives = collections.defaultdict(list)
+  def __init__(self) -> None:
+    self.directives: dict[str, list[str]] = collections.defaultdict(list)
 
-  def add(self, directive, source, quote=False):
+  def add(self, directive: str, source: str, quote: bool = False) -> None:
     """Add a source for a given directive."""
     # Some values for sources are expected to be quoted. No escaping is done
     # since these are specific literal values that don't require it.
@@ -34,13 +34,13 @@ class CSPBuilder:
         f'Duplicate source "{source}" for directive "{directive}"')
     self.directives[directive].append(source)
 
-  def add_sourceless(self, directive):
+  def add_sourceless(self, directive: str) -> None:
     assert directive not in self.directives, (
         f'Sourceless directive "{directive}" already exists.')
 
     self.directives[directive] = []
 
-  def remove(self, directive, source, quote=False):
+  def remove(self, directive: str, source: str, quote: bool = False) -> None:
     """Remove a source for a given directive."""
     if quote:
       source = f'\'{source}\''
@@ -49,7 +49,7 @@ class CSPBuilder:
         f'Removing nonexistent "{source}" for directive "{directive}"')
     self.directives[directive].remove(source)
 
-  def __str__(self):
+  def __str__(self) -> str:
     """Convert to a string to send with a Content-Security-Policy header."""
     parts = []
 
@@ -61,7 +61,7 @@ class CSPBuilder:
     return ' '.join(parts)
 
 
-def get_default_builder():
+def get_default_builder() -> CSPBuilder:
   """Get a CSPBuilder object for the default policy.
 
   Can be modified for specific pages if needed."""
@@ -141,6 +141,6 @@ def get_default_builder():
   return builder
 
 
-def get_default():
+def get_default() -> str:
   """Get the default Content Security Policy as a string."""
   return str(get_default_builder())

@@ -16,14 +16,14 @@
 from clusterfuzz._internal.config import db_config
 from handlers import base_handler
 
-DEFAULT_DOCUMENTATION_URL = 'https://google.github.io/clusterfuzz/'
-DEFAULT_BUG_REPORT_URL = 'https://github.com/google/clusterfuzz/issues'
+DEFAULT_DOCUMENTATION_URL: str = 'https://google.github.io/clusterfuzz/'
+DEFAULT_BUG_REPORT_URL: str = 'https://github.com/google/clusterfuzz/issues'
 
 
 class DocumentationHandler(base_handler.Handler):
   """Redirect to documentation."""
 
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Get the HTML page."""
     documentation_url = db_config.get_value('documentation_url')
     if not documentation_url:
@@ -35,7 +35,7 @@ class DocumentationHandler(base_handler.Handler):
 class ReportBugHandler(base_handler.Handler):
   """Redirect to issue tracker for reporting bug."""
 
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Get the HTML page."""
     bug_report_url = db_config.get_value('bug_report_url')
     if not bug_report_url:

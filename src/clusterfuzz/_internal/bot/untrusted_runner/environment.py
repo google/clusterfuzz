@@ -13,19 +13,19 @@
 # limitations under the License.
 """Environment modification functions."""
 
+from collections.abc import Mapping
+from collections.abc import MutableMapping
 import os
 import re
+from typing import cast
 
-try:
-  from clusterfuzz._internal.protos import untrusted_runner_pb2
+from clusterfuzz._internal.protos import untrusted_runner_pb2
+from clusterfuzz._internal.protos import untrusted_runner_pb2_grpc
 
-  from . import file_host
-  from . import host
-except ImportError:
-  # TODO(ochang): Fix this.
-  pass
+from . import file_host
+from . import host
 
-FORWARDED_ENVIRONMENT_VARIABLES = [
+FORWARDED_ENVIRONMENT_VARIABLES: list[re.Pattern[str]] = [
     re.compile(pattern) for pattern in (
         r'^AFL_.*',
         r'^APPLICATION_ID$',
@@ -59,24 +59,24 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
     )
 ]
 
-REBASED_ENVIRONMENT_VARIABLES = {
+REBASED_ENVIRONMENT_VARIABLES: set[str] = {
     'FUZZER_DIR',
 }
 
 
-def is_forwarded_environment_variable(environment_variable):
+def is_forwarded_environment_variable(environment_variable: str) -> bool:
   """Return whether or not |environment_variable| should be forwarded."""
   return any(
       pattern.match(environment_variable)
       for pattern in FORWARDED_ENVIRONMENT_VARIABLES)
 
 
-def should_rebase_environment_value(environment_variable):
+def should_rebase_environment_value(environment_variable: str) -> bool:
   """Return whether or not |environment_variable|'s value should be rebased."""
   return environment_variable in REBASED_ENVIRONMENT_VARIABLES
 
 
-def update_environment(env):
+def update_environment(env: Mapping[str, str]) -> None:
   """Update worker's environment."""
   processed_env = {}
   for key, value in env.items():
@@ -86,10 +86,12 @@ def update_environment(env):
     processed_env[key] = value
 
   request = untrusted_runner_pb2.UpdateEnvironmentRequest(env=processed_env)  # pylint: disable=no-member
-  host.stub().UpdateEnvironment(request)
+  stub = cast(untrusted_runner_pb2_grpc.UntrustedRunnerStub, host.stub())
+  stub.UpdateEnvironment(request)
 
 
-def set_environment_vars(env, source_env):
+def set_environment_vars(env: MutableMapping[str, str],
+                         source_env: Mapping[str, str] | None) -> None:
   """Copy allowed environment variables from |source_env|."""
   if not source_env:
     return
@@ -104,9 +106,10 @@ def set_environment_vars(env, source_env):
       env[name] = value
 
 
-def get_env_for_untrusted_process(overrides):
+def get_env_for_untrusted_process(
+    overrides: Mapping[str, str] | None) -> dict[str, str]:
   """Return environment for running an untrusted process."""
-  env = {}
+  env: dict[str, str] = {}
   if overrides is not None:
     set_environment_vars(env, overrides)
   else:
@@ -114,7 +117,7 @@ def get_env_for_untrusted_process(overrides):
   return env
 
 
-def forward_environment_variable(key, value):
+def forward_environment_variable(key: str, value: str) -> None:
   """Forward the environment variable if needed."""
   if not host.is_initialized():
     return
@@ -123,7 +126,8 @@ def forward_environment_variable(key, value):
     update_environment({key: value})
 
 
-def reset_environment():
+def reset_environment() -> None:
   """Reset environment variables."""
   request = untrusted_runner_pb2.ResetEnvironmentRequest()  # pylint: disable=no-member
-  host.stub().ResetEnvironment(request)
+  stub = cast(untrusted_runner_pb2_grpc.UntrustedRunnerStub, host.stub())
+  stub.ResetEnvironment(request)

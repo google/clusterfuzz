@@ -13,6 +13,7 @@
 # limitations under the License.
 """Module for handling errors in utasks."""
 
+from typing import Any
 from typing import Callable
 from typing import Dict
 
@@ -32,7 +33,7 @@ HandlerDict = Dict[ErrorType.ValueType, ErrorHandler]
 class CompositeErrorHandler:
   """A handler for several different types of uworker errors."""
 
-  def __init__(self, handlers: HandlerDict):
+  def __init__(self, handlers: HandlerDict) -> None:
     """Initializes a handler that delegates to the values in `handlers`.
 
     For example:
@@ -69,7 +70,7 @@ class CompositeErrorHandler:
     """Returns whether the given error type is handled by this instance."""
     return error_type in self._handlers
 
-  def handle(self, output: Output):
+  def handle(self, output: Output) -> None:
     """Handles the given `output`, delegating to underlying handlers.
 
     Raises:
@@ -82,7 +83,7 @@ class CompositeErrorHandler:
     handler(output)
 
 
-def noop_handler(*args, **kwargs):
+def noop_handler(*args: Any, **kwargs: Any) -> None:
   del args
   del kwargs
 

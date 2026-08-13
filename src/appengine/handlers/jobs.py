@@ -13,7 +13,11 @@
 # limitations under the License.
 """Manage job types."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
+from flask import Response
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import tasks
@@ -32,17 +36,17 @@ from libs import handler
 from libs import helpers
 from libs.query import datastore_query
 
-PAGE_SIZE = 10
-MORE_LIMIT = 50 - PAGE_SIZE  # exactly 5 pages
+PAGE_SIZE: int = 10
+MORE_LIMIT: int = 50 - PAGE_SIZE  # exactly 5 pages
 
-FILTERS = [
+FILTERS: list[filters.Filter] = [
     filters.Keyword([], 'keywords', 'q'),
 ]
 
 
-def get_queues():
+def get_queues() -> list[dict[str, str]]:
   """Return list of task queues."""
-  queues = []
+  queues: list[dict[str, str]] = []
   for name, display_name in tasks.TASK_QUEUE_DISPLAY_NAMES.items():
     queue = {
         'name': name,
@@ -54,28 +58,31 @@ def get_queues():
   return queues
 
 
-def _job_to_dict(job):
+def _job_to_dict(job: data_types.Job) -> dict[str, Any]:
   """Return a dict of job items along with associated fuzzers."""
   result = job.to_dict()
   result['id'] = job.key.id()
   # Adding all associated fuzzers with each job.
   fuzzers = data_types.Fuzzer.query()
   result['fuzzers'] = [
-      fuzzer.name for fuzzer in fuzzers if job.name in fuzzer.jobs
+      fuzzer.name
+      for fuzzer in fuzzers
+      if job.name and job.name in cast(Any, fuzzer.jobs)
   ]
   return result
 
 
-def get_results():
+def get_results() -> tuple[dict[str, Any], dict[str, Any]]:
   """Get results for the jobs page."""
 
   # Return jobs sorted alphabetically by name
   query = datastore_query.Query(data_types.Job)
   query.order('name', is_desc=False)
-  params = dict(request.iterparams())
+  request_any = cast(Any, request)
+  params = dict(request_any.iterparams())
   filters.add(query, params, FILTERS)
 
-  page = helpers.cast(request.get('page', 1), int, "'page' is not an int.")
+  page = helpers.cast(request_any.get('page', 1), int, "'page' is not an int.")
   items, total_pages, total_items, has_more = query.fetch_page(
       page=page, page_size=PAGE_SIZE, projection=None, more_limit=MORE_LIMIT)
   helpers.log('Jobs', helpers.VIEW_OPERATION)
@@ -97,7 +104,7 @@ class Handler(base_handler.Handler):
   @handler.get(handler.HTML)
   @handler.oauth
   @handler.check_user_access(need_privileged_access=True)
-  def get(self):
+  def get(self) -> Response:
     """Handle a get request."""
     templates = list(data_types.JobTemplate.query().order(
         data_types.JobTemplate.name))
@@ -136,7 +143,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
   @handler.post(handler.FORM, handler.HTML)
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> Response:
     """Handle a post request."""
     name = request.form.get('name')
     if not name:
@@ -182,7 +189,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
     job.platform = new_platform
     job.description = description
     job.environment_string = environment_string
-    job.templates = templates
+    job.templates = cast(Any, templates)
 
     blob_info = self.get_upload()
     if blob_info:
@@ -200,7 +207,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
       fuzzer_selection.update_platform_for_job(name, new_platform)
 
     # pylint: disable=unexpected-keyword-arg
-    _ = data_handler.get_all_job_type_names(__memoize_force__=True)
+    _ = cast(Any, data_handler.get_all_job_type_names)(__memoize_force__=True)
 
     helpers.log('Job created %s' % name, helpers.MODIFY_OPERATION)
     template_values = {
@@ -220,7 +227,7 @@ class UpdateJobTemplate(base_handler.Handler):
   @handler.post(handler.FORM, handler.HTML)
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> Response:
     """Handle a post request."""
     name = request.form.get('name')
     if not name:
@@ -264,7 +271,7 @@ class DeleteJobHandler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> Response:
     """Handle a post request."""
     key = helpers.get_integer_key(request)
     job = ndb.Key(data_types.Job, key).get()
@@ -273,8 +280,8 @@ class DeleteJobHandler(base_handler.Handler):
 
     # Delete from fuzzers' jobs' list.
     for fuzzer in ndb_utils.get_all_from_model(data_types.Fuzzer):
-      if job.name in fuzzer.jobs:
-        fuzzer.jobs.remove(job.name)
+      if job.name in cast(Any, fuzzer).jobs:
+        cast(Any, fuzzer).jobs.remove(job.name)
         fuzzer.put()
 
     # Delete associated fuzzer-job mapping(s).
@@ -295,7 +302,7 @@ class JsonHandler(base_handler.Handler):
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_user_access(need_privileged_access=True)
-  def post(self):
+  def post(self) -> Response:
     """Get and render the jobs in JSON."""
     result, _ = get_results()
     return self.render_json(result)
@@ -306,7 +313,7 @@ class GetEnvironmentHandler(base_handler.Handler):
 
   @handler.get(handler.JSON)
   @handler.check_user_access(need_privileged_access=True)
-  def get(self):
+  def get(self) -> Response:
     """Get and render the computed environment in JSON."""
     name = request.args.get('name')
     if not name:

@@ -14,16 +14,21 @@
 """search_tokenizer tokenizes a string into tokens
   according to our keyword searching use cases."""
 
+from collections.abc import Iterator
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from clusterfuzz._internal.datastore import data_types
 
 
-def tokenize(s):
+def tokenize(s: object) -> set[str]:
   """Tokenize a string, by line, into atomic tokens and complex tokens."""
   if not s:
     s = ''
 
   s = '%s' % s
-  tokens = set()
+  tokens: set[str] = set()
 
   lines = s.splitlines()
   for line in lines:
@@ -35,9 +40,9 @@ def tokenize(s):
   return tokens
 
 
-def tokenize_bug_information(testcase):
+def tokenize_bug_information(testcase: 'data_types.Testcase') -> list[str]:
   """Tokenize bug information for searching."""
-  bug_indices = []
+  bug_indices: list[str] = []
 
   if testcase.bug_information:
     bug_indices.append(testcase.bug_information.lower().strip())
@@ -47,12 +52,12 @@ def tokenize_bug_information(testcase):
   return bug_indices
 
 
-def tokenize_impact_version(version):
+def tokenize_impact_version(version: str | None) -> list[str]:
   """Tokenize impact."""
   if not version:
     return []
 
-  tokens = set()
+  tokens: set[str] = set()
   splitted = version.split('.')
   for index in range(len(splitted)):
     tokens.add('.'.join(splitted[0:(index + 1)]))
@@ -60,26 +65,26 @@ def tokenize_impact_version(version):
   return [t for t in tokens if t.strip()]
 
 
-def prepare_search_keyword(s):
+def prepare_search_keyword(s: str) -> str:
   """Prepare the search keywords into the form that is appropriate for searching
     according to our tokenization algorithm."""
   return s.lower().strip()
 
 
-def _is_camel_case_ab(s, index):
+def _is_camel_case_ab(s: str, index: int) -> bool:
   """Determine if the index is at 'aB', which is the start of a camel token.
     For example, with 'workAt', this function detects 'kA'."""
   return index >= 1 and s[index - 1].islower() and s[index].isupper()
 
 
-def _is_camel_case_abb(s, index):
+def _is_camel_case_abb(s: str, index: int) -> bool:
   """Determine if the index ends at 'ABb', which is the start of a camel
     token. For example, with 'HTMLParser', this function detects 'LPa'."""
   return (index >= 2 and s[index - 2].isupper() and s[index - 1].isupper() and
           s[index].islower())
 
 
-def _token_indices(s):
+def _token_indices(s: str) -> Iterator[tuple[int, int]]:
   """Iterate through (end_current_token_index, start_next_token_index) of
     `s`, which is tokenized based on non-alphanumeric characters and camel
     casing. For example, 'aa:bbCC' have 3 tokens: 'aa', 'bb', 'CC'.
@@ -105,7 +110,7 @@ def _token_indices(s):
   yield (length - 1), length
 
 
-def _complex_tokenize(s, limit):
+def _complex_tokenize(s: str, limit: int) -> set[str]:
   """Tokenize a string into complex tokens. For example, a:b:c is tokenized into
     ['a', 'b', 'c', 'a:b', 'a:b:c', 'b:c']. This method works recursively. It
     generates all possible complex tokens starting from the first token. Then,
@@ -116,7 +121,7 @@ def _complex_tokenize(s, limit):
   if not s:
     return set()
 
-  tokens = []
+  tokens: list[str] = []
   second_token_index = len(s)
   count = 0
   for end_index, next_start_index in _token_indices(s):
@@ -127,6 +132,6 @@ def _complex_tokenize(s, limit):
     if count >= limit:
       break
 
-  tokens = {t.lower() for t in tokens if t.strip()}
-  tokens |= _complex_tokenize(s[second_token_index:], limit=limit)
-  return tokens
+  token_set: set[str] = {t.lower() for t in tokens if t.strip()}
+  token_set |= _complex_tokenize(s[second_token_index:], limit=limit)
+  return token_set

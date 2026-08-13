@@ -41,17 +41,17 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
-TESTS_LAST_UPDATE_KEY = 'tests_last_update'
-TESTS_UPDATE_INTERVAL_DAYS = 1
+TESTS_LAST_UPDATE_KEY: str = 'tests_last_update'
+TESTS_UPDATE_INTERVAL_DAYS: int = 1
 
 
-def _rename_dll_for_update(absolute_filepath):
+def _rename_dll_for_update(absolute_filepath: str) -> None:
   """Rename a DLL to allow for updates."""
   backup_filepath = absolute_filepath + '.bak.' + str(int(time.time()))
   os.rename(absolute_filepath, backup_filepath)
 
 
-def _deployment_file_url(filename):
+def _deployment_file_url(filename: str) -> str | None:
   """Helper to return deployment file url."""
   deployment_bucket = local_config.ProjectConfig().get('deployment.bucket')
   if not deployment_bucket:
@@ -62,7 +62,7 @@ def _deployment_file_url(filename):
   return f'gs://{deployment_bucket}/{filename}'
 
 
-def get_source_url():
+def get_source_url() -> str | None:
   """Return the source URL."""
   release = utils.get_clusterfuzz_release()
   platform_name = platform.system()
@@ -76,13 +76,13 @@ def get_source_url():
       utils.get_platform_deployment_filename(platform_name, release))
 
 
-def get_source_manifest_url():
+def get_source_manifest_url() -> str | None:
   """Return the source manifest URL."""
   release = utils.get_clusterfuzz_release()
   return _deployment_file_url(utils.get_remote_manifest_filename(release))
 
 
-def clear_old_files(directory, extracted_file_set):
+def clear_old_files(directory: str, extracted_file_set: set[str]) -> None:
   """Remove files from the directory that isn't in the given file list."""
   for root_directory, _, filenames in shell.walk(directory):
     for filename in filenames:
@@ -95,7 +95,7 @@ def clear_old_files(directory, extracted_file_set):
   shell.remove_empty_directories(directory)
 
 
-def clear_pyc_files(directory):
+def clear_pyc_files(directory: str) -> None:
   """Recursively remove all .pyc files from the given directory"""
   for root_directory, _, filenames in shell.walk(directory):
     for filename in filenames:
@@ -106,7 +106,7 @@ def clear_pyc_files(directory):
       shell.remove_file(file_path)
 
 
-def track_revision():
+def track_revision() -> None:
   """Get the local revision and report as a metric."""
   source_code_revision = get_local_source_revision() or ''
   os_type = environment.platform()
@@ -119,18 +119,20 @@ def track_revision():
   monitoring_metrics.BOT_COUNT.set(1, labels)
 
 
-def get_local_source_revision():
+def get_local_source_revision() -> str | None:
   """Return the local source revision."""
   return utils.current_source_version()
 
 
-def get_remote_source_revision(source_manifest_url):
+def get_remote_source_revision(source_manifest_url: str) -> str:
   """Get remote revision. We refactor this method out, so that we can mock
     it."""
-  return storage.read_data(source_manifest_url).decode('utf-8').strip()
+  data = storage.read_data(source_manifest_url)
+  assert data is not None
+  return data.decode('utf-8').strip()
 
 
-def get_newer_source_revision():
+def get_newer_source_revision() -> str | None:
   """Returns the latest source revision if there is an update, or None if the
   current source is up to date."""
 
@@ -178,7 +180,7 @@ def get_newer_source_revision():
   return source_version
 
 
-def run_platform_init_scripts():
+def run_platform_init_scripts() -> None:
   """Run platform specific initialization scripts."""
   logs.info('Running platform initialization scripts.')
 
@@ -201,7 +203,7 @@ def run_platform_init_scripts():
   logs.info('Completed running platform initialization scripts.')
 
 
-def update_source_code():
+def update_source_code() -> None:
   """Updates source code files with latest version from appengine."""
   process_handler.cleanup_stale_processes()
   shell.clear_temp_directory()
@@ -212,7 +214,9 @@ def update_source_code():
   temp_archive = os.path.join(cf_source_root_parent_dir,
                               'clusterfuzz-source.zip')
   try:
-    storage.copy_file_from(get_source_url(), temp_archive)
+    source_url = get_source_url()
+    assert source_url is not None
+    storage.copy_file_from(source_url, temp_archive)
   except Exception:
     logs.error('Could not retrieve source code archive from url.')
     return
@@ -225,7 +229,7 @@ def update_source_code():
 
   src_directory = os.path.join(root_directory, 'src')
   error_occurred = False
-  normalized_file_set = set()
+  normalized_file_set: set[str] = set()
   for file in reader.list_members():
     filename = os.path.basename(file.name)
 
@@ -268,6 +272,7 @@ def update_source_code():
         pass
       extracted_path = reader.extract(
           file.name, cf_source_root_parent_dir, trusted=True)
+      assert extracted_path is not None
       os.chmod(extracted_path, 0o755)
     except Exception:
       error_occurred = True
@@ -283,14 +288,16 @@ def update_source_code():
 
   local_manifest_path = os.path.join(root_directory,
                                      utils.LOCAL_SOURCE_MANIFEST)
-  source_version = utils.read_data_from_file(
-      local_manifest_path, eval_data=False).decode('utf-8').strip()
+  manifest_data = utils.read_data_from_file(
+      local_manifest_path, eval_data=False)
+  assert manifest_data is not None
+  source_version = manifest_data.decode('utf-8').strip()
   os.remove(temp_archive)
   logs.info(f'Source code updated to {source_version} ' +
             f'(release = {utils.get_clusterfuzz_release()}).')
 
 
-def update_tests_if_needed(tests_url=None):
+def update_tests_if_needed(tests_url: str | None = None) -> None:
   """Updates layout tests every day."""
   data_directory = environment.get_value('FUZZ_DATA')
   error_occured = False
@@ -354,7 +361,7 @@ def update_tests_if_needed(tests_url=None):
   tasks.track_task_end()
 
 
-def prepare_environment_for_new_task():
+def prepare_environment_for_new_task() -> None:
   """
   It performs all requirements to cleanup and prepare the 
   environment for receiving a new task.
@@ -374,7 +381,7 @@ def prepare_environment_for_new_task():
     logs.error('Error occurred while cleaning the environment before the task')
 
 
-def run():
+def run() -> None:
   """Run update task."""
   # Since this code is particularly sensitive for bot stability, continue
   # execution but store the exception if anything goes wrong during one of these

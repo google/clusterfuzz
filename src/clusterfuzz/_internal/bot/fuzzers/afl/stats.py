@@ -15,12 +15,17 @@
 
 import os
 import re
+from typing import Any
+from typing import TYPE_CHECKING
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+
+if TYPE_CHECKING:
+  from clusterfuzz._internal.bot.fuzzers.afl import launcher
 
 SANITIZER_START_REGEX = re.compile(r'.*ERROR: [A-Za-z]+Sanitizer:.*')
 SANITIZER_SEPERATOR_REGEX = re.compile(r'^=+$')
@@ -49,7 +54,7 @@ class StatsGetter:
   CORPUS_CRASH_REGEX = re.compile(
       r'program crashed with one of the test cases provided')
 
-  def __init__(self, afl_stats_path, dict_path):
+  def __init__(self, afl_stats_path: str, dict_path: str | None) -> None:
     """Set important attributes and initialize all stats to 0.
 
     Args:
@@ -62,11 +67,11 @@ class StatsGetter:
     self.afl_stats_path = afl_stats_path
 
     # The parsed stats in afl_stats_path.
-    self.afl_stats = {}
+    self.afl_stats: dict[str, str] = {}
     self.dict_path = dict_path
 
     # Default values.
-    self.stats = {
+    self.stats: dict[str, Any] = {
         'actual_duration': 0,
         'average_exec_per_sec': 0,
         'bad_instrumentation': 0,
@@ -83,7 +88,7 @@ class StatsGetter:
         'timeout_limit': 0,
     }
 
-  def set_afl_stats(self):
+  def set_afl_stats(self) -> None:
     """Read statistics from afl-fuzz's "fuzzer_stats" file and save them as
     self.afl_stats.
     """
@@ -95,9 +100,10 @@ class StatsGetter:
     afl_stats_string = engine_common.read_data_from_file(
         self.afl_stats_path).decode('utf-8')
     matches_iterator = re.finditer(self.STATS_REGEX, afl_stats_string)
-    self.afl_stats = dict(match.groups() for match in matches_iterator)
+    self.afl_stats = dict(
+        match.groups() for match in matches_iterator)  # type: ignore
 
-  def get_afl_stat(self, afl_stat_name):
+  def get_afl_stat(self, afl_stat_name: str) -> int | float:
     """Try to get |afl_stat_name| from self.afl_stats, otherwise return a
     default value instead. Note that is imporant that the types are correct
     since a type change will prevent this data from being loaded into
@@ -132,7 +138,7 @@ class StatsGetter:
     except ValueError:
       return float(afl_stat_value)
 
-  def _get_unwanted_log_line_count(self, log_output):
+  def _get_unwanted_log_line_count(self, log_output: str) -> int:
     """Return number of unwanted lines in log output."""
     count = 0
     for line in log_output.splitlines():
@@ -145,13 +151,13 @@ class StatsGetter:
     return count
 
   def set_stats(self,
-                actual_duration,
-                new_units_generated,
-                new_units_added,
-                corpus_size,
-                fuzzing_strategies,
-                fuzzer_stderr,
-                afl_fuzz_output=''):
+                actual_duration: float,
+                new_units_generated: int,
+                new_units_added: int,
+                corpus_size: int,
+                fuzzing_strategies: 'launcher.FuzzingStrategies',
+                fuzzer_stderr: str,
+                afl_fuzz_output: str = '') -> dict[str, Any]:
     """Create a dict of statistics that can be uploaded to ClusterFuzz and save
     it in self.stats.
 
@@ -213,7 +219,7 @@ class StatsGetter:
     self.set_output_stats(afl_fuzz_output)
     return self.stats
 
-  def set_output_stats(self, afl_fuzz_output):
+  def set_output_stats(self, afl_fuzz_output: str) -> None:
     """Set stats gotten from the output of afl-fuzz, |afl_fuzz_output|."""
     # If there is no instrumentation, note it.
     if re.search(self.NO_INSTRUMENTATION_REGEX, afl_fuzz_output):
@@ -227,7 +233,8 @@ class StatsGetter:
     if re.search(self.CORPUS_CRASH_REGEX, afl_fuzz_output):
       self.stats['corpus_crash_count'] = 1
 
-  def set_strategy_stats(self, fuzzing_strategies):
+  def set_strategy_stats(
+      self, fuzzing_strategies: 'launcher.FuzzingStrategies') -> None:
     """Sets strategy related stats for afl-fuzz to correct values based on
     |strategies|."""
 

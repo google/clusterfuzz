@@ -19,33 +19,47 @@ import datetime
 import enum
 import functools
 import re
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import Iterable
+from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Set
 from typing import Tuple
+from typing import Union
 import urllib.parse
 
 from google.auth import exceptions
 import googleapiclient.http
 
-from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
+from clusterfuzz._internal.issue_management.issue_tracker import \
+    Action as BaseAction
+from clusterfuzz._internal.issue_management.issue_tracker import \
+    Issue as BaseIssue
+from clusterfuzz._internal.issue_management.issue_tracker import \
+    IssueTracker as BaseIssueTracker
+from clusterfuzz._internal.issue_management.issue_tracker import ChangeList
+from clusterfuzz._internal.issue_management.issue_tracker import LabelStore
 from clusterfuzz._internal.metrics import logs
 
-_NUM_RETRIES = 3
+_NUM_RETRIES: int = 3
 
 # TODO: Make these configuration settings instead of hardcoded values in code.
 # These custom fields use repeated enums.
-_CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
-_CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'
+_CHROMIUM_OS_CUSTOM_FIELD_ID: str = '1223084'
+_CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID: str = '1222907'
 
-_OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID = '1349561'
-_OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID = '1349507'
+_OSS_FUZZ_REPORTED_CUSTOM_FIELD_ID: str = '1349561'
+_OSS_FUZZ_PROJECT_CUSTOM_FIELD_ID: str = '1349507'
 
-_SEVERITY_LABEL_PREFIX = 'Security_Severity-'
+_SEVERITY_LABEL_PREFIX: str = 'Security_Severity-'
 
-_DEFAULT_SEVERITY = 'S4'
-_DEFAULT_PRIORITY = 'P4'
+_DEFAULT_SEVERITY: str = 'S4'
+_DEFAULT_PRIORITY: str = 'P4'
 
 
 class IssueAccessLevel(str, enum.Enum):
@@ -55,7 +69,8 @@ class IssueAccessLevel(str, enum.Enum):
   LIMIT_VIEW_TRUSTED = 'LIMIT_VIEW_TRUSTED'
 
 
-def _get_access_limit_from_labels(labels: issue_tracker.LabelStore):
+def _get_access_limit_from_labels(labels: LabelStore | List[str],
+                                 ) -> Optional[IssueAccessLevel]:
   """ Extracts the access limit label from labels and returns the
   corresponding IssueAccessLevel or None."""
   limit_view_label = _extract_label(labels, 'LIMIT_')
@@ -69,12 +84,13 @@ def _get_access_limit_from_labels(labels: issue_tracker.LabelStore):
     return None
 
 
-def retry_on_invalid_gaia_accounts(func):
+def retry_on_invalid_gaia_accounts(func: Callable[..., Any],
+                                  ) -> Callable[..., Any]:
   """Decorator to retry saving an issue, skipping CCs
     without a GAIA account."""
 
   @functools.wraps(func)
-  def wrapper(self, *args, **kwargs):
+  def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
     try:
       return func(self, *args, **kwargs)
     except Exception as e:
@@ -99,8 +115,7 @@ class IssueTrackerPermissionError(IssueTrackerError):
   """Permission error."""
 
 
-def _extract_all_labels(labels: issue_tracker.LabelStore,
-                        prefix: str) -> List[str]:
+def _extract_all_labels(labels: LabelStore, prefix: str) -> List[str]:
   """Extract all label values."""
   results = []
   labels_to_remove = []
@@ -132,7 +147,8 @@ def _sanitize_oses(oses: Sequence[str]) -> List[str]:
   return result
 
 
-def _extract_label(labels: Sequence[str], prefix: str) -> Optional[str]:
+def _extract_label(labels: LabelStore | List[str],
+                   prefix: str) -> Optional[str]:
   """Extract a label value."""
   for label in labels:
     if not label.startswith(prefix):
@@ -143,7 +159,7 @@ def _extract_label(labels: Sequence[str], prefix: str) -> Optional[str]:
   return None
 
 
-def _get_labels(labels: Sequence[str], prefix: str) -> List[str]:
+def _get_labels(labels: Iterable[str], prefix: str) -> List[str]:
   """Return the values of all labels with the given prefix."""
   results = []
   for label in labels:
@@ -153,7 +169,8 @@ def _get_labels(labels: Sequence[str], prefix: str) -> List[str]:
   return results
 
 
-def _get_oss_fuzz_reported_value(labels: Sequence[str]) -> Optional[dict]:
+def _get_oss_fuzz_reported_value(labels: LabelStore | List[str],
+                                ) -> Optional[Dict[str, int]]:
   """Return OSS-Fuzz Reported custom field value."""
   added_reported = _extract_label(labels, 'Reported-')
   if not added_reported:
@@ -172,7 +189,7 @@ def _get_oss_fuzz_reported_value(labels: Sequence[str]) -> Optional[dict]:
   }
 
 
-def _get_severity_from_labels(labels: Sequence[str]) -> Optional[str]:
+def _get_severity_from_labels(labels: Iterable[str]) -> Optional[str]:
   """Return the value of the first severity label, if any."""
   # Ignore case to match `issue_tracker.LabelStore.remove_by_prefix()`.
   values = _get_labels((l.lower() for l in labels),
@@ -192,7 +209,7 @@ def _get_severity_from_labels(labels: Sequence[str]) -> Optional[str]:
   return severity
 
 
-def _get_severity_from_label_value(value):
+def _get_severity_from_label_value(value: str) -> str:
   """Convert a severity label value into a Google issue tracker severity."""
   value = value.lower()
   if value == 'critical':
@@ -213,35 +230,36 @@ def _parse_date_label(date_value: str) -> Tuple[int, int, int]:
   return int(year), int(month), int(day)
 
 
-class Issue(issue_tracker.Issue):
+class Issue(BaseIssue):
   """Issue tracker issue."""
 
-  def __init__(self, data, is_new, tracker):
-    self._data = data
-    self._is_new = is_new
-    self._issue_tracker = tracker
+  def __init__(self, data: Dict[str, Any], is_new: bool,
+               tracker: 'IssueTracker') -> None:
+    self._data: Dict[str, Any] = data
+    self._is_new: bool = is_new
+    self._issue_tracker: 'IssueTracker' = tracker
     ccs = data['issueState'].get('ccs', [])
-    self._ccs = issue_tracker.LabelStore(
+    self._ccs: LabelStore = LabelStore(
         [user['emailAddress'] for user in ccs if 'emailAddress' in user])
     collaborators = data['issueState'].get('collaborators', [])
-    self._collaborators = issue_tracker.LabelStore([
+    self._collaborators: LabelStore = LabelStore([
         user['emailAddress'] for user in collaborators if 'emailAddress' in user
     ])
     labels = [
         str(hotlist_id)
         for hotlist_id in data['issueState'].get('hotlistIds', [])
     ]
-    self._labels = issue_tracker.LabelStore(labels)
+    self._labels: LabelStore = LabelStore(labels)
 
     component_tags = self._get_component_tags()
-    self._component_tags = issue_tracker.LabelStore(component_tags)
+    self._component_tags: LabelStore = LabelStore(component_tags)
 
-    self._body = None
-    self._changed = set()
-    self._issue_access_limit = IssueAccessLevel.LIMIT_NONE
+    self._body: Optional[str] = None
+    self._changed: Set[str] = set()
+    self._issue_access_limit: IssueAccessLevel = IssueAccessLevel.LIMIT_NONE
 
   @property
-  def is_unrestricted(self):
+  def is_unrestricted(self) -> bool:
     """Whether the issue has no view restrictions (i.e. is public).
 
     Checks the accessLimit field from the Buganizer API response. An issue
@@ -251,7 +269,7 @@ class Issue(issue_tracker.Issue):
                                                 {}).get('accessLevel')
     return access_limit == IssueAccessLevel.LIMIT_NONE
 
-  def _get_component_tags(self):
+  def _get_component_tags(self) -> List[str]:
     """Returns the value of the Component Tags custom field."""
     custom_fields = self._data['issueState'].get('customFields', [])
     for cf in custom_fields:
@@ -261,7 +279,7 @@ class Issue(issue_tracker.Issue):
           return enum_values.get('values') or []
     return []
 
-  def _get_component_paths(self, component_tags):
+  def _get_component_paths(self, component_tags: Iterable[str]) -> List[str]:
     """Converts component IDs from component tags into component paths.
 
     Eg:  component_id=1456567 will be translated into
@@ -281,7 +299,8 @@ class Issue(issue_tracker.Issue):
         component_paths.add(ct)
     return sorted(component_paths)
 
-  def _filter_custom_field_enum_values(self, custom_field_id, values):
+  def _filter_custom_field_enum_values(self, custom_field_id: str,
+                                       values: Sequence[str]) -> List[str]:
     """Filters out invalid enum values from the provided values."""
     filtered_values = []
     for cf in self._data.get('customFields', []):
@@ -296,7 +315,7 @@ class Issue(issue_tracker.Issue):
         break
     return filtered_values
 
-  def _filter_labels(self):
+  def _filter_labels(self) -> None:
     """Filters out and logs labels that are not hotlist IDs."""
     logs.info(
         'google_issue_tracker: Labels before filtering: %s' % list(self.labels))
@@ -311,7 +330,7 @@ class Issue(issue_tracker.Issue):
     logs.info(
         'google_issue_tracker: Labels after filtering: %s' % list(self.labels))
 
-  def _reset_tracking(self):
+  def _reset_tracking(self) -> None:
     """Resets diff tracking."""
     self._changed.clear()
     self._ccs.reset_tracking()
@@ -319,7 +338,7 @@ class Issue(issue_tracker.Issue):
     self._labels.reset_tracking()
     self._component_tags.reset_tracking()
 
-  def apply_extension_fields(self, extension_fields):
+  def apply_extension_fields(self, extension_fields: Dict[str, Any]) -> None:
     """Applies _ext_ prefixed extension fields."""
     if extension_fields.get('_ext_collaborators'):
       logs.info('google_issue_tracker: In apply_extension_fields for '
@@ -335,27 +354,27 @@ class Issue(issue_tracker.Issue):
       self._issue_access_limit = extension_fields['_ext_issue_access_limit']
 
   @property
-  def issue_tracker(self):
+  def issue_tracker(self) -> 'IssueTracker':
     """The issue tracker for this issue."""
     return self._issue_tracker
 
   @property
-  def id(self):
+  def id(self) -> int:
     """The issue identifier."""
     return int(self._data['issueId'])
 
   @property
-  def title(self):
+  def title(self) -> Optional[str]:
     """The issue title."""
     return self._data['issueState'].get('title')
 
   @title.setter
-  def title(self, new_title):
+  def title(self, new_title: Optional[str]) -> None:
     self._changed.add('title')
     self._data['issueState']['title'] = new_title
 
   @property
-  def reporter(self):
+  def reporter(self) -> Optional[str]:
     """The issue reporter."""
     reporter = self._data['issueState'].get('reporter')
     if not reporter:
@@ -363,17 +382,17 @@ class Issue(issue_tracker.Issue):
     return reporter['emailAddress']
 
   @reporter.setter
-  def reporter(self, new_reporter):
+  def reporter(self, new_reporter: Optional[str]) -> None:
     self._changed.add('reporter')
     self._data['issueState']['reporter'] = _make_user(new_reporter)
 
   @property
-  def merged_into(self):
+  def merged_into(self) -> Optional[Union[int, str]]:
     """The issue that this is merged into."""
     return self._data['issueState'].get('canonicalIssueId')
 
   @property
-  def closed_time(self):
+  def closed_time(self) -> Optional[datetime.datetime]:
     """When the issue was closed."""
     resolved_time = self._data.get('resolvedTime')
     if not resolved_time:
@@ -381,22 +400,22 @@ class Issue(issue_tracker.Issue):
     return _parse_datetime(resolved_time)
 
   @property
-  def is_open(self):
+  def is_open(self) -> bool:
     """Whether the issue is open."""
     return self.status in ['NEW', 'ASSIGNED', 'ACCEPTED']
 
   @property
-  def status(self):
+  def status(self) -> Optional[str]:
     """The issue status."""
     return self._data['issueState']['status']
 
   @status.setter
-  def status(self, new_status):
+  def status(self, new_status: Optional[str]) -> None:
     self._changed.add('status')
     self._data['issueState']['status'] = new_status
 
   @property
-  def body(self):
+  def body(self) -> Optional[str]:
     """The issue body."""
     if self._body is not None:
       return self._body
@@ -419,11 +438,11 @@ class Issue(issue_tracker.Issue):
     return self._body
 
   @body.setter
-  def body(self, new_body):
+  def body(self, new_body: Optional[str]) -> None:
     self._body = new_body
 
   @property
-  def assignee(self):
+  def assignee(self) -> Optional[str]:
     """The issue assignee."""
     assignee = self._data['issueState'].get('assignee')
     if not assignee:
@@ -431,43 +450,43 @@ class Issue(issue_tracker.Issue):
     return assignee['emailAddress']
 
   @assignee.setter
-  def assignee(self, new_assignee):
+  def assignee(self, new_assignee: Optional[str]) -> None:
     self._changed.add('assignee')
     self._data['issueState']['assignee'] = _make_user(new_assignee)
 
   @property
-  def created_time(self):
+  def created_time(self) -> Optional[str]:
     """The time at which this issue was created."""
     return self._data['createdTime']
 
   @property
-  def ccs(self):
+  def ccs(self) -> LabelStore:
     """The issue CC list."""
     return self._ccs
 
   @property
-  def labels(self):
+  def labels(self) -> LabelStore:
     """The issue labels list."""
     return self._labels
 
   @property
-  def component_id(self):
+  def component_id(self) -> Optional[Union[int, str]]:
     """The issue's component ID."""
     return self._data['issueState']['componentId']
 
   @component_id.setter
-  def component_id(self, component_id):
+  def component_id(self, component_id: Union[int, str]) -> None:
     """Setter for component_id."""
     self._changed.add('component_id')
     self._data['issueState']['componentId'] = component_id
 
   @property
-  def components(self):
+  def components(self) -> LabelStore:
     """The issue's component tags."""
     return self._component_tags
 
   @property
-  def actions(self):
+  def actions(self) -> Iterator['Action']:
     """Gets the issue actions."""
     page_token = None
     while True:
@@ -494,7 +513,7 @@ class Issue(issue_tracker.Issue):
     return []
 
   @property
-  def _foundin_versions(self):
+  def _foundin_versions(self) -> List[str]:
     """FoundIn versions."""
     foundin_versions = self._data['issueState'].get('foundInVersions')
     if not foundin_versions:
@@ -502,7 +521,7 @@ class Issue(issue_tracker.Issue):
     return foundin_versions
 
   @property
-  def _verifier(self):
+  def _verifier(self) -> Optional[str]:
     """The issue verifier."""
     verifier = self._data['issueState'].get('verifier')
     if not verifier:
@@ -510,17 +529,19 @@ class Issue(issue_tracker.Issue):
     return verifier['emailAddress']
 
   @_verifier.setter
-  def _verifier(self, new_verifier):
+  def _verifier(self, new_verifier: Optional[str]) -> None:
     self._changed.add('_verifier')
     self._data['issueState']['verifier'] = _make_user(new_verifier)
 
-  def _add_update_single(self,
-                         update_body,
-                         added,
-                         removed,
-                         field_name,
-                         api_field_name,
-                         modifier=None):
+  def _add_update_single(
+      self,
+      update_body: Dict[str, Any],
+      added: List[str],
+      removed: List[str],
+      field_name: str,
+      api_field_name: str,
+      modifier: Optional[Callable[[Any], Any]] = None,
+  ) -> None:
     """Prepares a single field update."""
     if field_name not in self._changed:
       return
@@ -533,16 +554,18 @@ class Issue(issue_tracker.Issue):
     else:
       removed.append(api_field_name)
 
-  def _set_severity(self, severity: str):
+  def _set_severity(self, severity: str) -> None:
     self._data['issueState']['severity'] = severity
 
-  def _add_update_collection(self,
-                             update_body,
-                             added,
-                             removed,
-                             field_name,
-                             api_field_name,
-                             modifier=None):
+  def _add_update_collection(
+      self,
+      update_body: Dict[str, Any],
+      added: List[str],
+      removed: List[str],
+      field_name: str,
+      api_field_name: str,
+      modifier: Optional[Callable[[Any], Any]] = None,
+  ) -> None:
     """Prepares a collection field update."""
     collection = getattr(self, field_name)
     collection_added = list(collection.added)
@@ -558,9 +581,11 @@ class Issue(issue_tracker.Issue):
         collection_removed = modifier(collection_removed)
       update_body['remove'][api_field_name] = collection_removed
 
-  def _update_issue(self, new_comment=None, notify=True):
+  def _update_issue(self,
+                    new_comment: Optional[str] = None,
+                    notify: bool = True) -> Dict[str, Any]:
     """Updates an existing issue."""
-    update_body = {
+    update_body: Dict[str, Any] = {
         'add': {},
         'addMask': '',
         'remove': {},
@@ -574,8 +599,8 @@ class Issue(issue_tracker.Issue):
       if not self.assignee:
         self.assignee = client.user()
     # Add updates.
-    added = []
-    removed = []
+    added: List[str] = []
+    removed: List[str] = []
     self._add_update_single(update_body, added, removed, 'status', 'status')
     self._add_update_single(update_body, added, removed, 'assignee', 'assignee',
                             _make_user)
@@ -593,7 +618,7 @@ class Issue(issue_tracker.Issue):
 
     # Custom fields are modified by providing the complete value of the
     # customFieldId.
-    custom_field_entries = []
+    custom_field_entries: List[Dict[str, Any]] = []
 
     # Special case OS custom field.
     added_oses = _get_labels(self.labels.added, 'OS-')
@@ -728,8 +753,14 @@ class Issue(issue_tracker.Issue):
                                       issueId=str(self.id)))
     return result
 
+  # pylint: disable=dangerous-default-value
   @retry_on_invalid_gaia_accounts
-  def save(self, new_comment=None, notify=True, skip_emails=[]):  # pylint: disable=dangerous-default-value
+  def save(
+      self,
+      new_comment: Optional[str] = None,
+      notify: bool = True,
+      skip_emails: Sequence[str] = [],
+  ) -> None:
     """Saves the issue."""
     logs.info(f'Skipping supposed non gaia emails emails: {skip_emails}.')
     if self._is_new:
@@ -739,7 +770,7 @@ class Issue(issue_tracker.Issue):
       self._data['issueState']['type'] = issue_type
       self._data['issueState']['priority'] = priority
 
-      custom_field_entries = []
+      custom_field_entries: List[Dict[str, Any]] = []
       oses = _sanitize_oses(_extract_all_labels(self.labels, 'OS-'))
       if oses:
         oses.sort()
@@ -838,12 +869,12 @@ class Issue(issue_tracker.Issue):
     logs.info('google_issue_tracker: self._data: %s' % self._data)
 
 
-class Action(issue_tracker.Action):
+class Action(BaseAction):
   """Issue tracker action."""
 
   # FieldUpdates give us the integer value for statuses, so we need to keep this
   # mapping.
-  INT_TO_STATUS = {
+  INT_TO_STATUS: Dict[Any, str] = {
       1: 'NEW',
       2: 'ASSIGNED',
       3: 'ACCEPTED',
@@ -856,10 +887,10 @@ class Action(issue_tracker.Action):
       10: 'DUPLICATE',
   }
 
-  def __init__(self, data):
-    self._data = data
+  def __init__(self, data: Dict[str, Any]) -> None:
+    self._data: Dict[str, Any] = data
 
-  def _get_actual_value(self, value):
+  def _get_actual_value(self, value: Optional[Dict[str, Any]]) -> Optional[Any]:
     """Gets the actual value of a field update google.protobuf.Any value."""
     if value is None:
       return None
@@ -869,13 +900,14 @@ class Action(issue_tracker.Action):
       return value['value']
     raise IssueTrackerError('Unknown value type: ' + value['type'])
 
-  def _get_actual_values(self, values):
+  def _get_actual_values(
+      self, values: Optional[Sequence[Dict[str, Any]]]) -> Optional[List[Any]]:
     """Gets the actual values of field update values."""
     if values is None:
       return None
     return [self._get_actual_value(value) for value in values]
 
-  def _get_field_update(self, field_name):
+  def _get_field_update(self, field_name: str) -> Optional[Dict[str, Any]]:
     """Gets the FieldUpdate for a field name."""
     if 'fieldUpdates' not in self._data:
       return None
@@ -885,7 +917,8 @@ class Action(issue_tracker.Action):
         None,
     )
 
-  def _get_field_update_single(self, field_name):
+  def _get_field_update_single(
+      self, field_name: str) -> Tuple[Optional[Any], Optional[Any]]:
     """Gets a single field update."""
     update = self._get_field_update(field_name)
     if not update:
@@ -898,7 +931,8 @@ class Action(issue_tracker.Action):
         self._get_actual_value(single_value_update.get('newValue')),
     )
 
-  def _get_field_update_changes(self, field_name):
+  def _get_field_update_changes(
+      self, field_name: str) -> Tuple[Optional[List[Any]], Optional[List[Any]]]:
     """Gets a collection field update."""
     update = self._get_field_update(field_name)
     if not update:
@@ -912,29 +946,29 @@ class Action(issue_tracker.Action):
     )
 
   @property
-  def author(self):
+  def author(self) -> Optional[str]:
     """The author of the action."""
     return self._data['author']['emailAddress']
 
   @property
-  def comment(self):
+  def comment(self) -> Optional[str]:
     """Represents a comment."""
     if 'issueComment' not in self._data:
       return None
     return self._data['issueComment']['comment']
 
   @property
-  def title(self):
+  def title(self) -> Optional[str]:
     """The new issue title."""
     return self._get_field_update_single('title')[1]
 
   @property
-  def status(self):
+  def status(self) -> Optional[str]:
     """The new issue status."""
     return self.INT_TO_STATUS.get(self._get_field_update_single('status')[1])
 
   @property
-  def assignee(self):
+  def assignee(self) -> Optional[str]:
     """The new issue assignee."""
     assignee = self._get_field_update_single('assignee')[1]
     if not assignee:
@@ -942,10 +976,10 @@ class Action(issue_tracker.Action):
     return assignee
 
   @property
-  def ccs(self):
+  def ccs(self) -> ChangeList:
     """The issue CC change list."""
     removed, added = self._get_field_update_changes('ccs')
-    change_list = issue_tracker.ChangeList()
+    change_list = ChangeList()
     if added:
       change_list.added.extend(added)
     if removed:
@@ -953,12 +987,12 @@ class Action(issue_tracker.Action):
     return change_list
 
   @property
-  def labels(self):
+  def labels(self) -> ChangeList:
     """The issue labels change list."""
     # We need to use the snake_case version of the field here, as that's the
     # string value the backend actually uses.
     removed, added = self._get_field_update_changes('hotlist_ids')
-    change_list = issue_tracker.ChangeList()
+    change_list = ChangeList()
     if added:
       change_list.added.extend(added)
     if removed:
@@ -966,29 +1000,31 @@ class Action(issue_tracker.Action):
     return change_list
 
   @property
-  def components(self):
+  def components(self) -> ChangeList:
     # Component tags will be handled by _update_issue and save.
-    return issue_tracker.ChangeList()
+    return ChangeList()
 
 
-class IssueTracker(issue_tracker.IssueTracker):
+class IssueTracker(BaseIssueTracker):
   """Google issue tracker implementation."""
 
-  def __init__(self, project, http_client, config):
-    self._project = project
-    self._client = http_client
-    self._default_component_id = config['default_component_id']
-    self._type = config['type'] if hasattr(config, 'type') else None
-    self._url = config['url']
+  def __init__(self, project: str, http_client: Optional[Any],
+               config: Any) -> None:
+    self._project: str = project
+    self._client: Optional[Any] = http_client
+    self._default_component_id: Union[int, str] = config['default_component_id']
+    self._type: Optional[str] = config['type'] if hasattr(config,
+                                                          'type') else None
+    self._url: str = config['url']
 
   @property
-  def client(self):
+  def client(self) -> Any:
     """HTTP Client."""
     if self._client is None:
       self._client = client.build()
     return self._client
 
-  def _execute(self, request):
+  def _execute(self, request: Any) -> Any:
     """Executes a request."""
     http = None
     for _ in range(2):
@@ -1007,16 +1043,16 @@ class IssueTracker(issue_tracker.IssueTracker):
         raise IssueTrackerError(str(e))
 
   @property
-  def project(self):
+  def project(self) -> str:
     """Gets the project name of this issue tracker."""
     return self._project
 
   @property
-  def type(self):
+  def type(self) -> Optional[str]:
     """The type of the tracker - e.g. monorail, google-issue-tracker, etc."""
     return self._type
 
-  def new_issue(self):
+  def new_issue(self) -> Issue:
     """Creates an unsaved new issue."""
     data = {
         'issueState': {
@@ -1031,7 +1067,8 @@ class IssueTracker(issue_tracker.IssueTracker):
     }
     return Issue(data, True, self)
 
-  def _get_relative_component_path(self, component_id):
+  def _get_relative_component_path(
+      self, component_id: Union[int, str]) -> Optional[str]:
     """Gets the component path relative to the default component path.
 
     For component_id=1456567 (Sparkplug) and
@@ -1059,10 +1096,10 @@ class IssueTracker(issue_tracker.IssueTracker):
       if parent_component_id == str(self._default_component_id):
         return component_name
       return self._get_relative_component_path(
-          parent_component_id) + ">" + component_name
+          parent_component_id) + ">" + component_name  # type: ignore
     return None
 
-  def get_issue(self, issue_id):
+  def get_issue(self, issue_id: Union[int, str]) -> Optional[Issue]:
     """Gets the issue with the given ID."""
     try:
       issue = self._execute(self.client.issues().get(issueId=str(issue_id)))
@@ -1074,7 +1111,7 @@ class IssueTracker(issue_tracker.IssueTracker):
       logs.error('Failed to retrieve issue.', issue_id=issue_id)
       return None
 
-  def get_description(self, issue_id):
+  def get_description(self, issue_id: Union[int, str]) -> Optional[str]:
     """Gets the content of the description for the issue with the given ID."""
     try:
       comments = self._execute(
@@ -1090,7 +1127,8 @@ class IssueTracker(issue_tracker.IssueTracker):
       logs.error('Failed to retrieve issue description.', issue_id=issue_id)
       return None
 
-  def get_attachment_metadata(self, issue_id):
+  def get_attachment_metadata(
+      self, issue_id: Union[int, str]) -> Optional[List[Dict[str, Any]]]:
     """Gets the attachment metadata of an issue with the given ID."""
     try:
       attachment_metadata = self._execute(
@@ -1105,7 +1143,7 @@ class IssueTracker(issue_tracker.IssueTracker):
           'Failed to retrieve issue attachment metadata.', issue_id=issue_id)
       return None
 
-  def get_attachment(self, resource_name):
+  def get_attachment(self, resource_name: str) -> Optional[Any]:
     """Gets the attachment for the given resource name."""
     try:
       http_request = self.client.media().download(resourceName=resource_name)
@@ -1121,14 +1159,20 @@ class IssueTracker(issue_tracker.IssueTracker):
           'Failed to retrieve attachment for resource name: %s' % resource_name)
       return None
 
-  def find_issues(self, keywords=None, only_open=None):
+  def find_issues(
+      self,
+      keywords: Optional[Union[str, List[str]]] = None,
+      only_open: Optional[bool] = None,
+  ) -> Iterator[Issue]:
     """Finds issues."""
     return self.find_issues_with_filters(keywords=keywords, only_open=only_open)
 
-  def find_issues_with_filters(self,
-                               keywords=None,
-                               query_filters=None,
-                               only_open=None):
+  def find_issues_with_filters(
+      self,
+      keywords: Optional[Union[str, List[str]]] = None,
+      query_filters: Optional[Any] = None,
+      only_open: Optional[bool] = None,
+  ) -> Iterator[Issue]:
     """Finds issues with additional query filters."""
     page_token = None
     while True:
@@ -1147,15 +1191,21 @@ class IssueTracker(issue_tracker.IssueTracker):
       if not page_token:
         break
 
-  def find_issues_url(self, keywords=None, only_open=None):
+  def find_issues_url(
+      self,
+      keywords: Optional[Union[str, List[str]]] = None,
+      only_open: Optional[bool] = None,
+  ) -> str:
     """Finds issues (web URL)."""
     return self.find_issues_url_with_filters(
         keywords=keywords, only_open=only_open)
 
-  def find_issues_url_with_filters(self,
-                                   keywords=None,
-                                   query_filters=None,
-                                   only_open=None):
+  def find_issues_url_with_filters(
+      self,
+      keywords: Optional[Union[str, List[str]]] = None,
+      query_filters: Optional[Any] = None,
+      only_open: Optional[bool] = None,
+  ) -> str:
     """Finds issues (web URL) with additional query filters."""
     return (self._url + '?' + urllib.parse.urlencode({
         'q':
@@ -1165,33 +1215,33 @@ class IssueTracker(issue_tracker.IssueTracker):
                 only_open=only_open),
     }))
 
-  def issue_url(self, issue_id):
+  def issue_url(self, issue_id: Union[int, str]) -> str:
     """Returns the issue URL with the given ID."""
     return self._url + '/' + str(issue_id)
 
   @property
-  def label_type(self):
+  def label_type(self) -> str:
     """Label type."""
     return 'hotlist'
 
-  def label_text(self, label):
+  def label_text(self, label: Union[int, str]) -> str:
     """Text for a label (with label type)."""
     return 'hotlistid:' + str(label)
 
 
-def _make_user(email):
+def _make_user(email: Optional[str]) -> Dict[str, Optional[str]]:
   """Makes a User."""
   return {
       'emailAddress': email,
   }
 
 
-def _make_users(emails):
+def _make_users(emails: Iterable[str]) -> List[Dict[str, Optional[str]]]:
   """Makes Users."""
   return [_make_user(email) for email in emails]
 
 
-def _parse_datetime(date_string):
+def _parse_datetime(date_string: str) -> datetime.datetime:
   """Parses a datetime."""
   datetime_obj, _, microseconds_string = date_string.rstrip('Z').partition('.')
   datetime_obj = datetime.datetime.strptime(datetime_obj, '%Y-%m-%dT%H:%M:%S')
@@ -1201,9 +1251,14 @@ def _parse_datetime(date_string):
   return datetime_obj
 
 
-def _get_query(string_keywords, only_open, query_filters):
+def _get_query(
+    string_keywords: Optional[Union[str, Iterable[str]]],
+    only_open: Optional[bool],
+    query_filters: Optional[Iterable[str]],
+) -> str:
   """Gets a search query."""
-  query = ' '.join('"{}"'.format(keyword) for keyword in string_keywords)
+  query = ' '.join(
+      '"{}"'.format(keyword) for keyword in string_keywords)  # type: ignore
   if query_filters:
     query += ' '
     query += ' '.join('{}'.format(keyword) for keyword in query_filters)

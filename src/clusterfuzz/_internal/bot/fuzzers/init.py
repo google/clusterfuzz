@@ -19,7 +19,7 @@ from clusterfuzz._internal import fuzzing
 from clusterfuzz.fuzz import engine
 
 
-def run(include_lowercase=False):
+def run(include_lowercase: bool = False) -> None:
   """Initialise builtin fuzzing engines."""
   engines = fuzzing.ENGINES
 

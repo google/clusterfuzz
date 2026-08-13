@@ -12,17 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tools for concurrency/parallelism."""
+from collections.abc import Iterator
 from concurrent import futures
 import contextlib
 import multiprocessing
 
 from clusterfuzz._internal.system import environment
 
-POOL_SIZE = multiprocessing.cpu_count()
+POOL_SIZE: int = multiprocessing.cpu_count()
 
 
 @contextlib.contextmanager
-def make_pool(pool_size=POOL_SIZE, max_pool_size=None, use_threads=False):
+def make_pool(
+    pool_size: int = POOL_SIZE,
+    max_pool_size: int | None = None,
+    use_threads: bool = False,
+) -> Iterator[futures.ThreadPoolExecutor | futures.ProcessPoolExecutor]:
   """Returns a pool that can (usually) execute tasks concurrently."""
   if max_pool_size is not None:
     pool_size = min(pool_size, max_pool_size)

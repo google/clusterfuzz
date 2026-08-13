@@ -13,11 +13,16 @@
 # limitations under the License.
 """Handler that serves the testcase file."""
 
+from typing import Any
+from typing import cast
 import urllib.parse
 
 from flask import request
+from flask import Response
 
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
 from handlers import base_handler
 from libs import access
 from libs import gcs
@@ -26,10 +31,11 @@ from libs import helpers
 
 # Blob's filename can be very long. We only preview the last N characters.
 # A too long file name can cause an issue with `curl` and `wget`.
-PREVIEW_BLOB_FILENAME_LENTGH = 20
+PREVIEW_BLOB_FILENAME_LENTGH: int = 20
 
 
-def get_testcase_blob_info(testcase):
+def get_testcase_blob_info(
+    testcase: data_types.Testcase) -> tuple[storage.GcsBlobInfo, bool]:
   """Get testcase file in the binary form."""
   blob_key = testcase.minimized_keys
   using_minimized_keys = True
@@ -45,12 +51,12 @@ def get_testcase_blob_info(testcase):
   blob_key = str(urllib.parse.unquote(blob_key))
 
   blob_info = blobs.get_blob_info(blob_key)
-  return blob_info, using_minimized_keys
+  return cast(storage.GcsBlobInfo, blob_info), using_minimized_keys
 
 
-def get(self):
+def get(self: gcs.SignedGcsHandler) -> Response:
   """Get testcase file and write it to the handler."""
-  testcase_id = request.get('id')
+  testcase_id = cast(Any, request).get('id')
   testcase = access.check_access_and_get_testcase(testcase_id)
 
   blob_info, _ = get_testcase_blob_info(testcase)
@@ -68,6 +74,6 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
 
   @handler.get(handler.HTML)
   @handler.oauth
-  def get(self):
+  def get(self) -> Response:
     """Serve the testcase file."""
     return get(self)

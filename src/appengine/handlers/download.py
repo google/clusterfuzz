@@ -14,32 +14,38 @@
 """Download files from GCS."""
 
 import os
+from typing import cast
 import urllib.parse
 
 from flask import request
+from flask import Response
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.issue_management.issue_tracker import Issue
+from clusterfuzz._internal.issue_management.issue_tracker import IssueTracker
 from handlers import base_handler
 from libs import access
 from libs import gcs
 from libs import helpers
 
-_OSS_FUZZ_REPRODUCER_DELAY = 30
+_OSS_FUZZ_REPRODUCER_DELAY: int = 30
 
 
 class Handler(base_handler.Handler, gcs.SignedGcsHandler):
   """Download a file from GCS."""
 
   def _send_blob(self,
-                 blob_info,
-                 testcase_id,
-                 is_minimized=False,
-                 fuzzer_binary_name=None):
+                 blob_info: storage.GcsBlobInfo,
+                 testcase_id: str | int | None,
+                 is_minimized: bool = False,
+                 fuzzer_binary_name: str | None = None) -> Response:
     """Send the blob."""
     minimized_string = 'minimized-' if is_minimized else ''
     fuzzer_binary_string = (
@@ -63,7 +69,9 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     response.headers['Content-disposition'] = content_disposition
     return response
 
-  def check_public_testcase(self, issue, blob_info, testcase):
+  def check_public_testcase(self, issue: Issue | None,
+                            blob_info: storage.GcsBlobInfo,
+                            testcase: data_types.Testcase) -> bool:
     """Check public testcase. |issue| is the already-fetched issue (or None)."""
     if blob_info.key() != testcase.minimized_keys:
       return False
@@ -86,7 +94,9 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
 
     return True
 
-  def check_derestricted_testcase(self, issue, blob_info, testcase):
+  def check_derestricted_testcase(self, issue: Issue | None,
+                                  blob_info: storage.GcsBlobInfo,
+                                  testcase: data_types.Testcase) -> bool:
     """Check if a testcase's associated bug has been derestricted (made public).
 
     For Chromium deployments, checks if the corresponding bug tracker issue has
@@ -106,7 +116,7 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
 
     return issue.is_unrestricted
 
-  def get(self, resource=None):
+  def get(self, resource: str | None = None) -> Response:
     """Handle a get request with resource."""
     testcase = None
     testcase_id = request.args.get('testcase_id')
@@ -129,7 +139,7 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     if testcase:
       fuzzer_binary_name = testcase.get_metadata('fuzzer_binary_name')
 
-    resource = str(urllib.parse.unquote(resource))
+    resource = str(urllib.parse.unquote(cast(str, resource)))
     blob_info = blobs.get_blob_info(resource)
     if not blob_info:
       raise helpers.EarlyExitError('File does not exist.', 400)
@@ -138,7 +148,8 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
         testcase.minimized_keys != blob_info.key()):
       raise helpers.EarlyExitError('Invalid testcase.', 400)
 
-    is_minimized = testcase and blob_info.key() == testcase.minimized_keys
+    is_minimized = cast(bool, testcase and
+                        blob_info.key() == testcase.minimized_keys)
 
     if not testcase:
       # Non-testcase blob. General access is sufficient.
@@ -161,7 +172,8 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     if testcase.bug_information:
       issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
           testcase)
-      issue = issue_tracker.get_issue(testcase.bug_information)
+      issue = cast(IssueTracker,
+                   issue_tracker).get_issue(testcase.bug_information)
 
     if utils.is_oss_fuzz() and self.check_public_testcase(
         issue, blob_info, testcase):

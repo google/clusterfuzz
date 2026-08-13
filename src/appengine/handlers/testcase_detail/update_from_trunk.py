@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for updating from trunk. In other words, updating the stacktrace."""
+
+from flask import Response
+
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.datastore import data_types
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
 from libs import helpers
 
 
-def update(testcase):
+def update(testcase: data_types.Testcase) -> None:
   """Update from trunk."""
   testcase.last_tested_crash_stacktrace = 'Pending'
   testcase.put()
@@ -41,7 +45,7 @@ class Handler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
   @handler.check_testcase_access
-  def post(self, testcase):
+  def post(self, testcase: data_types.Testcase) -> Response:
     """Update from trunk."""
     update(testcase)
     return self.render_json(show.get_testcase_detail(testcase))

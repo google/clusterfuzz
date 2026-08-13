@@ -13,13 +13,14 @@
 # limitations under the License.
 """Date or time helper functions."""
 
+import datetime
 import time
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.system import environment
 
 
-def initialize_timezone_from_environment():
+def initialize_timezone_from_environment() -> None:
   """Initializes timezone for date functions based on environment."""
   plt = environment.platform()
   if plt == 'WINDOWS':
@@ -29,13 +30,16 @@ def initialize_timezone_from_environment():
   time.tzset()
 
 
-def time_has_expired(timestamp,
-                     compare_to=None,
-                     days=0,
-                     hours=0,
-                     minutes=0,
-                     seconds=0):
+def time_has_expired(timestamp: datetime.datetime | None,
+                     compare_to: datetime.datetime | None = None,
+                     days: int = 0,
+                     hours: int = 0,
+                     minutes: int = 0,
+                     seconds: int = 0) -> bool:
   """Checks to see if a timestamp is older than another by a certain amount."""
+  if timestamp is None:
+    return False
+
   if compare_to is None:
     compare_to = utils.utcnow()
 

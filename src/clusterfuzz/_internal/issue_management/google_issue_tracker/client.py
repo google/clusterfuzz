@@ -13,6 +13,9 @@
 # limitations under the License.
 """Gets a Google Issue Tracker HTTP client."""
 
+from typing import Any
+from typing import cast
+
 import google.auth
 import google_auth_httplib2
 from googleapiclient import discovery
@@ -21,26 +24,27 @@ import httplib2
 
 from clusterfuzz._internal.base import retry
 
-_ROLE_ACCOUNT = "cluster-fuzz@appspot.gserviceaccount.com"
+_ROLE_ACCOUNT: str = 'cluster-fuzz@appspot.gserviceaccount.com'
 
-_DISCOVERY_URL = ('https://issuetracker.googleapis.com/$discovery/rest?'
-                  'version=v1&labels=GOOGLE_PUBLIC')
-_SCOPE = 'https://www.googleapis.com/auth/buganizer'
-_REQUEST_TIMEOUT = 60
+_DISCOVERY_URL: str = ('https://issuetracker.googleapis.com/$discovery/rest?'
+                       'version=v1&labels=GOOGLE_PUBLIC')
+_SCOPE: str = 'https://www.googleapis.com/auth/buganizer'
+_REQUEST_TIMEOUT: int = 60
 
 HttpError = errors.HttpError
 UnknownApiNameOrVersion = errors.UnknownApiNameOrVersion
 
 
-def user():
+def user() -> str:
   return _ROLE_ACCOUNT
 
 
-def build_http():
+def build_http() -> google_auth_httplib2.AuthorizedHttp:
   """Builds a httplib2.Http."""
   creds, _ = google.auth.default()
-  if creds.requires_scopes:
-    creds = creds.with_scopes([_SCOPE])
+  creds_any = cast(Any, creds)
+  if creds_any.requires_scopes:
+    creds = creds_any.with_scopes([_SCOPE])
   return google_auth_httplib2.AuthorizedHttp(
       creds, http=httplib2.Http(timeout=_REQUEST_TIMEOUT))
 
@@ -51,7 +55,10 @@ def build_http():
     exception_types=[UnknownApiNameOrVersion],
     function='issue_issue_management.google_issue_tracker,client.'
     '_call_discovery')
-def _call_discovery(api, http):
+def _call_discovery(
+    api: str,
+    http: httplib2.Http | google_auth_httplib2.AuthorizedHttp,
+) -> discovery.Resource:
   """Calls the discovery service.
 
   Retries upto twice if there are any UnknownApiNameOrVersion errors.
@@ -64,7 +71,10 @@ def _call_discovery(api, http):
       static_discovery=False)
 
 
-def build(api='issuetracker', http=None):
+def build(
+    api: str = 'issuetracker',
+    http: httplib2.Http | google_auth_httplib2.AuthorizedHttp | None = None,
+) -> discovery.Resource:
   """Builds a google api client for buganizer."""
   if not http:
     http = build_http()

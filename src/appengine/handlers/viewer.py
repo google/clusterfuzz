@@ -13,6 +13,9 @@
 # limitations under the License.
 """Content viewer."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
 from clusterfuzz._internal.base import utils
@@ -22,20 +25,20 @@ from libs import access
 from libs import handler
 from libs import helpers
 
-MAX_ALLOWED_CONTENT_SIZE = 10 * 1024 * 1024
+MAX_ALLOWED_CONTENT_SIZE: int = 10 * 1024 * 1024
 
 
 class Handler(base_handler.Handler):
   """Content Viewer."""
 
   @handler.get(handler.HTML)
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Get the HTML page."""
-    key = request.get('key')
+    key = cast(Any, request).get('key')
     if not key:
       raise helpers.EarlyExitError('No key provided.', 400)
 
-    testcase_id = request.get('testcase_id')
+    testcase_id = cast(Any, request).get('testcase_id')
     if testcase_id:
       testcase = helpers.get_testcase(testcase_id)
       if not access.can_user_access_testcase(testcase):
@@ -56,7 +59,8 @@ class Handler(base_handler.Handler):
     # once it is fixed properly upstream:
     # https://github.com/googleapis/google-cloud-python/issues/6572
       try:
-        content = blobs.read_key(key).decode('utf-8', errors='replace')
+        content = cast(bytes, blobs.read_key(key)).decode(
+            'utf-8', errors='replace')
       except Exception:
         raise helpers.EarlyExitError('Failed to read content.', 400)
     else:

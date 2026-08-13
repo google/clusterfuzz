@@ -13,21 +13,28 @@
 # limitations under the License.
 """Query handles pagination and OR conditions with its best effort."""
 
+from collections.abc import Callable
+from collections.abc import Sequence
+from typing import Any
+from typing import cast
+
+from google.cloud import ndb
 from google.cloud.ndb import exceptions
 
 from libs.query import base
 
 
-def _get_key_fn(attribute_name):
+def _get_key_fn(attribute_name: str | None) -> Callable[[Any], Any]:
   """Return the function to get attr of an item. This is used in sorting."""
 
-  def get_key(item):
-    return getattr(item, attribute_name)
+  def get_key(item: Any) -> Any:
+    return getattr(item, cast(str, attribute_name))
 
   return get_key
 
 
-def compute_projection(projection, order_property):
+def compute_projection(projection: Sequence[str] | None,
+                       order_property: str) -> list[str] | None:
   """Set projection."""
   if projection is None:
     return None
@@ -37,7 +44,7 @@ def compute_projection(projection, order_property):
   return list(combined_projection)
 
 
-def _combine(q1, q2):
+def _combine(q1: '_KeyQuery', q2: '_KeyQuery') -> '_KeyQuery':
   """Combine KeyQuery q1 and q2. We ignore or_filters because we assume q1 and
     q2 are flat. In other words, they are results of _KeyQuery.flatten(..)."""
   assert not q1.or_filters
@@ -55,7 +62,10 @@ def _combine(q1, q2):
 class _Run:
   """Encapsulate a query and its run."""
 
-  def __init__(self, query, **kwargs):
+  query: ndb.Query
+  result: Any
+
+  def __init__(self, query: ndb.Query, **kwargs: Any) -> None:
     self.query = query
     self.result = query.iter(**kwargs)
 
@@ -63,18 +73,24 @@ class _Run:
 class _KeyQuery:
   """Query only keys. It supports an OR condition."""
 
-  def __init__(self, model):
+  model: type[ndb.Model]
+  or_filters: list[tuple['_KeyQuery', ...]]
+  filters: list[tuple[str, str, Any]]
+  order_property: str | None
+  order_desc: bool
+
+  def __init__(self, model: type[ndb.Model]) -> None:
     self.model = model
     self.or_filters = []
     self.filters = []
     self.order_property = None
     self.order_desc = False
 
-  def union(self, *queries):
+  def union(self, *queries: '_KeyQuery') -> None:
     """Specify the OR condition."""
     self.or_filters.append(queries)
 
-  def filter(self, operator, prop, value):
+  def filter(self, operator: str, prop: str, value: Any) -> None:
     """Specify the filter."""
     if operator == 'IN':
       subqueries = []
@@ -86,11 +102,11 @@ class _KeyQuery:
     else:
       self.filters.append((operator, prop, value))
 
-  def order(self, prop, is_desc):
+  def order(self, prop: str | None, is_desc: bool) -> None:
     """Specify the order."""
     self.order_property, self.order_desc = prop, is_desc
 
-  def flatten(self):
+  def flatten(self) -> list['_KeyQuery']:
     """Flatten self into multiple queries if or_filters is not empty."""
     if not self.or_filters:
       return [self]
@@ -99,13 +115,13 @@ class _KeyQuery:
       for q in qs:
         q.order(self.order_property, self.order_desc)
 
-    queries = []
+    queries: list['_KeyQuery'] = []
     for query in self.or_filters[0]:
       for q in query.flatten():
         queries.append(q)
 
     for or_queries in self.or_filters[1:]:
-      new_queries = []
+      new_queries: list['_KeyQuery'] = []
       for oq in or_queries:
         for fq in oq.flatten():
           for q in queries:
@@ -118,13 +134,14 @@ class _KeyQuery:
 
     return queries
 
-  def to_datastore_query(self):
+  def to_datastore_query(self) -> ndb.Query:
     """Return the corresponding datastore query."""
     assert not self.or_filters
 
     query = self.model.query()
-    properties = self.model._properties  # pylint: disable=protected-access
+    properties = cast(Any, self.model)._properties  # pylint: disable=protected-access
     for (prop_op, prop, value) in self.filters:
+      filter_func: Any = None
       if prop_op == '=':
         filter_func = properties[prop].__eq__
       elif prop_op == '!=':
@@ -138,7 +155,8 @@ class _KeyQuery:
       elif prop_op == '>=':
         filter_func = properties[prop].__ge__
 
-      query = query.filter(filter_func(value))
+      if filter_func:
+        query = query.filter(filter_func(value))
 
     if self.order_property:
       order_property = properties[self.order_property]
@@ -149,7 +167,7 @@ class _KeyQuery:
 
     return query
 
-  def _build_runs(self, total):
+  def _build_runs(self, total: int) -> list[_Run]:
     """Construct queries and run them."""
     queries = self.flatten()
 
@@ -166,7 +184,9 @@ class _KeyQuery:
               limit=total))
     return runs
 
-  def _get_total_count(self, runs, offset, limit, items, more_limit):
+  def _get_total_count(self, runs: Sequence[_Run], offset: int, limit: int,
+                       items: Sequence[Any],
+                       more_limit: int) -> tuple[int, bool]:
     """Get total count by querying more items."""
     max_total_count = offset + limit + more_limit
     current_count = len(items)
@@ -201,7 +221,8 @@ class _KeyQuery:
 
     return total_count, has_more
 
-  def fetch(self, offset, limit, more_limit):
+  def fetch(self, offset: int, limit: int,
+            more_limit: int) -> tuple[list[Any], int, bool]:
     """Construct multiple queries based on the or_filters, query them,
       combined the results, return items and total_count."""
     runs = self._build_runs(offset + limit)
@@ -227,35 +248,41 @@ class Query(base.Query):
   """Query that returns items with a smart count. A smart count indicates
     a lowerbound of the total count (e.g. 500+)."""
 
-  def __init__(self, model):
+  model: type[ndb.Model]
+  key_query: _KeyQuery
+  order_property: str | None
+  order_desc: bool
+
+  def __init__(self, model: type[ndb.Model]) -> None:
     self.model = model
     self.key_query = _KeyQuery(model)
     self.order_property = None
     self.order_desc = False
 
-  def filter(self, field, value, operator='='):
+  def filter(self, field: str, value: Any, operator: str = '=') -> None:
     """Specify the filter."""
     self.key_query.filter(operator, field, value)
 
-  def filter_in(self, field, values):
+  def filter_in(self, field: str, values: Sequence[Any]) -> None:
     """Specify the filter IN."""
     self.key_query.filter('IN', field, values)
 
-  def union(self, *queries):
+  def union(self, *queries: Any) -> None:
     """Specify the OR condition."""
     self.key_query.union(*[q.key_query for q in queries])
 
-  def new_subquery(self):
+  def new_subquery(self) -> 'Query':
     """Generate a new subquery with the same model."""
     return Query(self.model)
 
-  def order(self, field, is_desc):
+  def order(self, field: str, is_desc: bool) -> None:
     """Specify the order."""
     self.order_property = field
     self.order_desc = is_desc
     self.key_query.order(field, is_desc)
 
-  def fetch(self, offset, limit, projection, more_limit):
+  def fetch(self, offset: int, limit: int, projection: Sequence[str] | None,
+            more_limit: int) -> tuple[list[Any], int, bool]:
     """Return the items, the total count, and if there are more number of items
       than the total count."""
     assert self.order_property
@@ -265,7 +292,7 @@ class Query(base.Query):
 
     if keys:
       item_query = self.key_query.model.query(
-          self.key_query.model.key.IN([key.key for key in keys]))
+          cast(Any, self.key_query.model).key.IN([key.key for key in keys]))
 
       items = item_query.fetch(
           limit=limit,
@@ -277,7 +304,9 @@ class Query(base.Query):
 
     return items, total_count, has_more
 
-  def fetch_page(self, page, page_size, projection, more_limit):
+  def fetch_page(self, page: int, page_size: int,
+                 projection: Sequence[str] | None,
+                 more_limit: int) -> tuple[list[Any], int, int, bool]:
     """Return the items, total_pages, total_items, and has_more."""
 
     # Validation check to convert all negative page numbers to 1.

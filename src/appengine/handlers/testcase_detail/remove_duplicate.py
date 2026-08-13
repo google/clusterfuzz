@@ -13,15 +13,19 @@
 # limitations under the License.
 """Handler for removing duplicate_of of a testcase."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
+from clusterfuzz._internal.datastore.data_types import Testcase
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
 from libs import helpers
 
 
-def remove(testcase):
+def remove(testcase: Testcase) -> None:
   """Remove duplicate status from a test case."""
   testcase.status = 'Processed'
   testcase.duplicate_of = None
@@ -37,9 +41,9 @@ class Handler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
   @handler.check_admin_access
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Remove duplicate status from a test case."""
-    testcase_id = request.get('testcaseId')
+    testcase_id = cast(Any, request).get('testcaseId')
     testcase = helpers.get_testcase(testcase_id)
     remove(testcase)
     return self.render_json(show.get_testcase_detail(testcase))

@@ -13,8 +13,13 @@
 # limitations under the License.
 """Handler for creating issue."""
 
-from flask import request
+from typing import Any
+from typing import cast
 
+from flask import request
+from flask import Response
+
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.metrics import events
 from handlers import base_handler
@@ -27,7 +32,8 @@ class Handler(base_handler.Handler):
   """Handler that creates an issue."""
 
   @staticmethod
-  def create_issue(testcase, severity, cc_me):
+  def create_issue(testcase: data_types.Testcase, severity: Any,
+                   cc_me: Any) -> None:
     """Create an issue."""
     issue_tracker = helpers.get_issue_tracker_for_testcase(testcase)
     user_email = helpers.get_user_email()
@@ -61,10 +67,11 @@ class Handler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
   @handler.check_testcase_access
-  def post(self, testcase):
+  def post(self, testcase: data_types.Testcase) -> Response:
     """Create an issue."""
-    cc_me = request.get('ccMe')
-    severity = request.get('severity')
+    request_any = cast(Any, request)
+    cc_me = request_any.get('ccMe')
+    severity = request_any.get('severity')
 
     self.create_issue(testcase, severity, cc_me)
     return self.render_json(show.get_testcase_detail(testcase))

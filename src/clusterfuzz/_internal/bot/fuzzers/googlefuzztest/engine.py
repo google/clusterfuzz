@@ -22,7 +22,7 @@ from clusterfuzz.fuzz import engine
 _CRASH_REGEX = re.compile(r'.*Reproducer file written to:\s*(.*)$')
 
 
-def _get_reproducer_path(line):
+def _get_reproducer_path(line: str) -> str | None:
   """Get the reproducer path, if any."""
   crash_match = _CRASH_REGEX.match(line)
   if not crash_match:
@@ -35,10 +35,11 @@ class Engine(engine.Engine):
   """GFT engine implementation."""
 
   @property
-  def name(self):
+  def name(self) -> str:
     return 'googlefuzztest'
 
-  def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
+  def prepare(self, corpus_dir: str, target_path: str,
+              build_dir: str) -> engine.FuzzOptions:  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
 
@@ -53,7 +54,8 @@ class Engine(engine.Engine):
     os.chmod(target_path, 0o775)
     return engine.FuzzOptions(corpus_dir, [], {})
 
-  def fuzz(self, target_path, options, reproducers_dir, max_time):
+  def fuzz(self, target_path: str, options: engine.FuzzOptions,
+           reproducers_dir: str, max_time: int) -> engine.FuzzResult:
     """Run a fuzz session.
 
     Args:
@@ -78,10 +80,11 @@ class Engine(engine.Engine):
         additional_args=['--logtostderr', '--minloglevel=3'])
     log_lines = fuzz_result.output.splitlines()
 
-    crashes = []
+    crashes: list[engine.Crash] = []
     for line in log_lines:
       reproducer_path = _get_reproducer_path(line)
       if reproducer_path:
+        assert fuzz_result.time_executed is not None
         crashes.append(
             engine.Crash(
                 reproducer_path,
@@ -91,11 +94,12 @@ class Engine(engine.Engine):
         continue
 
     # TODO(ochang): Implement stats parsing.
-    stats = {}
+    stats: dict[str, int] = {}
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
-  def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
+  def reproduce(self, target_path: str, input_path: str, arguments: list[str],
+                max_time: int) -> engine.ReproduceResult:  # pylint: disable=unused-argument
     """Reproduce a crash given an input.
 
     Args:
@@ -115,8 +119,10 @@ class Engine(engine.Engine):
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+  def minimize_corpus(self, target_path: str, arguments: list[str],
+                      input_dirs: list[str], output_dir: str,
+                      reproducers_dir: str | None,
+                      max_time: int) -> engine.FuzzResult:
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -137,8 +143,9 @@ class Engine(engine.Engine):
     """
     raise NotImplementedError
 
-  def minimize_testcase(self, target_path, arguments, input_path, output_path,
-                        max_time):
+  def minimize_testcase(self, target_path: str, arguments: list[str],
+                        input_path: str, output_path: str,
+                        max_time: int) -> engine.ReproduceResult:
     """Optional (but recommended): Minimize a testcase.
 
     Args:
@@ -156,7 +163,8 @@ class Engine(engine.Engine):
     """
     raise NotImplementedError
 
-  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+  def cleanse(self, target_path: str, arguments: list[str], input_path: str,
+              output_path: str, max_time: int) -> engine.ReproduceResult:
     """Optional (but recommended): Cleanse a testcase.
 
     Args:

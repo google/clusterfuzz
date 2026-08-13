@@ -14,8 +14,10 @@
 """Issue tracker manager functions."""
 
 import datetime
+from typing import Any
 
 from googleapiclient import discovery
+from googleapiclient import http as googleapiclient_http
 
 from clusterfuzz._internal.base import retry
 
@@ -25,13 +27,13 @@ from .issue import ChangeList
 from .issue import Issue
 
 # Default value for issue tracker connection failures.
-FAIL_RETRIES = 7
-FAIL_WAIT = 1
+FAIL_RETRIES: int = 7
+FAIL_WAIT: int = 1
 
 # pylint: disable=no-member
 
 
-def convert_entry_to_comment(entry):
+def convert_entry_to_comment(entry: dict[str, Any]) -> Comment:
   """Convert an issue entry object into a comment object."""
   comment = Comment()
   comment.author = entry['author']['name'] if 'author' in entry else None
@@ -50,7 +52,11 @@ def convert_entry_to_comment(entry):
   return comment
 
 
-def convert_entry_to_issue(entry, itm, old_issue=None):
+def convert_entry_to_issue(
+    entry: dict[str, Any],
+    itm: 'IssueTrackerManager',
+    old_issue: Issue | None = None,
+) -> Issue:
   """Convert an issue entry object into a issue object."""
   if old_issue:
     issue = old_issue
@@ -90,7 +96,7 @@ def convert_entry_to_issue(entry, itm, old_issue=None):
   return issue
 
 
-def parse_datetime(date_string):
+def parse_datetime(date_string: str) -> datetime.datetime:
   """Parse a date time string into a datetime object."""
   datetime_obj, _, microseconds_string = date_string.partition('.')
   datetime_obj = datetime.datetime.strptime(datetime_obj, '%Y-%m-%dT%H:%M:%S')
@@ -104,15 +110,15 @@ def parse_datetime(date_string):
 class IssueTrackerManager:
   """Issue tracker manager."""
 
-  CAN_ALL = 'all'
-  CAN_OPEN = 'open'
-  CAN_MY_OPEN_BUGS = 'owned'
-  CAN_REPORTED_BY_ME = 'reported'
-  CAN_STARRED_BY_ME = 'starred'
-  CAN_NEW = 'new'
-  CAN_VERIFY = 'to-verify'
+  CAN_ALL: str = 'all'
+  CAN_OPEN: str = 'open'
+  CAN_MY_OPEN_BUGS: str = 'owned'
+  CAN_REPORTED_BY_ME: str = 'reported'
+  CAN_STARRED_BY_ME: str = 'starred'
+  CAN_NEW: str = 'new'
+  CAN_VERIFY: str = 'to-verify'
 
-  CAN_VALUE_TO_ID_MAP = {
+  CAN_VALUE_TO_ID_MAP: dict[str, int] = {
       CAN_ALL: 1,
       CAN_OPEN: 2,
       CAN_MY_OPEN_BUGS: 3,
@@ -121,18 +127,19 @@ class IssueTrackerManager:
       CAN_NEW: 6
   }
 
-  API_DISCOVERY_URL = ('https://monorail-prod.appspot.com/_ah/api/discovery/'
-                       'v1/apis/{api}/{apiVersion}/rest')
-  API_NAME = 'monorail'
-  API_VERSION = 'v1'
+  API_DISCOVERY_URL: str = (
+      'https://monorail-prod.appspot.com/_ah/api/discovery/'
+      'v1/apis/{api}/{apiVersion}/rest')
+  API_NAME: str = 'monorail'
+  API_VERSION: str = 'v1'
 
-  def __init__(self, project_name):
+  def __init__(self, project_name: str) -> None:
     """"Construct an issue tracker manager instance based on parameters."""
-    self._client = None
-    self.project_name = project_name
+    self._client: Any = None
+    self.project_name: str = project_name
 
   @property
-  def client(self):
+  def client(self) -> Any:
     """HTTP Client."""
     if self._client is None:
       self._client = self._create_client()
@@ -146,7 +153,7 @@ class IssueTrackerManager:
       function=
       'clusterfuzz._internal.issue_management.issue_tracker_manager._execute_with_retry'
   )
-  def _execute_with_retry(self, query):
+  def _execute_with_retry(self, query: googleapiclient_http.HttpRequest) -> Any:
     """Execute a query (with retries)."""
     return query.execute()
 
@@ -157,7 +164,7 @@ class IssueTrackerManager:
       function=
       'clusterfuzz._internal.issue_management.issue_tracker_manager._create_client'
   )
-  def _create_client(self):
+  def _create_client(self) -> Any:
     """Return a client object for querying the issue tracker.
 
     Includes retry logic to handle occasional 503 backend errors.
@@ -172,7 +179,7 @@ class IssueTrackerManager:
         discoveryServiceUrl=self.API_DISCOVERY_URL,
         cache_discovery=False)
 
-  def save(self, issue, send_email=None):
+  def save(self, issue: Issue, send_email: bool | None = None) -> None:
     """Save an issue and optionally send update notification over email."""
     if send_email is None:
       send_email = issue.send_email
@@ -182,7 +189,7 @@ class IssueTrackerManager:
     else:
       self._update(issue, send_email)
 
-  def _create(self, issue, send_email=True):
+  def _create(self, issue: Issue, send_email: bool = True) -> Issue:
     """Create an issue and optionally send update notification over email."""
     cc = [{'name': user} for user in issue.cc]
     body = {
@@ -204,7 +211,7 @@ class IssueTrackerManager:
     issue.new = False
     return issue
 
-  def _update(self, issue, send_email=True):
+  def _update(self, issue: Issue, send_email: bool = True) -> Issue:
     """Update an issue and optionally send update notification over email."""
     if not issue.dirty:
       return issue
@@ -240,13 +247,18 @@ class IssueTrackerManager:
     issue.dirty = False
     return issue
 
-  def add_comment(self, issue_id, comment, send_email=True):
+  def add_comment(
+      self,
+      issue_id: int,
+      comment: str,
+      send_email: bool = True,
+  ) -> None:
     """Add comment to an issue and potentially send an email update."""
     issue = self.get_issue(issue_id)
     issue.comment = comment
     self.save(issue, send_email)
 
-  def get_comment_count(self, issue_id):
+  def get_comment_count(self, issue_id: int) -> int:
     """Get number of comments for an issue."""
     feed = self._execute_with_retry(self.client.issues().comments().list(
         projectId=self.project_name,
@@ -255,7 +267,7 @@ class IssueTrackerManager:
         maxResults=0))
     return feed.get('totalResults', '0')
 
-  def get_comments(self, issue_id):
+  def get_comments(self, issue_id: int) -> list[Comment]:
     """Get all comments for an issue."""
     comments = []
     comments_feed = self._execute_with_retry(
@@ -280,7 +292,7 @@ class IssueTrackerManager:
 
     return comments
 
-  def get_first_comment(self, issue_id):
+  def get_first_comment(self, issue_id: int) -> Comment | None:
     """Get first comment for an issue."""
     feed = self._execute_with_retry(self.client.issues().comments().list(
         projectId=self.project_name,
@@ -292,7 +304,7 @@ class IssueTrackerManager:
 
     return None
 
-  def get_last_comment(self, issue_id):
+  def get_last_comment(self, issue_id: int) -> Comment | None:
     """Get last comment for an issue."""
     total_results = self.get_comment_count(issue_id)
     feed = self._execute_with_retry(self.client.issues().comments().list(
@@ -305,13 +317,13 @@ class IssueTrackerManager:
 
     return None
 
-  def get_issue(self, issue_id):
+  def get_issue(self, issue_id: int) -> Issue:
     """Retrieve an issue object with a specific id."""
     entry = self._execute_with_retry(self.client.issues().get(
         projectId=self.project_name, issueId=issue_id))
     return convert_entry_to_issue(entry, self)
 
-  def refresh(self, issue):
+  def refresh(self, issue: Issue | None) -> Issue | None:
     """Refresh an issue object with latest updates."""
     if issue and not issue.new:
       entry = self._execute_with_retry(self.client.issues().get(
@@ -320,13 +332,13 @@ class IssueTrackerManager:
 
     return issue
 
-  def get_all_issues(self):
+  def get_all_issues(self) -> list[Issue]:
     """Get all issues for the project."""
     feed = self._execute_with_retry(
         self.client.issues().list(projectId=self.project_name))
     return [convert_entry_to_issue(entry, self) for entry in feed['items']]
 
-  def get_issue_count(self, query_string, can=CAN_ALL):
+  def get_issue_count(self, query_string: str, can: str = CAN_ALL) -> int:
     """Return number of issues for a given query."""
     feed = self._execute_with_retry(self.client.issues().list(
         can=can,
@@ -340,7 +352,12 @@ class IssueTrackerManager:
 
     return 0
 
-  def get_issues(self, query_string, can=CAN_ALL, max_results=1000):
+  def get_issues(
+      self,
+      query_string: str,
+      can: str = CAN_ALL,
+      max_results: int = 1000,
+  ) -> list[Issue]:
     """Return all issues for a given query."""
     block_count = 0
     count = 0
@@ -358,11 +375,13 @@ class IssueTrackerManager:
 
     return issues
 
-  def get_issues_from_index(self,
-                            query_string,
-                            can=CAN_ALL,
-                            max_results=1000,
-                            start_index=0):
+  def get_issues_from_index(
+      self,
+      query_string: str,
+      can: str = CAN_ALL,
+      max_results: int = 1000,
+      start_index: int = 0,
+  ) -> tuple[list[Issue], int]:
     """Retrieve a set of issues for a query from a given start index."""
     feed = self._execute_with_retry(self.client.issues().list(
         projectId=self.project_name,

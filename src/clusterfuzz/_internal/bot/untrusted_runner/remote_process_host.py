@@ -13,10 +13,15 @@
 # limitations under the License.
 """Remote process host (client)."""
 
+from collections.abc import Mapping
+from collections.abc import Sequence
 import os
 import subprocess
+from typing import Any
+from typing import cast
 
 from clusterfuzz._internal.protos import untrusted_runner_pb2
+from clusterfuzz._internal.protos import untrusted_runner_pb2_grpc
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import process_handler
 
@@ -26,22 +31,29 @@ from . import host
 # pylint:disable=no-member
 
 
-def process_result_from_proto(process_result_proto):
+def process_result_from_proto(
+    process_result_proto: untrusted_runner_pb2.ProcessResult,
+) -> new_process.ProcessResult:
   """Convert ProcessResult proto to new_process.ProcessResult."""
   return new_process.ProcessResult(
-      process_result_proto.command, process_result_proto.return_code,
-      process_result_proto.output, process_result_proto.time_executed,
-      process_result_proto.timed_out)
+      list(process_result_proto.command),
+      process_result_proto.return_code,
+      process_result_proto.output,
+      process_result_proto.time_executed,
+      process_result_proto.timed_out,
+  )
 
 
-def run_process(cmdline,
-                current_working_directory=None,
-                timeout=process_handler.DEFAULT_TEST_TIMEOUT,
-                need_shell=False,
-                gestures=None,
-                env_copy=None,
-                testcase_run=True,
-                ignore_children=True):
+def run_process(
+    cmdline: str,
+    current_working_directory: str | None = None,
+    timeout: float = process_handler.DEFAULT_TEST_TIMEOUT,
+    need_shell: bool = False,
+    gestures: Sequence[str] | None = None,
+    env_copy: Mapping[str, str] | None = None,
+    testcase_run: bool = True,
+    ignore_children: bool = True,
+) -> tuple[int | None, float | None, str]:
   """Remote version of process_handler.run_process."""
   request = untrusted_runner_pb2.RunProcessRequest(
       cmdline=cmdline,
@@ -54,7 +66,7 @@ def run_process(cmdline,
   if gestures:
     request.gestures.extend(gestures)
 
-  env = {}
+  env: dict[str, str] = {}
   # run_process's local behaviour is to apply the passed |env_copy| on top of
   # the current environment instead of replacing it completely (like with
   # subprocess).
@@ -62,36 +74,55 @@ def run_process(cmdline,
   environment.set_environment_vars(env, env_copy)
   request.env_copy.update(env)
 
-  response = host.stub().RunProcess(request)
+  stub = cast(untrusted_runner_pb2_grpc.UntrustedRunnerStub, host.stub())
+  response = stub.RunProcess(request)
   return response.return_code, response.execution_time, response.output
 
 
 class RemoteProcessRunner(new_process.ProcessRunner):
   """Remote child process."""
 
-  def __init__(self, executable_path, default_args=None):
+  def __init__(
+      self,
+      executable_path: str,
+      default_args: Sequence[str] | None = None,
+  ) -> None:
     super().__init__(executable_path, default_args=default_args)
 
-  def run(self, **kwargs):  # pylint: disable=arguments-differ
+  def run(
+      self,
+      additional_args: Sequence[str] | None = None,
+      max_stdout_len: int | None = None,
+      extra_env: dict[str, str] | None = None,
+      stdin: Any = subprocess.PIPE,
+      stdout: Any = subprocess.PIPE,
+      stderr: Any = subprocess.STDOUT,
+      **popen_args: Any,
+  ) -> new_process.ChildProcess:
     # TODO(ochang): This can be implemented, but isn't necessary yet.
     raise NotImplementedError
 
-  def run_and_wait(self,
-                   additional_args=None,
-                   timeout=None,
-                   terminate_before_kill=False,
-                   terminate_wait_time=None,
-                   input_data=None,
-                   max_stdout_len=None,
-                   extra_env=None,
-                   stdout=subprocess.PIPE,
-                   stderr=subprocess.STDOUT,
-                   **popen_args):
+  def run_and_wait(
+      self,
+      additional_args: Sequence[str] | None = None,
+      timeout: float | None = None,
+      terminate_before_kill: bool = False,
+      terminate_wait_time: float | None = None,
+      input_data: str | bytes | None = None,
+      max_stdout_len: int | None = None,
+      extra_env: dict[str, str] | None = None,
+      stdin: Any = subprocess.PIPE,
+      stdout: Any = subprocess.PIPE,
+      stderr: Any = subprocess.STDOUT,
+      **popen_args: Any,
+  ) -> new_process.ProcessResult:
     # pylint: disable=unused-argument
-    # pylint: disable=arguments-differ
     """Remote version of new_process.ProcessRunner.run_and_wait."""
     assert stdout == subprocess.PIPE
     assert stderr == subprocess.STDOUT
+
+    if isinstance(input_data, str):
+      input_data = input_data.encode('utf-8')
 
     request = untrusted_runner_pb2.RunAndWaitRequest(
         executable_path=self.executable_path,
@@ -124,11 +155,13 @@ class RemoteProcessRunner(new_process.ProcessRunner):
       # variables if the caller passes e.g. os.environ.copy().
       environment.set_environment_vars(request.popen_args.env, passed_env)
 
-    response = host.stub().RunAndWait(request)
+    stub = cast(untrusted_runner_pb2_grpc.UntrustedRunnerStub, host.stub())
+    response = stub.RunAndWait(request)
     return process_result_from_proto(response.result)
 
 
-def terminate_stale_application_instances():
+def terminate_stale_application_instances() -> None:
   """Terminate stale application instances."""
-  host.stub().TerminateStaleApplicationInstances(
+  stub = cast(untrusted_runner_pb2_grpc.UntrustedRunnerStub, host.stub())
+  stub.TerminateStaleApplicationInstances(
       untrusted_runner_pb2.TerminateStaleApplicationInstancesRequest())

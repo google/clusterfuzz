@@ -18,10 +18,10 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
 
-TIME_SINCE_REBOOT_MIN_THRESHOLD = 60 * 60 * 24 * 1  # 1 day.
+TIME_SINCE_REBOOT_MIN_THRESHOLD: int = 60 * 60 * 24 * 1  # 1 day.
 
 
-def run():
+def run() -> None:
   """Run Android initialization."""
   init_runner.run()
 

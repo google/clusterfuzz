@@ -19,11 +19,11 @@ import sys
 # Add necessary directories to path.
 sys.path.append('third_party')
 
-config_modules_path = os.path.join('config', 'modules')
+config_modules_path: str = os.path.join('config', 'modules')
 if os.path.exists(config_modules_path):
   sys.path.append(config_modules_path)
 
-gae_env = os.environ.get('GAE_ENV')
+gae_env: str | None = os.environ.get('GAE_ENV')
 if gae_env:
   import pkg_resources
   importlib.reload(pkg_resources)
@@ -34,7 +34,7 @@ if gae_env:
 
 try:
   # Run module initialization code for internal issue tracker
-  import module_init
+  import module_init  # type: ignore
   module_init.init()
 except ImportError:
   pass

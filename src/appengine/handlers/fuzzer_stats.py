@@ -16,11 +16,22 @@
 import datetime
 import html
 import re
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Type
+from typing import Union
 import urllib.parse
 
 from flask import request
 from googleapiclient.errors import HttpError
 import yaml
+import yaml.parser
 
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
@@ -38,17 +49,18 @@ from libs import helpers
 # Old fuzzer stats don't change, we could cache forever and it would never go
 # stale. Since stats can get pretty large and probably aren't used much the day
 # after first accessed, use a TTL reflecting this.
-MEMCACHE_OLD_TTL_IN_SECONDS = 24 * 60 * 60
+MEMCACHE_OLD_TTL_IN_SECONDS: int = 24 * 60 * 60
 
 # New fuzzer stats change, and aren't as likely to be reaccessed, don't cache
 # for very long.
-MEMCACHE_TODAY_TTL_IN_SECONDS = 30 * 60
+MEMCACHE_TODAY_TTL_IN_SECONDS: int = 30 * 60
 
 
 class QueryField:
   """Wrapped fuzzer_stats.QueryField with extra metadata."""
 
-  def __init__(self, field, results_index, field_type, bigquery_type):
+  def __init__(self, field: fuzzer_stats.QueryField, results_index: int,
+               field_type: str, bigquery_type: str) -> None:
     self.field = field
     self.results_index = results_index
     self.field_type = field_type
@@ -58,12 +70,13 @@ class QueryField:
 class BuiltinField:
   """Wrapped fuzzer_stats.BuiltinField with extra metadata."""
 
-  def __init__(self, spec, field):
+  def __init__(self, spec: fuzzer_stats.BuiltinFieldSpecifier,
+               field: fuzzer_stats.BuiltinField) -> None:
     self.spec = spec
     self.field = field
 
 
-def _bigquery_type_to_charts_type(typename):
+def _bigquery_type_to_charts_type(typename: str) -> str:
   """Convert bigquery type to charts type."""
   typename = typename.lower()
   if typename in ('integer', 'float'):
@@ -75,7 +88,7 @@ def _bigquery_type_to_charts_type(typename):
   return 'string'
 
 
-def _python_type_to_charts_type(type_value):
+def _python_type_to_charts_type(type_value: Optional[Type[Any]]) -> str:
   """Convert bigquery type to charts type."""
   if type_value in (int, float):
     return 'number'
@@ -86,7 +99,7 @@ def _python_type_to_charts_type(type_value):
   return 'string'
 
 
-def _parse_date(date_str):
+def _parse_date(date_str: Optional[str]) -> Optional[datetime.date]:
   """Parse YYYY-MM-DD."""
   if not date_str:
     return None
@@ -100,16 +113,21 @@ def _parse_date(date_str):
   return datetime.date(year, month, day)
 
 
-def _parse_stats_column_fields(results, stats_columns, group_by, fuzzer, jobs):
+def _parse_stats_column_fields(
+    results: Dict[str, Any], stats_columns: str, group_by: Optional[int],
+    fuzzer: str,
+    jobs: Optional[List[str]]) -> List[Union[QueryField, BuiltinField]]:
   """Parse stats columns."""
-  result = []
+  result: List[Union[QueryField, BuiltinField]] = []
   columns = fuzzer_stats.parse_stats_column_fields(stats_columns)
 
   # Insert first column (group by)
   group_by_field_name = fuzzer_stats.group_by_to_field_name(group_by)
-  columns.insert(0, fuzzer_stats.QueryField('j', group_by_field_name, None))
+  columns.insert(
+      0, fuzzer_stats.QueryField('j', cast(str, group_by_field_name), None))
 
-  contexts = {}
+  contexts: Dict[Type[fuzzer_stats.BuiltinFieldContext],
+                 fuzzer_stats.BuiltinFieldContext] = {}
 
   for column in columns:
     if isinstance(column, fuzzer_stats.QueryField):
@@ -132,14 +150,14 @@ def _parse_stats_column_fields(results, stats_columns, group_by, fuzzer, jobs):
       if not field_class:
         continue
 
-      context_class = field_class.CONTEXT_CLASS
+      context_class = cast(Any, field_class).CONTEXT_CLASS
       context = contexts.setdefault(context_class, context_class(fuzzer, jobs))
-      result.append(BuiltinField(column, column.create(context)))
+      result.append(BuiltinField(column, cast(Any, column.create(context))))
 
   return result
 
 
-def _parse_group_by(group_by):
+def _parse_group_by(group_by: Optional[str]) -> Optional[int]:
   """Parse group_by value."""
   if group_by == 'by-day':
     return fuzzer_stats.QueryGroupBy.GROUP_BY_DAY
@@ -155,16 +173,16 @@ def _parse_group_by(group_by):
   return None
 
 
-def _get_fuzzer_or_engine(name):
+def _get_fuzzer_or_engine(name: str) -> Optional[data_types.Fuzzer]:
   """Return fuzzer entity, or engine this target is part of."""
   fuzz_target = data_handler.get_fuzz_target(name)
   if fuzz_target:
-    name = fuzz_target.engine
+    name = cast(str, fuzz_target.engine)
 
   return data_types.Fuzzer.query(data_types.Fuzzer.name == name).get()
 
 
-def _do_bigquery_query(query):
+def _do_bigquery_query(query: str) -> Dict[str, Any]:
   """Return results from BigQuery."""
   logs.info(query)
   client = big_query.Client()
@@ -180,13 +198,14 @@ def _do_bigquery_query(query):
   return results
 
 
-def _parse_stats_column_descriptions(stats_column_descriptions):
+def _parse_stats_column_descriptions(
+    stats_column_descriptions: Optional[str]) -> Dict[str, str]:
   """Parse stats column descriptions."""
   if not stats_column_descriptions:
     return {}
 
   try:
-    result = yaml.safe_load(stats_column_descriptions)
+    result = cast(dict[str, Any], yaml.safe_load(stats_column_descriptions))
     for key, value in result.items():
       result[key] = html.escape(value)
 
@@ -196,7 +215,8 @@ def _parse_stats_column_descriptions(stats_column_descriptions):
     return {}
 
 
-def _build_columns(result, columns):
+def _build_columns(result: Dict[str, Any],
+                   columns: Sequence[Union[QueryField, BuiltinField]]) -> None:
   """Build columns."""
   for column in columns:
     if isinstance(column, QueryField):
@@ -211,7 +231,8 @@ def _build_columns(result, columns):
       })
 
 
-def _try_cast(cell, value_str, cast_function, default_value):
+def _try_cast(cell: Dict[str, Any], value_str: Any,
+              cast_function: Callable[[Any], Any], default_value: Any) -> None:
   """Try casting the value_str into cast_function."""
   try:
     cell['v'] = cast_function(value_str)
@@ -221,13 +242,15 @@ def _try_cast(cell, value_str, cast_function, default_value):
 
 
 # FIXME: Break logic in this function into simpler helper functions.
-def _build_rows(result, columns, rows, group_by):
+def _build_rows(result: Dict[str, Any],
+                columns: Sequence[Union[QueryField, BuiltinField]],
+                rows: List[Dict[str, Any]], group_by: Optional[int]) -> None:
   """Build rows."""
   for row in rows:
-    row_data = []
-    first_column_value = None
+    row_data: List[Dict[str, Any]] = []
+    first_column_value: Any = None
     for column in columns:
-      cell = {}
+      cell: Dict[str, Any] = {}
       if isinstance(column, QueryField):
         value = row['f'][column.results_index]['v']
 
@@ -253,7 +276,7 @@ def _build_rows(result, columns, rows, group_by):
 
         first_column_value = first_column_value or cell['v']
       elif isinstance(column, BuiltinField):
-        data = column.field.get(group_by, first_column_value)
+        data = column.field.get(cast(int, group_by), first_column_value)
         if data:
           formatted_value = data.value
           if data.link:
@@ -278,17 +301,18 @@ def _build_rows(result, columns, rows, group_by):
     result['rows'].append({'c': row_data})
 
 
-def _get_cloud_storage_link(bucket_path):
+def _get_cloud_storage_link(bucket_path: str) -> str:
   """Return a clickable link to a cloud storage file given the bucket path."""
   return '/gcs-redirect?' + urllib.parse.urlencode({'path': bucket_path})
 
 
-def _get_filter_from_job(job):
+def _get_filter_from_job(job: Optional[str]) -> Optional[List[str]]:
   """Creates a job filter from |job|."""
   return [str(job)] if job else None
 
 
-def build_results(fuzzer, jobs, group_by, date_start, date_end):
+def build_results(fuzzer: str, jobs: Optional[List[str]], group_by: str,
+                  date_start: str, date_end: str) -> Dict[str, Any]:
   """Wrapper around the caching wrappers for _build_results. Decides which of
   those wrappers to call based on how long query should be cached for."""
   datetime_end = _parse_date(date_end)
@@ -308,25 +332,28 @@ def build_results(fuzzer, jobs, group_by, date_start, date_end):
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TODAY_TTL_IN_SECONDS))
-def _build_todays_results(fuzzer, jobs, group_by, date_start, date_end):
+def _build_todays_results(fuzzer: str, jobs: Optional[List[str]], group_by: str,
+                          date_start: str, date_end: str) -> Dict[str, Any]:
   """Wrapper around _build_results that is intended for use by queries where
   date_end is today. Caches results for 15 minutes."""
   return _build_results(fuzzer, jobs, group_by, date_start, date_end)
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_OLD_TTL_IN_SECONDS))
-def _build_old_results(fuzzer, jobs, group_by, date_start, date_end):
+def _build_old_results(fuzzer: str, jobs: Optional[List[str]], group_by: str,
+                       date_start: str, date_end: str) -> Dict[str, Any]:
   """Wrapper around _build_results that is intended for use by queries where
   date_end is before today. Caches results for 24 hours."""
   return _build_results(fuzzer, jobs, group_by, date_start, date_end)
 
 
-def _build_results(fuzzer, jobs, group_by, date_start, date_end):
+def _build_results(fuzzer: str, jobs: Optional[List[str]], group_by: str,
+                   date_start: str, date_end: str) -> Dict[str, Any]:
   """Build results."""
-  date_start = _parse_date(date_start)
-  date_end = _parse_date(date_end)
+  date_start_parsed = _parse_date(date_start)
+  date_end_parsed = _parse_date(date_end)
 
-  if not fuzzer or not group_by or not date_start or not date_end:
+  if not fuzzer or not group_by or not date_start_parsed or not date_end_parsed:
     raise helpers.EarlyExitError('Missing params.', 400)
 
   fuzzer_entity = _get_fuzzer_or_engine(fuzzer)
@@ -338,16 +365,17 @@ def _build_results(fuzzer, jobs, group_by, date_start, date_end):
   else:
     stats_columns = fuzzer_stats.JobQuery.DEFAULT_FIELDS
 
-  group_by = _parse_group_by(group_by)
-  if group_by is None:
+  group_by_parsed = _parse_group_by(group_by)
+  if group_by_parsed is None:
     raise helpers.EarlyExitError('Invalid grouping.', 400)
 
-  table_query = fuzzer_stats.TableQuery(fuzzer, jobs, stats_columns, group_by,
-                                        date_start, date_end)
+  table_query = fuzzer_stats.TableQuery(fuzzer, jobs, stats_columns,
+                                        group_by_parsed, date_start_parsed,
+                                        date_end_parsed)
   results = _do_bigquery_query(table_query.build())
 
-  is_timeseries = group_by == fuzzer_stats.QueryGroupBy.GROUP_BY_TIME
-  result = {
+  is_timeseries = group_by_parsed == fuzzer_stats.QueryGroupBy.GROUP_BY_TIME
+  result: Dict[str, Any] = {
       'cols': [],
       'rows': [],
       'column_descriptions':
@@ -357,19 +385,20 @@ def _build_results(fuzzer, jobs, group_by, date_start, date_end):
           is_timeseries
   }
 
-  columns = _parse_stats_column_fields(results, stats_columns, group_by, fuzzer,
-                                       jobs)
+  columns: Sequence[Union[QueryField, BuiltinField]] = (
+      _parse_stats_column_fields(results, stats_columns, group_by_parsed,
+                                 fuzzer, jobs))
 
   # If we are grouping by time and plotting graphs, skip builtin columns.
   if is_timeseries:
     columns = [c for c in columns if not isinstance(c, BuiltinField)]
 
   _build_columns(result, columns)
-  _build_rows(result, columns, results['rows'], group_by)
+  _build_rows(result, columns, results['rows'], group_by_parsed)
   return result
 
 
-def _get_date(date_value, days_ago):
+def _get_date(date_value: Optional[str], days_ago: int) -> str:
   """Returns |date_value| if it is not empty otherwise returns the date
     |days_ago| number of days ago."""
   if date_value:
@@ -386,7 +415,7 @@ class Handler(base_handler.Handler):
   @handler.unsupported_on_local_server
   @handler.get(handler.HTML)
   @handler.oauth
-  def get(self, extra=None):
+  def get(self, extra: Any = None) -> base_handler.Response:
     """Handle a GET request."""
     if not access.has_access():
       # User is an external user of ClusterFuzz (eg: non-Chrome dev who
@@ -406,9 +435,10 @@ class LoadFiltersHandler(base_handler.Handler):
 
   @handler.unsupported_on_local_server
   @handler.get(handler.HTML)
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Handle a GET request."""
-    project = request.get('project')
+    request_any = cast(Any, request)
+    project = request_any.get('project')
 
     if access.has_access():
       # User is an internal user of ClusterFuzz (eg: ClusterFuzz developer).
@@ -450,7 +480,8 @@ class LoadFiltersHandler(base_handler.Handler):
 class LoadHandler(base_handler.Handler):
   """Load handler."""
 
-  def _check_user_access_and_get_job_filter(self, fuzzer, job):
+  def _check_user_access_and_get_job_filter(
+      self, fuzzer: str, job: Optional[str]) -> Optional[List[str]]:
     """Check whether the current user has access to stats for the fuzzer or job.
     Returns a job filter that should be applied to the query."""
     access_by_fuzzer_or_job = access.has_access(
@@ -471,18 +502,19 @@ class LoadHandler(base_handler.Handler):
     raise helpers.AccessDeniedError()
 
   @handler.post(handler.JSON, handler.JSON)
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Handle a POST request."""
-    fuzzer = request.get('fuzzer')
-    job = request.get('job')
-    group_by = request.get('group_by')
+    request_any = cast(Any, request)
+    fuzzer = request_any.get('fuzzer')
+    job = request_any.get('job')
+    group_by = request_any.get('group_by')
 
     # If date_start is "": because the front end defaults to using a
     # start_date 7 days ago, do the same.
-    date_start = _get_date(request.get('date_start'), 7)
+    date_start = _get_date(request_any.get('date_start'), 7)
     # If date_end is "": don't get today's stats as they may not be
     # available, use yesterdays (as the front end does by default).
-    date_end = _get_date(request.get('date_end'), 1)
+    date_end = _get_date(request_any.get('date_end'), 1)
 
     job_filter = self._check_user_access_and_get_job_filter(fuzzer, job)
     return self.render_json(
@@ -493,14 +525,13 @@ class PreloadHandler(base_handler.Handler):
   """Handler for the infrequent task of loading results for expensive stats
   queries that are commonly accessed into the cache."""
 
-  def _get_fuzzer_job_filters(self):
+  def _get_fuzzer_job_filters(self) -> List[Tuple[str, Optional[List[str]]]]:
     """Return list of fuzzer-job filter tuples."""
     fuzzer_job_filters = []
     for fuzzer_name in data_types.BUILTIN_FUZZERS:
       fuzzer = data_types.Fuzzer.query(
           data_types.Fuzzer.name == fuzzer_name).get()
-
-      for job in fuzzer.jobs:
+      for job in cast(Any, fuzzer).jobs:
         fuzzer_job_filters.append((fuzzer_name, _get_filter_from_job(job)))
 
       # None job is explicitly added for fuzzer query across all jobs.
@@ -509,7 +540,7 @@ class PreloadHandler(base_handler.Handler):
     return fuzzer_job_filters
 
   @handler.cron()
-  def get(self):
+  def get(self) -> None:
     """Handle a GET request."""
     date_start = _get_date(None, 7)
     date_end = _get_date(None, 1)
@@ -538,7 +569,7 @@ class RefreshCacheHandler(base_handler.Handler):
   """Refresh cache."""
 
   @handler.cron()
-  def get(self):
+  def get(self) -> None:
     """Handle a GET request."""
     fuzzer_logs_context = fuzzer_stats.FuzzerRunLogsContext()
     fuzz_targets = data_handler.get_fuzz_targets()
@@ -546,5 +577,5 @@ class RefreshCacheHandler(base_handler.Handler):
     # Cache child fuzzer -> logs bucket mappings.
     for fuzz_target in fuzz_targets:
       # pylint: disable=protected-access,unexpected-keyword-arg
-      fuzzer_logs_context._get_logs_bucket_from_fuzzer(
+      cast(Any, fuzzer_logs_context)._get_logs_bucket_from_fuzzer(
           fuzz_target.fully_qualified_name(), __memoize_force__=True)

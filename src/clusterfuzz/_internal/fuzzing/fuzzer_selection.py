@@ -13,7 +13,8 @@
 # limitations under the License.
 """Helper functions to update fuzzer-job mappings, and select fuzzers to run."""
 
-import collections
+from typing import cast
+from typing import NamedTuple
 
 from google.cloud import ndb
 
@@ -25,11 +26,15 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms.android import constants
 from clusterfuzz._internal.system import environment
 
+
 # Used to prepare targets to be passed to utils.random_weighted_choice.
-WeightedTarget = collections.namedtuple('WeightedTarget', ['target', 'weight'])
+class WeightedTarget(NamedTuple):
+  target: str
+  weight: float
 
 
-def update_mappings_for_fuzzer(fuzzer, mappings=None):
+def update_mappings_for_fuzzer(fuzzer: data_types.Fuzzer,
+                               mappings: list[str] | None = None) -> None:
   """Clear existing mappings for a fuzzer, and replace them."""
   if mappings is None:
     # Make a copy in case we need to modify it.
@@ -38,15 +43,15 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
   query = data_types.FuzzerJob.query()
   query = query.filter(data_types.FuzzerJob.fuzzer == fuzzer.name)
   fuzzer_job_entities = ndb_utils.get_all_from_query(query)
-  old_mappings = {}
+  old_mappings: dict[str, data_types.FuzzerJob] = {}
   for fuzzer_job in fuzzer_job_entities:
     old_mappings[fuzzer_job.job] = fuzzer_job
 
-  new_mappings = []
+  new_mappings: list[data_types.FuzzerJob] = []
   if mappings:
-    jobs = ndb_utils.get_all_from_query(data_types.Job.query().filter(
+    jobs_list = ndb_utils.get_all_from_query(data_types.Job.query().filter(
         data_types.Job.name.IN(mappings)))
-    jobs = {job.name: job for job in jobs}
+    jobs = {job.name: job for job in jobs_list}
   else:
     jobs = {}
 
@@ -80,18 +85,19 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
     fuzzer.put()
 
 
-def update_mappings_for_job(job, mappings):
+def update_mappings_for_job(job: data_types.Job, mappings: list[str]) -> None:
   """Clear existing mappings for a job, and replace them."""
-  existing_fuzzers = {
-      fuzzer.name: fuzzer
+  existing_fuzzers: dict[str, data_types.Fuzzer] = {
+      cast(str, fuzzer.name): fuzzer
       for fuzzer in data_types.Fuzzer.query()
       if job.name in fuzzer.jobs
   }
-  modified_fuzzers = []
+  modified_fuzzers: list[data_types.Fuzzer] = []
 
   for fuzzer_name in mappings:
     fuzzer = existing_fuzzers.pop(fuzzer_name, None)
     if fuzzer:
+      # If we already have this mapping, we don't need to do anything.
       continue
 
     fuzzer = data_types.Fuzzer.query(
@@ -101,37 +107,39 @@ def update_mappings_for_job(job, mappings):
                                                                     job.name))
       continue
 
-    fuzzer.jobs.append(job.name)
+    cast(list[str], fuzzer.jobs).append(cast(str, job.name))
     modified_fuzzers.append(fuzzer)
     update_mappings_for_fuzzer(fuzzer)
 
   # Removing the remaining values in exisiting_fuzzers as
   # they are no longer mapped.
   for fuzzer in existing_fuzzers.values():
-    fuzzer.jobs.remove(job.name)
+    cast(list[str], fuzzer.jobs).remove(cast(str, job.name))
     modified_fuzzers.append(fuzzer)
     update_mappings_for_fuzzer(fuzzer)
   ndb.put_multi(modified_fuzzers)
 
 
-def update_platform_for_job(job_name, new_platform):
+def update_platform_for_job(job_name: str, new_platform: str) -> None:
   """Update platform for all mappings for a particular job."""
   query = data_types.FuzzerJob.query()
   query = query.filter(data_types.FuzzerJob.job == job_name)
   mappings = ndb_utils.get_all_from_query(query)
-  new_mappings = []
+  new_mappings: list[data_types.FuzzerJob] = []
   for mapping in mappings:
     mapping.platform = new_platform
     new_mappings.append(mapping)
   ndb_utils.put_multi(new_mappings)
 
 
-def get_fuzz_task_payload(platform=None):
+def get_fuzz_task_payload(
+    platform: str | None = None) -> tuple[str | None, str | None]:
   """Select a fuzzer that can run on this platform."""
   if not platform:
     queue_override = environment.get_value('QUEUE_OVERRIDE')
     platform = queue_override if queue_override else environment.platform()
 
+  platform = cast(str, platform)
   platforms = [platform]
   base_platform = platform.split(':')[0]
 
@@ -149,7 +157,7 @@ def get_fuzz_task_payload(platform=None):
     query = data_types.FuzzerJobs.query()
     query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
 
-    mappings = []
+    mappings: list[data_types.FuzzerJob] = []
     for entity in query:
       mappings.extend(entity.fuzzer_jobs)
   else:
@@ -191,11 +199,12 @@ def get_fuzz_task_payload(platform=None):
   return selection.fuzzer, selection.job
 
 
-def select_fuzz_target(targets, target_weights):
+def select_fuzz_target(targets: list[str],
+                       target_weights: dict[str, float]) -> str:
   """Select a fuzz target from a list of potential targets."""
   assert targets
 
-  weighted_targets = []
+  weighted_targets: list[WeightedTarget] = []
   for target in targets:
     weight = target_weights.get(target, 1.0)
     weighted_targets.append(WeightedTarget(target, weight))
@@ -203,26 +212,26 @@ def select_fuzz_target(targets, target_weights):
   return utils.random_weighted_choice(weighted_targets).target
 
 
-def get_fuzz_target_weights():
+def get_fuzz_target_weights() -> dict[str, float]:
   """Get a list of fuzz target weights based on the current fuzzer."""
   job_type = environment.get_value('JOB_NAME')
 
   target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(job=job_type))
   fuzz_targets = fuzz_target_utils.get_fuzz_targets_for_target_jobs(target_jobs)
 
-  weights = {}
+  weights: dict[str, float] = {}
   for fuzz_target, target_job in zip(fuzz_targets, target_jobs):
     if not fuzz_target:
       logs.error('Skipping weight assignment for fuzz target '
                  f'{target_job.fuzz_target_name}.')
       continue
 
-    weights[fuzz_target.binary] = target_job.weight
+    weights[cast(str, fuzz_target.binary)] = cast(float, target_job.weight)
 
   return weights
 
 
-def get_job_list(jobs_str):
+def get_job_list(jobs_str: str | None) -> list[str]:
   if jobs_str:
     return [job.strip() for job in jobs_str.split(',')]
 

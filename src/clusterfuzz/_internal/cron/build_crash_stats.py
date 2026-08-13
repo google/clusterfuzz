@@ -40,15 +40,16 @@ from clusterfuzz._internal.metrics import crash_stats
 # We give it a few minutes.
 #
 # We add one hour because our hour spans from 0 minutes to 59 minutes.
-BIGQUERY_INSERTION_DELAY = datetime.timedelta(hours=1, minutes=2)
+BIGQUERY_INSERTION_DELAY: datetime.timedelta = datetime.timedelta(
+    hours=1, minutes=2)
 
 # The template for job ids. Running on a already-run hour is fine to certain
 # degree. We de-dup when reading.
-JOB_ID_TEMPLATE = 'build_crash_stats_test_{unique_number}'
+JOB_ID_TEMPLATE: str = 'build_crash_stats_test_{unique_number}'
 
-TIMEOUT = 2 * 60
+TIMEOUT: int = 2 * 60
 
-SQL = """
+SQL: str = """
 SELECT
     COUNT(*) as count,
     crash_type, crash_state, security_flag, parent_fuzzer_name, fuzzer_name,
@@ -75,7 +76,7 @@ class TooEarlyError(Exception):
   """The end hour is too early according to BIGQUERY_INSERTION_DELAY."""
 
 
-def get_start_hour():
+def get_start_hour() -> int:
   """Gets the start hour from the first crash."""
   client = big_query.Client()
 
@@ -91,7 +92,7 @@ FROM main.crashes
   return 0
 
 
-def get_last_successful_hour_or_start_hour():
+def get_last_successful_hour_or_start_hour() -> int:
   """Gets the last hour that ran successfully or the start hour."""
   last_hour = crash_stats.get_last_successful_hour()
   if last_hour:
@@ -100,7 +101,7 @@ def get_last_successful_hour_or_start_hour():
   return get_start_hour()
 
 
-def get_next_end_hour():
+def get_next_end_hour() -> int:
   """Gets the next end hour. If it's too early to compute data for the next end
     hour, return None."""
   last_successful_hour = get_last_successful_hour_or_start_hour()
@@ -117,7 +118,7 @@ def get_next_end_hour():
   return next_end_hour
 
 
-def make_request(client, job_id, end_hour):
+def make_request(client: big_query.Client, job_id: str, end_hour: int) -> None:
   """Makes a request to BigQuery to build crash stats."""
   table_id = (
       'crash_stats$%s' % crash_stats.get_datetime(end_hour).strftime('%Y%m%d'))
@@ -131,7 +132,7 @@ def make_request(client, job_id, end_hour):
       dataset_id='main', table_id=table_id, job_id=job_id, query=sql)
 
 
-def build(end_hour):
+def build(end_hour: int) -> None:
   """Builds crash stats for the end hour."""
   logging.info('Started building crash stats for %s.',
                crash_stats.get_datetime(end_hour))
@@ -155,7 +156,7 @@ def build(end_hour):
   raise Exception('Building crash stats exceeded %d seconds.' % TIMEOUT)  # pylint: disable=broad-exception-raised
 
 
-def build_if_needed():
+def build_if_needed() -> int | None:
   """Gets the next end hour and decide whether to execute build(). If build()
     succeeds, then record the next end hour."""
   try:
@@ -174,7 +175,7 @@ def build_if_needed():
   return None
 
 
-def main():
+def main() -> bool:
   """Builds crash stats from data_types.CrashsStats2."""
   end_hour = build_if_needed()
   logging.info('OK (end_hour=%s)', end_hour)

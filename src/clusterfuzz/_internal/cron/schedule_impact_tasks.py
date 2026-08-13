@@ -16,7 +16,7 @@
 from clusterfuzz._internal.cron.helpers import tasks_scheduler
 
 
-def main():
+def main() -> bool:
   """Creates impact tasks."""
   task = 'impact'
   tasks_scheduler.schedule(task)
