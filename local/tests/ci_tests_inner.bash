@@ -17,8 +17,8 @@
 TEST_CMD=${1:-local/tests/run_tests}
 
 pip install pipx==1.10.0
+export PATH="$PATH:$(pipx environment --value PIPX_BIN_DIR)"
 pipx install uv==0.12.3
-export PATH=$PATH:/root/.local/bin
 
 uv sync
 uv run butler.py bootstrap
