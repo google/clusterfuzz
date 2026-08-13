@@ -83,6 +83,7 @@ sudo apt-get install -y \
     pipx \
     python3-dev \
     python3-pip \
+    python3-venv \
     unzip \
     xvfb
 
