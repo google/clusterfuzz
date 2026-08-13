@@ -1169,6 +1169,11 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
   comment = (f'Fuzzer {fully_qualified_fuzzer_name} generated testcase crashed '
              f'in {crash.crash_time} seconds '
              f'(r{fuzz_task_output.crash_revision})')
+
+  fuzzer = uworker_io.entity_from_protobuf(uworker_input.setup_input.fuzzer,
+                                           data_types.Fuzzer)
+  is_trusted = fuzzer.trusted
+
   testcase_id = data_handler.store_testcase(
       crash=crash,
       fuzzed_keys=crash.fuzzed_key or None,
@@ -1192,9 +1197,7 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       timeout_multiplier=get_testcase_timeout_multiplier(
           group.context.timeout_multiplier, crash, group.context.test_timeout),
       minimized_arguments=crash.arguments,
-      # TODO(https://github.com/google/clusterfuzz/issues/4175): Before enabling
-      # oss-fuzz-on-demand change this.
-      trusted=True)
+      trusted=is_trusted)
   testcase = data_handler.get_testcase_by_id(testcase_id)
   events.emit(
       events.TestcaseCreationEvent(
@@ -2125,6 +2128,7 @@ class FuzzingSession:
       time.sleep(failure_wait_interval)
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
+    uworker_io.check_running_fuzzer_safe(self.fuzzer)
 
     # Update the session's test_timeout to use the fuzzer's timeout (if any).
     # When the fuzzer has a specified timeout, `update_fuzzer_and_data_bundles`
