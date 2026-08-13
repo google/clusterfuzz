@@ -16,6 +16,7 @@
 import datetime
 import random
 import time
+from typing import Any
 
 from googleapiclient.discovery import build
 
@@ -23,18 +24,19 @@ from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.metrics import logs
 
-GCE_INSTANCE_INFO_KEY = 'gce_instance_info'
-NUM_RETRIES = 10
-OPERATION_TIMEOUT = 15 * 60
-POLL_INTERVAL = 30
-SLEEP_TIME = 10
+GCE_INSTANCE_INFO_KEY: str = 'gce_instance_info'
+NUM_RETRIES: int = 10
+OPERATION_TIMEOUT: int = 15 * 60
+POLL_INTERVAL: int = 30
+SLEEP_TIME: int = 10
 
 # pylint: disable=no-member
 
 # TODO(ochang): Allow batching.
 
 
-def _add_metadata_key_value(items, key, value):
+def _add_metadata_key_value(items: list[dict[str, Any]], key: str,
+                            value: Any) -> None:
   """Adds a metadata key/value to the "items" list from an instance's
   metadata."""
   replaced_existing = False
@@ -48,7 +50,8 @@ def _add_metadata_key_value(items, key, value):
     items.append({'key': key, 'value': value})
 
 
-def _do_operation_with_retries(operation, project, zone, wait_for_completion):
+def _do_operation_with_retries(operation: Any, project: str, zone: str,
+                               wait_for_completion: bool) -> bool:
   """Execute an operation, retrying on any exceptions."""
   response = _execute_api_call_with_retries(operation)
   if response is None:
@@ -72,21 +75,23 @@ def _do_operation_with_retries(operation, project, zone, wait_for_completion):
   return False
 
 
-def _do_instance_operation(operation, instance_name, project, zone,
-                           wait_for_completion):
+def _do_instance_operation(operation: str, instance_name: str, project: str,
+                           zone: str, wait_for_completion: bool) -> bool:
   """Do a start/reset/stop on the compute engine instance in the given project
   and zone."""
   api = _get_api()
   operation_func = getattr(api.instances(), operation)
-  operation = operation_func(instance=instance_name, project=project, zone=zone)
+  operation_obj = operation_func(
+      instance=instance_name, project=project, zone=zone)
 
   return _do_operation_with_retries(
-      operation, project, zone, wait_for_completion=wait_for_completion)
+      operation_obj, project, zone, wait_for_completion=wait_for_completion)
 
 
-def _execute_api_call_with_retries(api_func):
+def _execute_api_call_with_retries(api_func: Any) -> Any:
   """Execute the given API call, retrying if necessary. Returns the response if
   successful, or None."""
+  response = None
   last_exception = None
   for i in range(NUM_RETRIES + 1):
     try:
@@ -115,12 +120,13 @@ def _execute_api_call_with_retries(api_func):
   return response
 
 
-def _get_api():
+def _get_api() -> Any:
   """Return the compute engine api object."""
   return build('compute', 'v1', cache_discovery=False)
 
 
-def _get_instance_info(instance_name, project, zone):
+def _get_instance_info(instance_name: str, project: str,
+                       zone: str) -> dict[str, Any] | None:
   """Return the instance information for a given instance."""
   api = _get_api()
   instance_info_func = api.instances().get(
@@ -128,7 +134,9 @@ def _get_instance_info(instance_name, project, zone):
   return _execute_api_call_with_retries(instance_info_func)
 
 
-def _get_metadata_and_fingerprint(instance_name, project, zone):
+def _get_metadata_and_fingerprint(
+    instance_name: str, project: str,
+    zone: str) -> tuple[list[dict[str, Any]] | None, str | None]:
   """Return the metadata values and fingerprint for the given instance."""
   instance_info = _get_instance_info(instance_name, project, zone)
   if not instance_info:
@@ -140,7 +148,8 @@ def _get_metadata_and_fingerprint(instance_name, project, zone):
   return metadata_items, fingerprint
 
 
-def _wait_for_operation(response, project, zone):
+def _wait_for_operation(response: dict[str, Any], project: str,
+                        zone: str) -> None:
   """Wait for the given operation to complete."""
   if 'status' in response and response['status'] == 'DONE':
     return
@@ -170,7 +179,8 @@ def _wait_for_operation(response, project, zone):
   logs.error('Compute engine operation %s timed out.' % str(operation))
 
 
-def add_metadata(instance_name, project, zone, key, value, wait_for_completion):
+def add_metadata(instance_name: str, project: str, zone: str, key: str,
+                 value: Any, wait_for_completion: bool) -> bool:
   """Add metadata to an existing instance. Replaces existing metadata values
   with the same key."""
   existing_metadata, fingerprint = _get_metadata_and_fingerprint(
@@ -194,12 +204,12 @@ def add_metadata(instance_name, project, zone, key, value, wait_for_completion):
                                     wait_for_completion)
 
 
-def create_disk(disk_name,
-                source_image,
-                size_gb,
-                project,
-                zone,
-                wait_for_completion=False):
+def create_disk(disk_name: str,
+                source_image: str,
+                size_gb: int | str,
+                project: str,
+                zone: str,
+                wait_for_completion: bool = False) -> bool:
   """Create a disk."""
   api = _get_api()
   operation = api.disks().insert(
@@ -215,7 +225,10 @@ def create_disk(disk_name,
       operation, project, zone, wait_for_completion=wait_for_completion)
 
 
-def delete_disk(disk_name, project, zone, wait_for_completion=False):
+def delete_disk(disk_name: str,
+                project: str,
+                zone: str,
+                wait_for_completion: bool = False) -> bool:
   """Delete a disk."""
   api = _get_api()
   operation = api.disks().delete(disk=disk_name, project=project, zone=zone)
@@ -224,11 +237,12 @@ def delete_disk(disk_name, project, zone, wait_for_completion=False):
       operation, project, zone, wait_for_completion=wait_for_completion)
 
 
-def recreate_instance_with_disks(instance_name,
-                                 project,
-                                 zone,
-                                 additional_metadata=None,
-                                 wait_for_completion=False):
+def recreate_instance_with_disks(
+    instance_name: str,
+    project: str,
+    zone: str,
+    additional_metadata: dict[str, Any] | None = None,
+    wait_for_completion: bool = False) -> bool:
   """Recreate an instance and its disk."""
   # Get existing instance information.
   # First, try to get instance info from cache.
@@ -315,7 +329,8 @@ def recreate_instance_with_disks(instance_name,
       operation, project, zone, wait_for_completion=wait_for_completion)
 
 
-def remove_metadata(instance_name, project, zone, key, wait_for_completion):
+def remove_metadata(instance_name: str, project: str, zone: str, key: str,
+                    wait_for_completion: bool) -> bool:
   """Remove a metadata key/value from an existing instance."""
   existing_metadata, fingerprint = _get_metadata_and_fingerprint(
       instance_name, project, zone)
@@ -345,7 +360,10 @@ def remove_metadata(instance_name, project, zone, key, wait_for_completion):
                                     wait_for_completion)
 
 
-def reset_instance(instance_name, project, zone, wait_for_completion=False):
+def reset_instance(instance_name: str,
+                   project: str,
+                   zone: str,
+                   wait_for_completion: bool = False) -> bool:
   """Reset an instance."""
   return _do_instance_operation('reset', instance_name, project, zone,
                                 wait_for_completion)

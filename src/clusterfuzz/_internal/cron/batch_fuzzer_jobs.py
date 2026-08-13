@@ -13,25 +13,28 @@
 # limitations under the License.
 """A cron task that batches FuzzerJobs."""
 
+from typing import Any
+from typing import cast
+
 from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 
-FUZZER_JOB_BATCH_SIZE = 4000
+FUZZER_JOB_BATCH_SIZE: int = 4000
 
 
-def batch_fuzzer_jobs():
+def batch_fuzzer_jobs() -> None:
   """Batches FuzzerJobs for reduced Datastore read ops by bots."""
   platforms = [
-      item.platform for item in data_types.FuzzerJob.query(
+      cast(str, item.platform) for item in data_types.FuzzerJob.query(
           projection=[data_types.FuzzerJob.platform], distinct=True)
   ]
 
   for platform in platforms:
     fuzzer_jobs = list(
         data_types.FuzzerJob.query(data_types.FuzzerJob.platform == platform))
-    fuzzer_jobs.sort(key=lambda item: item.job)
+    fuzzer_jobs.sort(key=lambda item: cast(str, item.job))
 
     batches_to_remove = {
         b.key for b in data_types.FuzzerJobs.query(
@@ -45,7 +48,7 @@ def batch_fuzzer_jobs():
 
       batched = data_types.FuzzerJobs(id=key_id, platform=platform)
       batched.platform = platform
-      batched.fuzzer_jobs = fuzzer_jobs[i:end]
+      batched.fuzzer_jobs = cast(Any, fuzzer_jobs[i:end])
       batched.put()
       batch_count += 1
 
@@ -53,10 +56,10 @@ def batch_fuzzer_jobs():
 
     # Removes additional batches if number reduced.
     if batches_to_remove:
-      ndb.delete_multi(batches_to_remove)
+      ndb.delete_multi(cast(Any, batches_to_remove))
 
 
-def main():
+def main() -> bool:
   """Batches FuzzerJobs."""
   batch_fuzzer_jobs()
   logs.info('Batch fuzzer jobs succeeded.')

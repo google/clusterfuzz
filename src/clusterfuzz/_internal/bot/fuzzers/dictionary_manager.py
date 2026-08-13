@@ -28,7 +28,7 @@ RECOMMENDED_DICTIONARY_HEADER = '# Recommended dictionary stored in GCS.'
 DICTIONARY_PART_PATTERN = re.compile(r'([^"]+\s*=\s*)?(.*)')
 
 
-def extract_dictionary_element(line):
+def extract_dictionary_element(line: str) -> str | None:
   """Extract a dictionary element from the given string."""
   # An element should start and end with a double-quote.
   start_index = line.find('"')
@@ -40,13 +40,13 @@ def extract_dictionary_element(line):
   return element
 
 
-def get_default_dictionary_path(fuzz_target_path):
+def get_default_dictionary_path(fuzz_target_path: str) -> str:
   """Return default dictionary path."""
   return fuzzer_utils.get_supporting_file(fuzz_target_path,
                                           DICTIONARY_FILE_EXTENSION)
 
 
-def get_dictionary_size(dictionary_content):
+def get_dictionary_size(dictionary_content: str) -> int:
   """Calculate number of dictionary elements in the given string."""
   count = 0
   for line in dictionary_content.splitlines():
@@ -56,7 +56,7 @@ def get_dictionary_size(dictionary_content):
   return count
 
 
-def get_stats_for_dictionary_file(dictionary_path):
+def get_stats_for_dictionary_file(dictionary_path: str | None) -> int:
   """Calculate size of manual section of given dictionary."""
   if not dictionary_path or not os.path.exists(dictionary_path):
     return 0
@@ -71,7 +71,7 @@ def get_stats_for_dictionary_file(dictionary_path):
   return manual_dictionary_size
 
 
-def _fix_dictionary_line(line, dict_path):
+def _fix_dictionary_line(line: str, dict_path: str) -> str:
   """Correct a single dictionary line."""
   # Ignore blank and comment lines.
   if not line or line.strip().startswith('#'):
@@ -115,7 +115,7 @@ def _fix_dictionary_line(line, dict_path):
   return name_part + new_entry
 
 
-def correct_if_needed(dict_path):
+def correct_if_needed(dict_path: str | None) -> None:
   """Corrects obvious errors such as missing quotes in a dictionary."""
   if not dict_path or not os.path.exists(dict_path):
     return

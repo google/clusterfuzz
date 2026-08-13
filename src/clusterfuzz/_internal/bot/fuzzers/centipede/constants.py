@@ -19,38 +19,38 @@ defined in this function that end with the suffix "_FLAG" should contain
 "-flag=value".
 """
 
-FORK_SERVER_FLAGNAME = 'fork_server'
-FORK_SERVER_DEFAULT = 1
+FORK_SERVER_FLAGNAME: str = 'fork_server'
+FORK_SERVER_DEFAULT: int = 1
 
-RSS_LIMIT_MB_FLAGNAME = 'rss_limit_mb'
-RSS_LIMIT_MB_DEFAULT = 4096
+RSS_LIMIT_MB_FLAGNAME: str = 'rss_limit_mb'
+RSS_LIMIT_MB_DEFAULT: int = 4096
 
-TIMEOUT_PER_INPUT_FLAGNAME = 'timeout_per_input'
-TIMEOUT_PER_INPUT_DEFAULT = 25
-TIMEOUT_PER_INPUT_REPR_DEFAULT = 60
+TIMEOUT_PER_INPUT_FLAGNAME: str = 'timeout_per_input'
+TIMEOUT_PER_INPUT_DEFAULT: int = 25
+TIMEOUT_PER_INPUT_REPR_DEFAULT: int = 60
 
-ADDRESS_SPACE_LIMIT_FLAGNAME = 'address_space_limit_mb'
-ADDRESS_SPACE_LIMIT_DEFAULT = 4096
+ADDRESS_SPACE_LIMIT_FLAGNAME: str = 'address_space_limit_mb'
+ADDRESS_SPACE_LIMIT_DEFAULT: int = 4096
 
-DICTIONARY_FLAGNAME = 'dictionary'
-WORKDIR_FLAGNAME = 'workdir'
-CORPUS_DIR_FLAGNAME = 'corpus_dir'
-BINARY_FLAGNAME = 'binary'
-EXTRA_BINARIES_FLAGNAME = 'extra_binaries'
-EXIT_ON_CRASH_FLAGNAME = 'exit_on_crash'
+DICTIONARY_FLAGNAME: str = 'dictionary'
+WORKDIR_FLAGNAME: str = 'workdir'
+CORPUS_DIR_FLAGNAME: str = 'corpus_dir'
+BINARY_FLAGNAME: str = 'binary'
+EXTRA_BINARIES_FLAGNAME: str = 'extra_binaries'
+EXIT_ON_CRASH_FLAGNAME: str = 'exit_on_crash'
 
-MAX_LEN_FLAGNAME = 'max_len'
-NUM_RUNS_FLAGNAME = 'num_runs'
-BATCH_SIZE_FLAGNAME = 'batch_size'
-STOP_AFTER_FLAGNAME = 'stop_after'
+MAX_LEN_FLAGNAME: str = 'max_len'
+NUM_RUNS_FLAGNAME: str = 'num_runs'
+BATCH_SIZE_FLAGNAME: str = 'batch_size'
+STOP_AFTER_FLAGNAME: str = 'stop_after'
 
-SYMBOLIZER_PATH_FLAGNAME = 'symbolizer_path'
-SYMBOLIZER_PATH_DEFAULT = '/dev/null'
+SYMBOLIZER_PATH_FLAGNAME: str = 'symbolizer_path'
+SYMBOLIZER_PATH_DEFAULT: str = '/dev/null'
 
-NUM_RUNS_PER_MINIMIZATION = 100000
+NUM_RUNS_PER_MINIMIZATION: int = 100000
 
 
-def get_default_arguments():
+def get_default_arguments() -> dict[str, int | str]:
   return {
       FORK_SERVER_FLAGNAME: FORK_SERVER_DEFAULT,
       RSS_LIMIT_MB_FLAGNAME: RSS_LIMIT_MB_DEFAULT,

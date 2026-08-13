@@ -13,7 +13,11 @@
 # limitations under the License.
 """Performance stats constants and helpers for libFuzzer."""
 
+from collections.abc import Callable
+from collections.abc import Sequence
 import re
+from typing import Any
+from typing import cast
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
@@ -65,7 +69,7 @@ LIBFUZZER_LOG_MAX_LEN_REGEX = re.compile(
     r' than (\d+) bytes.*')
 
 
-def calculate_log_lines(log_lines):
+def calculate_log_lines(log_lines: Sequence[str]) -> tuple[int, int, int]:
   """Calculate number of logs lines of different kind in the given log."""
   # Counters to be returned.
   libfuzzer_lines_count = 0
@@ -116,12 +120,15 @@ def calculate_log_lines(log_lines):
   return other_lines_count, libfuzzer_lines_count, ignored_lines_count
 
 
-def strategy_column_name(strategy_name):
+def strategy_column_name(strategy_name: str) -> str:
   """Convert the strategy name into stats column name."""
   return 'strategy_%s' % strategy_name
 
 
-def parse_fuzzing_strategies(log_lines, strategies):
+def parse_fuzzing_strategies(
+    log_lines: Sequence[str],
+    strategies: Sequence[str] | None,
+) -> dict[str, Any]:
   """Extract stats for fuzzing strategies used."""
   if not strategies:
     # Extract strategies from the log.
@@ -131,14 +138,17 @@ def parse_fuzzing_strategies(log_lines, strategies):
         strategies = match.group(1).split(',')
         break
 
-  return process_strategies(strategies)
+  return process_strategies(cast(Sequence[str], strategies))
 
 
-def process_strategies(strategies, name_modifier=strategy_column_name):
+def process_strategies(
+    strategies: Sequence[str],
+    name_modifier: Callable[[str], str] = strategy_column_name,
+) -> dict[str, Any]:
   """Process strategies, parsing any stored values."""
-  stats = {}
+  stats: dict[str, Any] = {}
 
-  def parse_line_for_strategy_prefix(line, strategy_name):
+  def parse_line_for_strategy_prefix(line: str, strategy_name: str) -> None:
     """Parse log line to find the value of a strategy with a prefix."""
     strategy_prefix = strategy_name + '_'
     if not line.startswith(strategy_prefix):
@@ -165,11 +175,15 @@ def process_strategies(strategies, name_modifier=strategy_column_name):
   return stats
 
 
-def parse_performance_features(log_lines, strategies, arguments):
+def parse_performance_features(
+    log_lines: Sequence[str],
+    strategies: Sequence[str] | None,
+    arguments: Any,
+) -> dict[str, Any]:
   """Extract stats for performance analysis."""
   # TODO(ochang): Remove include_strategies once refactor is complete.
   # Initialize stats with default values.
-  stats = {
+  stats: dict[str, Any] = {
       'bad_instrumentation': 0,
       'corpus_crash_count': 0,
       'corpus_size': 0,
@@ -196,7 +210,8 @@ def parse_performance_features(log_lines, strategies, arguments):
       'timeout_count': 0,
   }
 
-  arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
+  arguments = cast(fuzzer_options.FuzzerArguments,
+                   fuzzer_options.FuzzerArguments.from_list(arguments))
   # Extract strategy selection method.
   # TODO(ochang): Move to more general place?
   stats['strategy_selection_method'] = environment.get_value(
@@ -288,7 +303,7 @@ def parse_performance_features(log_lines, strategies, arguments):
   return stats
 
 
-def parse_stats_from_merge_log(log_lines):
+def parse_stats_from_merge_log(log_lines: Sequence[str]) -> dict[str, int]:
   """Extract stats from a log produced by libFuzzer run with -merge=1."""
   stats = {
       'edge_coverage': 0,

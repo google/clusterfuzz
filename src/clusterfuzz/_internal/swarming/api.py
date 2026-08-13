@@ -13,12 +13,13 @@
 # limitations under the License.
 """Swarming pRPC API client."""
 
+from typing import cast
 from typing import Optional
 
 from google.auth import exceptions as auth_exceptions
 from google.protobuf import json_format
 from google.protobuf.timestamp_pb2 import \
-    Timestamp  # pylint: disable=no-name-in-module
+    Timestamp  # pylint: disable=no-name-in-module # pyright: ignore[reportAttributeAccessIssue]
 from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.base import utils
@@ -29,17 +30,17 @@ from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.swarming import get_swarming_config
 
 # TODO(b/516627559): Move scopes to config file
-_SWARMING_SCOPES = [
+_SWARMING_SCOPES: list[str] = [
     'https://www.googleapis.com/auth/cloud-platform',
     'https://www.googleapis.com/auth/userinfo.email'
 ]
 
-_COUNT_TASKS_ENDPOINT = 'swarming.v2.Tasks/CountTasks'
-_NEW_TASK_ENDPOINT = 'swarming.v2.Tasks/NewTask'
+_COUNT_TASKS_ENDPOINT: str = 'swarming.v2.Tasks/CountTasks'
+_NEW_TASK_ENDPOINT: str = 'swarming.v2.Tasks/NewTask'
 
-_MIN_TASK_START_TIME = "2026-06-01T00:00:00Z"
-_MIN_TASK_START_TIME_PROTO = json_format.Parse(f'"{_MIN_TASK_START_TIME}"',
-                                               Timestamp())
+_MIN_TASK_START_TIME: str = "2026-06-01T00:00:00Z"
+_MIN_TASK_START_TIME_PROTO: Timestamp = json_format.Parse(
+    f'"{_MIN_TASK_START_TIME}"', Timestamp())
 
 
 class SwarmingApiError(Exception):
@@ -52,7 +53,7 @@ class SwarmingApi:
   _config: SwarmingConfig
   _base_url: str = ""
 
-  def __init__(self, config: SwarmingConfig):
+  def __init__(self, config: SwarmingConfig) -> None:
     self._config = config
     self._base_url = f"https://{self._config.get('swarming_server')}/prpc/"
 
@@ -78,7 +79,7 @@ class SwarmingApi:
         logs.error('[Swarming] Failed to get credentials. None found.')
         return ""
 
-      return creds.token
+      return cast(str, creds.token)
     except (auth_exceptions.DefaultCredentialsError,
             auth_exceptions.RefreshError, auth_exceptions.TransportError) as e:
       logs.error(f'[Swarming] Failed to get token with: {e}.')

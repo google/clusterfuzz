@@ -15,6 +15,7 @@
 
 import base64
 import json
+from typing import Any
 import uuid
 
 from clusterfuzz._internal.base import utils
@@ -29,7 +30,7 @@ from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
 
-def has_swarming_env_vars(job_environment: dict) -> bool:
+def has_swarming_env_vars(job_environment: dict[str, Any]) -> bool:
   """Returns True if the job environment contains swarming env vars."""
   return bool(
       utils.string_is_true(job_environment.get('IS_SWARMING_JOB')) or
@@ -63,11 +64,11 @@ def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
 
 
 def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
-                       job: data_types.Job) -> dict | None:
+                       job: data_types.Job) -> dict[str, Any] | None:
   return swarming_config.get('mapping').get(job.platform, None)
 
 
-def _get_task_name(job_name: str):
+def _get_task_name(job_name: str) -> str:
   return f't-{str(uuid.uuid4()).lower()}-{job_name}'
 
 
@@ -80,7 +81,8 @@ def get_swarming_config() -> local_config.SwarmingConfig | None:
     return None
 
 
-def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
+def _get_task_dimensions(job: data_types.Job,
+                         platform_specific_dimensions: list[dict[str, Any]]
                         ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
   """ Gets all swarming dimensions for a task.
   Job dimensions have more precedence than static dimensions"""
@@ -90,7 +92,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
         '[Swarming] No dimensions set. Reason: failed to retrieve config')
     return []
 
-  unique_dimensions = {}
+  unique_dimensions: dict[str, str] = {}
   if job.platform == 'ANDROID_EMULATOR':
     unique_dimensions['os'] = 'Linux'
   else:
@@ -139,8 +141,8 @@ def _append_metadata_env_var(
     logs.warning(f'{env_var_name} is not set or cannot be fetched.')
 
 
-def _get_env_vars(logs_project_id: str,
-                  instance_spec: dict) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
+def _get_env_vars(logs_project_id: str | None, instance_spec: dict[str, Any]
+                 ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
   """Retrieve required environment variables from metadata and config."""
   default_task_environment = [
       swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member

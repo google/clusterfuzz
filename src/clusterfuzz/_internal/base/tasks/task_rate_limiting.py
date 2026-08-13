@@ -26,35 +26,35 @@ from clusterfuzz._internal.system import environment
 # an error rather than except. This needs to be handled in postprocess.
 
 
-def _get_datetime_now():
+def _get_datetime_now() -> datetime.datetime:
   return datetime.datetime.now()
 
 
 # Things that are sometimes run as tasks by commands.py but are really portions
 # of actual tasks.
-_UTASK_PSEUDO_TASKS = {'uworker_main', 'postprocess', 'preprocess'}
+_UTASK_PSEUDO_TASKS: set[str] = {'uworker_main', 'postprocess', 'preprocess'}
 
 
 @memoize.wrap(memoize.FifoInMemory(1))
-def optin_to_task_rate_limiting():
+def optin_to_task_rate_limiting() -> bool:
   enabled = local_config.ProjectConfig().get('rate_limit_tasks.enabled', False)
-  return enabled
+  return bool(enabled)
 
 
 class TaskRateLimiter:
   """Rate limiter for tasks. This limits tasks to 100 erroneous runs or 2000
   succesful runs in 6 hours. It keeps track of task completion when record_task
   is called at the end of every task."""
-  TASK_RATE_LIMIT_MAX_ERRORS = 100
+  TASK_RATE_LIMIT_MAX_ERRORS: int = 100
   # TODO(metzman): Reevaluate this number, it's probably too high.
-  TASK_RATE_LIMIT_MAX_COMPLETIONS = 2000
+  TASK_RATE_LIMIT_MAX_COMPLETIONS: int = 2000
 
-  def __init__(self, task_name, task_argument, job_name):
+  def __init__(self, task_name: str, task_argument: str, job_name: str) -> None:
     self.task_name = task_name
     self.task_argument = task_argument
     self.job_name = job_name
 
-  def __str__(self):
+  def __str__(self) -> str:
     return ' '.join([self.task_name, self.task_argument, self.job_name])
 
   def record_task(self, success: bool) -> None:

@@ -19,6 +19,7 @@ import bisect
 import os
 import re
 import time
+from typing import Any
 import urllib.parse
 
 from clusterfuzz._internal.base import memoize
@@ -46,7 +47,9 @@ FIND_BRANCHED_FROM = re.compile(
     r'Cr-Branched-From:.*(?:master|main)@\{#(\d+)\}')
 
 
-def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
+def _add_components_from_dict(
+    deps_dict: dict[str, Any] | None, vars_dict: dict[str, Any],
+    revisions_dict: dict[str, dict[str, Any]]) -> None:
   """Add components from a dict representing a DEPS file."""
   if not deps_dict:
     # If the dictionary is None, bail out early.
@@ -73,7 +76,8 @@ def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
       }
 
 
-def _clank_revision_file_to_revisions_dict(content):
+def _clank_revision_file_to_revisions_dict(
+    content: str) -> dict[str, dict[str, Any]] | None:
   """Parse Clank revision file and return revisions dict."""
   component_revision_mappings = {}
   for line in content.splitlines():
@@ -110,7 +114,7 @@ def _clank_revision_file_to_revisions_dict(content):
   return revisions_dict
 
 
-def _get_component_display_name(name, default=None):
+def _get_component_display_name(name: str, default: str | None = None) -> str:
   """Display name for a component."""
   if default and name in ['', 'default', '/src']:
     return default.capitalize()
@@ -124,7 +128,7 @@ def _get_component_display_name(name, default=None):
   return names[name_index].capitalize()
 
 
-def _get_display_revision(component_revision_dict):
+def _get_display_revision(component_revision_dict: dict[str, Any]) -> Any:
   """Return display revision for a component revision dict."""
   if 'commit_pos' in component_revision_dict:
     return component_revision_dict['commit_pos']
@@ -132,7 +136,8 @@ def _get_display_revision(component_revision_dict):
   return component_revision_dict['rev'] or '<empty>'
 
 
-def _get_link_text(start_component_revision_dict, end_component_revision_dict):
+def _get_link_text(start_component_revision_dict: dict[str, Any],
+                   end_component_revision_dict: dict[str, Any]) -> str:
   """Return link text given a start and end revision. This is used in cases
   when revision url is not available."""
   start_revision = _get_display_revision(start_component_revision_dict)
@@ -144,7 +149,8 @@ def _get_link_text(start_component_revision_dict, end_component_revision_dict):
   return '%s:%s' % (start_revision, end_revision)
 
 
-def _get_link_url(start_component_revision_dict, end_component_revision_dict):
+def _get_link_url(start_component_revision_dict: dict[str, Any],
+                  end_component_revision_dict: dict[str, Any]) -> str | None:
   """Return link text given a start and end revision. This is used in cases
   when revision url is not available."""
   url = start_component_revision_dict['url']
@@ -166,12 +172,12 @@ def _get_link_url(start_component_revision_dict, end_component_revision_dict):
                                                      end_revision)
 
 
-def _get_revision(component_revision_dict):
+def _get_revision(component_revision_dict: dict[str, Any]) -> Any:
   """Return revision for a component revision dict."""
   return component_revision_dict['rev']
 
 
-def _get_url_content(url):
+def _get_url_content(url: str) -> str | None:
   """Read a potentially base64-encoded resource from the given URL."""
   if url.startswith(storage.GS_PREFIX):
     # Fetch a GCS path with authentication.
@@ -192,34 +198,36 @@ def _get_url_content(url):
     # cross-site scripting attacks. If the requested url contains |format=text|,
     # then the output is base64 encoded. So, decode it first.
     if url_content and url.endswith('format=text'):
-      url_content = base64.b64decode(url_content)
+      url_content = base64.b64decode(url_content).decode('utf-8')
 
   return url_content
 
 
-def _git_url_for_chromium_repository(repository):
+def _git_url_for_chromium_repository(repository: str) -> str:
   """Return git url for a chromium repository."""
   return '%s/%s.git' % (CHROMIUM_GIT_ROOT_URL, repository)
 
 
-def _is_clank(url):
+def _is_clank(url: str) -> bool:
   """Return bool on whether this is a clank url or not."""
   # FIXME: Need a better way to check for this.
   return '/chrome-test-builds/android' in url
 
 
-def _is_deps(url):
+def _is_deps(url: str) -> bool:
   """Return bool on whether this is a DEPS url or not."""
   return urllib.parse.urlparse(url).path.endswith('/DEPS')
 
 
-def _src_map_to_revisions_dict(src_map, project_name):
+def _src_map_to_revisions_dict(src_map: dict[str, Any], project_name: str | None
+                              ) -> dict[str, dict[str, Any]]:
   """Convert src map contents to revisions dict."""
   revisions_dict = {}
 
   for key in src_map:
     # Only add keys that have both url and rev attributes.
-    if 'url' in src_map[key] and 'rev' in src_map[key]:
+    if isinstance(src_map[key],
+                  dict) and 'url' in src_map[key] and 'rev' in src_map[key]:
       revisions_dict[key] = {
           'name': _get_component_display_name(key, project_name),
           'rev': src_map[key]['rev'],
@@ -231,7 +239,8 @@ def _src_map_to_revisions_dict(src_map, project_name):
 
 @memoize.wrap(memoize.FifoOnDisk(DISK_CACHE_SIZE))
 @memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
-def _git_commit_position_to_git_hash_for_chromium(revision, repository):
+def _git_commit_position_to_git_hash_for_chromium(
+    revision: str | int, repository: str) -> str | None:
   """Return git hash for a git commit position using cr-rev.appspot.com."""
   request_variables = {
       'number': revision,
@@ -256,7 +265,7 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
   return result_dict['git_sha']
 
 
-def _to_dict(contents):
+def _to_dict(contents: str) -> dict[str, Any] | None:
   """Parse |contents| as a dict, returning None on failure or if it's not a
   dict."""
   try:
@@ -270,9 +279,9 @@ def _to_dict(contents):
   return None
 
 
-def deps_to_revisions_dict(content):
+def deps_to_revisions_dict(content: str) -> dict[str, dict[str, Any]] | None:
   """Parses DEPS content and returns a dictionary of revision variables."""
-  local_context = {}
+  local_context: dict[str, Any] = {}
   global_context = {
       'Var': lambda x: local_context.get('vars', {}).get(x),
       'Str': str,
@@ -280,7 +289,7 @@ def deps_to_revisions_dict(content):
   # pylint: disable=exec-used
   exec(content, global_context, local_context)
 
-  revisions_dict = {}
+  revisions_dict: dict[str, dict[str, Any]] = {}
 
   vars_dict = local_context.get('vars', {})
   deps_dict = local_context.get('deps')
@@ -300,7 +309,8 @@ def deps_to_revisions_dict(content):
   return revisions_dict
 
 
-def get_components_list(component_revisions_dict, job_type):
+def get_components_list(component_revisions_dict: dict[str, dict[str, Any]],
+                        job_type: str | None) -> list[str]:
   """Return a prioritized order of components based on job type."""
   components = sorted(component_revisions_dict.keys())
 
@@ -308,12 +318,17 @@ def get_components_list(component_revisions_dict, job_type):
     # Components prioritization only applies to non-chromium projects.
     return components
 
-  project_name = data_handler.get_project_name(job_type)
+  if job_type is None:
+    project_name = utils.default_project_name()
+    main_repo = None
+  else:
+    project_name = data_handler.get_project_name(job_type)
+    main_repo = data_handler.get_main_repo(job_type)
+
   if not project_name:
     # No project name found in job environment, return list as-is.
     return components
 
-  main_repo = data_handler.get_main_repo(job_type)
   project_src = '/src/' + project_name
   for component in components.copy():
     if component_revisions_dict[component]['url'] == main_repo:
@@ -335,7 +350,8 @@ def get_components_list(component_revisions_dict, job_type):
   return components
 
 
-def _get_revision_vars_url_format(job_type, platform_id=None):
+def _get_revision_vars_url_format(job_type: str | None,
+                                  platform_id: str | None = None) -> str | None:
   """Return REVISION_VARS_URL from job environment if available. Otherwise,
   default to one set in project.yaml. For custom binary jobs, this is not
   applicable."""
@@ -357,7 +373,10 @@ def _get_revision_vars_url_format(job_type, platform_id=None):
 
 @memoize.wrap(memoize.FifoOnDisk(DISK_CACHE_SIZE))
 @memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
-def get_component_revisions_dict(revision, job_type, platform_id=None):
+def get_component_revisions_dict(
+    revision: str | int | None,
+    job_type: str | None,
+    platform_id: str | None = None) -> dict[str, dict[str, Any]] | None:
   """Retrieve revision vars dict."""
   if revision == 0 or revision == '0' or revision is None:
     # Return empty dict for zero start revision.
@@ -368,11 +387,13 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
   if not revision_vars_url_format:
     return None
 
-  project_name = data_handler.get_project_name(job_type)
-  revisions_dict = {}
+  project_name = (
+      data_handler.get_project_name(job_type)
+      if job_type else utils.default_project_name())
+  revisions_dict: dict[str, dict[str, Any]] = {}
 
   if utils.is_chromium():
-    component = data_handler.get_component_name(job_type)
+    component = data_handler.get_component_name(job_type) if job_type else ''
     repository = data_handler.get_repository_for_component(component)
     if repository and not _is_clank(revision_vars_url_format):
       revision_hash = _git_commit_position_to_git_hash_for_chromium(
@@ -414,11 +435,13 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
     return _clank_revision_file_to_revisions_dict(url_content)
 
   # Default case: parse content as yaml.
-  revisions_dict = _to_dict(url_content)
-  if revisions_dict is None:
+  parsed_dict = _to_dict(url_content)
+  if parsed_dict is None:
     logs.error(
         'Failed to parse component revisions from %s.' % revision_vars_url)
     return None
+
+  revisions_dict = parsed_dict
 
   # Parse as per source map format.
   if revision_vars_url.endswith(SOURCE_MAP_EXTENSION):
@@ -427,15 +450,17 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
   return revisions_dict
 
 
-def get_component_list(revision, job_type):
+def get_component_list(revision: str | int | None,
+                       job_type: str | None) -> list[dict[str, Any]]:
   """Gets mapped revisions for a given revision."""
   return get_component_range_list(revision, revision, job_type)
 
 
-def get_component_range_list(start_revision,
-                             end_revision,
-                             job_type,
-                             platform_id=None):
+def get_component_range_list(
+    start_revision: str | int | None,
+    end_revision: str | int | None,
+    job_type: str | None,
+    platform_id: str | None = None) -> list[dict[str, Any]]:
   """Gets revision variable ranges for a changeset range."""
   start_component_revisions_dict = get_component_revisions_dict(
       start_revision, job_type, platform_id=platform_id)
@@ -450,7 +475,7 @@ def get_component_range_list(start_revision,
       end_component_revisions_dict is None):
     return []
 
-  component_revisions = []
+  component_revisions: list[dict[str, Any]] = []
   keys = get_components_list(end_component_revisions_dict, job_type)
   for key in keys:
     if not start_component_revisions_dict:
@@ -486,9 +511,10 @@ def get_component_range_list(start_revision,
   return component_revisions
 
 
-def get_start_and_end_revision(revision_range):
+def get_start_and_end_revision(revision_range: str | None) -> list[int]:
   """Return start and end revision for a regression range."""
   try:
+    assert revision_range is not None
     revision_range_list = revision_range.split(':')
     start_revision = int(revision_range_list[0])
     end_revision = int(revision_range_list[1])
@@ -498,7 +524,8 @@ def get_start_and_end_revision(revision_range):
   return [start_revision, end_revision]
 
 
-def format_revision_list(revisions, use_html=True):
+def format_revision_list(revisions: list[dict[str, Any]],
+                         use_html: bool = True) -> str:
   """Converts component revision list to html."""
   result = ''
   for revision in revisions:
@@ -519,7 +546,7 @@ def format_revision_list(revisions, use_html=True):
   return result
 
 
-def convert_revision_to_integer(revision):
+def convert_revision_to_integer(revision: str) -> int:
   """Returns an integer that represents the given revision."""
   # If revision is only decimal digits, like '249055', then do a simple
   # conversion.
@@ -544,9 +571,10 @@ def convert_revision_to_integer(revision):
   raise ValueError(error)
 
 
-def find_build_url(bucket_path, build_url_list, revision):
+def find_build_url(bucket_path: str | None, build_url_list: list[str] | None,
+                   revision: int | None) -> str | None:
   """Returns the build url associated with a revision."""
-  if not build_url_list:
+  if not bucket_path or not build_url_list or revision is None:
     return None
 
   revision_pattern = revision_pattern_from_build_bucket_path(bucket_path)
@@ -562,7 +590,8 @@ def find_build_url(bucket_path, build_url_list, revision):
   return None
 
 
-def find_min_revision_index(revisions_list, revision):
+def find_min_revision_index(revisions_list: list[Any],
+                            revision: Any) -> int | None:
   """Find the min index for bisection. Find largest revision <= the given
   revision."""
   # bisect_left partitions |revisions_list| into 2 such that:
@@ -579,7 +608,8 @@ def find_min_revision_index(revisions_list, revision):
   return None
 
 
-def find_max_revision_index(revisions_list, revision):
+def find_max_revision_index(revisions_list: list[Any],
+                            revision: Any) -> int | None:
   """Find the max index for bisection. Find smallest revision >= the given
   revision."""
   index = bisect.bisect_left(revisions_list, revision)
@@ -590,7 +620,7 @@ def find_max_revision_index(revisions_list, revision):
   return None
 
 
-def get_first_revision_in_list(revision_list):
+def get_first_revision_in_list(revision_list: list[Any]) -> Any:
   """Gets the first revision in list greater than or equal to MIN_REVISION."""
   first_revision = revision_list[0]
 
@@ -608,12 +638,15 @@ def get_first_revision_in_list(revision_list):
   return first_revision
 
 
-def get_last_revision_in_list(revision_list):
+def get_last_revision_in_list(revision_list: list[Any]) -> Any:
   """Gets the last revision in list."""
   return revision_list[-1]
 
 
-def get_real_revision(revision, job_type, display=False, platform_id=None):
+def get_real_revision(revision: str | int | None,
+                      job_type: str | None,
+                      display: bool = False,
+                      platform_id: str | None = None) -> Any:
   """Convert the revision number into a real revision hash (e.g. git hash)."""
   if revision is None:
     # Bail early when caller passes revision from a non-existent attribute.
@@ -631,7 +664,7 @@ def get_real_revision(revision, job_type, display=False, platform_id=None):
   return helper(component_revisions_dict[key])
 
 
-def needs_update(revision_file, revision):
+def needs_update(revision_file: str, revision: str | int) -> bool:
   """Check a revision file against the provided revision
   to see if an update is required."""
   failure_wait_interval = environment.get_value('FAIL_WAIT')
@@ -676,7 +709,8 @@ def needs_update(revision_file, revision):
   return False
 
 
-def write_revision_to_revision_file(revision_file, revision):
+def write_revision_to_revision_file(revision_file: str,
+                                    revision: str | int) -> None:
   """Writes a revision to the revision file."""
   try:
     with open(revision_file, 'wb') as file_handle:
@@ -685,14 +719,14 @@ def write_revision_to_revision_file(revision_file, revision):
     logs.error("Could not save revision to revision file '%s'" % revision_file)
 
 
-def revision_pattern_from_build_bucket_path(bucket_path):
+def revision_pattern_from_build_bucket_path(bucket_path: str) -> str:
   """Get the revision pattern from a build bucket path."""
   return '.*?' + os.path.basename(bucket_path)
 
 
 @memoize.wrap(memoize.FifoOnDisk(DISK_CACHE_SIZE))
 @memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
-def revision_to_branched_from(uri, revision):
+def revision_to_branched_from(uri: str, revision: str | int) -> str | None:
   """Interrogates git code review server to find the branch-from
   revision of a component."""
   full_uri = "%s/+/%s?format=JSON" % (uri, revision)
@@ -700,6 +734,7 @@ def revision_to_branched_from(uri, revision):
   # gerrit intentionally returns nonsense in the first line.
   # See 'cross site script inclusion here:
   # https://gerrit-review.googlesource.com/Documentation/rest-api.html
+  assert url_content is not None
   url_content = '\n'.join(url_content.splitlines()[1:])
   result = _to_dict(url_content)
   if not result:

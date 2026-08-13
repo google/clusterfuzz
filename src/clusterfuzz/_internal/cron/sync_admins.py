@@ -13,6 +13,11 @@
 # limitations under the License.
 """Cron to sync admin users."""
 
+from collections.abc import Collection
+from collections.abc import Container
+from typing import Any
+from typing import cast
+
 from googleapiclient import discovery
 
 from clusterfuzz._internal.base import utils
@@ -21,10 +26,10 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 
 
-def get_emails_from_bindings(iam_policy, principal_type,
-                             allowed_roles) -> set[str]:
+def get_emails_from_bindings(iam_policy: dict[str, Any], principal_type: str,
+                             allowed_roles: Container[str]) -> set[str]:
   """Returns emails that should be admins, given constraints."""
-  admins = set()
+  admins: set[str] = set()
 
   assert principal_type in ['user', 'serviceAccount']
 
@@ -40,7 +45,7 @@ def get_emails_from_bindings(iam_policy, principal_type,
   return admins
 
 
-def admins_from_iam_policy(iam_policy):
+def admins_from_iam_policy(iam_policy: dict[str, Any]) -> set[str]:
   """Gets a set of admins from the IAM policy."""
   # Per
   # https://cloud.google.com/appengine/docs/standard/python/users/adminusers, An
@@ -63,18 +68,18 @@ def admins_from_iam_policy(iam_policy):
   return user_admins
 
 
-def update_admins(new_admins):
+def update_admins(new_admins: Collection[str]) -> None:
   """Update list of admins."""
   existing_admins = ndb_utils.get_all_from_model(data_types.Admin)
 
   to_remove = []
   existing_admin_emails = set()
   for admin in existing_admins:
-    if admin.email not in new_admins:
-      logs.info('Removing admin ' + admin.email)
+    if cast(str, admin.email) not in new_admins:
+      logs.info('Removing admin ' + cast(str, admin.email))
       to_remove.append(admin.key)
 
-    existing_admin_emails.add(admin.email)
+    existing_admin_emails.add(cast(str, admin.email))
 
   ndb_utils.delete_multi(to_remove)
 
@@ -87,7 +92,7 @@ def update_admins(new_admins):
   ndb_utils.put_multi(to_add)
 
 
-def main():
+def main() -> bool:
   """Admin user syncing cron."""
   resource_manager = discovery.build('cloudresourcemanager', 'v1')
   project_id = utils.get_application_id()

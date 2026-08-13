@@ -13,6 +13,9 @@
 # limitations under the License.
 """Configuration Manager."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
 from clusterfuzz._internal.base import utils
@@ -23,7 +26,7 @@ from libs import form
 from libs import handler
 from libs import helpers
 
-USER_PERMISSION_ENTITY_KINDS = [
+USER_PERMISSION_ENTITY_KINDS: list[dict[str, Any]] = [
     {
         'name': 'fuzzer',
         'value': data_types.PermissionEntityKind.FUZZER,
@@ -38,7 +41,7 @@ USER_PERMISSION_ENTITY_KINDS = [
     },
 ]
 
-USER_PERMISSION_AUTO_CC_TYPES = [
+USER_PERMISSION_AUTO_CC_TYPES: list[dict[str, Any]] = [
     {
         'name': 'none',
         'value': data_types.AutoCCType.NONE,
@@ -54,7 +57,7 @@ USER_PERMISSION_AUTO_CC_TYPES = [
 ]
 
 
-def get_value_by_name(item_list, name):
+def get_value_by_name(item_list: list[dict[str, Any]], name: str) -> Any:
   """Return value for entry whose name matches the one in item list."""
   for item in item_list:
     if item['name'] == name:
@@ -68,7 +71,7 @@ class Handler(base_handler.Handler):
 
   @handler.get(handler.HTML)
   @handler.check_admin_access
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Handle a get request."""
     external_user_permissions = list(
         data_types.ExternalUserPermission.query().order(
@@ -94,44 +97,46 @@ class Handler(base_handler.Handler):
   @handler.post(handler.FORM, handler.HTML)
   @handler.check_admin_access
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Handle a post request."""
     config = db_config.get()
     if not config:
       config = data_types.Config()
 
-    previous_hash = request.get('previous_hash')
+    request_any = cast(Any, request)
+    previous_hash = request_any.get('previous_hash')
     if config.previous_hash and config.previous_hash != previous_hash:
       raise helpers.EarlyExitError(
           'Your change conflicts with another configuration update. '
           'Please refresh and try again.', 500)
 
-    build_apiary_service_account_private_key = request.get(
+    build_apiary_service_account_private_key = request_any.get(
         'build_apiary_service_account_private_key')
-    bug_report_url = request.get('bug_report_url')
-    client_credentials = request.get('client_credentials')
-    jira_url = request.get('jira_url')
-    jira_credentials = request.get('jira_credentials')
-    component_repository_mappings = request.get('component_repository_mappings')
-    contact_string = request.get('contact_string')
-    documentation_url = request.get('documentation_url')
-    github_credentials = request.get('github_credentials')
-    oss_fuzz_robot_github_personal_access_token = request.get(
+    bug_report_url = request_any.get('bug_report_url')
+    client_credentials = request_any.get('client_credentials')
+    jira_url = request_any.get('jira_url')
+    jira_credentials = request_any.get('jira_credentials')
+    component_repository_mappings = request_any.get(
+        'component_repository_mappings')
+    contact_string = request_any.get('contact_string')
+    documentation_url = request_any.get('documentation_url')
+    github_credentials = request_any.get('github_credentials')
+    oss_fuzz_robot_github_personal_access_token = request_any.get(
         'oss_fuzz_robot_github_personal_access_token')
-    platform_group_mappings = request.get('platform_group_mappings')
-    privileged_users = request.get('privileged_users')
-    privileged_groups = request.get('privileged_groups')
-    blacklisted_users = request.get('blacklisted_users')
-    relax_security_bug_restrictions = request.get(
+    platform_group_mappings = request_any.get('platform_group_mappings')
+    privileged_users = request_any.get('privileged_users')
+    privileged_groups = request_any.get('privileged_groups')
+    blacklisted_users = request_any.get('blacklisted_users')
+    relax_security_bug_restrictions = request_any.get(
         'relax_security_bug_restrictions')
-    relax_testcase_restrictions = request.get('relax_testcase_restrictions')
-    reproduction_help_url = request.get('reproduction_help_url')
-    test_account_email = request.get('test_account_email')
-    test_account_password = request.get('test_account_password')
-    wifi_ssid = request.get('wifi_ssid')
-    wifi_password = request.get('wifi_password')
-    sendgrid_api_key = request.get('sendgrid_api_key')
-    sendgrid_sender = request.get('sendgrid_sender')
+    relax_testcase_restrictions = request_any.get('relax_testcase_restrictions')
+    reproduction_help_url = request_any.get('reproduction_help_url')
+    test_account_email = request_any.get('test_account_email')
+    test_account_password = request_any.get('test_account_password')
+    wifi_ssid = request_any.get('wifi_ssid')
+    wifi_password = request_any.get('wifi_password')
+    sendgrid_api_key = request_any.get('sendgrid_api_key')
+    sendgrid_sender = request_any.get('sendgrid_sender')
 
     config.build_apiary_service_account_private_key = (
         build_apiary_service_account_private_key)
@@ -186,13 +191,14 @@ class AddExternalUserPermission(base_handler.Handler):
   @handler.post(handler.FORM, handler.HTML)
   @handler.check_admin_access
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Handle a post request."""
-    email = utils.normalize_email(request.get('email'))
-    entity_kind = request.get('entity_kind')
-    entity_name = request.get('entity_name')
-    is_prefix = request.get('is_prefix')
-    auto_cc = request.get('auto_cc')
+    request_any = cast(Any, request)
+    email = utils.normalize_email(request_any.get('email'))
+    entity_kind = request_any.get('entity_kind')
+    entity_name = request_any.get('entity_name')
+    is_prefix = request_any.get('is_prefix')
+    auto_cc = request_any.get('auto_cc')
 
     if not email:
       raise helpers.EarlyExitError('No email provided.', 400)
@@ -254,11 +260,12 @@ class DeleteExternalUserPermission(base_handler.Handler):
   @handler.post(handler.FORM, handler.HTML)
   @handler.check_admin_access
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Handle a post request."""
-    email = request.get('email')
-    entity_kind = request.get('entity_kind')
-    entity_name = request.get('entity_name')
+    request_any = cast(Any, request)
+    email = request_any.get('email')
+    entity_kind = request_any.get('entity_kind')
+    entity_name = request_any.get('entity_name')
 
     if not email:
       raise helpers.EarlyExitError('No email provided.', 400)

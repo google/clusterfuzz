@@ -16,6 +16,8 @@
 import datetime
 import json
 import os
+from typing import Any
+from typing import cast
 
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
@@ -25,17 +27,17 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 
 
-def _latest_report_info_dir(bucket):
+def _latest_report_info_dir(bucket: str) -> str:
   """Returns a GCS URL to the latest report info for the given bucket."""
   return f'gs://{bucket}/latest_report_info/'
 
 
-def _basename(gcs_path):
+def _basename(gcs_path: str) -> str:
   """Returns the basename for the given path without file extension."""
   return os.path.splitext(os.path.basename(gcs_path))[0]
 
 
-def _read_json(url):
+def _read_json(url: str) -> Any:
   """Returns a JSON obejct loaded from the given GCS url."""
   data = storage.read_data(url)
 
@@ -49,7 +51,9 @@ def _read_json(url):
   return result
 
 
-def _coverage_information(summary_path, name, report_info):
+def _coverage_information(
+    summary_path: str, name: str,
+    report_info: dict[str, Any]) -> data_types.CoverageInformation | None:
   """Returns a CoverageInformation entity with coverage stats populated."""
   date = datetime.datetime.strptime(
       report_info['report_date'],
@@ -58,6 +62,7 @@ def _coverage_information(summary_path, name, report_info):
   # |name| can be either a project qualified fuzz target name or a project name.
   cov_info = data_handler.get_coverage_information(
       name, date, create_if_needed=True)
+  cov_info = cast(data_types.CoverageInformation, cov_info)
   cov_info.fuzzer = name
   cov_info.date = date
 
@@ -83,7 +88,9 @@ def _coverage_information(summary_path, name, report_info):
     return None
 
 
-def _process_fuzzer_stats(fuzzer, project_info, project_name, bucket):
+def _process_fuzzer_stats(fuzzer: str, project_info: dict[str, Any],
+                          project_name: str,
+                          bucket: str) -> data_types.CoverageInformation | None:
   """Processes coverage stats for a single fuzz target."""
   fuzzer_name = data_types.fuzz_target_project_qualified_name(
       project_name, _basename(fuzzer))
@@ -93,7 +100,8 @@ def _process_fuzzer_stats(fuzzer, project_info, project_name, bucket):
   return _coverage_information(fuzzer_info_path, fuzzer_name, project_info)
 
 
-def _process_project_stats(project_info, project_name):
+def _process_project_stats(project_info: dict[str, Any], project_name: str
+                          ) -> data_types.CoverageInformation | None:
   """Processes coverage stats for a single project."""
   summary_path = project_info['report_summary_path']
   logs.info('Processing total stats for %s project (%s).' % (project_name,
@@ -101,7 +109,8 @@ def _process_project_stats(project_info, project_name):
   return _coverage_information(summary_path, project_name, project_info)
 
 
-def _process_project(project_name, latest_project_info_url, bucket):
+def _process_project(project_name: str, latest_project_info_url: str,
+                     bucket: str) -> None:
   """Collects coverage information for all fuzz targets in the given project and
   the total stats for the project."""
   logs.info('Processing coverage for %s project.' % project_name)
@@ -112,7 +121,7 @@ def _process_project(project_name, latest_project_info_url, bucket):
 
   # Iterate through report_info['fuzzer_stats_dir'] and prepare
   # CoverageInformation entities for invididual fuzz targets.
-  entities = []
+  entities: list[data_types.CoverageInformation] = []
   for fuzzer in storage.list_blobs(
       report_info['fuzzer_stats_dir'], recursive=False):
     fuzzer_stats = _process_fuzzer_stats(fuzzer, report_info, project_name,
@@ -130,7 +139,7 @@ def _process_project(project_name, latest_project_info_url, bucket):
     ndb_utils.put_multi(entities)
 
 
-def collect_fuzzer_coverage(bucket):
+def collect_fuzzer_coverage(bucket: str) -> None:
   """Actual implementation of the fuzzer coverage task."""
   url = _latest_report_info_dir(bucket)
   for latest_project_report_info_path in storage.list_blobs(
@@ -142,7 +151,7 @@ def collect_fuzzer_coverage(bucket):
     _process_project(project, latest_project_info_url, bucket)
 
 
-def main():
+def main() -> bool:
   """Collects the latest code coverage stats and links to reports."""
   # The task is supposed to be super reliable and never fail. If anything goes
   # wrong, we just fail with the exception going straight into StackDriver.

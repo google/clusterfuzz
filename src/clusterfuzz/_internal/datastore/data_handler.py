@@ -13,17 +13,19 @@
 # limitations under the License.
 """Data handler functions."""
 
-import collections
+from collections.abc import Generator
+from collections.abc import Iterator
+from collections.abc import Mapping
+from collections.abc import Sequence
 import datetime
 import os
 import re
 import shlex
 import time
-from typing import Generator
-from typing import Mapping
-from typing import Sequence
-from typing import Type
+from typing import Any
+from typing import NamedTuple
 from typing import TypeAlias
+from typing import TypeVar
 
 from google.cloud import ndb
 
@@ -48,35 +50,36 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
-DATA_BUNDLE_DEFAULT_BUCKET_IAM_ROLE = 'roles/storage.objectAdmin'
-DEFAULT_FAIL_RETRIES = 3
-DEFAULT_FAIL_WAIT = 1.5
-GOMA_DIR_LINE_REGEX = re.compile(r'^\s*goma_dir\s*=')
-HEARTBEAT_LAST_UPDATE_KEY = 'heartbeat_update'
-INPUT_DIR = 'inputs'
-MEMCACHE_TTL_IN_SECONDS = 30 * 60
+DATA_BUNDLE_DEFAULT_BUCKET_IAM_ROLE: str = 'roles/storage.objectAdmin'
+DEFAULT_FAIL_RETRIES: int = 3
+DEFAULT_FAIL_WAIT: float = 1.5
+GOMA_DIR_LINE_REGEX: re.Pattern[str] = re.compile(r'^\s*goma_dir\s*=')
+HEARTBEAT_LAST_UPDATE_KEY: str = 'heartbeat_update'
+INPUT_DIR: str = 'inputs'
+MEMCACHE_TTL_IN_SECONDS: int = 30 * 60
 
-NUM_TESTCASE_QUALITY_BITS = 3
-MAX_TESTCASE_QUALITY = 2**NUM_TESTCASE_QUALITY_BITS - 1
+NUM_TESTCASE_QUALITY_BITS: int = 3
+MAX_TESTCASE_QUALITY: int = 2**NUM_TESTCASE_QUALITY_BITS - 1
 
 # Value and dimension map for some crash types (timeout, ooms).
-CRASH_TYPE_VALUE_REGEX_MAP = {
+CRASH_TYPE_VALUE_REGEX_MAP: dict[str, str] = {
     'Timeout': r'.*-timeout=(\d+)',
     'Out-of-memory': r'.*-rss_limit_mb=(\d+)',
 }
-CRASH_TYPE_DIMENSION_MAP = {
+CRASH_TYPE_DIMENSION_MAP: dict[str, str] = {
     'Timeout': 'secs',
     'Out-of-memory': 'MB',
 }
 
-TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
-TESTCASE_DOWNLOAD_URL = 'https://{domain}/download?testcase_id={testcase_id}'
-TESTCASE_REVISION_RANGE_URL = (
+TESTCASE_REPORT_URL: str = 'https://{domain}/testcase?key={testcase_id}'
+TESTCASE_DOWNLOAD_URL: str = (
+    'https://{domain}/download?testcase_id={testcase_id}')
+TESTCASE_REVISION_RANGE_URL: str = (
     'https://{domain}/revisions?job={job_type}&range={revision_range}')
-TESTCASE_REVISION_URL = (
+TESTCASE_REVISION_URL: str = (
     'https://{domain}/revisions?job={job_type}&revision={revision}')
 
-FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
+FILE_UNREPRODUCIBLE_TESTCASE_TEXT: str = (
     '************************* UNREPRODUCIBLE *************************\n'
     'Note: This crash might not be reproducible with the provided testcase. '
     'That said, for the past %d days, we\'ve been seeing this crash '
@@ -93,9 +96,15 @@ FILE_UNREPRODUCIBLE_TESTCASE_TEXT = (
      data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
 
 FilterValue: TypeAlias = str | int | float | bool | datetime.datetime
+_ModelT = TypeVar('_ModelT', bound=data_types.Model)
 
-FuzzerDisplay = collections.namedtuple(
-    'FuzzerDisplay', ['engine', 'target', 'name', 'fully_qualified_name'])
+
+class FuzzerDisplay(NamedTuple):
+  engine: str | None
+  target: str | None
+  name: str | None
+  fully_qualified_name: str | None
+
 
 # ------------------------------------------------------------------------------
 # Testcase, TestcaseUploadMetadata database related functions
@@ -103,21 +112,21 @@ FuzzerDisplay = collections.namedtuple(
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_all_project_names():
+def get_all_project_names() -> list[str]:
   """Return all project names."""
   query = data_types.Job.query(
       projection=[data_types.Job.project], distinct=True)
-  return sorted([job.project for job in query])
+  return sorted([job.project for job in query if job.project])
 
 
-def get_domain():
+def get_domain() -> str:
   """Get current domain."""
   default_domain = '{app_id}.appspot.com'.format(
       app_id=utils.get_application_id())
   return local_config.GAEConfig().get('domains.main', default=default_domain)
 
 
-def get_testcase_by_id(testcase_id):
+def get_testcase_by_id(testcase_id: int | str) -> data_types.Testcase:
   """Return the testcase with the given id.
   Raises InvalidTestcaseError if no such testcase exists.
   """
@@ -136,15 +145,15 @@ def get_testcase_by_id(testcase_id):
   return testcase
 
 
-def find_testcase(project_name,
-                  crash_type,
-                  crash_state,
-                  security_flag,
-                  testcase_to_exclude=None,
-                  fuzz_target=None):
+def find_testcase(project_name: str | None,
+                  crash_type: str | None,
+                  crash_state: str | None,
+                  security_flag: bool | None,
+                  testcase_to_exclude: data_types.Testcase | None = None,
+                  fuzz_target: str | None = None) -> data_types.Testcase | None:
   """Find an open test case matching certain parameters."""
   # Prepare the query.
-  query_args = [
+  query_args: list[Any] = [
       data_types.Testcase.project_name == project_name,
       data_types.Testcase.crash_type == crash_type,
       data_types.Testcase.crash_state == crash_state,
@@ -214,9 +223,9 @@ def find_testcase(project_name,
   return testcase
 
 
-def get_crash_type_string(testcase):
+def get_crash_type_string(testcase: data_types.Testcase) -> str:
   """Return a crash type string for a testcase."""
-  crash_type = ' '.join(testcase.crash_type.splitlines())
+  crash_type = ' '.join((testcase.crash_type or '').splitlines())
   if crash_type not in CRASH_TYPE_VALUE_REGEX_MAP:
     return crash_type
 
@@ -230,10 +239,12 @@ def get_crash_type_string(testcase):
                                  CRASH_TYPE_DIMENSION_MAP[crash_type])
 
 
-def filter_stacktrace(stacktrace, blob_name=None, signed_upload_url=None):
+def filter_stacktrace(stacktrace: str | bytes | None,
+                      blob_name: str | None = None,
+                      signed_upload_url: str | None = None) -> str:
   """Filters stacktrace and returns content appropriate for storage as an
   appengine entity."""
-  unicode_stacktrace = utils.decode_to_unicode(stacktrace)
+  unicode_stacktrace = utils.decode_to_unicode(stacktrace or '')
   if len(unicode_stacktrace) <= data_types.STACKTRACE_LENGTH_LIMIT:
     return unicode_stacktrace
   # TODO(alhijazi): Once the migration is done, callers are expected to
@@ -251,6 +262,7 @@ def filter_stacktrace(stacktrace, blob_name=None, signed_upload_url=None):
     return '%s%s' % (data_types.BLOBSTORE_STACK_PREFIX, blob_name)
 
   tmpdir = environment.get_value('BOT_TMPDIR')
+  assert tmpdir is not None
   tmp_stacktrace_file = os.path.join(tmpdir, 'stacktrace.tmp')
 
   try:
@@ -267,7 +279,7 @@ def filter_stacktrace(stacktrace, blob_name=None, signed_upload_url=None):
   return '%s%s' % (data_types.BLOBSTORE_STACK_PREFIX, key)
 
 
-def get_issue_summary(testcase):
+def get_issue_summary(testcase: data_types.Testcase) -> str:
   """Gets an issue description string for a testcase."""
   # Get summary prefix. Note that values for fuzzers take priority over those
   # from job definitions.
@@ -286,20 +298,23 @@ def get_issue_summary(testcase):
   if issue_summary:
     issue_summary += ': '
 
+  testcase_crash_type = testcase.crash_type or ''
+  testcase_crash_state = testcase.crash_state or ''
+
   # For ASSERTs and CHECK failures, we should just use the crash type and the
   # first line of the crash state as titles. Note that ASSERT_NOT_REACHED should
   # be handled by the general case.
-  if testcase.crash_type in [
+  if testcase_crash_type in [
       'ASSERT', 'CHECK failure', 'Security CHECK failure',
       'Security DCHECK failure'
   ]:
     issue_summary += (
-        testcase.crash_type + ': ' + testcase.crash_state.splitlines()[0])
+        testcase_crash_type + ': ' + testcase_crash_state.splitlines()[0])
     return issue_summary
 
   # Special case for bad-cast style testcases.
-  if testcase.crash_type == 'Bad-cast':
-    filtered_crash_state_lines = testcase.crash_state.splitlines()
+  if testcase_crash_type == 'Bad-cast':
+    filtered_crash_state_lines = testcase_crash_state.splitlines()
 
     # Add the to/from line (this should always exist).
     issue_summary += filtered_crash_state_lines[0]
@@ -311,34 +326,37 @@ def get_issue_summary(testcase):
     return issue_summary
 
   # Add first lines from crash type and crash_state.
-  if testcase.crash_type:
+  if testcase_crash_type:
     filtered_crash_type = re.sub(r'UNKNOWN( READ| WRITE)?', 'Crash',
-                                 testcase.crash_type.splitlines()[0])
+                                 testcase_crash_type.splitlines()[0])
     issue_summary += filtered_crash_type
   else:
     issue_summary += 'Unknown error'
 
-  if testcase.crash_state == 'NULL' or not testcase.crash_state:
+  if testcase_crash_state == 'NULL' or not testcase_crash_state:
     # Special case for empty stacktrace.
     issue_summary += ' with empty stacktrace'
   else:
-    issue_summary += ' in ' + testcase.crash_state.splitlines()[0]
+    issue_summary += ' in ' + testcase_crash_state.splitlines()[0]
 
   return issue_summary
 
 
-def get_reproduction_help_url(testcase, config):
+def get_reproduction_help_url(testcase: data_types.Testcase,
+                              config: Any) -> str | None:
   """Return url to reproduce the bug."""
   return get_value_from_job_definition_or_environment(
       testcase.job_type, 'HELP_URL', default=config.reproduction_help_url)
 
 
-def get_fuzzer_display(testcase):
+def get_fuzzer_display(testcase: data_types.Testcase) -> FuzzerDisplay:
   fuzz_target = get_fuzz_target(testcase.overridden_fuzzer_name)
   return get_fuzzer_display_unprivileged(testcase, fuzz_target)
 
 
-def get_fuzzer_display_unprivileged(testcase, fuzz_target):
+def get_fuzzer_display_unprivileged(
+    testcase: data_types.Testcase,
+    fuzz_target: data_types.FuzzTarget | None) -> FuzzerDisplay:
   """Return FuzzerDisplay tuple."""
   if (testcase.overridden_fuzzer_name == testcase.fuzzer_name or
       not testcase.overridden_fuzzer_name):
@@ -362,7 +380,8 @@ def get_fuzzer_display_unprivileged(testcase, fuzz_target):
       fully_qualified_name=fuzz_target.fully_qualified_name())
 
 
-def filter_arguments(arguments, fuzz_target_name=None):
+def filter_arguments(arguments: str,
+                     fuzz_target_name: str | None = None) -> str:
   """Filter arguments, removing testcase argument and fuzz target binary
   names."""
   # Filter out %TESTCASE*% argument.
@@ -373,7 +392,7 @@ def filter_arguments(arguments, fuzz_target_name=None):
   return arguments.strip()
 
 
-def get_arguments(testcase):
+def get_arguments(testcase: data_types.Testcase) -> str:
   """Return minimized arguments, without testcase argument and fuzz target
   binary itself (for engine fuzzers)."""
   arguments = (
@@ -387,7 +406,7 @@ def get_arguments(testcase):
   return filter_arguments(arguments, fuzz_target)
 
 
-def _get_memory_tool_options(testcase):
+def _get_memory_tool_options(testcase: data_types.Testcase) -> list[str]:
   """Return memory tool options as a string to pass on command line."""
   env = testcase.get_metadata('env')
   if not env:
@@ -407,7 +426,8 @@ def _get_memory_tool_options(testcase):
   return result
 
 
-def _get_bazel_test_args(arguments, sanitizer_options):
+def _get_bazel_test_args(arguments: str,
+                         sanitizer_options: Sequence[str]) -> str:
   """Return arguments to pass to a bazel test."""
   result = []
   for sanitizer_option in sanitizer_options:
@@ -419,7 +439,8 @@ def _get_bazel_test_args(arguments, sanitizer_options):
   return ' '.join(result)
 
 
-def format_issue_information(testcase, format_string):
+def format_issue_information(testcase: data_types.Testcase,
+                             format_string: str) -> str:
   """Format a string with information from the testcase."""
   arguments = get_arguments(testcase)
   fuzzer_display = get_fuzzer_display(testcase)
@@ -461,7 +482,8 @@ def format_issue_information(testcase, format_string):
   return result
 
 
-def get_formatted_reproduction_help(testcase):
+def get_formatted_reproduction_help(
+    testcase: data_types.Testcase) -> str | None:
   """Return url to reproduce the bug."""
   help_format = get_value_from_job_definition_or_environment(
       testcase.job_type, 'HELP_FORMAT')
@@ -475,7 +497,7 @@ def get_formatted_reproduction_help(testcase):
   return format_issue_information(testcase, help_format)
 
 
-def get_plaintext_help_text(testcase, config):
+def get_plaintext_help_text(testcase: data_types.Testcase, config: Any) -> str:
   """Get the help text for this testcase for display in issue descriptions."""
   # Prioritize a HELP_FORMAT message if available.
   formatted_help = get_formatted_reproduction_help(testcase)
@@ -490,7 +512,7 @@ def get_plaintext_help_text(testcase, config):
   return ''
 
 
-def get_fixed_range_url(testcase):
+def get_fixed_range_url(testcase: data_types.Testcase) -> str | None:
   """Return url to testcase fixed range."""
   # Testcase is not fixed yet.
   if not testcase.fixed:
@@ -506,10 +528,10 @@ def get_fixed_range_url(testcase):
       revision_range=testcase.fixed)
 
 
-def get_issue_description(testcase,
-                          reporter=None,
-                          show_reporter=False,
-                          hide_crash_state=False):
+def get_issue_description(testcase: data_types.Testcase,
+                          reporter: str | None = None,
+                          show_reporter: bool = False,
+                          hide_crash_state: bool = False) -> str:
   """Returns testcase as string."""
   # Get issue tracker configuration parameters.
   config = db_config.get()
@@ -564,6 +586,7 @@ def get_issue_description(testcase,
     crash_state = '...see report...'
   else:
     crash_state = testcase.crash_state
+  assert crash_state is not None
   content_string += 'Crash State:\n%s\n' % (
       utils.indent_string(crash_state + '\n', 2))
 
@@ -624,7 +647,8 @@ def get_issue_description(testcase,
   return content_string
 
 
-def get_stacktrace(testcase, stack_attribute='crash_stacktrace'):
+def get_stacktrace(testcase: data_types.Testcase,
+                   stack_attribute: str = 'crash_stacktrace') -> str:
   """Returns the stacktrace for a test case.
 
   This may require a blobstore read.
@@ -636,10 +660,13 @@ def get_stacktrace(testcase, stack_attribute='crash_stacktrace'):
   # For App Engine, we can't write to local file, so use blobs.read_key instead.
   if environment.is_running_on_app_engine():
     key = result[len(data_types.BLOBSTORE_STACK_PREFIX):]
-    return str(blobs.read_key(key), 'utf-8', errors='replace')
+    blob_data = blobs.read_key(key)
+    assert blob_data is not None
+    return str(blob_data, 'utf-8', errors='replace')
 
   key = result[len(data_types.BLOBSTORE_STACK_PREFIX):]
   tmpdir = environment.get_value('BOT_TMPDIR')
+  assert tmpdir is not None
   tmp_stacktrace_file = os.path.join(tmpdir, 'stacktrace.tmp')
   blobs.read_blob_to_disk(key, tmp_stacktrace_file)
 
@@ -654,7 +681,7 @@ def get_stacktrace(testcase, stack_attribute='crash_stacktrace'):
   return result
 
 
-def handle_duplicate_entry(testcase):
+def handle_duplicate_entry(testcase: data_types.Testcase) -> None:
   """Handles duplicates and deletes unreproducible one."""
   # Caller ensures that our testcase object is up-to-date. If someone else
   # already marked us as a duplicate, no more work to do.
@@ -713,7 +740,9 @@ def handle_duplicate_entry(testcase):
               (existing_testcase_id, testcase_id))
 
 
-def is_first_attempt_for_task(task_name, testcase, reset_after_retry=False):
+def is_first_attempt_for_task(task_name: str,
+                              testcase: data_types.Testcase,
+                              reset_after_retry: bool = False) -> bool:
   """Returns true if this task is tried atleast once. Only applicable for
   analyze and progression tasks."""
   retry_key = f'{task_name}_retry'
@@ -733,13 +762,13 @@ def is_first_attempt_for_task(task_name, testcase, reset_after_retry=False):
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_issue_tracker_name(job_type=None):
+def get_issue_tracker_name(job_type: str | None = None) -> str | None:
   """Return issue tracker name for a job type."""
   return get_value_from_job_definition_or_environment(job_type, 'ISSUE_TRACKER')
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_project_name(job_type):
+def get_project_name(job_type: str | None) -> str:
   """Return project name for a job type."""
   default_project_name = utils.default_project_name()
   return get_value_from_job_definition(job_type, 'PROJECT_NAME',
@@ -747,12 +776,13 @@ def get_project_name(job_type):
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_main_repo(job_type):
+def get_main_repo(job_type: str | None) -> str | None:
   """Return project name for a job type."""
   return get_value_from_job_definition(job_type, 'MAIN_REPO')
 
 
-def _get_security_severity(crash, job_type, gestures):
+def _get_security_severity(crash: Any, job_type: str,
+                           gestures: Any) -> int | None:
   """Get security severity."""
   if crash.security_flag:
     return severity_analyzer.get_security_severity(
@@ -761,12 +791,16 @@ def _get_security_severity(crash, job_type, gestures):
   return None
 
 
-def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
-                   one_time_crasher_flag, crash_revision, comment,
-                   absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
-                   job_type, archived, archive_filename, http_flag, gestures,
-                   redzone, disable_ubsan, window_argument, timeout_multiplier,
-                   minimized_arguments, trusted):
+def store_testcase(
+    crash: Any, fuzzed_keys: str | None, minimized_keys: str | None,
+    regression: str | None, fixed: str | None, one_time_crasher_flag: bool,
+    crash_revision: int | str | None, comment: str | None,
+    absolute_path: str | None, fuzzer_name: str,
+    fully_qualified_fuzzer_name: str | None, job_type: str, archived: bool,
+    archive_filename: str | None, http_flag: bool, gestures: list[str] | None,
+    redzone: int | None, disable_ubsan: bool, window_argument: str | None,
+    timeout_multiplier: float | int | str, minimized_arguments: str | None,
+    trusted: bool) -> int:
   """Create a testcase and store it in the datastore using remote api."""
   # Initialize variable to prevent invalid values.
   if archived:
@@ -793,7 +827,8 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.security_severity = _get_security_severity(crash, job_type, gestures)
 
   testcase.one_time_crasher_flag = one_time_crasher_flag
-  testcase.crash_revision = crash_revision
+  testcase.crash_revision = int(
+      crash_revision) if crash_revision is not None else None
   testcase.absolute_path = absolute_path
   testcase.fuzzer_name = fuzzer_name
   testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name or fuzzer_name
@@ -862,7 +897,7 @@ def set_build_metadata_to_testcase(testcase: data_types.Testcase,
                                    build_key: str | None = None,
                                    build_url: str | None = None,
                                    gn_args: str | None = None,
-                                   update: bool = False):
+                                   update: bool = False) -> None:
   """Set testcase metadata fields related to the build metadata."""
   dirty_flag = False
   build_key = (
@@ -893,7 +928,9 @@ def set_initial_testcase_metadata(testcase: data_types.Testcase) -> None:
   testcase.platform_id = environment.get_platform_id()
 
 
-def update_testcase_comment(testcase, task_state, message=None):
+def update_testcase_comment(testcase: data_types.Testcase,
+                            task_state: str,
+                            message: str | None = None) -> None:
   """Add task status and message to the test case's comment field."""
   bot_name = environment.get_value('BOT_NAME', 'Unknown')
   task_name = environment.get_value('TASK_NAME', 'Unknown')
@@ -904,18 +941,20 @@ def update_testcase_comment(testcase, task_state, message=None):
 
   # For some tasks like blame, progression and impact, we need to delete lines
   # from old task executions to avoid clutter.
+  testcase_comments = testcase.comments or ''
   if (task_name in ['blame', 'progression', 'impact'] and
       task_state == data_types.TaskState.STARTED):
     pattern = r'.*?: %s.*\n' % task_string
-    testcase.comments = re.sub(pattern, '', testcase.comments)
+    testcase_comments = re.sub(pattern, '', testcase_comments)
 
-  testcase.comments += '[%s] %s: %s %s' % (timestamp, bot_name, task_string,
+  testcase_comments += '[%s] %s: %s %s' % (timestamp, bot_name, task_string,
                                            task_state)
   if message:
-    testcase.comments += ': %s' % message.rstrip('.')
+    testcase_comments += ': %s' % message.rstrip('.')
     task_comments = environment.get_value('TASK_COMMENTS', '')
     environment.set_value('TASK_COMMENTS', task_comments + message + '\n')
-  testcase.comments += '.\n'
+  testcase_comments += '.\n'
+  testcase.comments = testcase_comments
 
   # Truncate if too long.
   if len(testcase.comments) > data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:
@@ -936,7 +975,7 @@ def update_testcase_comment(testcase, task_state, message=None):
         f'{message} (testcase {testcase.key.id()}, job {testcase.job_type}).')
 
 
-def get_open_testcase_id_iterator():
+def get_open_testcase_id_iterator() -> Generator[int, None, None]:
   """Get an iterator for open testcase ids."""
   keys = ndb_utils.get_all_from_query(
       data_types.Testcase.query(
@@ -948,7 +987,7 @@ def get_open_testcase_id_iterator():
     yield key.id()
 
 
-def critical_tasks_completed(testcase):
+def critical_tasks_completed(testcase: data_types.Testcase) -> bool:
   """Check to see if all critical tasks have finished running on a test case."""
   if testcase.status == 'Unreproducible':
     # These tasks don't apply to unreproducible testcases.
@@ -960,7 +999,7 @@ def critical_tasks_completed(testcase):
 
   # For non-chromium projects, impact and blame tasks are not applicable.
   if not utils.is_chromium():
-    return testcase.minimized_keys and testcase.regression
+    return bool(testcase.minimized_keys and testcase.regression)
 
   # Only require impact if it is feasible to run it. Don't require it if not
   # (when regression fails).
@@ -975,7 +1014,7 @@ def critical_tasks_completed(testcase):
 # ------------------------------------------------------------------------------
 
 
-def get_build_state(job_type, crash_revision):
+def get_build_state(job_type: str, crash_revision: int) -> int:
   """Return whether a build is unmarked, good or bad."""
   build = data_types.BuildMetadata.query(
       data_types.BuildMetadata.job_type == job_type,
@@ -990,10 +1029,11 @@ def get_build_state(job_type, crash_revision):
   return data_types.BuildState.GOOD
 
 
-def add_build_metadata(job_type,
-                       crash_revision,
-                       is_bad_build,
-                       console_output=None):
+def add_build_metadata(
+    job_type: str,
+    crash_revision: int,
+    is_bad_build: bool,
+    console_output: str | bytes | None = None) -> data_types.BuildMetadata:
   """Add build metadata."""
   build = data_types.BuildMetadata()
   build.bad_build = is_bad_build
@@ -1020,7 +1060,8 @@ def add_build_metadata(job_type,
 # ------------------------------------------------------------------------------
 
 
-def create_data_bundle_bucket_and_iams(data_bundle_name, emails):
+def create_data_bundle_bucket_and_iams(data_bundle_name: str,
+                                       emails: Sequence[str]) -> bool:
   """Creates a data bundle bucket and adds iams for access."""
   bucket_name = get_data_bundle_bucket_name(data_bundle_name)
   location = local_config.ProjectConfig().get('data_bundle_bucket_location')
@@ -1061,7 +1102,7 @@ def create_data_bundle_bucket_and_iams(data_bundle_name, emails):
   return bool(storage.set_bucket_iam_policy(client, bucket_name, iam_policy))
 
 
-def bucket_domain_suffix():
+def bucket_domain_suffix() -> str:
   domain = local_config.ProjectConfig().get('bucket_domain_suffix')
   if not domain:
     domain = '%s.appspot.com' % utils.get_application_id()
@@ -1069,16 +1110,19 @@ def bucket_domain_suffix():
   return domain
 
 
-def get_data_bundle_bucket_name(data_bundle_name):
+def get_data_bundle_bucket_name(data_bundle_name: str) -> str:
   """Return data bundle bucket name on GCS."""
   domain = bucket_domain_suffix()
   return '%s-corpus.%s' % (data_bundle_name, domain)
 
 
-def get_value_from_fuzzer_environment_string(fuzzer_name,
-                                             variable_pattern,
-                                             default=None):
+def get_value_from_fuzzer_environment_string(fuzzer_name: str | None,
+                                             variable_pattern: str,
+                                             default: Any = None) -> Any:
   """Get a specific environment variable's value for a fuzzer."""
+  if not fuzzer_name:
+    return default
+
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
   if not fuzzer or not fuzzer.additional_environment_string:
     return default
@@ -1092,7 +1136,8 @@ def get_value_from_fuzzer_environment_string(fuzzer_name,
 # ------------------------------------------------------------------------------
 
 
-def get_task_status(name, create_if_needed=False):
+def get_task_status(
+    name: str, create_if_needed: bool = False) -> data_types.TaskStatus | None:
   """Return the TaskStatus object with the given name."""
   metadata = ndb.Key(data_types.TaskStatus, name).get()
   if not metadata and create_if_needed:
@@ -1101,7 +1146,9 @@ def get_task_status(name, create_if_needed=False):
   return metadata
 
 
-def update_task_status(task_name, status, expiry_interval=None):
+def update_task_status(task_name: str,
+                       status: str,
+                       expiry_interval: int | float | None = None) -> bool:
   """Updates status for a task. Used to ensure that a single instance of a task
   is running at any given time."""
   bot_name = environment.get_value('BOT_NAME')
@@ -1113,15 +1160,16 @@ def update_task_status(task_name, status, expiry_interval=None):
     if expiry_interval is None:
       logs.error('expiry_interval is None and TASK_LEASE_SECONDS not set.')
 
-  def _try_update_status():
+  def _try_update_status() -> bool:
     """Try update metadata."""
     task_status = get_task_status(task_name, create_if_needed=True)
+    assert task_status is not None
 
     # If another bot is already working on this task, bail out with error.
     if (status == data_types.TaskState.STARTED and
         task_status.status == data_types.TaskState.STARTED and
-        not dates.time_has_expired(
-            task_status.time, seconds=expiry_interval - 1)):
+        expiry_interval is not None and not dates.time_has_expired(
+            task_status.time, seconds=int(expiry_interval) - 1)):
       return False
 
     task_status.bot_name = bot_name
@@ -1141,7 +1189,8 @@ def update_task_status(task_name, status, expiry_interval=None):
       # Failing to update 'completed' status causes another bot
       # that picked up this job to bail out.
       logs.error('Unable to update %s task metadata. Retrying.' % task_name)
-      time.sleep(utils.random_number(1, failure_wait_interval))
+      assert failure_wait_interval is not None
+      time.sleep(utils.random_number(1, int(failure_wait_interval)))
 
 
 # ------------------------------------------------------------------------------
@@ -1149,7 +1198,7 @@ def update_task_status(task_name, status, expiry_interval=None):
 # ------------------------------------------------------------------------------
 
 
-def update_heartbeat(force_update=False):
+def update_heartbeat(force_update: bool = False) -> int:
   """Updates heartbeat with current timestamp and log data."""
   if environment.is_uworker():
     # Uworkers can't update heartbeats.
@@ -1188,7 +1237,7 @@ def update_heartbeat(force_update=False):
   return 1
 
 
-def bot_run_timed_out():
+def bot_run_timed_out() -> bool:
   """Return true if our run timed out."""
   run_timeout = environment.get_value('RUN_TIMEOUT')
   if not run_timeout:
@@ -1198,13 +1247,13 @@ def bot_run_timed_out():
   if not start_time:
     return False
 
-  start_time = datetime.datetime.utcfromtimestamp(start_time)
+  start_datetime = datetime.datetime.utcfromtimestamp(float(start_time))
 
   # Actual run timeout takes off the duration for one task.
   average_task_duration = environment.get_value('AVERAGE_TASK_DURATION', 0)
-  actual_run_timeout = run_timeout - average_task_duration
+  actual_run_timeout = float(run_timeout) - float(average_task_duration)
 
-  return dates.time_has_expired(start_time, seconds=actual_run_timeout)
+  return dates.time_has_expired(start_datetime, seconds=int(actual_run_timeout))
 
 
 # ------------------------------------------------------------------------------
@@ -1212,8 +1261,8 @@ def bot_run_timed_out():
 # ------------------------------------------------------------------------------
 
 
-def check_job_supports_untrusted_workloads(job_name: str,
-                                           platform_id: str = None) -> None:
+def check_job_supports_untrusted_workloads(
+    job_name: str, platform_id: str | None = None) -> None:
   """Checks that the named job can run untrusted testcases or fuzzers.
 
   Raises:
@@ -1237,14 +1286,14 @@ def check_job_supports_untrusted_workloads(job_name: str,
   # are implemented as Linux containers. Thus, non-Linux jobs cannot support
   # untrusted workloads in this setup.
 
-  if (platform_id or job.platform).lower() != 'linux':
+  if (platform_id or job.platform or '').lower() != 'linux':
     raise ValueError(
         f'Job "{job_name}" does not support running untrusted workloads. '
         'Untrusted workloads on Chrome are only supported on Linux.')
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_component_name(job_type):
+def get_component_name(job_type: str) -> str:
   """Gets component name for a job type."""
   job = data_types.Job.query(data_types.Job.name == job_type).get()
   if not job:
@@ -1260,7 +1309,7 @@ def get_component_name(job_type):
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_repository_for_component(component):
+def get_repository_for_component(component: str) -> str:
   """Get the repository based on component."""
   default_repository = ''
   repository = ''
@@ -1277,9 +1326,9 @@ def get_repository_for_component(component):
   return repository or default_repository
 
 
-def get_value_from_environment_string(environment_string,
-                                      variable_pattern,
-                                      default=None):
+def get_value_from_environment_string(environment_string: str,
+                                      variable_pattern: str,
+                                      default: Any = None) -> Any:
   """Return the first value matching the pattern from the environment string."""
   pattern = r'%s\s*=\s*(.*)' % variable_pattern
   match = re.search(pattern, environment_string)
@@ -1289,7 +1338,9 @@ def get_value_from_environment_string(environment_string,
   return match.group(1).strip()
 
 
-def get_value_from_job_definition(job_type, variable_pattern, default=None):
+def get_value_from_job_definition(job_type: str | None,
+                                  variable_pattern: str,
+                                  default: Any = None) -> Any:
   """Get a specific environment variable's value from a job definition."""
   if not job_type:
     return default
@@ -1306,9 +1357,9 @@ def get_value_from_job_definition(job_type, variable_pattern, default=None):
   return job.get_environment().get(variable_pattern, default)
 
 
-def get_value_from_job_definition_or_environment(job_type,
-                                                 variable_pattern,
-                                                 default=None):
+def get_value_from_job_definition_or_environment(job_type: str | None,
+                                                 variable_pattern: str,
+                                                 default: Any = None) -> Any:
   """Gets a specific environment variable's value from a job definition. If
   not found, it returns the value from current environment."""
   return get_value_from_job_definition(
@@ -1317,7 +1368,8 @@ def get_value_from_job_definition_or_environment(job_type,
       default=environment.get_value(variable_pattern, default))
 
 
-def get_additional_values_for_variable(variable_name, job_type, fuzzer_name):
+def get_additional_values_for_variable(variable_name: str, job_type: str | None,
+                                       fuzzer_name: str | None) -> list[str]:
   """Helper function to read a list of additional items from a job definition
      and fuzzer's additional environment string."""
   value_list_strings = [
@@ -1325,7 +1377,7 @@ def get_additional_values_for_variable(variable_name, job_type, fuzzer_name):
       get_value_from_fuzzer_environment_string(fuzzer_name, variable_name),
   ]
 
-  additional_values = []
+  additional_values: list[str] = []
   for value_list_string in value_list_strings:
     if value_list_string:
       # Ignore whitespace between commas.
@@ -1339,7 +1391,7 @@ def get_additional_values_for_variable(variable_name, job_type, fuzzer_name):
 # ------------------------------------------------------------------------------
 
 
-def is_notification_sent(testcase_id, user_email):
+def is_notification_sent(testcase_id: int | str, user_email: str) -> bool:
   """Return true if this notification has already been sent."""
   notification = data_types.Notification.query(
       data_types.Notification.testcase_id == testcase_id,
@@ -1347,10 +1399,10 @@ def is_notification_sent(testcase_id, user_email):
   return bool(notification)
 
 
-def create_notification_entry(testcase_id, user_email):
+def create_notification_entry(testcase_id: int | str, user_email: str) -> None:
   """Create a entry log for sent notification."""
   notification = data_types.Notification()
-  notification.testcase_id = testcase_id
+  notification.testcase_id = int(testcase_id)
   notification.user_email = user_email
   notification.put()
 
@@ -1360,31 +1412,32 @@ def create_notification_entry(testcase_id, user_email):
 # ------------------------------------------------------------------------------
 
 
-def create_user_uploaded_testcase(key,
-                                  original_key,
-                                  archive_state,
-                                  filename,
-                                  file_path_input,
-                                  timeout,
-                                  job,
-                                  queue,
-                                  http_flag,
-                                  gestures,
-                                  additional_arguments,
-                                  bug_information,
-                                  crash_revision,
-                                  uploader_email,
-                                  platform_id,
-                                  app_launch_command,
-                                  fuzzer_name,
-                                  fully_qualified_fuzzer_name,
-                                  fuzzer_binary_name,
-                                  bundled,
-                                  retries,
-                                  bug_summary_update_flag,
-                                  quiet_flag,
-                                  additional_metadata=None,
-                                  crash_data=None):
+def create_user_uploaded_testcase(
+    key: str | None,
+    original_key: str | None,
+    archive_state: int,
+    filename: str,
+    file_path_input: str | None,
+    timeout: int | float | None,
+    job: data_types.Job,
+    queue: str | None,
+    http_flag: bool | None,
+    gestures: list[str] | None,
+    additional_arguments: str | None,
+    bug_information: str | None,
+    crash_revision: int | str | None,
+    uploader_email: str,
+    platform_id: str | None,
+    app_launch_command: str | None,
+    fuzzer_name: str | None,
+    fully_qualified_fuzzer_name: str | None,
+    fuzzer_binary_name: str | None,
+    bundled: bool,
+    retries: int | None,
+    bug_summary_update_flag: bool | None,
+    quiet_flag: bool | None,
+    additional_metadata: Mapping[str, Any] | None = None,
+    crash_data: Any = None) -> int:
   """Create a testcase object, metadata, and task for a user uploaded test."""
   testcase = data_types.Testcase()
   if crash_data:
@@ -1392,9 +1445,11 @@ def create_user_uploaded_testcase(key,
     testcase.crash_type = crash_data.crash_type
     testcase.crash_state = crash_data.crash_state
     testcase.crash_address = crash_data.crash_address
-    testcase.crash_stacktrace = crash_data.crash_stacktrace
-
+    testcase.crash_stacktrace = filter_stacktrace(crash_data.crash_stacktrace)
     testcase.status = 'Processed'
+    testcase.security_severity = (
+        crash_data.user_security_severity
+        if hasattr(crash_data, 'user_security_severity') else None)
     testcase.security_flag = crash_analyzer.is_security_issue(
         testcase.crash_stacktrace, testcase.crash_type, testcase.crash_address)
     testcase.regression = 'NA'
@@ -1404,7 +1459,7 @@ def create_user_uploaded_testcase(key,
     testcase.minimized_keys = 'NA'
 
     # analyze_task sets this for non-external reproductions.
-    testcase.platform = job.platform.lower()
+    testcase.platform = (job.platform or '').lower()
     testcase.platform_id = testcase.platform
   else:
     testcase.crash_type = ''
@@ -1422,7 +1477,8 @@ def create_user_uploaded_testcase(key,
   testcase.bug_information = ''
   testcase.fixed = ''
   testcase.one_time_crasher_flag = False
-  testcase.crash_revision = crash_revision
+  testcase.crash_revision = int(
+      crash_revision) if crash_revision is not None else None
   testcase.fuzzer_name = fuzzer_name
   testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name or fuzzer_name
   testcase.job_type = job.name
@@ -1436,7 +1492,7 @@ def create_user_uploaded_testcase(key,
     testcase.archive_filename = filename
   else:
     testcase.absolute_path = filename
-  testcase.gestures = gestures
+  testcase.gestures = gestures or []
   if bug_information and bug_information.isdigit() and int(bug_information):
     testcase.bug_information = bug_information
   if platform_id:
@@ -1475,7 +1531,7 @@ def create_user_uploaded_testcase(key,
   metadata.testcase_id = testcase_id
   metadata.blobstore_key = key
   metadata.original_blobstore_key = original_key
-  metadata.timeout = timeout
+  metadata.timeout = int(timeout) if timeout is not None else None
   metadata.bundled = bundled
   metadata.retries = retries
   if bundled:
@@ -1502,7 +1558,9 @@ def create_user_uploaded_testcase(key,
   return testcase.key.id()
 
 
-def check_uploaded_testcase_duplicate(testcase, metadata):
+def check_uploaded_testcase_duplicate(
+    testcase: data_types.Testcase,
+    metadata: data_types.TestcaseUploadMetadata) -> bool:
   """Check if the uploaded testcase is a duplicate."""
   existing_testcase = find_testcase(testcase.project_name, testcase.crash_type,
                                     testcase.crash_state,
@@ -1530,12 +1588,16 @@ def check_uploaded_testcase_duplicate(testcase, metadata):
   return duplicate_testcase.key.id() == testcase.key.id()
 
 
-def close_invalid_uploaded_testcase(testcase, metadata, status):
+def close_invalid_uploaded_testcase(testcase: data_types.Testcase,
+                                    metadata: data_types.TestcaseUploadMetadata,
+                                    status: str) -> None:
   testcase.open = False
   mark_invalid_uploaded_testcase(testcase, metadata, status)
 
 
-def mark_invalid_uploaded_testcase(testcase, metadata, status):
+def mark_invalid_uploaded_testcase(testcase: data_types.Testcase,
+                                   metadata: data_types.TestcaseUploadMetadata,
+                                   status: str) -> None:
   """Closes an invalid testcase and updates metadata."""
   testcase.status = status
   testcase.minimized_keys = 'NA'
@@ -1554,7 +1616,7 @@ def mark_invalid_uploaded_testcase(testcase, metadata, status):
 # ------------------------------------------------------------------------------
 
 
-def delete_group(group_id, update_testcases=True):
+def delete_group(group_id: int | str, update_testcases: bool = True) -> None:
   """Delete the testcase group with the specified id if it exists."""
   # Remove all testcases from the group.
   if update_testcases:
@@ -1568,7 +1630,7 @@ def delete_group(group_id, update_testcases=True):
     group.key.delete()
 
 
-def get_testcase_ids_in_group(group_id):
+def get_testcase_ids_in_group(group_id: int | str) -> list[int]:
   """Return the all testcase ids in the specified group."""
   if not group_id or not str(group_id).isdigit():
     return []
@@ -1579,7 +1641,7 @@ def get_testcase_ids_in_group(group_id):
   return [key.id() for key in query]
 
 
-def get_testcases_in_group(group_id):
+def get_testcases_in_group(group_id: int | str) -> list[data_types.Testcase]:
   """Return the all testcases in the specified group."""
   # Fetch by keys (strongly consistent) to avoid stale results from query
   # (eventually consistent).
@@ -1594,7 +1656,7 @@ def get_testcases_in_group(group_id):
   return testcases
 
 
-def remove_testcase_from_group(testcase):
+def remove_testcase_from_group(testcase: data_types.Testcase | None) -> None:
   """Removes a testcase from group."""
   if not testcase:
     return
@@ -1604,7 +1666,7 @@ def remove_testcase_from_group(testcase):
   testcase.put()
 
 
-def update_group_bug(group_id):
+def update_group_bug(group_id: int | str | None) -> None:
   """Update group bug information for a group."""
   if not group_id:
     # No associated group, no work to do. Bail out.
@@ -1640,7 +1702,8 @@ def update_group_bug(group_id):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='datastore.data_handler.get_entity_by_type_and_id')
-def get_entity_by_type_and_id(entity_type, entity_id):
+def get_entity_by_type_and_id(entity_type: type[_ModelT],
+                              entity_id: int | str | None) -> _ModelT | None:
   """Return the datastore object with the given type and id if it exists."""
   if not entity_id or not str(entity_id).isdigit() or int(entity_id) == 0:
     return None
@@ -1648,8 +1711,9 @@ def get_entity_by_type_and_id(entity_type, entity_id):
   return entity_type.get_by_id(int(entity_id))
 
 
-def _apply_filters(query: ndb.Query, entity_kind: Type[data_types.Model],
-                   equality_filters: Mapping[str, FilterValue] | None):
+def _apply_filters(
+    query: ndb.Query, entity_kind: type[data_types.Model],
+    equality_filters: Mapping[str, FilterValue] | None) -> ndb.Query:
   """Applies equality filters to a query."""
   if not equality_filters:
     return query
@@ -1664,8 +1728,8 @@ def _apply_filters(query: ndb.Query, entity_kind: Type[data_types.Model],
   return query
 
 
-def _apply_order(query: ndb.Query, entity_kind: Type[data_types.Model],
-                 order_by: Sequence[str] | None):
+def _apply_order(query: ndb.Query, entity_kind: type[data_types.Model],
+                 order_by: Sequence[str] | None) -> ndb.Query:
   """Applies ordering to a query."""
   if not order_by:
     return query
@@ -1683,7 +1747,7 @@ def _apply_order(query: ndb.Query, entity_kind: Type[data_types.Model],
 
 
 def get_entities_query(
-    entity_kind: Type[data_types.Model],
+    entity_kind: type[data_types.Model],
     equality_filters: Mapping[str, FilterValue] | None = None,
     order_by: Sequence[str] | None = None) -> ndb.Query:
   """Returns a query for the entity kind with equality filters and ordering."""
@@ -1693,18 +1757,20 @@ def get_entities_query(
   return query
 
 
-def get_entities_ids(entity_kind: Type[data_types.Model],
-                     equality_filters: Mapping[str, FilterValue] | None = None,
-                     order_by: Sequence[str] | None = None) -> Generator:
+def get_entities_ids(
+    entity_kind: type[data_types.Model],
+    equality_filters: Mapping[str, FilterValue] | None = None,
+    order_by: Sequence[str] | None = None) -> Generator[int | str, None, None]:
   """Yields IDs of entities matching optional filters and ordering."""
   query = get_entities_query(entity_kind, equality_filters, order_by)
   yield from (
       key.id() for key in ndb_utils.get_all_from_query(query, keys_only=True))
 
 
-def get_entities(entity_kind: Type[data_types.Model],
-                 equality_filters: Mapping[str, FilterValue] | None = None,
-                 order_by: Sequence[str] | None = None) -> Generator:
+def get_entities(
+    entity_kind: type[_ModelT],
+    equality_filters: Mapping[str, FilterValue] | None = None,
+    order_by: Sequence[str] | None = None) -> Generator[_ModelT, None, None]:
   """Yields entities matching optional filters and ordering."""
   query = get_entities_query(entity_kind, equality_filters, order_by)
   yield from ndb_utils.get_all_from_query(query)
@@ -1715,7 +1781,8 @@ def get_entities(entity_kind: Type[data_types.Model],
 # ------------------------------------------------------------------------------
 
 
-def get_or_create_testcase_variant(testcase_id, job_type):
+def get_or_create_testcase_variant(testcase_id: int | str,
+                                   job_type: str) -> data_types.TestcaseVariant:
   """Get a testcase variant entity, and create if needed."""
   testcase_id = int(testcase_id)
   variant = data_types.TestcaseVariant.query(
@@ -1727,7 +1794,8 @@ def get_or_create_testcase_variant(testcase_id, job_type):
   return variant
 
 
-def get_testcase_variant(testcase_id, job_type):
+def get_testcase_variant(testcase_id: int | str,
+                         job_type: str) -> data_types.TestcaseVariant | None:
   """Get a testcase variant entity"""
   testcase_id = int(testcase_id)
   return data_types.TestcaseVariant.query(
@@ -1743,9 +1811,16 @@ FUZZ_TARGET_UPDATE_FAIL_RETRIES = 5
 FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
 
 
-def record_fuzz_target(engine_name, binary_name, job_type):
+def record_fuzz_target(engine_name: str | None, binary_name: str | None,
+                       job_type: str | None) -> data_types.FuzzTarget | None:
   """Records exsistence of fuzz target to the DB."""
-  result = record_fuzz_targets(engine_name, [binary_name], job_type)[0]
+  if not engine_name or not binary_name or not job_type:
+    return None
+
+  targets = record_fuzz_targets(engine_name, [binary_name], job_type)
+  if not targets:
+    return None
+  result = targets[0]
 
   project = get_project_name(job_type)
   key_name = data_types.fuzz_target_fully_qualified_name(
@@ -1760,18 +1835,19 @@ def record_fuzz_target(engine_name, binary_name, job_type):
   return result
 
 
-def get_or_create_multi_entities_from_keys(mapping):
+def get_or_create_multi_entities_from_keys(
+    mapping: Mapping[str, _ModelT]) -> list[_ModelT]:
   """Gets or creates multiple db entities."""
   keys = list(mapping.keys())
   entities = ndb_utils.get_multi(
       [ndb.Key(value.__class__, key) for key, value in mapping.items()])
-  entities = dict(zip(keys, entities))
+  entities_dict = dict(zip(keys, entities))
   new_entities = [
-      mapping[key] for key, entity in entities.items() if not entity
+      mapping[key] for key, entity in entities_dict.items() if not entity
   ]
   new_entities = ndb_utils.get_multi(ndb_utils.put_multi(new_entities))
-  all_entities = [entity for entity in entities.values() if entity] + (
-      new_entities)
+  all_entities: list[_ModelT] = [entity for entity in entities if entity
+                                ] + new_entities
   return all_entities
 
 
@@ -1779,15 +1855,17 @@ def get_or_create_multi_entities_from_keys(mapping):
     retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
     delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
     function='datastore.data_handler.record_fuzz_targets')
-def record_fuzz_targets(engine_name, binaries, job_type):
+def record_fuzz_targets(
+    engine_name: str | None, binaries: Sequence[str],
+    job_type: str | None) -> list[data_types.FuzzTarget] | None:
   """Record existence of fuzz targets to the DB."""
   # TODO(metzman): All of this code assumes that fuzzing jobs are behaving
   # reasonably and won't try to DoS us by putting bogus fuzzers in the db.
   # This should be changed by limiting the number of fuzz targets saved and
   # putting an expiration on them.
   binaries = [binary for binary in binaries if binary]
-  if not binaries:
-    logs.error('Expected binaries.')
+  if not binaries or not engine_name or not job_type:
+    logs.error('Expected binaries, engine_name, and job_type.')
     return None
 
   project = get_project_name(job_type)
@@ -1820,7 +1898,7 @@ def record_fuzz_targets(engine_name, binaries, job_type):
   return fuzz_targets
 
 
-def get_fuzz_target(name):
+def get_fuzz_target(name: str | None) -> data_types.FuzzTarget | None:
   """Get FuzzTarget by fully qualified name."""
   if not name:
     return None
@@ -1828,15 +1906,19 @@ def get_fuzz_target(name):
   return ndb.Key(data_types.FuzzTarget, name).get()
 
 
-def get_fuzz_target_job(fuzz_target_name, job):
+def get_fuzz_target_job(fuzz_target_name: str,
+                        job: str) -> data_types.FuzzTargetJob | None:
   """Get FuzzTargetJob by fully qualified name and job."""
   return ndb.Key(data_types.FuzzTargetJob,
                  data_types.fuzz_target_job_key(fuzz_target_name, job)).get()
 
 
-def get_fuzz_targets(engine=None, project=None, binary=None):
+def get_fuzz_targets(
+    engine: str | None = None,
+    project: str | None = None,
+    binary: str | None = None) -> Iterator[data_types.FuzzTarget]:
   """Return a Datastore query for fuzz targets."""
-  query = data_types.FuzzTarget().query()
+  query = data_types.FuzzTarget.query()
 
   if engine:
     query = query.filter(data_types.FuzzTarget.engine == engine)
@@ -1850,22 +1932,22 @@ def get_fuzz_targets(engine=None, project=None, binary=None):
   return ndb_utils.get_all_from_query(query)
 
 
-def get_fuzzing_engines():
+def get_fuzzing_engines() -> list[str]:
   """Return the fuzzing engines currently running."""
   query = data_types.FuzzTarget.query(
       projection=[data_types.FuzzTarget.engine], distinct=True)
-  return [f.engine for f in ndb_utils.get_all_from_query(query)]
+  return [f.engine for f in ndb_utils.get_all_from_query(query) if f.engine]
 
 
-def is_fuzzing_engine(name):
+def is_fuzzing_engine(name: str) -> bool:
   """Return whether or not |name| is a fuzzing engine."""
   query = data_types.FuzzTarget.query(data_types.FuzzTarget.engine == name)
   return bool(query.count(limit=1))
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_all_fuzzer_names_including_children(include_parents=False,
-                                            project=None):
+def get_all_fuzzer_names_including_children(
+    include_parents: bool = False, project: str | None = None) -> list[str]:
   """Returns all fuzzer names, including expanded child fuzzers."""
   all_fuzzers = set()
   engine_fuzzers = get_fuzzing_engines()
@@ -1884,15 +1966,18 @@ def get_all_fuzzer_names_including_children(include_parents=False,
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_all_job_type_names(project=None):
+def get_all_job_type_names(project: str | None = None) -> list[str]:
   """Return all job type names."""
   query = data_types.Job.query(projection=['name'])
   if project:
     query = query.filter(data_types.Job.project == project)
-  return sorted([job.name for job in query])
+  return sorted([job.name for job in query if job.name])
 
 
-def get_coverage_information(fuzzer_name, date, create_if_needed=False):
+def get_coverage_information(
+    fuzzer_name: str,
+    date: datetime.date | datetime.datetime,
+    create_if_needed: bool = False) -> data_types.CoverageInformation | None:
   """Get coverage information, or create if it doesn't exist."""
   coverage_info = ndb.Key(
       data_types.CoverageInformation,
@@ -1905,7 +1990,8 @@ def get_coverage_information(fuzzer_name, date, create_if_needed=False):
   return coverage_info
 
 
-def close_testcase_with_error(testcase, error_message):
+def close_testcase_with_error(testcase: data_types.Testcase,
+                              error_message: str) -> None:
   """Close testcase (fixed=NA) with an error message."""
   update_testcase_comment(testcase, data_types.TaskState.ERROR, error_message)
   testcase.fixed = 'NA'
@@ -1913,7 +1999,7 @@ def close_testcase_with_error(testcase, error_message):
   testcase.put()
 
 
-def clear_progression_pending(testcase):
+def clear_progression_pending(testcase: data_types.Testcase) -> None:
   """If we marked progression as pending for this testcase, clear that state."""
   if not testcase.get_metadata('progression_pending'):
     return
@@ -1921,10 +2007,10 @@ def clear_progression_pending(testcase):
   testcase.delete_metadata('progression_pending', update_testcase=False)
 
 
-def update_progression_completion_metadata(testcase,
-                                           revision,
-                                           is_crash=False,
-                                           message=None):
+def update_progression_completion_metadata(testcase: data_types.Testcase,
+                                           revision: int | str,
+                                           is_crash: bool = False,
+                                           message: str | None = None) -> None:
   """Update metadata the progression task completes."""
   clear_progression_pending(testcase)
   testcase.set_metadata('last_tested_revision', revision, update_testcase=False)

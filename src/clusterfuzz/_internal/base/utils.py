@@ -24,7 +24,17 @@ import random
 import re
 import sys
 import tempfile
+import threading
 import time
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Iterable
+from typing import Iterator
+from typing import overload
+from typing import ParamSpec
+from typing import Sequence
+from typing import TypeVar
 import urllib.parse
 import urllib.request
 import weakref
@@ -39,13 +49,18 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
+psutil: Any = None
 try:
   import psutil
 except ImportError:
-  psutil = None
+  pass
+
+_T = TypeVar('_T')
+_P = ParamSpec('_P')
+_R = TypeVar('_R')
 
 # FIXME: Binary extensions list is still very basic.
-BINARY_EXTENSIONS = [
+BINARY_EXTENSIONS: list[str] = [
     # Media formats.
     '.mp3',
     '.ogg',
@@ -59,46 +74,58 @@ BINARY_EXTENSIONS = [
     '.pdf',
     '.swf',
 ]
-FUZZ_PREFIX = 'fuzz-'
-TEXT_EXTENSIONS = [
+FUZZ_PREFIX: str = 'fuzz-'
+TEXT_EXTENSIONS: list[str] = [
     '.css', '.js', '.htm', '.html', '.svg', '.xhtml', '.xht', '.xml', '.xsl'
 ]
-URL_REQUEST_RETRIES = 5
-URL_REQUEST_FAIL_WAIT = 1
-WINDOWS_PREFIX_PATH = '\\\\?\\'
+URL_REQUEST_RETRIES: int = 5
+URL_REQUEST_FAIL_WAIT: int = 1
+WINDOWS_PREFIX_PATH: str = '\\\\?\\'
 
 # Thread pool for use in function timeouts.
-THREAD_POOL = None
+THREAD_POOL: Any = None
 
-LOCAL_SOURCE_MANIFEST = os.path.join('src', 'appengine', 'resources',
-                                     'clusterfuzz-source.manifest')
+LOCAL_SOURCE_MANIFEST: str = os.path.join('src', 'appengine', 'resources',
+                                          'clusterfuzz-source.manifest')
 
 # The length we're reading from the file-object in search_bytes_in_file.
-DEFAULT_SEARCH_BUFFER_LENGTH = 10 * 1024 * 1024  # 10MB
+DEFAULT_SEARCH_BUFFER_LENGTH: int = 10 * 1024 * 1024  # 10MB
 
 
-def utcnow():
+def utcnow() -> datetime.datetime:
   """Return datetime.datetime.utcnow(). We need this method because we can't
     mock built-in methods."""
   return datetime.datetime.utcnow()  # pragma: no cover.
 
 
-def current_date_time():
+def current_date_time() -> str:
   """Returns current date and time."""
   return datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
 
 
-def utc_date_to_timestamp(date):
+def utc_date_to_timestamp(date: datetime.date) -> float:
   """Converts a (UTC) datetime.date to a UNIX timestamp."""
   return (date - datetime.date(1970, 1, 1)).total_seconds()
 
 
-def utc_datetime_to_timestamp(dt):
+def utc_datetime_to_timestamp(dt: datetime.datetime | None) -> float | None:
   """Converts a (UTC) datetime.date to a UNIX timestamp."""
+  if dt is None:
+    return None
   return (dt - datetime.datetime.utcfromtimestamp(0)).total_seconds()
 
 
-def decode_to_unicode(obj):
+@overload
+def decode_to_unicode(obj: bytes | bytearray | str) -> str:
+  ...
+
+
+@overload
+def decode_to_unicode(obj: _T) -> _T:
+  ...
+
+
+def decode_to_unicode(obj: Any) -> Any:
   """Decode object to unicode encoding."""
   if not hasattr(obj, 'decode'):
     return obj
@@ -106,7 +133,17 @@ def decode_to_unicode(obj):
   return obj.decode('utf-8', errors='ignore')
 
 
-def encode_as_unicode(obj):
+@overload
+def encode_as_unicode(obj: str) -> bytes:
+  ...
+
+
+@overload
+def encode_as_unicode(obj: _T) -> _T:
+  ...
+
+
+def encode_as_unicode(obj: Any) -> Any:
   """Encode a string as unicode, or leave bytes as they are."""
   if not hasattr(obj, 'encode'):
     return obj
@@ -119,8 +156,8 @@ def encode_as_unicode(obj):
     delay=URL_REQUEST_FAIL_WAIT,
     function='base.utils.fetch_url')
 def fetch_url(url: str,
-              params: dict | None = None,
-              headers: dict | None = None,
+              params: dict[str, Any] | None = None,
+              headers: dict[str, Any] | None = None,
               request_timeout: int | float | None = None,
               raise_for_not_found: bool = False,
               stream: bool = False) -> str | requests.Response | None:
@@ -144,7 +181,9 @@ def fetch_url(url: str,
         returns an error status.
     """
   if request_timeout is None:
-    request_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
+    request_timeout = cast(
+        float | int | None,
+        environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT'))
 
   logs.info(f'Request for {url}', params=params, headers=headers, stream=stream)
   response = requests.get(
@@ -182,10 +221,10 @@ def post_url(url: str, data: str, headers: dict) -> str:
   return response.text
 
 
-def fields_match(string_1,
-                 string_2,
-                 field_separator=':',
-                 allow_empty_fields=True):
+def fields_match(string_1: str | None,
+                 string_2: str | None,
+                 field_separator: str = ':',
+                 allow_empty_fields: bool = True) -> bool:
   """Match fields of two strings, separated by a |field_separator|. Empty fields
   can be ignored via |allow_empty_fields| flag."""
   if string_1 is None or string_2 is None:
@@ -207,7 +246,7 @@ def fields_match(string_1,
   return True
 
 
-def file_path_to_file_url(path):
+def file_path_to_file_url(path: str | None) -> str:
   """Return a path as a file scheme url."""
   if not path:
     return ''
@@ -216,10 +255,10 @@ def file_path_to_file_url(path):
   return urllib.parse.urljoin('file:', urllib.request.pathname2url(path))
 
 
-def filter_file_list(file_list):
+def filter_file_list(file_list: Sequence[str]) -> list[str]:
   """Filters file list by removing duplicates, non-existent files
   and directories."""
-  filtered_file_list = []
+  filtered_file_list: list[str] = []
   for file_path in file_list:
     if not os.path.exists(file_path):
       continue
@@ -241,7 +280,8 @@ def filter_file_list(file_list):
   return filtered_file_list
 
 
-def find_binary_path(app_directory, binary_file_subpath):
+def find_binary_path(app_directory: str,
+                     binary_file_subpath: str) -> str | None:
   """Find the path to a binary given the app directory and the file name.
 
   This is necessary as cov files are created in the root app directory, and we
@@ -272,7 +312,7 @@ def find_binary_path(app_directory, binary_file_subpath):
   return None
 
 
-def get_application_id():
+def get_application_id() -> str | None:
   """Return application id. Code simplified based off original implementation in
   AppEngine SDK get_identity.get_application_id."""
   app_id = environment.get_value('APPLICATION_ID')
@@ -286,16 +326,16 @@ def get_application_id():
   return app_id
 
 
-def get_logging_cloud_project_id():
+def get_logging_cloud_project_id() -> str | None:
   """Return logging cloud project id."""
   return environment.get_value('LOGGING_CLOUD_PROJECT_ID')
 
 
-def get_clusterfuzz_release():
+def get_clusterfuzz_release() -> str:
   return os.getenv('CLUSTERFUZZ_RELEASE', 'prod')
 
 
-def _get_manifest_release_suffix(release):
+def _get_manifest_release_suffix(release: str) -> str:
   suffix = ''
   if sys.version_info.major == 3:
     suffix += '.3'
@@ -305,7 +345,7 @@ def _get_manifest_release_suffix(release):
   return suffix
 
 
-def _get_deployment_zip_release_suffix(release):
+def _get_deployment_zip_release_suffix(release: str) -> str:
   suffix = ''
   if sys.version_info.major == 3:
     suffix += '-3'
@@ -315,7 +355,7 @@ def _get_deployment_zip_release_suffix(release):
   return suffix
 
 
-def get_platform_deployment_filename(platform, release):
+def get_platform_deployment_filename(platform: str, release: str) -> str:
   """Return the platform deployment filename."""
   # Expects linux, macos or windows.
   base_filename = platform
@@ -323,14 +363,14 @@ def get_platform_deployment_filename(platform, release):
   return f'{base_filename}{release_filename_suffix}.zip'
 
 
-def get_remote_manifest_filename(release):
+def get_remote_manifest_filename(release: str) -> str:
   return f'clusterfuzz-source.manifest{_get_manifest_release_suffix(release)}'
 
 
-def service_account_email():
+def service_account_email() -> str | None:
   """Get the service account name."""
   # TODO(ochang): Detect GCE and return the GCE service account instead.
-  email_id = get_application_id()
+  email_id = cast(str, get_application_id())
   if ':' in email_id:
     domain, application_id = email_id.split(':')
     email_id = application_id + '.' + domain
@@ -338,7 +378,7 @@ def service_account_email():
   return email_id + '@appspot.gserviceaccount.com'
 
 
-def get_bot_testcases_file_path(input_directory):
+def get_bot_testcases_file_path(input_directory: str) -> str:
   """Returns path to bot-specific fuzzed testcases."""
   # Using |FUZZ_INPUTS| prevents putting high load on nfs servers for cases
   # when |input_directory| is a cloud storage data bundle. We can't rely
@@ -357,14 +397,14 @@ def get_bot_testcases_file_path(input_directory):
   return bot_testcases_file_path
 
 
-def get_crash_stacktrace_output(application_command_line,
-                                symbolized_stacktrace,
-                                unsymbolized_stacktrace=None,
-                                build_type=None):
+def get_crash_stacktrace_output(application_command_line: str,
+                                symbolized_stacktrace: str,
+                                unsymbolized_stacktrace: str | None = None,
+                                build_type: str | None = None) -> str:
   """Return output string with symbolized and unsymbolized stacktraces
   combined."""
 
-  def _guess_build_type(application_command_line):
+  def _guess_build_type(application_command_line: str) -> str:
     if 'stable' in application_command_line:
       return 'stable'
     if 'beta' in application_command_line:
@@ -398,9 +438,9 @@ def get_crash_stacktrace_output(application_command_line,
   return crash_stacktraces_output
 
 
-def get_directory_hash_for_path(file_path):
+def get_directory_hash_for_path(file_path: str) -> str:
   """Return the directory hash for a file path (excludes file name)."""
-  root_directory = environment.get_value('ROOT_DIR')
+  root_directory = cast(str, environment.get_value('ROOT_DIR'))
 
   directory_path = os.path.dirname(file_path)
   normalized_directory_path = remove_prefix(directory_path,
@@ -409,7 +449,7 @@ def get_directory_hash_for_path(file_path):
   return string_hash(normalized_directory_path)
 
 
-def get_file_contents_with_fatal_error_on_failure(path):
+def get_file_contents_with_fatal_error_on_failure(path: str) -> bytes:
   """Return the contents of the specified file, or None on error."""
   try:
     with open(path, 'rb') as file_handle:
@@ -421,14 +461,14 @@ def get_file_contents_with_fatal_error_on_failure(path):
   raise errors.BadStateError
 
 
-def get_line_seperator(label=''):
+def get_line_seperator(label: str = '') -> str:
   """Return a line separator with an optional label."""
   separator = '-' * 40
   result = '\n\n%s%s%s\n\n' % (separator, label, separator)
   return result
 
 
-def get_normalized_relative_path(file_path, directory_path):
+def get_normalized_relative_path(file_path: str, directory_path: str) -> str:
   """Return normalized relative path for file w.r.t to a directory."""
   normalized_relative_file_path = remove_prefix(file_path,
                                                 directory_path + os.sep)
@@ -437,12 +477,12 @@ def get_normalized_relative_path(file_path, directory_path):
   return normalized_relative_file_path
 
 
-def get_path_without_ext(path):
+def get_path_without_ext(path: str) -> str:
   """Return a path excluding the extension."""
   return os.path.splitext(path)[0]
 
 
-def get_process_ids(process_id, recursive=True):
+def get_process_ids(process_id: int, recursive: bool = True) -> list[int]:
   """Return list of pids for a process and its descendants."""
   # Try to find the running process.
   if not psutil.pid_exists(process_id):
@@ -466,7 +506,7 @@ def get_process_ids(process_id, recursive=True):
   return pids
 
 
-def get_line_count_string(line_count):
+def get_line_count_string(line_count: int) -> str:
   """Return string representation for size."""
   if line_count == 0:
     return 'empty'
@@ -475,7 +515,7 @@ def get_line_count_string(line_count):
   return '%d lines' % line_count
 
 
-def get_size_string(size):
+def get_size_string(size: int) -> str:
   """Return string representation for size."""
   if size < 1 << 10:
     return '%d B' % size
@@ -486,8 +526,8 @@ def get_size_string(size):
   return '%d GB' % (size >> 30)
 
 
-def get_unique_lines_in_unsymbolized_stack(symbolized_stacktrace,
-                                           unsymbolized_stacktrace):
+def get_unique_lines_in_unsymbolized_stack(symbolized_stacktrace: str,
+                                           unsymbolized_stacktrace: str) -> str:
   """Return unique lines in unsymbolized stacktrace that are not in the
   symbolized stacktrace."""
   if symbolized_stacktrace == unsymbolized_stacktrace:
@@ -525,7 +565,7 @@ def get_unique_lines_in_unsymbolized_stack(symbolized_stacktrace,
   return result
 
 
-def indent_string(string, chars):
+def indent_string(string: str, chars: int) -> str:
   """Indents a string by x number of characters."""
 
   indented_string = ''
@@ -536,7 +576,7 @@ def indent_string(string, chars):
   return indented_string[0:-1]
 
 
-def is_binary_file(file_path, bytes_to_read=1024):
+def is_binary_file(file_path: str, bytes_to_read: int = 1024) -> bool | None:
   """Return true if the file looks like a binary file."""
   file_extension = os.path.splitext(file_path)[1].lower()
   if file_extension in BINARY_EXTENSIONS:
@@ -557,7 +597,7 @@ def is_binary_file(file_path, bytes_to_read=1024):
   return len(binary_data) > len(data) * 0.1
 
 
-def is_recursive_call():
+def is_recursive_call() -> bool:
   """Returns true if the caller function is called recursively."""
   try:
     stack_frames = inspect.stack()
@@ -571,10 +611,11 @@ def is_recursive_call():
   return False
 
 
-def is_valid_testcase_file(file_path,
-                           check_if_exists=True,
-                           size_limit=None,
-                           allowed_extensions=None):
+def is_valid_testcase_file(
+    file_path: str,
+    check_if_exists: bool = True,
+    size_limit: int | None = None,
+    allowed_extensions: Sequence[str] | set[str] | None = None) -> bool:
   """Return true if the file looks like a testcase file."""
   filename = os.path.basename(file_path)
   if filename.startswith('.') or filename.startswith(FUZZ_PREFIX):
@@ -600,27 +641,28 @@ def is_valid_testcase_file(file_path,
   return True
 
 
-def maximum_parallel_processes_allowed():
+def maximum_parallel_processes_allowed() -> int:
   """Return maximum number of parallel processes allowed. Adjust it based
   on thread multiplier."""
   if environment.is_trusted_host():
     # gRPC only supports 1 thread/process.
     return 1
 
-  max_parallel_process_count = environment.get_value('MAX_FUZZ_THREADS', 1)
-  thread_multiplier = environment.get_value('THREAD_MULTIPLIER', 1)
+  max_parallel_process_count = cast(
+      int, environment.get_value('MAX_FUZZ_THREADS', 1))
+  thread_multiplier = cast(int, environment.get_value('THREAD_MULTIPLIER', 1))
 
   max_parallel_process_count *= thread_multiplier
   return int(max_parallel_process_count)
 
 
-def normalize_path(path):
+def normalize_path(path: str) -> str:
   """Normalize path. This is needed on windows because windows' paths are
     case-insensitive."""
   return os.path.normcase(os.path.normpath(path))
 
 
-def python_gc():
+def python_gc() -> None:
   """Call python's garbage collector."""
   # gc_collect isn't perfectly synchronous, because it may
   # break reference cycles that then take time to fully
@@ -629,22 +671,23 @@ def python_gc():
     gc.collect()
 
 
-def random_element_from_list(element_list):
+def random_element_from_list(element_list: Sequence[_T]) -> _T:
   """Returns a random element from list."""
   return element_list[random.SystemRandom().randint(0, len(element_list) - 1)]
 
 
-def random_number(start, end):
+def random_number(start: int, end: int) -> int:
   """Returns a random number between start and end."""
   return random.SystemRandom().randint(start, end)
 
 
 # pylint: disable=inconsistent-return-statements
-def random_weighted_choice(element_list, weight_attribute='weight'):
+def random_weighted_choice(element_list: Sequence[_T],
+                           weight_attribute: str = 'weight') -> _T:
   """Returns a random element from list taking its weight into account."""
   total = sum(getattr(e, weight_attribute) for e in element_list)
   random_pick = random.SystemRandom().uniform(0, total)
-  temp = 0
+  temp = 0.0
   for element in element_list:
     element_weight = getattr(element, weight_attribute)
     if element_weight == 0:
@@ -656,14 +699,16 @@ def random_weighted_choice(element_list, weight_attribute='weight'):
   assert False, 'Failed to make a random weighted choice.'
 
 
-def read_data_from_file(file_path, eval_data=True, default=None):
+def read_data_from_file(file_path: str,
+                        eval_data: bool = True,
+                        default: Any = None) -> Any:
   """Returns eval-ed data from file."""
   if not os.path.exists(file_path):
     return default
 
-  failure_wait_interval = environment.get_value('FAIL_WAIT', 0)
+  failure_wait_interval = cast(float, environment.get_value('FAIL_WAIT', 0))
   file_content = None
-  retry_limit = environment.get_value('FAIL_RETRIES', 1)
+  retry_limit = cast(int, environment.get_value('FAIL_RETRIES', 1))
   for _ in range(retry_limit):
     try:
       with open(file_path, 'rb') as file_handle:
@@ -690,7 +735,9 @@ def read_data_from_file(file_path, eval_data=True, default=None):
     return None
 
 
-def read_data_from_file_and_remove(file_path, eval_data=False, default=None):
+def read_data_from_file_and_remove(file_path: str | None,
+                                   eval_data: bool = False,
+                                   default: Any = None) -> Any:
   """Reads file content and removes the file after reading.
 
   Args:
@@ -711,7 +758,7 @@ def read_data_from_file_and_remove(file_path, eval_data=False, default=None):
     shell.remove_file(file_path)
 
 
-def remove_prefix(string, prefix):
+def remove_prefix(string: str, prefix: str) -> str:
   """Strips the prefix from a string."""
   if string.startswith(prefix):
     return string[len(prefix):]
@@ -719,7 +766,7 @@ def remove_prefix(string, prefix):
   return string
 
 
-def remove_sub_strings(string, substrings):
+def remove_sub_strings(string: str, substrings: Sequence[str]) -> str:
   """Strips substrings from a given string."""
   result = string
   for substring in substrings:
@@ -728,7 +775,7 @@ def remove_sub_strings(string, substrings):
   return result
 
 
-def restart_machine():
+def restart_machine() -> None:
   """Restart machine."""
   if environment.platform() == 'WINDOWS':
     os.system('shutdown /f /r /t 0')
@@ -737,7 +784,7 @@ def restart_machine():
     os.system('sudo shutdown -r now')
 
 
-def search_bytes_in_file(search_bytes, file_handle) -> bool:
+def search_bytes_in_file(search_bytes: bytes, file_handle: Any) -> bool:
   """Searches `search_bytes` in the file represented by the file-object
   `file_handle`.
 
@@ -774,12 +821,12 @@ def search_bytes_in_file(search_bytes, file_handle) -> bool:
   return False
 
 
-def string_hash(obj):
+def string_hash(obj: Any) -> str:
   """Returns a SHA-1 hash of the object. Not used for security purposes."""
   return hashlib.sha1(str(obj).encode('utf-8')).hexdigest()
 
 
-def entity_hash(obj):
+def entity_hash(obj: Any) -> str:
   """Returns a deterministic hash of a ndb entity.
 
   If an entity has been recently modified, put() must be called on it before
@@ -793,26 +840,27 @@ def entity_hash(obj):
   return hasher.hexdigest()
 
 
-def string_is_true(value):
+def string_is_true(value: Any) -> bool:
   """Check to see if a string has a value that should be treated as True."""
-  return value and value != 'false' and value != 'False' and value != '0'
+  return cast(bool, value and value != 'false' and value != 'False' and
+              value != '0')
 
 
-def strip_from_left(string, prefix):
+def strip_from_left(string: str, prefix: str) -> str:
   """Strip a prefix from start from string."""
   if not string.startswith(prefix):
     return string
   return string[len(prefix):]
 
 
-def strip_from_right(string, suffix):
+def strip_from_right(string: str, suffix: str) -> str:
   """Strip a suffix from end of string."""
   if not string.endswith(suffix):
     return string
   return string[:len(string) - len(suffix)]
 
 
-def sub_string_exists_in(substring_list, string):
+def sub_string_exists_in(substring_list: Sequence[str], string: str) -> bool:
   """Return true if one of the substring in the list is found in |string|."""
   for substring in substring_list:
     if substring in string:
@@ -821,7 +869,7 @@ def sub_string_exists_in(substring_list, string):
   return False
 
 
-def time_difference_string(timestamp):
+def time_difference_string(timestamp: datetime.datetime | None) -> str:
   """Return time difference as a string."""
   if not timestamp:
     return ''
@@ -848,27 +896,27 @@ def time_difference_string(timestamp):
   return 'in the future'
 
 
-def timeout(duration):
+def timeout(
+    duration: float | int) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
   """Timeout decorator for functions."""
 
-  def decorator(func):
+  def decorator(func: Callable[_P, _R]) -> Callable[_P, _R]:
     """Decorates the given function."""
     if environment.is_running_on_app_engine():
       # multiprocessing doesn't work on App Engine.
       return func
 
     @functools.wraps(func)
-    def _wrapper(*args, **kwargs):
+    def _wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
       """Wrapper."""
       # FIXME: Weird exceptions in imports, might be something relating to our
       # reload module. Needs further investigation, try this as a temporary fix.
       import multiprocessing.pool
-      import threading
 
       # Fix for Python < 2.7.2.
       if not hasattr(threading.current_thread(), '_children'):
-        # pylint: disable=protected-access
-        threading.current_thread()._children = weakref.WeakKeyDictionary()
+        setattr(threading.current_thread(), '_children',
+                weakref.WeakKeyDictionary())
 
       global THREAD_POOL
       if THREAD_POOL is None:
@@ -889,13 +937,15 @@ def timeout(duration):
         logs.log_fatal_and_exit(
             f'Exception occurred in function {func}: args: {args}, kwargs: '
             f'{kwargs} exception: {sys.exc_info()[1]}')
+        assert False, 'Unreachable after log_fatal_and_exit.'
 
     return _wrapper
 
   return decorator
 
 
-def wait_until_timeout(threads, thread_timeout):
+def wait_until_timeout(threads: Sequence[threading.Thread],
+                       thread_timeout: float | int) -> bool:
   """Wait for all threads to finish unless the given timeout is reached.
 
   If no thread is alive, it waits much shorter than the given timeout.
@@ -910,7 +960,7 @@ def wait_until_timeout(threads, thread_timeout):
 
   wait_timeout = time.time() + thread_timeout
   while time.time() < wait_timeout:
-    time.sleep(thread_alive_check_interval)
+    time.sleep(cast(float, thread_alive_check_interval))
 
     thread_alive = False
     for thread in threads:
@@ -924,11 +974,12 @@ def wait_until_timeout(threads, thread_timeout):
   return True
 
 
-def write_data_to_file(content, file_path, append=False):
+def write_data_to_file(content: Any, file_path: str,
+                       append: bool = False) -> None:
   """Writes data to file."""
-  failure_wait_interval = environment.get_value('FAIL_WAIT')
+  failure_wait_interval = cast(float, environment.get_value('FAIL_WAIT'))
   file_mode = 'ab' if append else 'wb'
-  retry_limit = environment.get_value('FAIL_RETRIES')
+  retry_limit = cast(int, environment.get_value('FAIL_RETRIES'))
 
   # TODO(mbarbella): One extra iteration is allowed for the type conversion hack
   # included here. Once this function is converted to only accept bytes-like
@@ -955,22 +1006,22 @@ def write_data_to_file(content, file_path, append=False):
 
 
 @memoize.wrap(memoize.FifoInMemory(1))
-def default_backup_bucket():
+def default_backup_bucket() -> str | None:
   """Return the default backup bucket for this instance of ClusterFuzz."""
   # Do not use |BACKUP_BUCKET| environment variable as that is the overridden
   # backup bucket from job type and is not the default backup bucket.
-  return local_config.ProjectConfig().get('env.BACKUP_BUCKET')
+  return cast(str | None, local_config.ProjectConfig().get('env.BACKUP_BUCKET'))
 
 
 @memoize.wrap(memoize.FifoInMemory(1))
-def default_project_name():
+def default_project_name() -> str | None:
   """Return the default project name for this instance of ClusterFuzz."""
   # Do not use |PROJECT_NAME| environment variable as that is the overridden
   # project name from job type and is not the default project name.
-  return local_config.ProjectConfig().get('env.PROJECT_NAME')
+  return cast(str | None, local_config.ProjectConfig().get('env.PROJECT_NAME'))
 
 
-def current_project():
+def current_project() -> str | None:
   """Return the project for the current job, or the default project."""
   return environment.get_value('PROJECT_NAME', default_project_name())
 
@@ -1022,7 +1073,7 @@ def get_instance_name() -> str:
   return environment.get_value('BOT_NAME', '')
 
 
-def read_from_handle_truncated(file_handle, max_len):
+def read_from_handle_truncated(file_handle: Any, max_len: int) -> bytes:
   """Read from file handle, limiting output to |max_len| by removing output in
   the middle."""
   file_handle.seek(0, os.SEEK_END)
@@ -1043,14 +1094,14 @@ def read_from_handle_truncated(file_handle, max_len):
   return start + truncated_marker + end
 
 
-def normalize_email(email):
+def normalize_email(email: str) -> str:
   """Normalize an email address."""
   # TODO(ochang): Investigate whether if it makes sense to replace
   # @googlemail.com with @gmail.com.
   return email.lower()
 
 
-def emails_equal(first, second):
+def emails_equal(first: str | None, second: str | None) -> bool:
   """Return whether or not the 2 emails are equal after being normalized."""
   if not first or not second:
     return False
@@ -1066,8 +1117,10 @@ def is_service_account(email: str) -> bool:
   return sa_email.endswith('gserviceaccount.com')
 
 
-def parse_delimited(value_or_handle, delimiter, strip=False,
-                    remove_empty=False):
+def parse_delimited(value_or_handle: Any,
+                    delimiter: str,
+                    strip: bool = False,
+                    remove_empty: bool = False) -> list[str]:
   """Parse a delimter separated value."""
   if hasattr(value_or_handle, 'read'):
     results = value_or_handle.read().split(delimiter)
@@ -1090,19 +1143,19 @@ def parse_delimited(value_or_handle, delimiter, strip=False,
   return processed_results
 
 
-def is_oss_fuzz():
+def is_oss_fuzz() -> bool:
   """If this is an instance of OSS-Fuzz."""
   return default_project_name() == 'oss-fuzz'
 
 
-def is_chromium():
+def is_chromium() -> bool:
   """If this is an instance of chromium fuzzing."""
   return default_project_name() in ('chromium', 'chromium-testing',
                                     'clusterfuzz-staging',
                                     'clusterfuzz-development')
 
 
-def file_hash(file_path):
+def file_hash(file_path: str) -> str:
   """Returns the SHA-1 hash of |file_path| contents."""
   chunk_size = 51200  # Read in 50 KB chunks.
   digest = hashlib.sha1()
@@ -1115,16 +1168,17 @@ def file_hash(file_path):
   return digest.hexdigest()
 
 
-def cpu_count():
+def cpu_count() -> int:
   """Get the CPU count."""
   # Does not import on App Engine.
   import multiprocessing
 
-  return environment.get_value('CPU_COUNT_OVERRIDE',
-                               multiprocessing.cpu_count())
+  return cast(
+      int,
+      environment.get_value('CPU_COUNT_OVERRIDE', multiprocessing.cpu_count()))
 
 
-def batched(iterator, batch_size):
+def batched(iterator: Iterable[_T], batch_size: int) -> Iterator[list[_T]]:
   """Implementation of itertools.py's batched that was added after
   Python3.11."""
   # TODO(metzman): Replace this with itertools.batched.

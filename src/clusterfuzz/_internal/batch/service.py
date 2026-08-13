@@ -21,8 +21,12 @@ import collections
 import json
 import random
 import threading
+from typing import Any
+from typing import cast
 from typing import Dict
 from typing import List
+from typing import NamedTuple
+from typing import Optional
 from typing import Tuple
 import urllib.request
 import uuid
@@ -43,59 +47,60 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
+
 # A named tuple that defines the execution environment for a batch workload.
 # This includes details about the machine, disk, network, and container image,
 # as well as ClusterFuzz-specific settings.
-BatchWorkloadSpec = collections.namedtuple(
-    'BatchWorkloadSpec', [
-        'clusterfuzz_release',
-        'disk_size_gb',
-        'disk_type',
-        'docker_image',
-        'user_data',
-        'service_account_email',
-        'subnetwork',
-        'preemptible',
-        'project',
-        'machine_type',
-        'network',
-        'gce_region',
-        'priority',
-        'max_run_duration',
-        'retry',
-        'project_number',
-    ],
-    defaults=(None,))
+class BatchWorkloadSpec(NamedTuple):
+  clusterfuzz_release: str
+  disk_size_gb: int
+  disk_type: str
+  docker_image: str
+  user_data: str
+  service_account_email: str
+  subnetwork: str
+  preemptible: bool
+  project: str
+  machine_type: str
+  network: str
+  gce_region: str
+  priority: int
+  max_run_duration: str
+  retry: bool
+  project_number: Optional[str] = None
 
-WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
-                                           ['name', 'weight'])
+
+class WeightedSubconfig(NamedTuple):
+  name: str
+  weight: float
+
 
 # See https://cloud.google.com/batch/quotas#job_limits
-MAX_CONCURRENT_VMS_PER_JOB = 1000
+MAX_CONCURRENT_VMS_PER_JOB: int = 1000
 
-MAX_QUEUE_SIZE = 100
+MAX_QUEUE_SIZE: int = 100
 
 
 class AllRegionsOverloadedError(Exception):
   """Raised when all batch regions are overloaded."""
 
 
-_local = threading.local()
+_local: threading.local = threading.local()
 
-DEFAULT_RETRY_COUNT = 0
+DEFAULT_RETRY_COUNT: int = 0
 
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
-TASK_COUNT_PER_NODE = 1
+TASK_COUNT_PER_NODE: int = 1
 
 
-def _create_batch_client_new():
+def _create_batch_client_new() -> batch.BatchServiceClient:
   """Creates a batch client."""
   creds, _ = credentials.get_default()
   return batch.BatchServiceClient(credentials=creds)
 
 
-def _batch_client():
+def _batch_client() -> batch.BatchServiceClient:
   """Gets the batch client, creating it if it does not exist."""
   if hasattr(_local, 'client'):
     return _local.client
@@ -104,11 +109,11 @@ def _batch_client():
   return _local.client
 
 
-def get_job_name():
+def get_job_name() -> str:
   return 'j-' + str(uuid.uuid4()).lower()
 
 
-def _get_task_spec(batch_workload_spec):
+def _get_task_spec(batch_workload_spec: BatchWorkloadSpec) -> batch.TaskSpec:
   """Gets the task spec based on the batch workload spec."""
   runnable = batch.Runnable()
   runnable.container = batch.Runnable.Container()
@@ -131,11 +136,12 @@ def _get_task_spec(batch_workload_spec):
     task_spec.max_retry_count = 4
   else:
     task_spec.max_retry_count = DEFAULT_RETRY_COUNT
-  task_spec.max_run_duration = batch_workload_spec.max_run_duration
+  task_spec.max_run_duration = cast(Any, batch_workload_spec.max_run_duration)
   return task_spec
 
 
-def _set_preemptible(instance_policy, batch_workload_spec) -> None:
+def _set_preemptible(instance_policy: batch.AllocationPolicy.InstancePolicy,
+                     batch_workload_spec: BatchWorkloadSpec) -> None:
   if batch_workload_spec.preemptible:
     instance_policy.provisioning_model = (
         batch.AllocationPolicy.ProvisioningModel.PREEMPTIBLE)
@@ -144,7 +150,7 @@ def _set_preemptible(instance_policy, batch_workload_spec) -> None:
         batch.AllocationPolicy.ProvisioningModel.STANDARD)
 
 
-def _get_allocation_policy(spec):
+def _get_allocation_policy(spec: BatchWorkloadSpec) -> batch.AllocationPolicy:
   """Returns the allocation policy for a BatchWorkloadSpec."""
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
@@ -179,7 +185,8 @@ def _get_allocation_policy(spec):
     retries=3,
     delay=2,
     function='google_cloud_utils.batch._send_create_job_request')
-def _send_create_job_request(create_request):
+def _send_create_job_request(
+    create_request: batch.CreateJobRequest) -> batch.Job:
   return _batch_client().create_job(create_request)
 
 
@@ -188,7 +195,7 @@ def count_queued_or_scheduled_tasks(project: str,
   """Counts the number of queued and scheduled tasks."""
   region = f'projects/{project}/locations/{region}'
   jobs_filter = 'Status.State="SCHEDULED" OR Status.State="QUEUED"'
-  req = batch.types.ListJobsRequest(parent=region, filter=jobs_filter)
+  req = batch.ListJobsRequest(parent=region, filter=jobs_filter)
   queued = 0
   scheduled = 0
   for job in _batch_client().list_jobs(request=req):
@@ -231,9 +238,9 @@ def get_region_load(project: str, region: str) -> int:
       # We'll assume the structure is standard for Google APIs.
       job_counts = data.get('jobCounts', {})
       for state, count in job_counts.items():
-        count = int(count)
+        count_int = int(count)
         if state == 'QUEUED':
-          total += count
+          total += count_int
         else:
           logs.error(f'Unknown state: {state}')
 
@@ -243,7 +250,7 @@ def get_region_load(project: str, region: str) -> int:
     return 0
 
 
-def _get_batch_config():
+def _get_batch_config() -> local_config.BatchConfig:
   """Returns the batch config. This function was made to make mocking easier."""
   return local_config.BatchConfig()
 
@@ -263,7 +270,9 @@ def is_remote_task(command: str, job_name: str) -> bool:
     return False
 
 
-def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
+def _get_config_names(
+    batch_tasks: List[remote_task_types.RemoteTask]
+) -> Dict[Tuple[str, str], Tuple[str, Optional[int], Optional[str]]]:
   """Gets the name of the configs for each batch_task. Returns a dict
   that is indexed by command and job_type for efficient lookup."""
   job_names = {task.job_type for task in batch_tasks}
@@ -301,7 +310,9 @@ def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
   return config_map
 
 
-def _get_subconfig(batch_config, instance_spec, should_check_regions=True):
+def _get_subconfig(batch_config: local_config.BatchConfig,
+                   instance_spec: Dict[str, Any],
+                   should_check_regions: bool = True) -> Dict[str, Any]:
   all_subconfigs = batch_config.get('subconfigs', {})
   instance_subconfigs = instance_spec['subconfigs']
 
@@ -345,7 +356,8 @@ def _get_subconfig(batch_config, instance_spec, should_check_regions=True):
 
 
 def _get_specs_from_config(batch_tasks: List[remote_task_types.RemoteTask],
-                           should_check_regions: bool = True) -> Dict:
+                           should_check_regions: bool = True
+                          ) -> Dict[Tuple[str, str], BatchWorkloadSpec]:
   """Gets the configured specifications for a batch workload."""
   if not batch_tasks:
     return {}
@@ -430,9 +442,10 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
   provides a way to check if a task is configured to run remotely.
   """
 
-  def create_job(self, spec: BatchWorkloadSpec, input_urls: List[str]):
+  def create_job(self, spec: BatchWorkloadSpec,
+                 input_urls: List[str]) -> batch.Job:
     """Creates and starts a batch job from |spec| that executes all tasks.
-    
+
     This method creates a new GCP Batch job with a single task group. The
     task group is configured to run a containerized task for each of the
     input URLs. The tasks are run in parallel, with each task having its
@@ -468,8 +481,9 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
     logs.info(f'Created batch job id={job_name}.', spec=spec)
     return job_result
 
-  def create_utask_main_job(self, module: str, job_type: str,
-                            input_download_url: str):
+  def create_utask_main_job(
+      self, module: str, job_type: str,
+      input_download_url: str) -> Optional[remote_task_types.RemoteTask]:
     """Creates a single batch job for a uworker main task."""
     command = task_utils.get_command_from_module(module)
     batch_tasks = [
@@ -481,7 +495,8 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
     return result[0]
 
   def create_utask_main_jobs(self,
-                             remote_tasks: List[remote_task_types.RemoteTask]):
+                             remote_tasks: List[remote_task_types.RemoteTask]
+                            ) -> List[remote_task_types.RemoteTask]:
     """Creates a batch job for a list of uworker main tasks.
 
     This method groups the tasks by their workload specification and creates a

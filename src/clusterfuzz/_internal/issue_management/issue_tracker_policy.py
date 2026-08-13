@@ -5,6 +5,7 @@
 # You may obtain a copy of the License at
 #
 #      http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -12,14 +13,26 @@
 # limitations under the License.
 """Issue tracker policy."""
 
-from collections import namedtuple
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Mapping
+from typing import NamedTuple
+from typing import Optional
+from typing import Sequence
 
 from clusterfuzz._internal.config import local_config
 
-Status = namedtuple('Status',
-                    ['assigned', 'duplicate', 'wontfix', 'fixed', 'verified'])
 
-EXPECTED_STATUSES = [
+class Status(NamedTuple):
+  assigned: str
+  duplicate: str
+  wontfix: str
+  fixed: str
+  verified: str
+
+
+EXPECTED_STATUSES: List[str] = [
     'assigned',
     'duplicate',
     'wontfix',
@@ -28,7 +41,7 @@ EXPECTED_STATUSES = [
     'new',
 ]
 
-EXTENSION_PREFIX = '_ext_'
+EXTENSION_PREFIX: str = '_ext_'
 
 
 class ConfigurationError(Exception):
@@ -38,17 +51,17 @@ class ConfigurationError(Exception):
 class NewIssuePolicy:
   """New issue policy."""
 
-  def __init__(self):
-    self.status = ''
-    self.ccs = []
-    self.labels = []
-    self.issue_body_footer = ''
+  def __init__(self) -> None:
+    self.status: str = ''
+    self.ccs: List[str] = []
+    self.labels: List[str] = []
+    self.issue_body_footer: str = ''
 
     # Contains _ext_ prefixed extension fields. Eg: _ext_collaborators.
-    self.extension_fields = {}
+    self.extension_fields: Dict[str, Any] = {}
 
 
-def _to_str_list(values):
+def _to_str_list(values: Sequence[Any]) -> List[str]:
   """Convert a list to a list of strs."""
   return [str(value) for value in values]
 
@@ -56,8 +69,8 @@ def _to_str_list(values):
 class IssueTrackerPolicy:
   """Represents an issue tracker policy."""
 
-  def __init__(self, data):
-    self._data = data
+  def __init__(self, data: Mapping[str, Any]) -> None:
+    self._data: Mapping[str, Any] = data
     if 'status' not in self._data:
       raise ConfigurationError('Status not set in policies.')
 
@@ -69,13 +82,14 @@ class IssueTrackerPolicy:
         raise ConfigurationError(
             'Expected status {} is not set.'.format(status))
 
-  def status(self, status_type):
+  def status(self, status_type: str) -> str:
     """Get the actual status string for the given type."""
     return self._data['status'][status_type]
 
-  def get_extension_fields(self, issue_type):
+  def get_extension_fields(self,
+                           issue_type: Mapping[str, Any]) -> Dict[str, Any]:
     """Returns all _ext_ prefixed items from issue_type."""
-    extension_fields = {}
+    extension_fields: Dict[str, Any] = {}
     # Extension fields are dynamically added to the policy
     # depending on which (if any) have been set in the config
     for k, v in issue_type.items():
@@ -83,7 +97,7 @@ class IssueTrackerPolicy:
         extension_fields[k] = v
     return extension_fields
 
-  def label(self, label_type):
+  def label(self, label_type: str) -> Optional[str]:
     """Get the actual label string for the given type."""
     label = self._data['labels'].get(label_type)
     if label is None:
@@ -91,9 +105,9 @@ class IssueTrackerPolicy:
 
     return str(label)
 
-  def label_for_crash_type(self, crash_type):
+  def label_for_crash_type(self, crash_type: str | None) -> Optional[str]:
     """Get the actual label string for the given crash type."""
-    if 'crash_types' not in self._data['labels']:
+    if not crash_type or 'crash_types' not in self._data['labels']:
       return None
 
     crash_type = crash_type.splitlines()[0].lower()
@@ -103,7 +117,7 @@ class IssueTrackerPolicy:
 
     return str(label)
 
-  def label_for_crash_category(self, crash_category):
+  def label_for_crash_category(self, crash_category: str) -> Optional[str]:
     """Get the actual label string for the given crash subtype."""
     if 'crash_categories' not in self._data['labels']:
       return None
@@ -115,7 +129,7 @@ class IssueTrackerPolicy:
 
     return str(label)
 
-  def substitution_mapping(self, label):
+  def substitution_mapping(self, label: str) -> str:
     """Get an explicit substitution mapping."""
     if 'substitutions' not in self._data:
       return label
@@ -127,26 +141,27 @@ class IssueTrackerPolicy:
     return str(mapped)
 
   @property
-  def deadline_policy_message(self):
+  def deadline_policy_message(self) -> Optional[str]:
     """Get the deadline policy message, if it exists."""
     return self._data.get('deadline_policy_message')
 
   @property
-  def unreproducible_component(self):
+  def unreproducible_component(self) -> Optional[str]:
     """Get the component for unreproducible bugs, if it exists."""
     return self._data.get('unreproducible_component')
 
   @property
-  def fallback_component(self):
+  def fallback_component(self) -> Optional[str]:
     """Get the component for fallback (when save fails) issues, if it exists."""
     return self._data.get('fallback_component')
 
   @property
-  def fallback_policy_message(self):
+  def fallback_policy_message(self) -> Optional[str]:
     """Get the fallback policy message, if it exists."""
     return self._data.get('fallback_policy_message')
 
-  def get_new_issue_properties(self, is_security, is_crash):
+  def get_new_issue_properties(self, is_security: bool,
+                               is_crash: bool) -> NewIssuePolicy:
     """Get the properties to apply to a new issue."""
     policy = NewIssuePolicy()
 
@@ -164,7 +179,9 @@ class IssueTrackerPolicy:
 
     return policy
 
-  def _apply_new_issue_properties(self, policy, issue_type, is_crash):
+  def _apply_new_issue_properties(self, policy: NewIssuePolicy,
+                                  issue_type: Optional[Mapping[str, Any]],
+                                  is_crash: bool) -> None:
     """Apply issue policies."""
     if not issue_type:
       return
@@ -195,7 +212,7 @@ class IssueTrackerPolicy:
     for k, v in self.get_extension_fields(issue_type).items():
       policy.extension_fields[k] = v
 
-  def get_existing_issue_properties(self):
+  def get_existing_issue_properties(self) -> NewIssuePolicy:
     """Get the properties to apply to a new issue."""
     policy = NewIssuePolicy()
 
@@ -205,7 +222,7 @@ class IssueTrackerPolicy:
     return policy
 
 
-def get(project_name):
+def get(project_name: str) -> IssueTrackerPolicy:
   """Get policy."""
   issue_tracker_config = local_config.IssueTrackerConfig()
   project_config = issue_tracker_config.get(project_name)
@@ -220,7 +237,7 @@ def get(project_name):
   return IssueTrackerPolicy(project_config['policies'])
 
 
-def get_empty():
+def get_empty() -> IssueTrackerPolicy:
   """Get an empty policy."""
   return IssueTrackerPolicy({
       'status': {

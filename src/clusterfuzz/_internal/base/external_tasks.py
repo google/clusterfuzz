@@ -14,16 +14,18 @@
 """External tasks."""
 
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 # Retry every task for 3 times by default to capture non-deterministic crashes.
-_NUM_TRIALS = 3
+_NUM_TRIALS: int = 3
 
 
-def add_external_task(command, testcase_id, job):
+def add_external_task(command: str, testcase_id: int | str,
+                      job: data_types.Job) -> None:
   """Add external task."""
   if command != 'progression':
     # Only progression is supported.
@@ -35,6 +37,7 @@ def add_external_task(command, testcase_id, job):
 
   testcase = data_handler.get_testcase_by_id(testcase_id)
   fuzz_target = testcase.get_fuzz_target()
+  assert fuzz_target is not None
 
   memory_tool_name = environment.get_memory_tool_name(job.name)
   sanitizer = environment.SANITIZER_NAME_MAP.get(memory_tool_name)

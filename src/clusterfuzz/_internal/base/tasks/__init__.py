@@ -13,6 +13,7 @@
 # limitations under the License.
 """Task queue functions."""
 
+from collections.abc import Generator
 import contextlib
 import datetime
 import functools
@@ -20,6 +21,7 @@ import json
 import random
 import threading
 import time
+from typing import Any
 from typing import List
 from typing import Optional
 
@@ -340,7 +342,7 @@ def get_postprocess_task():
   # Postprocess is platform-agnostic, so we run all such tasks on our
   # most generic and plentiful bots only. In other words, we avoid
   # wasting our precious non-linux bots on generic postprocess tasks.
-  if not environment.platform().lower() == 'linux':
+  if environment.platform().lower() != 'linux':
     return None
 
   queue_name = POSTPROCESS_QUEUE
@@ -387,7 +389,7 @@ def get_preprocess_task():
   return task
 
 
-def tworker_get_task(override_queue: str = None):
+def tworker_get_task(override_queue: str | None = None):
   """Gets a task for a tworker to do."""
   assert environment.is_tworker()
   # TODO(metzman): Pulling tasks is relatively expensive compared to
@@ -503,8 +505,8 @@ class Task:
   def __repr__(self):
     return f'Task: {self.command} {self.argument} {self.job} {self.queue}'
 
-  def attribute(self, _):
-    return None
+  def attribute(self, key):
+    del key
 
   def payload(self):
     """Get the payload."""
@@ -529,7 +531,7 @@ class Task:
     return pubsub.Message(attributes=attributes)
 
   @contextlib.contextmanager
-  def lease(self):
+  def lease(self) -> Generator[Any, None, None]:
     """Maintain a lease for the task. Track only start and end by default."""
     # Assume default time for non-pubsub tasks.
     track_task_start(self, TASK_LEASE_SECONDS)
@@ -789,7 +791,7 @@ def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
   return tasks
 
 
-def initialize_task(message, task_cls=None) -> PubSubTask:
+def initialize_task(message, task_cls=None) -> PubSubTask | None:
   """Creates a task from |messages|."""
   if task_cls is None:
     task_cls = PubSubTask
@@ -818,17 +820,18 @@ def initialize_task(message, task_cls=None) -> PubSubTask:
 class PostprocessPubSubTask(PubSubTask):
   """A postprocess task received over pub/sub."""
 
-  def __init__(self,
-               output_url_argument,
-               pubsub_message,
-               is_command_override=False):
+  def __init__(  # pylint: disable=super-init-not-called
+      self,
+      output_url_argument,
+      pubsub_message,
+      is_command_override=False):
     command = 'postprocess'
     job_type = 'none'
     eta = None
     high_end = False
-    grandparent_class = super(PubSubTask, self)
-    grandparent_class.__init__(command, output_url_argument, job_type, eta,
-                               is_command_override, high_end)
+    Task.__init__(  # pylint: disable=non-parent-init-called
+        self, command, output_url_argument, job_type, eta, is_command_override,
+        high_end)
     self._pubsub_message = pubsub_message
 
   def ack(self):

@@ -45,7 +45,7 @@ dev = [
     "pyfakefs==4.4.0",
     "pylint~=2.4",
     "pylint-protobuf==0.21.0",
-    "pyright==1.1.393",
+    "pyright==1.1.411",
     "pywinauto==0.6.8; sys_platform == 'win32'",
     "PyYAML==6.0.1",
     "selenium==3.141.0",
@@ -122,4 +122,59 @@ platform-specific = [
     "kubernetes==34.1.0",
     "protobuf==4.23.4",
     "psutil==5.9.4",
+]
+
+[tool.ty.rules]
+deprecated = "ignore"
+unused-type-ignore-comment = "ignore"
+
+[tool.ty.src]
+include = [
+    "src/clusterfuzz",
+    "src/appengine",
+]
+exclude = [
+    "src/appengine/__init__.py",
+    "src/appengine/clusterfuzz",
+    "src/appengine/handlers/__init__.py",
+    "src/appengine/handlers/cron/__init__.py",
+    "src/appengine/templates",
+    "src/appengine/third_party",
+    "src/clusterfuzz/_internal/bot/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/afl/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/centipede/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/googlefuzztest/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/honggfuzz/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/libFuzzer/__init__.py",
+    "src/clusterfuzz/_internal/bot/minimizer/__init__.py",
+    "src/clusterfuzz/_internal/bot/tasks/__init__.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/__init__.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/HTMLLexer.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/JavaScriptBaseLexer.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/JavaScriptLexer.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/__init__.py",
+    "src/clusterfuzz/_internal/bot/untrusted_runner/__init__.py",
+    "src/clusterfuzz/_internal/bot/webserver/__init__.py",
+    "src/clusterfuzz/_internal/config/__init__.py",
+    "src/clusterfuzz/_internal/datastore/__init__.py",
+    "src/clusterfuzz/_internal/fuzzer_utils/__init__.py",
+    "src/clusterfuzz/_internal/google_cloud_utils/__init__.py",
+    "src/clusterfuzz/_internal/metrics/__init__.py",
+    "src/clusterfuzz/_internal/protos",
+    "src/clusterfuzz/_internal/system/__init__.py",
+    "src/clusterfuzz/_internal/tests",
+    "src/clusterfuzz/environment/__init__.py",
+    "src/clusterfuzz/fuzz/__init__.py",
+    "src/third_party",
+]
+
+[tool.ty.environment]
+python-version = "3.11"
+extra-paths = [
+    "src",
+    "src/appengine",
+    "src/third_party",
+    "src/appengine/third_party",
+    "src/appengine/libs",
 ]

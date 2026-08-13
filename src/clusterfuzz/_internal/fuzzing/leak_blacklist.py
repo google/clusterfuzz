@@ -13,8 +13,10 @@
 # limitations under the License.
 """Highlights and generates suppressions for LSAN reports."""
 
+from collections.abc import Sequence
 import os
 import re
+from typing import cast
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
@@ -25,20 +27,21 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 # Constants for highlighting.
-DIRECT_LEAK_LABEL = 'Direct-leak'
-DIRECT_LEAK_REGEX = re.compile(r'^ *Direct leak of')
-FIRST_LEAK_DIVIDER = ('%s\nThe following leaks are not necessarily related '
-                      'to the first leak.\n\n' % ('=' * 80))
-STACK_REGEX = re.compile(r'^ *#[0-9]+\s0x[A-Za-z0-9]+')
-STACK_START_REGEX = re.compile(r'^ *#0 ')
-BLANK_LINE_REGEX = re.compile(r'^\s*$')
+DIRECT_LEAK_LABEL: str = 'Direct-leak'
+DIRECT_LEAK_REGEX: re.Pattern[str] = re.compile(r'^ *Direct leak of')
+FIRST_LEAK_DIVIDER: str = (
+    '%s\nThe following leaks are not necessarily related '
+    'to the first leak.\n\n' % ('=' * 80))
+STACK_REGEX: re.Pattern[str] = re.compile(r'^ *#[0-9]+\s0x[A-Za-z0-9]+')
+STACK_START_REGEX: re.Pattern[str] = re.compile(r'^ *#0 ')
+BLANK_LINE_REGEX: re.Pattern[str] = re.compile(r'^\s*$')
 
-LSAN_TOOL_NAME = 'lsan'
-LSAN_SUPPRESSION_LINE = 'leak:{function}\n'
-LSAN_HEADER_COMMENT = '# This is a LSAN suppressions file.\n'
+LSAN_TOOL_NAME: str = 'lsan'
+LSAN_SUPPRESSION_LINE: str = 'leak:{function}\n'
+LSAN_HEADER_COMMENT: str = '# This is a LSAN suppressions file.\n'
 
 
-def create_empty_local_blacklist():
+def create_empty_local_blacklist() -> None:
   """Creates an empty local blacklist."""
   lsan_suppressions_path = get_local_blacklist_file_path()
   with open(lsan_suppressions_path, 'w') as local_blacklist:
@@ -46,7 +49,7 @@ def create_empty_local_blacklist():
     local_blacklist.write(LSAN_HEADER_COMMENT)
 
 
-def cleanup_global_blacklist():
+def cleanup_global_blacklist() -> None:
   """Cleans out closed and deleted testcases from the global blacklist."""
   blacklists_to_delete = []
   global_blacklists = data_types.Blacklist.query(
@@ -55,7 +58,7 @@ def cleanup_global_blacklist():
     testcase_id = blacklist.testcase_id
 
     try:
-      testcase = data_handler.get_testcase_by_id(testcase_id)
+      testcase = data_handler.get_testcase_by_id(cast(int, testcase_id))
     except errors.InvalidTestcaseError:
       testcase = None
 
@@ -67,7 +70,7 @@ def cleanup_global_blacklist():
 
 
 @memoize.wrap(memoize.Memcache(60 * 10))
-def get_global_blacklisted_functions():
+def get_global_blacklisted_functions() -> list[str]:
   """Gets global blacklisted functions."""
   # Copy global blacklist into local blacklist.
   global_blacklists = data_types.Blacklist.query(
@@ -80,8 +83,9 @@ def get_global_blacklisted_functions():
   return blacklisted_functions
 
 
-def copy_global_to_local_blacklist(blacklisted_functions,
-                                   excluded_testcase=None):
+def copy_global_to_local_blacklist(
+    blacklisted_functions: Sequence[str],
+    excluded_testcase: data_types.Testcase | None = None) -> None:
   """Copies contents of global blacklist into local blacklist file, excluding
   a particular testcase (if any)."""
   lsan_suppressions_path = get_local_blacklist_file_path()
@@ -100,16 +104,17 @@ def copy_global_to_local_blacklist(blacklisted_functions,
           LSAN_SUPPRESSION_LINE.format(function=function_name))
 
 
-def get_leak_function_for_blacklist(testcase):
+def get_leak_function_for_blacklist(
+    testcase: data_types.Testcase) -> str | None:
   """Return leak function to be used for blacklisting."""
-  crash_functions = testcase.crash_state.splitlines()
+  crash_functions = cast(str, testcase.crash_state).splitlines()
   if not crash_functions:
     return None
 
   return crash_functions[0]
 
 
-def get_local_blacklist_file_path():
+def get_local_blacklist_file_path() -> str:
   """Return the file path to the local blacklist text file."""
   local_blacklist_path = os.path.join(environment.get_suppressions_directory(),
                                       'lsan_suppressions.txt')
@@ -122,13 +127,15 @@ def get_local_blacklist_file_path():
   return local_blacklist_path
 
 
-def should_be_blacklisted(testcase):
+def should_be_blacklisted(testcase: data_types.Testcase) -> bool:
   """Returns True if testcase is reproducible and not deleted."""
-  return (testcase.open and testcase.crash_type == DIRECT_LEAK_LABEL and
-          not testcase.one_time_crasher_flag)
+  return cast(
+      bool, testcase.open and testcase.crash_type == DIRECT_LEAK_LABEL and
+      not testcase.one_time_crasher_flag)
 
 
-def add_crash_to_global_blacklist_if_needed(testcase):
+def add_crash_to_global_blacklist_if_needed(
+    testcase: data_types.Testcase) -> data_types.Blacklist | bool:
   """Adds relevant function from testcase crash state to global blacklist."""
   testcase_id = testcase.key.id()
   if not should_be_blacklisted(testcase):
@@ -163,7 +170,7 @@ def add_crash_to_global_blacklist_if_needed(testcase):
   return blacklist_item
 
 
-def highlight_first_direct_leak(crash_stacktrace):
+def highlight_first_direct_leak(crash_stacktrace: str) -> str:
   """Highlights the first direct leak in a report.
 
   Args:

@@ -13,7 +13,7 @@
 # limitations under the License.
 """Fuzzer stats schema."""
 
-_COMMON_COLUMNS = [{
+_COMMON_COLUMNS: list[dict[str, str]] = [{
     'mode': 'NULLABLE',
     'name': 'kind',
     'type': 'STRING'
@@ -43,7 +43,7 @@ _COMMON_COLUMNS = [{
     'type': 'STRING'
 }]
 
-_AFL_SCHEMA = [{
+_AFL_SCHEMA: list[dict[str, str]] = [{
     'mode': 'NULLABLE',
     'name': 'dict_used',
     'type': 'INTEGER'
@@ -157,7 +157,7 @@ _AFL_SCHEMA = [{
     'type': 'STRING'
 }] + _COMMON_COLUMNS
 
-_LIBFUZZER_SCHEMA = [{
+_LIBFUZZER_SCHEMA: list[dict[str, str]] = [{
     'mode': 'NULLABLE',
     'name': 'max_len',
     'type': 'INTEGER'
@@ -361,7 +361,7 @@ _LIBFUZZER_SCHEMA = [{
     'type': 'INTEGER'
 }] + _COMMON_COLUMNS
 
-_HONGGFUZZ_SCHEMA = [{
+_HONGGFUZZ_SCHEMA: list[dict[str, str]] = [{
     'mode': 'NULLABLE',
     'name': 'timeout_count',
     'type': 'INTEGER'
@@ -403,7 +403,7 @@ _HONGGFUZZ_SCHEMA = [{
     'type': 'INTEGER'
 }] + _COMMON_COLUMNS
 
-_CENTIPEDE_SCHEMA = [{
+_CENTIPEDE_SCHEMA: list[dict[str, str]] = [{
     'mode': 'NULLABLE',
     'name': 'NumCoveredPcs_Min',
     'type': 'INTEGER'
@@ -861,7 +861,7 @@ _CENTIPEDE_SCHEMA = [{
     'type': 'INTEGER'
 }] + _COMMON_COLUMNS
 
-_SCHEMA = {
+_SCHEMA: dict[str, list[dict[str, str]]] = {
     'afl': _AFL_SCHEMA,
     'honggfuzz': _HONGGFUZZ_SCHEMA,
     'libFuzzer': _LIBFUZZER_SCHEMA,
@@ -869,7 +869,7 @@ _SCHEMA = {
 }
 
 
-def get(engine_name):
+def get(engine_name: str) -> dict[str, list[dict[str, str]]] | None:
   """Get the schema for an engine name."""
   schema = _SCHEMA.get(engine_name)
   if not schema:

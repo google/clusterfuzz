@@ -16,6 +16,6 @@
 from clusterfuzz._internal.bot.init_scripts import init_runner
 
 
-def run():
+def run() -> None:
   """Run Chrome OS initialization."""
   init_runner.run()

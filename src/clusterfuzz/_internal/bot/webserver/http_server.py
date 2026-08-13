@@ -23,7 +23,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-def get_absolute_testcase_file(request_path):
+def get_absolute_testcase_file(request_path: str) -> str | None:
   """Search the input directory and additional paths for the requested file."""
   # Gather the list of search path directories.
   current_working_directory = os.getcwd()
@@ -61,7 +61,7 @@ def get_absolute_testcase_file(request_path):
   return None
 
 
-def guess_mime_type(filename):
+def guess_mime_type(filename: str) -> str | None:
   """Guess mime type based of file extension."""
   if not mimetypes.inited:
     mimetypes.init()
@@ -72,10 +72,11 @@ def guess_mime_type(filename):
 class BotHTTPServer(http.server.HTTPServer):
   """Host the bot's test case directories over HTTP."""
 
-  def __init__(self, server_address, handler_class):
+  def __init__(self, server_address: tuple[str, int],
+               handler_class: type[http.server.BaseHTTPRequestHandler]) -> None:
     http.server.HTTPServer.__init__(self, server_address, handler_class)
 
-  def _handle_request_noblock(self):
+  def _handle_request_noblock(self) -> None:
     """Process a single http request."""
     try:
       request, client_address = self.get_request()
@@ -91,7 +92,7 @@ class BotHTTPServer(http.server.HTTPServer):
 class RequestHandler(http.server.BaseHTTPRequestHandler):
   """Handler for get requests to test cases."""
 
-  def do_GET(self):  # pylint: disable=invalid-name
+  def do_GET(self) -> None:  # pylint: disable=invalid-name
     """Handle a GET request."""
     absolute_path = get_absolute_testcase_file(self.path)
     if not absolute_path:
@@ -121,30 +122,30 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     self.end_headers()
     self.wfile.write(data)
 
-  def log_message(self, fmt, *args):  # pylint: disable=arguments-differ
+  def log_message(self, format: str, *args: object) -> None:  # pylint: disable=arguments-differ,redefined-builtin
     """Do not output a log entry to stderr for every request made."""
 
 
-def run_server(host, port):
+def run_server(host: str, port: int) -> None:
   """Run the HTTP server on the given port."""
   httpd = BotHTTPServer((host, port), RequestHandler)
   httpd.serve_forever()
 
 
-def port_is_open(host, port):
+def port_is_open(host: str, port: int) -> bool:
   socket_handle = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   result = socket_handle.connect_ex((host, port))
   socket_handle.close()
   return result == 0
 
 
-def start_server_thread(host, port):
+def start_server_thread(host: str, port: int) -> None:
   server = threading.Thread(target=run_server, args=(host, port))
   server.daemon = True
   server.start()
 
 
-def start():
+def start() -> None:
   """Initialize the HTTP server on the specified ports."""
   http_host = 'localhost'
   http_port_1 = environment.get_value('HTTP_PORT_1', 8000)

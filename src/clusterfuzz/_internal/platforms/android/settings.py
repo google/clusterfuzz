@@ -11,40 +11,43 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Settings change related functions."""
+"""Android settings utilities."""
+
 import re
+from typing import cast
 
 from clusterfuzz._internal.system import environment
 
 from . import adb
 
-BUILD_FINGERPRINT_REGEX = re.compile(
+BUILD_FINGERPRINT_REGEX: re.Pattern[str] = re.compile(
     r'(?P<vendor>.+)\/(?P<target>.+)'
     r'\/(?P<flavor>.+)\/(?P<name_name>.+)'
     r'\/(?P<build_id>.+):(?P<type>.+)\/(?P<keys>.+)')
 
 
-def change_se_linux_to_permissive_mode():
+def change_se_linux_to_permissive_mode() -> None:
   """Switch SELinux to permissive mode for working around local file access and
   other issues."""
   adb.run_shell_command(['setenforce', '0'])
 
 
-def get_build_fingerprint():
+def get_build_fingerprint() -> str | None:
   """Return build's fingerprint."""
   return adb.get_property('ro.build.fingerprint')
 
 
-def get_build_flavor():
+def get_build_flavor() -> str | None:
   """Return the build flavor."""
   return adb.get_property('ro.build.flavor')
 
 
-def get_build_parameters():
+def get_build_parameters() -> dict[str, str | None] | None:
   """Return build_id, target and type from the device's fingerprint"""
   build_fingerprint = environment.get_value('BUILD_FINGERPRINT',
                                             get_build_fingerprint())
-  build_fingerprint_match = BUILD_FINGERPRINT_REGEX.match(build_fingerprint)
+  build_fingerprint_match = BUILD_FINGERPRINT_REGEX.match(
+      cast(str, build_fingerprint))
   if not build_fingerprint_match:
     return None
 
@@ -54,7 +57,7 @@ def get_build_parameters():
   return {'build_id': build_id, 'target': target, 'type': build_type}
 
 
-def get_build_version():
+def get_build_version() -> str | None:
   """Return the build version of the system as a character.
   K = Kitkat, L = Lollipop, M = Marshmellow, MASTER = Master.
   """
@@ -72,17 +75,18 @@ def get_build_version():
   return match.group(1)
 
 
-def get_cpu_arch():
+def get_cpu_arch() -> str | None:
   """Return cpu architecture."""
   return adb.get_property('ro.product.cpu.abi')
 
 
-def get_device_codename():
+def get_device_codename() -> str:
   """Return the device codename."""
   serial = environment.get_value('ANDROID_SERIAL')
-  devices_output = adb.run_command(['devices', '-l'])
+  devices_output = cast(str, adb.run_command(['devices', '-l']))
 
-  serial_pattern = r'(^|\s){serial}\s'.format(serial=re.escape(serial))
+  serial_pattern = r'(^|\s){serial}\s'.format(
+      serial=re.escape(cast(str, serial)))
   serial_regex = re.compile(serial_pattern)
 
   for line in devices_output.splitlines():
@@ -102,7 +106,7 @@ def get_device_codename():
   return ''
 
 
-def get_platform_id():
+def get_platform_id() -> str:
   """Return a string as |android:{codename}_{sanitizer}:{build_version}|."""
   platform_id = 'android'
 
@@ -120,55 +124,55 @@ def get_platform_id():
   return platform_id
 
 
-def get_product_brand():
+def get_product_brand() -> str | None:
   """Return product's brand."""
   return adb.get_property('ro.product.brand')
 
 
-def get_product_name():
+def get_product_name() -> str | None:
   """Return product's name."""
   return adb.get_property('ro.product.name')
 
 
-def get_product_model():
+def get_product_model() -> str | None:
   """Return product's model."""
   return adb.get_property('ro.product.model')
 
 
-def get_build_product():
+def get_build_product() -> str | None:
   """Return builds's product."""
   return adb.get_property('ro.build.product')
 
 
-def get_sanitizer_tool_name():
+def get_sanitizer_tool_name() -> str | None:
   """Return sanitizer tool name e.g. ASAN if found on device."""
   build_flavor = get_build_flavor()
-  if 'hwasan' in build_flavor:
+  if 'hwasan' in build_flavor:  # type: ignore
     return 'hwasan'
-  if 'kasan' in build_flavor:
+  if 'kasan' in build_flavor:  # type: ignore
     return 'kasan'
-  if 'asan' in build_flavor:
+  if 'asan' in build_flavor:  # type: ignore
     return 'asan'
 
   return None
 
 
-def is_mte_build():
+def is_mte_build() -> bool:
   """Return True if device is using Memory Tagging Extension."""
   build_flavor = get_build_flavor()
-  return 'mte' in build_flavor
+  return 'mte' in build_flavor  # type: ignore
 
 
-def get_security_patch_level():
+def get_security_patch_level() -> str | None:
   """Return the security patch level reported by the device."""
   return adb.get_property('ro.build.version.security_patch')
 
 
-def get_kernel_version_string():
-  return adb.run_shell_command('cat /proc/version').strip()
+def get_kernel_version_string() -> str:
+  return adb.run_shell_command('cat /proc/version').strip()  # type: ignore
 
 
-def is_google_device():
+def is_google_device() -> bool | None:
   """Return true if this is a google branded device."""
   # If a build branch is already set, then this is a Google device. No need to
   # query device which can fail if the device is failing on recovery mode.
@@ -183,18 +187,18 @@ def is_google_device():
   return product_brand in ('google', 'generic')
 
 
-def is_automotive():
+def is_automotive() -> bool:
   """Returns if we are running in Android Automotive OS, currently only for
   Osprey or Seahawk."""
   product_model = get_product_model()
   return product_model in ('Osprey', 'Seahawk')
 
 
-def set_content_setting(table, key, value):
+def set_content_setting(table: str, key: str, value: object) -> None:
   """Set a device content setting. The input is not sanitized, so make sure to
   use with trusted input key and value pair only."""
 
-  def _get_type_binding(value):
+  def _get_type_binding(value: object) -> str:
     """Return binding type for content setting."""
     if isinstance(value, bool):
       return 'b'
@@ -213,7 +217,8 @@ def set_content_setting(table, key, value):
   adb.run_shell_command(content_setting_command)
 
 
-def set_database_setting(database_path, table, key, value):
+def set_database_setting(database_path: str, table: str, key: str,
+                         value: object) -> None:
   """Update a key in a database. The input is not sanitized, so make sure to use
   with trusted input key and value pair only."""
   sql_command_string = ('"UPDATE %s SET value=\'%s\' WHERE name=\'%s\'"') % (

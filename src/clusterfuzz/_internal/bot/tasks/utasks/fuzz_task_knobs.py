@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handles knobs that can be randomly chosen for fuzz_task."""
-import collections
+from collections.abc import MutableMapping
+from typing import Any
+from typing import NamedTuple
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
@@ -23,16 +25,25 @@ from clusterfuzz._internal.system import environment
 DEFAULT_CHOOSE_PROBABILITY = 9  # 10%
 MAX_GESTURES = 30
 
-Redzone = collections.namedtuple('Redzone', ['size', 'weight'])
-SelectionMethod = collections.namedtuple('SelectionMethod',
-                                         'method_name probability')
-SELECTION_METHOD_DISTRIBUTION = [
+
+class Redzone(NamedTuple):
+  size: int
+  weight: float
+
+
+class SelectionMethod(NamedTuple):
+  method_name: str
+  probability: float
+
+
+SELECTION_METHOD_DISTRIBUTION: list[SelectionMethod] = [
     SelectionMethod('default', .7),
     SelectionMethod('multi_armed_bandit', .3)
 ]
 
 
-def do_multiarmed_bandit_strategy_selection(uworker_env):
+def do_multiarmed_bandit_strategy_selection(
+    uworker_env: MutableMapping[str, str] | None) -> None:
   """Set multi-armed bandit strategy selection during preprocessing. Set
   multi-armed bandit strategy selection distribution as an environment variable
   so we can access it in launcher."""
@@ -52,7 +63,7 @@ def do_multiarmed_bandit_strategy_selection(uworker_env):
                         uworker_env)
 
 
-def pick_gestures(test_timeout):
+def pick_gestures(test_timeout: int) -> list[str]:
   """Return a list of random gestures."""
   if not environment.get_value('ENABLE_GESTURES', True):
     # Gestures disabled.
@@ -77,7 +88,7 @@ def pick_gestures(test_timeout):
   return gestures
 
 
-def pick_redzone():
+def pick_redzone() -> int:
   """Return a random size for redzone."""
   thread_multiplier = environment.get_value('THREAD_MULTIPLIER', 1)
 
@@ -104,7 +115,7 @@ def pick_redzone():
   return utils.random_weighted_choice(redzone_list).size
 
 
-def pick_ubsan_disabled(job_type):
+def pick_ubsan_disabled(job_type: str) -> bool:
   """Choose whether to disable UBSan in an ASan+UBSan build."""
   # This is only applicable in an ASan build.
   memory_tool_name = environment.get_memory_tool_name(job_type)
@@ -118,7 +129,7 @@ def pick_ubsan_disabled(job_type):
   return not utils.random_number(0, DEFAULT_CHOOSE_PROBABILITY)
 
 
-def pick_timeout_multiplier():
+def pick_timeout_multiplier() -> float:
   """Return a random testcase timeout multiplier and adjust timeout."""
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
   custom_timeout_multipliers = environment.get_value(
@@ -139,7 +150,7 @@ def pick_timeout_multiplier():
   return timeout_multiplier
 
 
-def pick_window_argument():
+def pick_window_argument() -> str:
   """Return a window argument with random size and x,y position."""
   default_window_argument = environment.get_value('WINDOW_ARG', '')
   window_argument_change_chance = not utils.random_number(
@@ -174,7 +185,7 @@ def pick_window_argument():
   return window_argument
 
 
-def get_strategy_distribution_from_ndb():
+def get_strategy_distribution_from_ndb() -> list[dict[str, Any]]:
   """Queries and returns the distribution stored in the ndb table."""
   query = data_types.FuzzStrategyProbability.query()
   distribution = []

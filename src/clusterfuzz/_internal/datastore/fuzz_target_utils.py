@@ -12,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper functions related to fuzz target entities."""
+from collections.abc import Iterable
+from collections.abc import Iterator
+
 from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 
 
-def get_fuzz_targets_for_target_jobs(target_jobs):
+def get_fuzz_targets_for_target_jobs(
+    target_jobs: Iterable[data_types.FuzzTargetJob]
+) -> list[data_types.FuzzTarget | None]:
   """Return corresponding FuzzTargets for the given FuzzTargetJobs."""
   target_keys = [
       ndb.Key(data_types.FuzzTarget, t.fuzz_target_name) for t in target_jobs
@@ -26,10 +31,11 @@ def get_fuzz_targets_for_target_jobs(target_jobs):
   return ndb_utils.get_multi(target_keys)
 
 
-def get_fuzz_target_jobs(fuzz_target_name=None,
-                         engine=None,
-                         job=None,
-                         limit=None):
+def get_fuzz_target_jobs(
+    fuzz_target_name: str | None = None,
+    engine: str | None = None,
+    job: str | None = None,
+    limit: int | None = None) -> Iterator[data_types.FuzzTargetJob]:
   """Return a Datastore query for fuzz target to job mappings."""
   query = data_types.FuzzTargetJob.query()
 

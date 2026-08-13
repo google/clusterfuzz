@@ -15,10 +15,13 @@
   because it requires oauth2client 4.0.0. But our appengine requires
   oauth2client 1.4.2. Therefore, we implement our own BigQuery client."""
 
-import collections
+from collections.abc import Sequence
 import datetime
 import re
 import time
+from typing import Any
+from typing import NamedTuple
+from typing import TYPE_CHECKING
 
 from googleapiclient import discovery
 
@@ -29,26 +32,39 @@ from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+if TYPE_CHECKING:
+  from clusterfuzz._internal.datastore import data_types
+
 # pylint: disable=no-member
 
-REQUEST_TIMEOUT = 60
-QUERY_TIMEOUT = 10 * 60
-QUERY_MAX_RESULTS = 10000
-QUERY_RETRY_COUNT = 3
-QUERY_RETRY_DELAY = 3
+REQUEST_TIMEOUT: int = 60
+QUERY_TIMEOUT: int = 10 * 60
+QUERY_MAX_RESULTS: int = 10000
+QUERY_RETRY_COUNT: int = 3
+QUERY_RETRY_DELAY: int = 3
 
 # The actual limit is 10,000, but the documentation suggests using batches of
 # 500 rows at most (https://cloud.google.com/bigquery/quotas#streaminginserts).
-INSERT_BATCH_SIZE = 500
+INSERT_BATCH_SIZE: int = 500
 
-VALID_FIELD_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_]+$')
+VALID_FIELD_NAME_REGEX: re.Pattern = re.compile(r'^[a-zA-Z0-9_]+$')
+
+
+class Insert(NamedTuple):
+  row: dict[str, Any]
+  insert_id: str | None = None
+
+
+class QueryResult(NamedTuple):
+  rows: list[dict[str, Any]]
+  total_count: int
 
 
 @retry.wrap(
     retries=QUERY_RETRY_COUNT,
     delay=QUERY_RETRY_DELAY,
     function='google_cloud_utils.big_query.get_api_client')
-def get_api_client():
+def get_api_client() -> Any:
   """Return an api client for bigquery."""
   return discovery.build(
       'bigquery',
@@ -57,12 +73,12 @@ def get_api_client():
       credentials=credentials.get_default()[0])
 
 
-def get_bucket():
+def get_bucket() -> str | None:
   """Return bucket for bigquery stats."""
   return local_config.ProjectConfig().get('bigquery.bucket')
 
 
-def cast(value, field):
+def cast(value: Any, field: dict[str, Any]) -> Any:
   """Cast value to appropriate type."""
   if value is None:
     return None
@@ -82,9 +98,10 @@ def cast(value, field):
   raise RuntimeError(f'The type field[{"type"}] is unsupported.')
 
 
-def convert_row(raw_row, fields):
+def convert_row(raw_row: dict[str, Any],
+                fields: Sequence[dict[str, Any]]) -> dict[str, Any]:
   """Convert a single raw row (from BigQuery) to a dict."""
-  row = {}
+  row: dict[str, Any] = {}
 
   for index, raw_value in enumerate(raw_row['f']):
     field = fields[index]
@@ -98,11 +115,11 @@ def convert_row(raw_row, fields):
   return row
 
 
-def convert(result):
+def convert(result: dict[str, Any]) -> list[dict[str, Any]]:
   """Convert a query result into an array of dicts, each of which represents
     a row."""
   fields = result['schema']['fields']
-  rows = []
+  rows: list[dict[str, Any]] = []
 
   for raw_row in result.get('rows', []):
     rows.append(convert_row(raw_row, fields))
@@ -111,7 +128,8 @@ def convert(result):
 
 
 @environment.local_noop
-def write_range(table_id, testcase, range_name, start, end):
+def write_range(table_id: str, testcase: 'data_types.Testcase', range_name: str,
+                start: int | str, end: int | str) -> None:
   """Write a range to BigQuery. This is applicable for regression and fixed
     ranges."""
   client = Client(dataset_id='main', table_id=table_id)
@@ -132,14 +150,15 @@ def write_range(table_id, testcase, range_name, start, end):
           insert_id='%s:%s:%s' % (testcase.key.id(), start, end))
   ])
 
-  for error in result.get('insertErrors', []):
+  for error in result.get('insertErrors', []):  # type: ignore
     logs.error(
         ("Ignoring error writing the testcase's %s range (%s) to "
          'BigQuery.' % (range_name, testcase.key.id())),
         exception=ValueError(error))
 
 
-def _get_max_results(max_results, limit, count_so_far):
+def _get_max_results(max_results: int, limit: int | None,
+                     count_so_far: int) -> int:
   """Get an appropriate max_results."""
   # limit is None means we get every record (no limit).
   if limit is None:
@@ -148,25 +167,22 @@ def _get_max_results(max_results, limit, count_so_far):
   return min(max_results, limit - count_so_far)
 
 
-Insert = collections.namedtuple('Insert', ['row', 'insert_id'])
-QueryResult = collections.namedtuple('QueryResult', ['rows', 'total_count'])
-
-
 class Client:
   """BigQuery client."""
 
-  def __init__(self, dataset_id=None, table_id=None):
-    self.project_id = utils.get_application_id()
-    self.dataset_id = dataset_id
-    self.table_id = table_id
+  def __init__(self, dataset_id: str | None = None,
+               table_id: str | None = None) -> None:
+    self.project_id: str | None = utils.get_application_id()
+    self.dataset_id: str | None = dataset_id
+    self.table_id: str | None = table_id
 
-    self.client = get_api_client()
+    self.client: Any = get_api_client()
 
   @retry.wrap(
       retries=QUERY_RETRY_COUNT,
       delay=QUERY_RETRY_DELAY,
       function='google_cloud_utils.big_query.Client.raw_query')
-  def raw_query(self, query, max_results):
+  def raw_query(self, query: str, max_results: int) -> dict[str, Any]:
     # pylint: disable=line-too-long
     """Perform a query and return result.
 
@@ -195,7 +211,8 @@ class Client:
       retries=QUERY_RETRY_COUNT,
       delay=QUERY_RETRY_DELAY,
       function='google_cloud_utils.big_query.Client.get_query_results')
-  def get_query_results(self, job_id, page_token, start_index, max_results):
+  def get_query_results(self, job_id: str, page_token: str | None,
+                        start_index: int, max_results: int) -> dict[str, Any]:
     # pylint: disable=line-too-long
     """Perform a query and return result.
 
@@ -218,8 +235,8 @@ class Client:
         startIndex=start_index,
         pageToken=page_token).execute()
 
-  def wait_for_completion(self, job_id, offset, max_results, start_time,
-                          timeout):
+  def wait_for_completion(self, job_id: str, offset: int, max_results: int,
+                          start_time: float, timeout: float) -> dict[str, Any]:
     """Wait for job completion and return the first page."""
     while True:
       result = self.get_query_results(
@@ -237,13 +254,13 @@ class Client:
       time.sleep(1)
 
   def query(self,
-            query,
-            timeout=QUERY_TIMEOUT,
-            max_results=QUERY_MAX_RESULTS,
-            offset=0,
-            limit=None):
+            query: str,
+            timeout: float = QUERY_TIMEOUT,
+            max_results: int = QUERY_MAX_RESULTS,
+            offset: int = 0,
+            limit: int | None = None) -> QueryResult:
     """Performs a query and returns an array of dicts."""
-    rows = []
+    rows: list[dict[str, Any]] = []
     start_time = time.time()
 
     result = self.raw_query(query, max_results=0)
@@ -277,7 +294,7 @@ class Client:
       retries=QUERY_RETRY_COUNT,
       delay=QUERY_RETRY_DELAY,
       function='google_cloud_utils.big_query.Client.get_job')
-  def get_job(self, job_id):
+  def get_job(self, job_id: str) -> dict[str, Any]:
     # pylint: disable=line-too-long
     """Get the job.
 
@@ -296,7 +313,8 @@ class Client:
       retries=QUERY_RETRY_COUNT,
       delay=QUERY_RETRY_DELAY,
       function='google_cloud_utils.big_query.Client.insert_from_query')
-  def insert_from_query(self, dataset_id, table_id, job_id, query):
+  def insert_from_query(self, dataset_id: str, table_id: str, job_id: str,
+                        query: str) -> dict[str, Any]:
     # pylint: disable=line-too-long
     """Insert rows to the table from a query.
 
@@ -338,7 +356,7 @@ class Client:
       retries=QUERY_RETRY_COUNT,
       delay=QUERY_RETRY_DELAY,
       function='google_cloud_utils.big_query.Client.insert')
-  def _insert_batch(self, inserts):
+  def _insert_batch(self, inserts: Sequence[Insert]) -> dict[str, Any]:
     # pylint: disable=line-too-long
     """Insert a single batch of rows to BigQuery.
 
@@ -361,7 +379,7 @@ class Client:
         body=body).execute()
 
   @environment.local_noop
-  def insert(self, inserts):
+  def insert(self, inserts: Sequence[Insert]) -> dict[str, Any]:
     # pylint: disable=line-too-long
     """Insert the given rows and batch them if needed.
 
@@ -386,11 +404,11 @@ class Client:
         continue
 
       # If there are new errors from the current batch, append to the result.
-      new_errors = response.get('insertErrors')
+      new_errors = response.get('insertErrors')  # type: ignore
       if not new_errors:
         continue
 
       # Apparently result may not have errors, use |setdefault| to be careful.
       result.setdefault('insertErrors', []).extend(new_errors)
 
-    return result
+    return result  # type: ignore

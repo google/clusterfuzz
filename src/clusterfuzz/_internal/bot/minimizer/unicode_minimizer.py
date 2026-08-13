@@ -15,6 +15,7 @@
 unicode escapes with their corresponding UTF-8 encoded characters."""
 
 import re
+from typing import Any
 
 from . import errors
 from . import minimizer
@@ -30,19 +31,19 @@ UNICODE_TOKEN_PATTERN = (
     rb')')
 
 
-def is_unicode_escape(s):
+def is_unicode_escape(s: bytes) -> re.Match[bytes] | None:
   """Returns true if string matches \\uXXXX, \\u{...}, or \\xXX pattern."""
 
   return re.fullmatch(UNICODE_TOKEN_PATTERN, s)
 
 
-def split_and_decode_unicode_literal(s):
+def split_and_decode_unicode_literal(s: bytes) -> list[bytes]:
   """Splits the input file by unicode escapes.
   Then for each of unicode escapes creates two tokens:
   (1) unicode escape itself (2) utf-8 encoding of unicode escape."""
 
   intermediate_tokens = re.split(UNICODE_TOKEN_PATTERN, s)
-  tokens = []
+  tokens: list[bytes] = []
   for token in intermediate_tokens:
     tokens.append(token)
     if re.fullmatch(UNICODE_TOKEN_PATTERN, token):
@@ -65,10 +66,10 @@ def split_and_decode_unicode_literal(s):
   return tokens
 
 
-def combine_tokens(tokens):
+def combine_tokens(tokens: list[bytes]) -> bytes:
   """If unicode token is still present,
   remove the token that was supposed to replace it."""
-  final_tokens = []
+  final_tokens: list[bytes] = []
   i = 0
   while i < len(tokens):
     final_tokens.append(tokens[i])
@@ -89,18 +90,18 @@ class UnicodeMinimizer(minimizer.Minimizer):
   We create a single hypothesis with all unicode escapes.
   """
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any) -> None:
     kwargs['tokenizer'] = split_and_decode_unicode_literal
     kwargs['token_combiner'] = combine_tokens
     minimizer.Minimizer.__init__(self, *args, **kwargs)
 
-  def _execute(self, data):
+  def _execute(self, data: Any) -> minimizer.Testcase:
     testcase = minimizer.Testcase(data, self)
     if not self.validate_tokenizer(data, testcase):
       raise errors.TokenizationFailureError('Unicode minimizer')
     tokens = testcase.tokens
 
-    unicode_hypothesis = []
+    unicode_hypothesis: list[int] = []
     for i, token in enumerate(tokens):
       if is_unicode_escape(token):
         unicode_hypothesis.append(i)
@@ -111,7 +112,11 @@ class UnicodeMinimizer(minimizer.Minimizer):
     return testcase
 
   @staticmethod
-  def run(data, thread_count=minimizer.DEFAULT_THREAD_COUNT, file_extension=''):
+  def run(
+      data: Any,
+      thread_count: int = minimizer.DEFAULT_THREAD_COUNT,
+      file_extension: str = '',
+  ) -> Any:
     """Try to minimize |data| using a simple line tokenizer."""
     unicode_minimizer = UnicodeMinimizer(
         utils.test, max_threads=thread_count, file_extension=file_extension)

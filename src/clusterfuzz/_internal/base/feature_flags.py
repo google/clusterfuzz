@@ -47,7 +47,7 @@ class FeatureFlags(Enum):
   CALL_ANDROID_API = 'call_android_api'
 
   @property
-  def flag(self):
+  def flag(self) -> data_types.FeatureFlag | None:
     """Get the feature flag."""
     flag = ndb.Key(data_types.FeatureFlag, self.value).get()
     if not flag:
@@ -55,15 +55,15 @@ class FeatureFlags(Enum):
     return flag
 
   @property
-  def enabled(self):
+  def enabled(self) -> bool:
     """Check if a feature flag is enabled."""
     flag = self.flag
     if not flag:
       return False
-    return flag.enabled
+    return bool(flag.enabled)
 
   @property
-  def content(self):
+  def content(self) -> float | None:
     """Get the feature flag content."""
     flag = self.flag
     if not flag or flag.value is None:
@@ -71,7 +71,7 @@ class FeatureFlags(Enum):
     return flag.value
 
   @property
-  def description(self):
+  def description(self) -> str:
     """Get the feature flag description."""
     flag = self.flag
     if not flag or flag.description is None:
@@ -79,7 +79,7 @@ class FeatureFlags(Enum):
     return flag.description
 
   @property
-  def string_value(self):
+  def string_value(self) -> str:
     """Get the feature flag string value."""
     flag = self.flag
     if not flag or flag.string_value is None:

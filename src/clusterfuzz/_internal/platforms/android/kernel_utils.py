@@ -15,6 +15,7 @@
 
 import os
 import re
+from typing import cast
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
@@ -35,7 +36,7 @@ LLVM_SYMBOLIZER_STACK_FRAME_PATH_LINE_REGEX = re.compile(
     r'(:\d+)?')
 
 
-def _get_clean_kernel_path(path):
+def _get_clean_kernel_path(path: str) -> str:
   """Sometimes kernel paths start with
   /buildbot/src/partner-android/BRANCH/private/PROJ.  We want to remove all
   of this."""
@@ -49,7 +50,8 @@ def _get_clean_kernel_path(path):
   return path
 
 
-def get_kernel_stack_frame_link(stack_frame, kernel_prefix, kernel_hash):
+def get_kernel_stack_frame_link(stack_frame: str, kernel_prefix: str,
+                                kernel_hash: str) -> str:
   """Add source links data to kernel stack frames."""
   match = LLVM_SYMBOLIZER_STACK_FRAME_PATH_LINE_REGEX.search(stack_frame)
   if not match:
@@ -79,7 +81,8 @@ def get_kernel_stack_frame_link(stack_frame, kernel_prefix, kernel_hash):
   return link_added_stack_frame
 
 
-def _get_prefix_and_full_hash(repo_data, kernel_partial_hash):
+def _get_prefix_and_full_hash(repo_data: str, kernel_partial_hash: str | None
+                             ) -> tuple[str | None, str | None]:
   """Find the prefix and full hash in the repo_data based on the partial."""
   kernel_partial_hash_lookup = 'u\'%s' % kernel_partial_hash
   for line in repo_data.splitlines():
@@ -90,7 +93,7 @@ def _get_prefix_and_full_hash(repo_data, kernel_partial_hash):
   return None, None
 
 
-def _get_repo_prop_data(build_id, target):
+def _get_repo_prop_data(build_id: str, target: str) -> str | None:
   """Downloads repo.prop and returns the data based on build_id and target."""
   symbols_directory = os.path.join(
       environment.get_value('SYMBOLS_DIR'), 'kernel')
@@ -107,7 +110,7 @@ def _get_repo_prop_data(build_id, target):
   return None
 
 
-def get_kernel_prefix_and_full_hash():
+def get_kernel_prefix_and_full_hash() -> tuple[str | None, str | None]:
   """Download repo.prop and return the full hash and prefix."""
 
   kernel_partial_hash, build_id = get_kernel_hash_and_build_id()
@@ -124,20 +127,20 @@ def get_kernel_prefix_and_full_hash():
   return None, None
 
 
-def get_kernel_name():
+def get_kernel_name() -> str | None:
   """Returns the kernel name for the device, since some kernels are shared."""
   product_name = settings.get_product_name()
   build_product = settings.get_build_product()
 
   # Strip _kasan off of the end as we will add it later if needed.
-  utils.strip_from_right(product_name, '_kasan')
+  utils.strip_from_right(cast(str, product_name), '_kasan')
 
   # Some devices have a different kernel name than product_name, if so use the
   # kernel name.
-  return constants.PRODUCT_TO_KERNEL.get(build_product, product_name)
+  return constants.PRODUCT_TO_KERNEL.get(cast(str, build_product), product_name)
 
 
-def get_kernel_hash_and_build_id():
+def get_kernel_hash_and_build_id() -> tuple[str | None, str | None]:
   """Returns the (partial_hash, build_id) of the kernel."""
   version_string = settings.get_kernel_version_string()
   match = re.match(LINUX_VERSION_REGEX, version_string)

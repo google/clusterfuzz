@@ -14,7 +14,7 @@
 """The superclass of all handlers."""
 
 import base64
-import cgi
+import cgi  # pylint: disable=deprecated-module
 import datetime
 import json
 import logging
@@ -22,6 +22,10 @@ import os
 import re
 import sys
 import traceback
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Optional
 import urllib.parse
 
 from flask import redirect as flask_redirect
@@ -31,6 +35,7 @@ from flask.views import MethodView
 from google.cloud import ndb
 import jinja2
 import jira
+import jira.resources
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import db_config
@@ -44,19 +49,19 @@ from libs import helpers
 # Pattern from
 # https://github.com/google/closure-library/blob/
 # 3037e09cc471bfe99cb8f0ee22d9366583a20c28/closure/goog/html/safeurl.js
-_SAFE_URL_PATTERN = re.compile(
+_SAFE_URL_PATTERN: re.Pattern = re.compile(
     r'^(?:(?:https?|mailto|ftp):|[^:/?#]*(?:[/?#]|$))', flags=re.IGNORECASE)
 
 
-def add_jinja2_filter(name, fn):
+def add_jinja2_filter(name: str, fn: Callable[..., Any]) -> None:
   _JINJA_ENVIRONMENT.filters[name] = fn
 
 
 class JsonEncoder(json.JSONEncoder):
   """Json encoder."""
-  _EPOCH = datetime.datetime.utcfromtimestamp(0)
+  _EPOCH: datetime.datetime = datetime.datetime.utcfromtimestamp(0)
 
-  def default(self, o):  # pylint: disable=arguments-differ,method-hidden
+  def default(self, o: Any) -> Any:  # pylint: disable=arguments-differ,method-hidden
     if isinstance(o, ndb.Model):
       dict_obj = o.to_dict()
       dict_obj['id'] = o.key.id()
@@ -76,32 +81,32 @@ class JsonEncoder(json.JSONEncoder):
     return json.JSONEncoder.default(self, o)
 
 
-def format_time(dt):
+def format_time(dt: datetime.datetime) -> str:
   """Format datetime object for display."""
   return '{t.day} {t:%b} {t:%y} {t:%X} PDT'.format(t=dt)
 
 
-def splitlines(text):
+def splitlines(text: str) -> list[str]:
   """Split text into lines."""
   return text.splitlines()
 
 
-def split_br(text):
+def split_br(text: str) -> list[str]:
   return re.split(r'\s*<br */>\s*', text, flags=re.IGNORECASE)
 
 
-def encode_json(value):
+def encode_json(value: Any) -> str:
   """Dump base64-encoded JSON string (to avoid XSS)."""
   return base64.b64encode(json.dumps(
       value, cls=JsonEncoder).encode('utf-8')).decode('utf-8')
 
 
-_JINJA_ENVIRONMENT = jinja2.Environment(
+_JINJA_ENVIRONMENT: jinja2.Environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader(
         os.path.join(os.path.dirname(__file__), '..', 'templates')),
     extensions=[],
     autoescape=True)
-_MENU_ITEMS = []
+_MENU_ITEMS: list['_MenuItem'] = []
 
 add_jinja2_filter('json', encode_json)
 add_jinja2_filter('format_time', format_time)
@@ -110,17 +115,17 @@ add_jinja2_filter('split_br', split_br)
 add_jinja2_filter('polymer_tag', lambda v: '{{%s}}' % v)
 
 
-def add_menu(name, href):
+def add_menu(name: str, href: str) -> None:
   """Add menu item to the main navigation."""
   _MENU_ITEMS.append(_MenuItem(name, href))
 
 
-def make_login_url(dest_url):
+def make_login_url(dest_url: str) -> str:
   """Make the switch account url."""
   return '/login?' + urllib.parse.urlencode({'dest': dest_url})
 
 
-def make_logout_url(dest_url):
+def make_logout_url(dest_url: str) -> str:
   """Make the switch account url."""
   return '/logout?' + urllib.parse.urlencode({
       'csrf_token': form.generate_csrf_token(),
@@ -128,7 +133,7 @@ def make_logout_url(dest_url):
   })
 
 
-def check_redirect_url(url):
+def check_redirect_url(url: str) -> None:
   """Check redirect URL is safe."""
   if not _SAFE_URL_PATTERN.match(url):
     raise helpers.EarlyExitError('Invalid redirect.', 403)
@@ -137,23 +142,24 @@ def check_redirect_url(url):
 class _MenuItem:
   """A menu item used for rendering an item in the main navigation."""
 
-  def __init__(self, name, href):
+  def __init__(self, name: str, href: str) -> None:
     self.name = name
     self.href = href
 
 
 class Handler(MethodView):
   """A superclass for all handlers. It contains many convenient methods."""
+  is_json: bool = False
 
-  def is_cron(self):
+  def is_cron(self) -> bool:
     """Return true if the request is from a cron job."""
     return bool(request.headers.get('X-Appengine-Cron'))
 
-  def should_render_json(self):
+  def should_render_json(self) -> bool:
     return (self.is_json or
             'application/json' in request.headers.get('accept', ''))
 
-  def render_forbidden(self, message):
+  def render_forbidden(self, message: str) -> Response:
     """Write HTML response for 403."""
     login_url = make_login_url(dest_url=request.url)
     user_email = helpers.get_user_email()
@@ -171,7 +177,7 @@ class Handler(MethodView):
     }
     return self.render('error-403.html', template_values, 403)
 
-  def _add_security_response_headers(self, response):
+  def _add_security_response_headers(self, response: Response) -> Response:
     """Add security-related headers to response."""
     response.headers['Strict-Transport-Security'] = (
         'max-age=2592000; includeSubdomains')
@@ -179,7 +185,10 @@ class Handler(MethodView):
     response.headers['X-Frame-Options'] = 'deny'
     return response
 
-  def render(self, path, values=None, status=200):
+  def render(self,
+             path: str,
+             values: Optional[dict[str, Any]] = None,
+             status: int = 200) -> Response:
     """Write HTML response."""
     if values is None:
       values = {}
@@ -210,10 +219,10 @@ class Handler(MethodView):
     return response
 
   # pylint: disable=unused-argument
-  def before_render_json(self, values, status):
+  def before_render_json(self, values: Any, status: int) -> None:
     """A hook for modifying values before render_json."""
 
-  def render_json(self, values, status=200):
+  def render_json(self, values: Any, status: int = 200) -> Response:
     """Write JSON response."""
     response = Response()
     response = self._add_security_response_headers(response)
@@ -223,7 +232,7 @@ class Handler(MethodView):
     response.status_code = status
     return response
 
-  def handle_exception(self, exception):
+  def handle_exception(self, exception: Exception) -> Optional[Response]:
     """Catch exception and format it properly."""
     try:
       status = 500
@@ -256,7 +265,7 @@ class Handler(MethodView):
 
     return None
 
-  def handle_exception_exception(self):
+  def handle_exception_exception(self) -> Response:
     """Catch exception in handle_exception and format it properly."""
     exception = sys.exc_info()[1]
     values = {'message': str(exception), 'traceDump': traceback.format_exc()}
@@ -265,13 +274,13 @@ class Handler(MethodView):
       return self.render_json(values, 500)
     return self.render('error.html', values, 500)
 
-  def redirect(self, url, **kwargs):
+  def redirect(self, url: str, **kwargs: Any) -> Response:
     """Check vaid url and redirect to it, if valid."""
     url = str(url)
     check_redirect_url(url)
-    return flask_redirect(url, **kwargs)
+    return cast(Response, flask_redirect(url, **kwargs))
 
-  def dispatch_request(self, *args, **kwargs):
+  def dispatch_request(self, *args: Any, **kwargs: Any) -> Any:
     """Dispatch a request and postprocess."""
     self.is_json = False
     try:
@@ -282,18 +291,19 @@ class Handler(MethodView):
 
 class GcsUploadHandler(Handler):
   """A handler which uploads files to GCS."""
+  upload: Optional[storage.GcsBlobInfo] = None
 
-  def dispatch_request(self, *args, **kwargs):
+  def dispatch_request(self, *args: Any, **kwargs: Any) -> Any:
     """Dispatch a request and postprocess."""
     self.upload = None
     return super().dispatch_request(*args, **kwargs)
 
-  def get_upload(self):
+  def get_upload(self) -> Optional[storage.GcsBlobInfo]:
     """Get uploads."""
     if self.upload:
       return self.upload
 
-    upload_key = request.get('upload_key')
+    upload_key = cast(Any, request).get('upload_key')
     if not upload_key:
       return None
 

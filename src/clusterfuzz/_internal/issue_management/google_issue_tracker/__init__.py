@@ -13,11 +13,17 @@
 # limitations under the License.
 """Google issue tracker."""
 
+from typing import Any
+from typing import Optional
+
 # pylint: disable=line-too-long
 from clusterfuzz._internal.issue_management.google_issue_tracker.issue_tracker import \
     IssueTracker
 
 
-def get_issue_tracker(project, config, issue_tracker_client=None):
+def get_issue_tracker(project: str,
+                      config: Any,
+                      issue_tracker_client: Optional[Any] = None
+                     ) -> IssueTracker:
   """Gets an IssueTracker for the project."""
   return IssueTracker(project, issue_tracker_client, config)

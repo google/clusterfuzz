@@ -13,8 +13,12 @@
 # limitations under the License.
 """Handler for removing issue from a testcase."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
+from clusterfuzz._internal.datastore import data_types
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
@@ -25,7 +29,7 @@ class Handler(base_handler.Handler):
   """Handler that removes an issue from a testcase."""
 
   @staticmethod
-  def remove_issue(testcase_id):
+  def remove_issue(testcase_id: int | str) -> data_types.Testcase:
     """Remove the issue from the testcase."""
     testcase = helpers.get_testcase(testcase_id)
     issue_id = testcase.bug_information
@@ -43,9 +47,10 @@ class Handler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
   @handler.check_admin_access
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Remove the issue from the testcase."""
-    testcase_id = request.get('testcaseId')
+    request_any = cast(Any, request)
+    testcase_id = request_any.get('testcaseId')
 
     updated_testcase = self.remove_issue(testcase_id)
     return self.render_json(show.get_testcase_detail(updated_testcase))

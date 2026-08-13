@@ -14,6 +14,7 @@
 """Get values from the global configuration."""
 
 import base64
+from typing import Any
 
 from clusterfuzz._internal.datastore import data_types
 
@@ -24,12 +25,12 @@ from clusterfuzz._internal.datastore import data_types
 BASE64_MARKER = 'base64;'
 
 
-def get():
+def get() -> data_types.Config | None:
   """Return configuration data."""
   return data_types.Config.query().get()
 
 
-def get_value(key):
+def get_value(key: str) -> Any:
   """Return a configuration key value."""
   config = get()
   if not config:
@@ -44,7 +45,7 @@ def get_value(key):
   return value
 
 
-def get_value_for_job(data, target_job_type):
+def get_value_for_job(data: str, target_job_type: str) -> str:
   """Parses a value for a particular job type. If job type is not found,
   return the default value."""
   # All data is in a single line, just return that.
@@ -60,7 +61,7 @@ def get_value_for_job(data, target_job_type):
   return result
 
 
-def set_value(key, value):
+def set_value(key: str, value: Any) -> None:
   """Sets a configuration key value and commits change."""
   config = get()
   if not config:

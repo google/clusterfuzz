@@ -14,6 +14,9 @@
 """Get values / settings from local configuration."""
 
 import os
+from typing import Any
+from typing import cast
+from typing import Sequence
 
 import yaml
 
@@ -37,7 +40,7 @@ SWARMING_PATH = 'swarming.swarming'
 EXTERNAL_TESTCASE_UPLOADER_PATH = 'external_testcase_reader.config'
 
 
-def _load_yaml_file(yaml_file_path):
+def _load_yaml_file(yaml_file_path: str) -> Any:
   """Load yaml file and return parsed contents."""
   with open(yaml_file_path) as f:
     try:
@@ -46,8 +49,9 @@ def _load_yaml_file(yaml_file_path):
       raise errors.ConfigParseError(yaml_file_path)
 
 
-def _find_key_in_yaml_file(yaml_file_path, search_keys, full_key_name,
-                           value_is_relative_path):
+def _find_key_in_yaml_file(yaml_file_path: str, search_keys: Sequence[str],
+                           full_key_name: str,
+                           value_is_relative_path: bool) -> Any:
   """Find a key in a yaml file."""
   if not os.path.isfile(yaml_file_path):
     return None
@@ -78,7 +82,8 @@ def _find_key_in_yaml_file(yaml_file_path, search_keys, full_key_name,
   return result
 
 
-def _get_key_location(search_path, full_key_name):
+def _get_key_location(search_path: str,
+                      full_key_name: str) -> tuple[str, str, list[str]]:
   """Get the path of the the yaml file and the key components given a full key
   name."""
   key_parts = full_key_name.split(SEPARATOR)
@@ -107,7 +112,7 @@ def _get_key_location(search_path, full_key_name):
   return dir_path, '', []
 
 
-def _validate_root(search_path, root):
+def _validate_root(search_path: str, root: str | None) -> bool:
   """Validate that a root is valid."""
   if root is None:
     return True
@@ -125,7 +130,8 @@ def _validate_root(search_path, root):
       yaml_path, search_keys, root, value_is_relative_path=False) is not None)
 
 
-def _search_key(search_path, full_key_name, value_is_relative_path):
+def _search_key(search_path: str, full_key_name: str,
+                value_is_relative_path: bool) -> Any:
   """Search the key in a search path."""
   directory, filename, search_keys = _get_key_location(search_path,
                                                        full_key_name)
@@ -139,7 +145,9 @@ def _search_key(search_path, full_key_name, value_is_relative_path):
 class Config:
   """Config class helper."""
 
-  def __init__(self, root=None, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
+  # pylint: disable=keyword-arg-before-vararg
+  def __init__(self, root: str | None = None, *args: Any,
+               **kwargs: Any) -> None:
     self._root = root.format(*args, **kwargs) if root is not None else None
     self._config_dir = environment.get_config_directory()
     self._cache = memoize.FifoInMemory(CACHE_SIZE)
@@ -152,7 +160,7 @@ class Config:
     if not _validate_root(self._config_dir, self._root):
       raise errors.BadConfigError(self._config_dir)
 
-  def sub_config(self, path):
+  def sub_config(self, path: str) -> 'Config':
     """Return a new config with a new sub-root."""
     if self._root:
       new_root = self._root + SEPARATOR + path
@@ -161,14 +169,16 @@ class Config:
 
     return Config(root=new_root)
 
-  def _get_helper(self, key_name='', default=None,
-                  value_is_relative_path=False):
+  def _get_helper(self,
+                  key_name: str | None = '',
+                  default: Any = None,
+                  value_is_relative_path: bool = False) -> Any:
     """Helper for get and get_absolute_functions."""
     if self._root:
       key_name = self._root + SEPARATOR + key_name if key_name else self._root
 
     if not key_name:
-      raise errors.InvalidConfigKey(key_name)
+      raise errors.InvalidConfigKey(cast(str, key_name))
 
     cache_key_name = self._cache.get_key(self._get_helper,
                                          (key_name, value_is_relative_path), {})
@@ -183,11 +193,12 @@ class Config:
     self._cache.put(cache_key_name, value)
     return value
 
-  def get(self, key_name='', default=None):
+  def get(self, key_name: str | None = '', default: Any = None) -> Any:
     """Get key value using a key name."""
     return self._get_helper(key_name, default=default)
 
-  def get_absolute_path(self, key_name='', default=None):
+  def get_absolute_path(self, key_name: str | None = '',
+                        default: Any = None) -> Any:
     """Get absolute path of key value using a key name."""
     return self._get_helper(
         key_name, default=default, value_is_relative_path=True)
@@ -196,10 +207,10 @@ class Config:
 class ProjectConfig(Config):
   """Project Config class helper."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(PROJECT_PATH)
 
-  def set_environment(self):
+  def set_environment(self) -> None:
     """Sets environment vars from project config."""
     env_variable_values = self.get('env')
     if not env_variable_values:
@@ -216,54 +227,54 @@ class ProjectConfig(Config):
 class AuthConfig(Config):
   """Authentication config."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(GAE_AUTH_PATH)
 
 
 class GAEConfig(Config):
   """GAE config."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(GAE_CONFIG_PATH)
 
 
 class MonitoringRegionsConfig(Config):
   """Monitoring regions config."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(MONITORING_REGIONS_PATH)
 
 
 class IssueTrackerConfig(Config):
   """Issue tracker config."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(ISSUE_TRACKERS_PATH)
 
 
 class BatchConfig(Config):
   """Batch config."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(BATCH_PATH)
 
 
 class GCEClustersConfig(Config):
   """Issue tracker config."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(GCE_CLUSTERS_PATH)
 
 
 class SwarmingConfig(Config):
   """Swarming config."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(SWARMING_PATH)
 
 
 class ExternalTestcaseReaderConfig(Config):
   """External testcase reader config."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(EXTERNAL_TESTCASE_UPLOADER_PATH)

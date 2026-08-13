@@ -13,6 +13,9 @@
 # limitations under the License.
 """Minimizer used for additional reduction on javascript test cases."""
 
+from collections.abc import Callable
+from typing import Any
+
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.JavaScriptLexer import \
     JavaScriptLexer
@@ -23,7 +26,7 @@ from . import minimizer
 from . import utils
 
 
-def step_back_while(cur_index, condition):
+def step_back_while(cur_index: int, condition: Callable[[int], bool]) -> int:
   """Helper function. Decreases index from cur while condition is satisfied."""
   while cur_index >= 0 and condition(cur_index):
     cur_index -= 1
@@ -33,13 +36,13 @@ def step_back_while(cur_index, condition):
 class JSMinimizer(minimizer.Minimizer):
   """Intended as a second-pass minimizer to remove unneeded tokens from JS."""
 
-  def _execute(self, data):
+  def _execute(self, data: Any) -> minimizer.Testcase:
     testcase = minimizer.Testcase(data, self)
     if not self.validate_tokenizer(data, testcase):
       raise errors.TokenizationFailureError('JS Minimizer')
 
-    brace_stack = []
-    paren_stack = []
+    brace_stack: list[int] = []
+    paren_stack: list[int] = []
 
     for index, token in enumerate(testcase.tokens):
       if token == '{':
@@ -165,9 +168,11 @@ class JSMinimizer(minimizer.Minimizer):
     return testcase
 
   @staticmethod
-  def run(data,
-          thread_count=minimizer.DEFAULT_THREAD_COUNT,
-          file_extension='.js'):
+  def run(
+      data: Any,
+      thread_count: int = minimizer.DEFAULT_THREAD_COUNT,
+      file_extension: str = '.js',
+  ) -> Any:
     """Attempt to minimize a javascript test case."""
     line_minimizer = delta_minimizer.DeltaMinimizer(
         utils.test, max_threads=thread_count, file_extension=file_extension)

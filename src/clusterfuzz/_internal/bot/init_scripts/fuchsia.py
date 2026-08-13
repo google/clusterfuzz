@@ -16,7 +16,7 @@
 from clusterfuzz._internal.bot.init_scripts import init_runner
 
 
-def run():
+def run() -> None:
   """Initialize a device before running a task."""
   init_runner.run()
   # TODO(mbarbella): Implement this.

@@ -16,25 +16,26 @@
 import random
 import shutil
 import time
+from typing import Any
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import shell
 
-MAX_CHARS_TO_TYPE = 20
+MAX_CHARS_TO_TYPE: int = 20
 
-COORDINATE_DELTA_MIN = -100
-COORDINATE_DELTA_MAX = 200
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 1024
+COORDINATE_DELTA_MIN: int = -100
+COORDINATE_DELTA_MAX: int = 200
+SCREEN_WIDTH: int = 1280
+SCREEN_HEIGHT: int = 1024
 
 
-def _xdotool_path():
+def _xdotool_path() -> str | None:
   """Return full path to xdotool."""
   return shutil.which('xdotool')
 
 
-def find_windows_for_process(process_id):
+def find_windows_for_process(process_id: int) -> list[int]:
   """Return visible windows belonging to a process."""
   pids = utils.get_process_ids(process_id)
   if not pids:
@@ -45,7 +46,7 @@ def find_windows_for_process(process_id):
     logs.error('Xdotool not installed, cannot locate process windows.')
     return []
 
-  visible_windows = []
+  visible_windows: list[int] = []
   for pid in pids:
     windows = (
         shell.execute_command(
@@ -60,7 +61,7 @@ def find_windows_for_process(process_id):
   return visible_windows
 
 
-def get_random_gestures(gesture_count):
+def get_random_gestures(gesture_count: int) -> list[str]:
   """Return list of random gesture command strings."""
   gesture_types = [
       'click --repeat TIMES,mbutton',
@@ -84,7 +85,7 @@ def get_random_gestures(gesture_count):
   if not random.randint(0, 3):
     gesture_types.append('windowsize,P P')
 
-  gestures = []
+  gestures: list[str] = []
   for _ in range(gesture_count):
     random_gesture = utils.random_element_from_list(gesture_types)
     if random_gesture == 'drag':
@@ -139,7 +140,7 @@ def get_random_gestures(gesture_count):
 
       if 'Letters' in random_gesture:
         num_letters = random.randint(1, 10)
-        letters = []
+        letters: list[str] = []
         for _ in range(num_letters):
           letters.append(
               utils.random_element_from_list([
@@ -169,9 +170,9 @@ def get_random_gestures(gesture_count):
   return gestures
 
 
-def get_text_to_type():
+def get_text_to_type() -> str:
   """Return text to type."""
-  chars = []
+  chars: list[str] = []
   chars_to_type_count = random.randint(1, MAX_CHARS_TO_TYPE)
   meta_chars = [
       '|', '&', ';', '(', ')', '<', '>', ' ', '\t', ',', '\'', '"', '`', '[',
@@ -189,8 +190,8 @@ def get_text_to_type():
   return ''.join(chars)
 
 
-def run_gestures(gestures, process_id, process_status, start_time, timeout,
-                 windows):
+def run_gestures(gestures: list[str], process_id: int, process_status: Any,
+                 start_time: float, timeout: float, windows: list[Any]) -> None:
   """Run the provided interaction gestures."""
   xdotool_path = _xdotool_path()
   if not xdotool_path:

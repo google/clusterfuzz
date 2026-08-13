@@ -19,7 +19,7 @@ from clusterfuzz._internal.platforms import windows
 from clusterfuzz._internal.system import environment
 
 
-def get_gestures(gesture_count):
+def get_gestures(gesture_count: int) -> list[str]:
   """Return a list of random gestures."""
   plt = environment.platform()
 

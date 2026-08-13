@@ -16,6 +16,8 @@
 import os
 import re
 import time
+from typing import Any
+from typing import cast
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -23,26 +25,27 @@ from clusterfuzz._internal.system import environment
 from . import adb
 from . import constants
 
-AAPT_CMD_TIMEOUT = 60
-CHROME_CACHE_DIRS = [
+AAPT_CMD_TIMEOUT: int = 60
+CHROME_CACHE_DIRS: list[str] = [
     'app_chrome/*', 'app_tabs/*', 'app_textures/*', 'cache/*', 'files/*',
     'shared_prefs/*'
 ]
-PACKAGES_THAT_CRASH_WITH_GESTURES = [
+PACKAGES_THAT_CRASH_WITH_GESTURES: list[str] = [
     'com.android.printspooler',
     'com.android.settings',
 ]
-PACKAGE_OPTIMIZATION_INTERVAL = 30
-PACKAGE_OPTIMIZATION_TIMEOUT = 30 * 60
+PACKAGE_OPTIMIZATION_INTERVAL: int = 30
+PACKAGE_OPTIMIZATION_TIMEOUT: int = 30 * 60
 
 
-def disable_packages_that_crash_with_gestures():
+def disable_packages_that_crash_with_gestures() -> None:
   """Disable known packages that crash on gesture fuzzing."""
   for package in PACKAGES_THAT_CRASH_WITH_GESTURES:
     adb.run_shell_command(['pm', 'disable-user', package])
 
 
-def get_launch_command(app_args, testcase_path, testcase_file_url):
+def get_launch_command(app_args: str, testcase_path: str,
+                       testcase_file_url: str) -> str:
   """Get command to launch application with an optional testcase path."""
   application_launch_command = environment.get_value('APP_LAUNCH_COMMAND')
   if not application_launch_command:
@@ -64,7 +67,7 @@ def get_launch_command(app_args, testcase_path, testcase_file_url):
   return application_launch_command
 
 
-def get_package_name(apk_path=None):
+def get_package_name(apk_path: str | None = None) -> str | None:
   """Return package name."""
   # See if our environment is already set with this info.
   package_name = environment.get_value('PKG_NAME')
@@ -87,13 +90,13 @@ def get_package_name(apk_path=None):
       environment.get_platform_resources_directory(), 'aapt')
   aapt_command = '%s dump badging %s' % (aapt_binary_path, apk_path)
   output = adb.execute_command(aapt_command, timeout=AAPT_CMD_TIMEOUT)
-  match = re.match('.*package: name=\'([^\']+)\'', output, re.DOTALL)
+  match = re.match('.*package: name=\'([^\']+)\'', cast(str, output), re.DOTALL)
   if not match:
     return None
   return match.group(1)
 
 
-def install(package_apk_path: str, **kwargs):
+def install(package_apk_path: str, **kwargs: Any) -> Any:
   """Install a package from an apk path.
 
   Args:
@@ -114,15 +117,17 @@ def install(package_apk_path: str, **kwargs):
   return adb.run_command(cmd)
 
 
-def is_installed(package_name):
+def is_installed(package_name: str) -> bool:
   """Checks if the app is installed."""
   output = adb.run_shell_command(['pm', 'list', 'packages'])
-  package_names = [line.split(':')[-1] for line in output.splitlines()]
+  package_names = [
+      line.split(':')[-1] for line in cast(str, output).splitlines()
+  ]
 
   return package_name in package_names
 
 
-def reset():
+def reset() -> None:
   """Reset to original clean state and kills pending instances."""
   package_name = get_package_name()
   if not package_name:
@@ -143,7 +148,7 @@ def reset():
   ])
 
 
-def stop():
+def stop() -> None:
   """Stop application and cleanup state."""
   package_name = get_package_name()
   if not package_name:
@@ -164,17 +169,18 @@ def stop():
         ['rm', '-rf', ' '.join(cache_dirs_absolute_paths)], root=True)
 
 
-def uninstall(package_name):
+def uninstall(package_name: str) -> Any:
   """Uninstall a package given a name."""
   return adb.run_command(['uninstall', package_name])
 
 
-def wait_until_optimization_complete():
+def wait_until_optimization_complete() -> None:
   """Waits for package optimization to finish."""
   start_time = time.time()
 
   while time.time() - start_time < PACKAGE_OPTIMIZATION_TIMEOUT:
-    package_optimization_finished = 'dex2oat' not in adb.get_ps_output()
+    ps_output = cast(str, adb.get_ps_output())
+    package_optimization_finished = 'dex2oat' not in ps_output
     if package_optimization_finished:
       return
 
