@@ -14,6 +14,9 @@
 """Handler for the crash stats page."""
 
 import json
+from typing import Any
+from typing import cast
+from typing import Mapping
 
 from flask import request
 
@@ -28,15 +31,15 @@ from libs import filters
 from libs import handler
 from libs import helpers
 
-PAGE_SIZE = 10
-DEFAULT_DAYS_FOR_BY_HOURS = 3
-DEFAULT_DAYS_FOR_BY_DAYS = 7
+PAGE_SIZE: int = 10
+DEFAULT_DAYS_FOR_BY_HOURS: int = 3
+DEFAULT_DAYS_FOR_BY_DAYS: int = 7
 
 
 class FuzzerFilter(filters.Filter):
   """Filter for fuzzer."""
 
-  def add(self, query, params):
+  def add(self, query: Any, params: Mapping[str, Any]) -> None:
     """Set query according to fuzzer param."""
     value = params.get('fuzzer', '')
     if filters.is_empty(value):
@@ -51,7 +54,7 @@ class FuzzerFilter(filters.Filter):
 class PlatformFilter(filters.Filter):
   """Filter for platform."""
 
-  def add(self, query, params):
+  def add(self, query: Any, params: Mapping[str, Any]) -> None:
     """Set query according to platform param."""
     value = params.get('platform', '')
     if filters.is_empty(value):
@@ -66,7 +69,7 @@ class PlatformFilter(filters.Filter):
 class TimeFilter(filters.Filter):
   """Filter for start and end hour."""
 
-  def add(self, query, params):
+  def add(self, query: Any, params: Mapping[str, Any]) -> None:
     """Set query according to end and hours params."""
     if 'end' in params:
       end = helpers.cast(params['end'], int, "'end' must be an integer")
@@ -82,9 +85,10 @@ class TimeFilter(filters.Filter):
           DEFAULT_DAYS_FOR_BY_HOURS
           if block == 'hour' else DEFAULT_DAYS_FOR_BY_DAYS)
 
-    params['end'] = str(end)
-    params['days'] = str(days)
-    params['block'] = str(block)
+    params_dict = cast(dict[str, Any], params)
+    params_dict['end'] = str(end)
+    params_dict['days'] = str(days)
+    params_dict['block'] = str(block)
 
     query.set_time_params(end, days, block)
 
@@ -92,7 +96,7 @@ class TimeFilter(filters.Filter):
 class KeywordFilter(filters.Filter):
   """Filter for keyword."""
 
-  def add(self, query, params):
+  def add(self, query: Any, params: Mapping[str, Any]) -> None:
     """Set query according to search param."""
     value = params.get('q', '')
     if filters.is_empty(value):
@@ -105,11 +109,11 @@ class KeywordFilter(filters.Filter):
            json.dumps('%%%s%%' % keyword.lower())))
 
 
-GROUP_FILTERS = [
+GROUP_FILTERS: list[filters.Filter] = [
     filters.Boolean('is_new', 'new'),
 ]
 
-FILTERS = [
+FILTERS: list[filters.Filter] = [
     TimeFilter(),
     filters.Boolean('security_flag', 'security'),
     filters.Boolean('reproducible_flag', 'reproducible'),
@@ -121,8 +125,8 @@ FILTERS = [
 ]
 
 
-def query_testcase(project_name, crash_type, crash_state, security_flag,
-                   is_open):
+def query_testcase(project_name: str, crash_type: str, crash_state: str,
+                   security_flag: bool, is_open: bool) -> Any:
   """Start a query for an associated testcase."""
   return data_types.Testcase.query(
       data_types.Testcase.project_name == project_name,
@@ -138,9 +142,9 @@ def query_testcase(project_name, crash_type, crash_state, security_flag,
               ])
 
 
-def attach_testcases(rows):
+def attach_testcases(rows: list[dict[str, Any]]) -> None:
   """Attach testcase to each crash."""
-  testcases = {}
+  testcases: dict[int, dict[str, Any]] = {}
   for index, row in enumerate(rows):
     testcases[index] = {
         'open_testcase':
@@ -171,10 +175,12 @@ def attach_testcases(rows):
     row['testcase'] = testcase
 
 
-def get_result():
+def get_result() -> tuple[dict[str, Any], dict[str, Any]]:
   """Get the result for the crash stats page."""
-  params = dict(request.iterparams())
-  page = helpers.cast(request.get('page') or 1, int, "'page' is not an int.")
+  request_any = cast(Any, request)
+  params: dict[str, Any] = dict(request_any.iterparams())
+  page = helpers.cast(
+      request_any.get('page') or 1, int, "'page' is not an int.")
   group_by = params.get('group', 'platform')
   params['group'] = group_by
   sort_by = params.get('sort', 'total_count')
@@ -216,7 +222,7 @@ def get_result():
   return result, params
 
 
-def get_all_platforms():
+def get_all_platforms() -> list[str]:
   """Get all platforms including parent platform."""
   items = data_types.Testcase.query(
       projection=[data_types.Testcase.platform], distinct=True)
@@ -233,7 +239,7 @@ class Handler(base_handler.Handler):
   @handler.get(handler.HTML)
   @handler.unsupported_on_local_server
   @handler.oauth
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Get and render the crash stats in HTML."""
     result, params = get_result()
     field_values = {
@@ -262,7 +268,7 @@ class JsonHandler(base_handler.Handler):
   """Handler that gets the crash stats when user interacts with the page."""
 
   @handler.post(handler.JSON, handler.JSON)
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Get and render the crash stats in JSON."""
     result, _ = get_result()
     return self.render_json(result)

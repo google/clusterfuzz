@@ -15,16 +15,16 @@
 
 from abc import ABC
 from abc import abstractmethod
+from collections.abc import Callable
+from collections.abc import Generator
+from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import asdict
 from dataclasses import dataclass
 from dataclasses import field
 from dataclasses import InitVar
 import datetime
 from typing import Any
-from typing import Generator
-from typing import Mapping
-from typing import Sequence
-from typing import Type
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base.tasks import task_utils
@@ -36,7 +36,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-def _get_datetime_now(tz_aware=False):
+def _get_datetime_now(tz_aware: bool = False) -> datetime.datetime:
   """Returns the current UTC datetime (useful for testing)."""
   utc_time = datetime.datetime.now(datetime.timezone.utc)
   if not tz_aware:
@@ -47,76 +47,76 @@ def _get_datetime_now(tz_aware=False):
 
 class EventTypes:
   """Specific event types."""
-  FUZZER_TASK_EXECUTION = 'fuzzer_task_execution'
-  ISSUE_CLOSING = 'issue_closing'
-  ISSUE_FILING = 'issue_filing'
-  TASK_EXECUTION = 'task_execution'
-  TESTCASE_CREATION = 'testcase_creation'
-  TESTCASE_FIXED = 'testcase_fixed'
-  TESTCASE_GROUPING = 'testcase_grouping'
-  TESTCASE_REJECTION = 'testcase_rejection'
+  FUZZER_TASK_EXECUTION: str = 'fuzzer_task_execution'
+  ISSUE_CLOSING: str = 'issue_closing'
+  ISSUE_FILING: str = 'issue_filing'
+  TASK_EXECUTION: str = 'task_execution'
+  TESTCASE_CREATION: str = 'testcase_creation'
+  TESTCASE_FIXED: str = 'testcase_fixed'
+  TESTCASE_GROUPING: str = 'testcase_grouping'
+  TESTCASE_REJECTION: str = 'testcase_rejection'
 
 
 class TestcaseOrigin:
   """Testcase creation origins."""
-  MANUAL_UPLOAD = 'manual_upload'
-  FUZZ_TASK = 'fuzz_task'
-  CORPUS_PRUNING = 'corpus_pruning'
+  MANUAL_UPLOAD: str = 'manual_upload'
+  FUZZ_TASK: str = 'fuzz_task'
+  CORPUS_PRUNING: str = 'corpus_pruning'
 
 
 class RejectionReason:
   """Explanation for the testcase rejection values."""
-  ANALYZE_NO_REPRO = 'analyze_no_repro'
-  ANALYZE_FLAKE_ON_FIRST_ATTEMPT = 'analyze_flake_on_first_attempt'
-  CLEANUP_UNREPRODUCIBLE_NO_ISSUE = 'cleanup_unreproducible_no_issue'
-  CLEANUP_DUPLICATE_NO_ISSUE = 'cleanup_duplicate_no_issue'
-  CLEANUP_UNREPRODUCIBLE_WITH_ISSUE = 'cleanup_unreproducible_with_issue'
-  CLEANUP_ISSUE_CLOSED = 'cleanup_issue_closed'
-  CLEANUP_INVALID_JOB = 'cleanup_invalid_job'
-  GROUPER_DUPLICATE = 'grouper_duplicate'
-  GROUPER_OVERFLOW = 'grouper_overflow'
-  PROGRESSION_BUILD_NOT_FOUND = 'progression_build_not_found'
-  PROGRESSION_BAD_STATE_MIN_MAX = 'progression_bad_state_min_max'
+  ANALYZE_NO_REPRO: str = 'analyze_no_repro'
+  ANALYZE_FLAKE_ON_FIRST_ATTEMPT: str = 'analyze_flake_on_first_attempt'
+  CLEANUP_UNREPRODUCIBLE_NO_ISSUE: str = 'cleanup_unreproducible_no_issue'
+  CLEANUP_DUPLICATE_NO_ISSUE: str = 'cleanup_duplicate_no_issue'
+  CLEANUP_UNREPRODUCIBLE_WITH_ISSUE: str = 'cleanup_unreproducible_with_issue'
+  CLEANUP_ISSUE_CLOSED: str = 'cleanup_issue_closed'
+  CLEANUP_INVALID_JOB: str = 'cleanup_invalid_job'
+  GROUPER_DUPLICATE: str = 'grouper_duplicate'
+  GROUPER_OVERFLOW: str = 'grouper_overflow'
+  PROGRESSION_BUILD_NOT_FOUND: str = 'progression_build_not_found'
+  PROGRESSION_BAD_STATE_MIN_MAX: str = 'progression_bad_state_min_max'
 
 
 class TaskStage:
   """Task stage, usually applicable for untrusted tasks."""
-  PREPROCESS = 'preprocess'
-  MAIN = 'main'
-  POSTPROCESS = 'postprocess'
-  NA = 'n/a'
+  PREPROCESS: str = 'preprocess'
+  MAIN: str = 'main'
+  POSTPROCESS: str = 'postprocess'
+  NA: str = 'n/a'
 
 
 class TaskStatus:
   """Task status."""
-  STARTED = 'started'
-  FINISHED = 'finished'
-  POST_STARTED = 'postprocess_started'
-  POST_COMPLETED = 'postprocess_completed'
-  EXCEPTION = 'exception'
+  STARTED: str = 'started'
+  FINISHED: str = 'finished'
+  POST_STARTED: str = 'postprocess_started'
+  POST_COMPLETED: str = 'postprocess_completed'
+  EXCEPTION: str = 'exception'
 
 
 class TaskOutcome:
   """Task outcomes/exceptions to complement the uworker error types."""
   # All caps to maintain style from error types proto.
-  PREPROCESS_NO_RETURN = 'PREPROCESS_NO_RETURN'
-  UNHANDLED_EXCEPTION = 'UNHANDLED_EXCEPTION'
+  PREPROCESS_NO_RETURN: str = 'PREPROCESS_NO_RETURN'
+  UNHANDLED_EXCEPTION: str = 'UNHANDLED_EXCEPTION'
 
 
 class ClosingReason:
   """Reason for closing an issue during cleanup."""
-  TESTCASE_FIXED = 'testcase_fixed'
-  TESTCASE_UNREPRO = 'testcase_unreproducible'
-  TESTCASE_INVALID = 'testcase_invalid'
+  TESTCASE_FIXED: str = 'testcase_fixed'
+  TESTCASE_UNREPRO: str = 'testcase_unreproducible'
+  TESTCASE_INVALID: str = 'testcase_invalid'
 
 
 class GroupingReason:
   """Reason for grouping testcases."""
-  SIMILAR_CRASH = 'similar_crash'
-  SAME_ISSUE = 'same_issue'
-  IDENTICAL_VARIANT = 'identical_variant'
-  GROUP_MERGE = 'group_merge'
-  UNGROUPED = 'ungrouped'
+  SIMILAR_CRASH: str = 'similar_crash'
+  SAME_ISSUE: str = 'same_issue'
+  IDENTICAL_VARIANT: str = 'identical_variant'
+  GROUP_MERGE: str = 'group_merge'
+  UNGROUPED: str = 'ungrouped'
 
 
 @dataclass(kw_only=True)
@@ -136,7 +136,7 @@ class Event:
   operating_system: str | None = field(init=False, default=None)
   os_version: str | None = field(init=False, default=None)
 
-  def __post_init__(self, **kwargs):
+  def __post_init__(self, **kwargs: Any) -> None:
     del kwargs
     self.timestamp = _get_datetime_now()
     common_ctx = logs.get_common_log_context()
@@ -162,14 +162,16 @@ class BaseTestcaseEvent(Event):
   testcase: InitVar[data_types.Testcase | None] = None
 
   # Testcase ID (either retrieved from testcase entity or directly set).
-  testcase_id: int | None = None
+  testcase_id: int | str | None = None
 
   # Testcase metadata (retrieved from the testcase entity, if available).
   fuzzer: str | None = field(init=False, default=None)
   job: str | None = field(init=False, default=None)
   crash_revision: int | None = field(init=False, default=None)
 
-  def __post_init__(self, testcase=None, **kwargs):
+  def __post_init__(self,
+                    testcase: data_types.Testcase | None = None,
+                    **kwargs: Any) -> None:
     if testcase is not None:
       if self.testcase_id is None:
         self.testcase_id = testcase.key.id()
@@ -187,7 +189,7 @@ class BaseTaskEvent(Event):
   # Task name retrieved from environment var (if not directly set).
   task_name: str | None = None
 
-  def __post_init__(self, **kwargs):
+  def __post_init__(self, **kwargs: Any) -> None:
     if self.task_id is None:
       self.task_id = environment.get_value('CF_TASK_ID', None)
     if self.task_name is None:
@@ -302,7 +304,7 @@ class FuzzerTaskExecutionEvent(BaseTaskEvent):
 
 
 # Mapping of specific event types to their data classes.
-_EVENT_TYPE_CLASSES = {
+_EVENT_TYPE_CLASSES: dict[str, Callable[[], Event]] = {
     EventTypes.FUZZER_TASK_EXECUTION: FuzzerTaskExecutionEvent,
     EventTypes.ISSUE_CLOSING: IssueClosingEvent,
     EventTypes.ISSUE_FILING: IssueFilingEvent,
@@ -363,10 +365,10 @@ class NDBEventRepository(IEventRepository, EventHandler):
   the correct entity.
   """
   # Maps `event_type` to a Datastore model.
-  _event_to_entity_map: dict[str, Type[data_types.Model]] = {
+  _event_to_entity_map: dict[str, type[data_types.Model]] = {
       EventTypes.FUZZER_TASK_EXECUTION: data_types.FuzzerTaskEvent,
   }
-  _default_entity = data_types.TestcaseLifecycleEvent
+  _default_entity: type[data_types.Model] = data_types.TestcaseLifecycleEvent
 
   def _serialize_event(self, event: Event) -> data_types.Model | None:
     """Converts an event object into the Datastore entity."""
@@ -388,7 +390,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
         raise TypeError(
             f'Datastore entity should contain an event_type: {entity.key}.')
 
-      event_type = entity.event_type  # type: ignore
+      event_type: str = getattr(entity, 'event_type')
       event_class = _EVENT_TYPE_CLASSES.get(event_type, None)
       if event_class is None:
         event = Event(event_type=event_type)
@@ -402,7 +404,7 @@ class NDBEventRepository(IEventRepository, EventHandler):
       logs.error(f'Error deserializing Datastore entity to event: {entity}.')
     return None
 
-  def store_event(self, event: Event) -> int | None:
+  def store_event(self, event: Event) -> int | str | None:
     """Stores a Datastore entity and returns its ID."""
     entity = self._serialize_event(event)
     if entity is None:
@@ -462,8 +464,9 @@ class EventIssueNotification(EventHandler):
     `{<event_type> : True | list[<task_names>]}`
   If set to True, all occurrences of the event type are disabled.
   """
+  disabled_events: dict[str, Any]
 
-  def __init__(self, disabled_events: dict | None = None):
+  def __init__(self, disabled_events: dict[str, Any] | None = None) -> None:
     if disabled_events is None:
       disabled_events = {}
     self.disabled_events = disabled_events
@@ -615,7 +618,7 @@ def emit(event: Event) -> None:
 
 def get_events(
     equality_filters: Mapping[str, data_handler.FilterValue] | None = None,
-    order_by: Sequence[str] | None = None) -> Generator:
+    order_by: Sequence[str] | None = None) -> Generator[Event, None, None]:
   """Yields events matching the equality filters and ordering."""
   repository = get_repository()
   if repository:
@@ -623,10 +626,11 @@ def get_events(
         equality_filters=equality_filters, order_by=order_by)
 
 
-def get_events_from_testcase(testcase_id: int,
-                             event_type: str | None = None,
-                             task_name: str | None = None,
-                             latest_first: bool = True) -> Generator:
+def get_events_from_testcase(
+    testcase_id: int | str,
+    event_type: str | None = None,
+    task_name: str | None = None,
+    latest_first: bool = True) -> Generator[Event, None, None]:
   """Yields events from a testcase, with optional filters.
   
   If latest_first is True, events are yielded in reverse chronological order.

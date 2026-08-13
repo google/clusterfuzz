@@ -13,26 +13,47 @@
 # limitations under the License.
 """Helpers for untrusted runner."""
 
+from collections.abc import Callable
 import functools
+from typing import Any
+from typing import overload
+from typing import ParamSpec
+from typing import TypeVar
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.system import environment
+
+_P = ParamSpec('_P')
+_R = TypeVar('_R')
+_T = TypeVar('_T')
 
 
 class HostError(SystemExit):
   """Unrecoverable Exception."""
 
 
-def untrusted_noop(return_value=None):
+@overload
+def untrusted_noop() -> Callable[[Callable[_P, _T]], Callable[_P, _T | None]]:
+  ...
+
+
+@overload
+def untrusted_noop(return_value: _R,
+                  ) -> Callable[[Callable[_P, _T]], Callable[_P, _T | _R]]:
+  ...
+
+
+def untrusted_noop(return_value: Any = None,
+                  ) -> Callable[[Callable[_P, Any]], Callable[_P, Any]]:
   """Return a decorator that turns functions into no-ops if the bot is
   untrusted."""
 
-  def decorator(func):
+  def decorator(func: Callable[_P, Any]) -> Callable[_P, Any]:
     """Decorator function."""
 
     @functools.wraps(func)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args: _P.args, **kwargs: _P.kwargs) -> Any:
       if environment.is_untrusted_worker():
         return return_value
 
@@ -43,16 +64,16 @@ def untrusted_noop(return_value=None):
   return decorator
 
 
-def internal_network_domain():
+def internal_network_domain() -> str:
   """Return the internal network domain."""
   return '.c.%s.internal' % utils.get_application_id()
 
 
-def platform_name(project, platform):
+def platform_name(project: str, platform: str) -> str:
   """"Get the untrusted platform name."""
   return project.upper() + '_' + platform.upper()
 
 
-def queue_name(project, platform):
+def queue_name(project: str, platform: str) -> str:
   """Get the untrusted queue name for the project and platform."""
   return tasks.queue_for_platform(platform_name(project, platform))

@@ -21,7 +21,7 @@ from clusterfuzz._internal.metrics import logs
 from . import adb
 
 
-def clear_log():
+def clear_log() -> None:
   """Clear log."""
   adb.run_as_root()
   adb.run_shell_command(['stop', 'logd'])
@@ -30,7 +30,7 @@ def clear_log():
   adb.run_command(['logcat', '-c'])
 
 
-def is_line_valid(line):
+def is_line_valid(line: str) -> bool:
   """Returns true if we consider this line in logs."""
   if re.match(r'^[-]+ beginning of', line):
     return False
@@ -44,13 +44,13 @@ def is_line_valid(line):
   return is_chromium_resource_load or at_least_info_level
 
 
-def filter_log_output(output):
+def filter_log_output(output: str | None) -> str:
   """Filters log output. Removes debug info, etc and normalize output."""
   if not output:
     return ''
 
   filtered_output = ''
-  last_process_tuple = (None, None)
+  last_process_tuple: tuple[str | None, int | None] = (None, None)
   for line in output.splitlines():
     if not is_line_valid(line):
       continue
@@ -115,12 +115,12 @@ def filter_log_output(output):
   return filtered_output
 
 
-def log_output(additional_flags=''):
+def log_output(additional_flags: str = '') -> str:
   """Return log data without noise and some normalization."""
   output = adb.run_command('logcat -d -v brief %s *:V' % additional_flags)
   return filter_log_output(output)
 
 
-def log_output_before_last_reboot():
+def log_output_before_last_reboot() -> str:
   """Return log data from last reboot without noise and some normalization."""
   return log_output(additional_flags='-L')

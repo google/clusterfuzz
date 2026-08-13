@@ -14,6 +14,7 @@
 """Process results from Predator and update test cases accordingly."""
 
 import json
+from typing import cast
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import db_config
@@ -22,7 +23,7 @@ from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.metrics import logs
 
 
-def main():
+def main() -> bool:
   """Periodically gathers new results from Predator requests."""
   subscription = db_config.get_value('predator_result_topic')
   if not subscription:
@@ -32,7 +33,7 @@ def main():
   client = pubsub.PubSubClient()
   messages = client.pull_from_subscription(subscription, acknowledge=True)
   for message in messages:
-    message = json.loads(message.data)
+    message = json.loads(cast(str | bytes, message.data))
     testcase_id = message['crash_identifiers']
     try:
       testcase = data_handler.get_testcase_by_id(testcase_id)

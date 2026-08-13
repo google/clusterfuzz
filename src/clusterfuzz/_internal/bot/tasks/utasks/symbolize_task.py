@@ -15,6 +15,7 @@
    Add stack traces from non-optimized release and debug builds."""
 
 import os
+from typing import cast
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -33,13 +34,13 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 
-DEFAULT_REDZONE = 128
-MAX_REDZONE = 1024
-MIN_REDZONE = 16
-STACK_FRAME_COUNT = 128
+DEFAULT_REDZONE: int = 128
+MAX_REDZONE: int = 1024
+MIN_REDZONE: int = 16
+STACK_FRAME_COUNT: int = 128
 
 
-def handle_build_setup_error(output):
+def handle_build_setup_error(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   testcase_id = output.uworker_input.testcase_id
   job_type = output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -49,7 +50,11 @@ def handle_build_setup_error(output):
   tasks.add_task('symbolize', testcase_id, job_type, wait_time=build_fail_wait)
 
 
-def _utask_preprocess(testcase_id, job_type, uworker_env):
+def _utask_preprocess(
+    testcase_id: str,
+    job_type: str,
+    uworker_env: dict,
+) -> uworker_msg_pb2.Input | None:  # pylint: disable=no-member
   """Run preprocessing for symbolize task."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -74,7 +79,11 @@ def _utask_preprocess(testcase_id, job_type, uworker_env):
           old_crash_stacktrace=old_crash_stacktrace))
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def utask_preprocess(
+    testcase_id: str,
+    job_type: str,
+    uworker_env: dict,
+) -> uworker_msg_pb2.Input | None:  # pylint: disable=no-member
   """Set logs context and run preprocessing for symbolize task."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -82,7 +91,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     return _utask_preprocess(testcase_id, job_type, uworker_env)
 
 
-def _utask_main(uworker_input):
+def _utask_main(
+    uworker_input: uworker_msg_pb2.Input,  # pylint: disable=no-member
+) -> uworker_msg_pb2.Output | None:  # pylint: disable=no-member
   """Execute the untrusted part of a symbolize command."""
   job_type = uworker_input.job_type
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
@@ -95,6 +106,8 @@ def _utask_main(uworker_input):
                                                       setup_input)
   if error:
     return error
+
+  assert testcase_file_path is not None
 
   # Initialize variables.
   old_crash_stacktrace = (
@@ -114,9 +127,10 @@ def _utask_main(uworker_input):
     build_revision = testcase.crash_revision
 
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
-  fuzz_target = fuzz_target.binary if fuzz_target else None
+  fuzz_target_binary = fuzz_target.binary if fuzz_target else None
   # Set up a custom or regular build based on revision.
-  build = build_manager.setup_build(build_revision, fuzz_target)
+  build = build_manager.setup_build(
+      cast(int, build_revision), fuzz_target_binary)
 
   # Get crash revision used in setting up build.
   crash_revision = environment.get_value('APP_REVISION')
@@ -130,7 +144,7 @@ def _utask_main(uworker_input):
   # See if we can get better stacks with higher redzone sizes.
   # A UAF might actually turn out to be OOB read/write with a bigger redzone.
   if environment.tool_matches('ASAN', job_type) and testcase.security_flag:
-    redzone = MAX_REDZONE
+    redzone: int | float = MAX_REDZONE
     while redzone >= MIN_REDZONE:
       logs.info(f'Trying to reproduce crash with ASAN redzone size {redzone}.')
 
@@ -139,10 +153,11 @@ def _utask_main(uworker_input):
 
       process_handler.terminate_stale_application_instances()
       command = testcase_manager.get_command_line_for_application(
-          testcase_file_path, needs_http=testcase.http_flag)
+          testcase_file_path, needs_http=bool(testcase.http_flag))
+      gestures = testcase.gestures
       return_code, crash_time, output = (
           process_handler.run_process(
-              command, timeout=warmup_timeout, gestures=testcase.gestures))
+              command, timeout=warmup_timeout, gestures=gestures))
       crash_result = CrashResult(return_code, crash_time, output)
 
       if crash_result.is_crash() and 'AddressSanitizer' in output:
@@ -232,7 +247,9 @@ def _utask_main(uworker_input):
   return uworker_msg_pb2.Output(symbolize_task_output=symbolize_task_output)  # pylint: disable=no-member
 
 
-def utask_main(uworker_input):
+def utask_main(
+    uworker_input: uworker_msg_pb2.Input,  # pylint: disable=no-member
+) -> uworker_msg_pb2.Output | None:  # pylint: disable=no-member
   """Set logs context and run the untrusted part of a symbolize command."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
@@ -241,8 +258,12 @@ def utask_main(uworker_input):
     return _utask_main(uworker_input)
 
 
-def get_symbolized_stacktraces(testcase_file_path, testcase,
-                               old_crash_stacktrace, expected_state):
+def get_symbolized_stacktraces(
+    testcase_file_path: str,
+    testcase: data_types.Testcase,
+    old_crash_stacktrace: str,
+    expected_state: str | None,
+) -> tuple[bool, str]:
   """Use the symbolized builds to generate an updated stacktrace."""
   # Initialize variables.
   app_path = environment.get_value('APP_PATH')
@@ -254,6 +275,8 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
   debug_build_stacktrace = ''
   release_build_stacktrace = old_crash_stacktrace
 
+  gestures = testcase.gestures
+
   # Symbolize using the debug build first so that the debug build stacktrace
   # comes after the more important release build stacktrace.
   if app_path_debug:
@@ -262,10 +285,10 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
       command = testcase_manager.get_command_line_for_application(
           testcase_file_path,
           app_path=app_path_debug,
-          needs_http=testcase.http_flag)
+          needs_http=bool(testcase.http_flag))
       return_code, crash_time, output = (
           process_handler.run_process(
-              command, timeout=long_test_timeout, gestures=testcase.gestures))
+              command, timeout=long_test_timeout, gestures=gestures))
       crash_result = CrashResult(return_code, crash_time, output)
 
       if crash_result.is_crash():
@@ -289,10 +312,12 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
     for _ in range(retry_limit):
       process_handler.terminate_stale_application_instances()
       command = testcase_manager.get_command_line_for_application(
-          testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
+          testcase_file_path,
+          app_path=app_path,
+          needs_http=bool(testcase.http_flag))
       return_code, crash_time, output = (
           process_handler.run_process(
-              command, timeout=long_test_timeout, gestures=testcase.gestures))
+              command, timeout=long_test_timeout, gestures=gestures))
       crash_result = CrashResult(return_code, crash_time, output)
 
       if crash_result.is_crash():
@@ -336,7 +361,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 )
 
 
-def _utask_postprocess(output):
+def _utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   """Handle the output from utask_main."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
@@ -377,7 +402,7 @@ def _utask_postprocess(output):
   task_creation.create_blame_task_if_needed(testcase)
 
 
-def utask_postprocess(output):
+def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   """Set logs context and handle the output from utask_main."""
   # Retrieve the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)

@@ -13,13 +13,15 @@
 # limitations under the License.
 """Fuzzer utils."""
 
+from collections.abc import Callable
+from collections.abc import Sequence
 import functools
 import json
 import os
 import re
 import stat
 import tempfile
-from typing import Callable
+from typing import Any
 from typing import Optional
 
 from clusterfuzz._internal.base import utils
@@ -27,17 +29,21 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
-ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
-FUZZ_TARGET_SEARCH_BYTES = [b'LLVMFuzzerTestOneInput', b'LLVMFuzzerRunDriver']
-VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9@_.-]+$')
-BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*|jazzerjs)$')
-EXTRA_BUILD_DIR = '__extra_build'
+ALLOWED_FUZZ_TARGET_EXTENSIONS: list[str] = ['', '.exe', '.par']
+FUZZ_TARGET_SEARCH_BYTES: list[bytes] = [
+    b'LLVMFuzzerTestOneInput', b'LLVMFuzzerRunDriver'
+]
+VALID_TARGET_NAME_REGEX: re.Pattern[str] = re.compile(r'^[a-zA-Z0-9@_.-]+$')
+BLOCKLISTED_TARGET_NAME_REGEX: re.Pattern[str] = re.compile(
+    r'^(jazzer_driver.*|jazzerjs)$')
+EXTRA_BUILD_DIR: str = '__extra_build'
 # Manifest file present in Chrome build archives. Specifies the archive
 # schema version along with optional build metadata (e.g., fuzz targets).
-CHROME_MANIFEST_FILENAME = 'clusterfuzz_manifest.json'
+CHROME_MANIFEST_FILENAME: str = 'clusterfuzz_manifest.json'
 
 
-def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
+def is_fuzz_target(file_path: str,
+                   file_opener: Optional[Callable[[str], Any]] = None) -> bool:
   """Returns whether |file_path| is a fuzz target binary (local path)."""
   if '@' in file_path:
     # GFT targets often have periods in the name that get misinterpreted as an
@@ -198,7 +204,7 @@ def _get_manifest_fuzz_targets(build_dir: str) -> list[str] | None:
   return fuzz_target_paths
 
 
-def get_fuzz_targets_local(path):
+def get_fuzz_targets_local(path: str) -> list[str]:
   """Gets the list of local fuzz target paths.
 
   If clusterfuzz_manifest.json is present and defines `fuzz_targets`, those
@@ -214,7 +220,6 @@ def get_fuzz_targets_local(path):
   manifest_fuzz_targets = _get_manifest_fuzz_targets(path)
   if manifest_fuzz_targets is not None:
     return manifest_fuzz_targets
-
   fuzz_target_paths = []
 
   for root, _, files in shell.walk(path):
@@ -230,7 +235,7 @@ def get_fuzz_targets_local(path):
   return fuzz_target_paths
 
 
-def get_fuzz_targets(path):
+def get_fuzz_targets(path: str) -> Sequence[str]:
   """Get list of fuzz targets paths."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import file_host
@@ -238,7 +243,8 @@ def get_fuzz_targets(path):
   return get_fuzz_targets_local(path)
 
 
-def extract_argument(arguments, prefix, remove=True):
+def extract_argument(arguments: list[str], prefix: str,
+                     remove: bool = True) -> Optional[str]:
   """Extract argument from arguments."""
   for argument in arguments[:]:
     if argument.startswith(prefix):
@@ -249,7 +255,7 @@ def extract_argument(arguments, prefix, remove=True):
   return None
 
 
-def get_build_revision():
+def get_build_revision() -> int:
   """Get build revision."""
   try:
     build_revision = int(environment.get_value('APP_REVISION'))
@@ -259,7 +265,7 @@ def get_build_revision():
   return build_revision
 
 
-def get_supporting_file(fuzz_target_path, extension_or_suffix):
+def get_supporting_file(fuzz_target_path: str, extension_or_suffix: str) -> str:
   """Get supporting file for a fuzz target with the provided extension."""
   base_fuzz_target_path = fuzz_target_path
 
@@ -275,7 +281,7 @@ def get_supporting_file(fuzz_target_path, extension_or_suffix):
   return base_fuzz_target_path + extension_or_suffix
 
 
-def get_temp_dir(use_fuzz_inputs_disk=True):
+def get_temp_dir(use_fuzz_inputs_disk: bool = True) -> str:
   """Return the temp dir."""
   temp_dirname = 'temp-' + str(os.getpid())
   if use_fuzz_inputs_disk:
@@ -287,7 +293,7 @@ def get_temp_dir(use_fuzz_inputs_disk=True):
   return temp_directory
 
 
-def get_file_from_untrusted_worker(worker_file_path):
+def get_file_from_untrusted_worker(worker_file_path: str) -> str:
   """Gets file from an untrusted worker to local. Local file stays in the temp
   folder until the end of task or can be explicitly deleted by the caller."""
   from clusterfuzz._internal.bot.untrusted_runner import file_host
@@ -299,12 +305,12 @@ def get_file_from_untrusted_worker(worker_file_path):
   return local_file_path
 
 
-def cleanup():
+def cleanup() -> None:
   """Clean up temporary metadata."""
   shell.remove_directory(get_temp_dir())
 
 
-def normalize_target_name(target_path):
+def normalize_target_name(target_path: str) -> str:
   """Normalize target path, removing file extensions."""
   target_name = os.path.basename(target_path)
   if '@' in target_name:

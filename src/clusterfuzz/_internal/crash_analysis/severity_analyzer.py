@@ -22,30 +22,32 @@ from clusterfuzz._internal.datastore.data_types import SecuritySeverity
 from clusterfuzz._internal.system import environment
 
 # These should be generic within ClusterFuzz.
-LOW_SEVERITY_CRASH_TYPES = [
+LOW_SEVERITY_CRASH_TYPES: list[str] = [
     'V8 sandbox violation',
 ]
-MEDIUM_SEVERITY_CRASH_TYPES = [
+MEDIUM_SEVERITY_CRASH_TYPES: list[str] = [
     'Container-overflow', 'Heap-buffer-overflow',
     'Incorrect-function-pointer-type', 'Index-out-of-bounds',
     'Memcpy-param-overlap', 'Non-positive-vla-bound-value', 'Object-size',
     'Stack-buffer-overflow', 'UNKNOWN', 'Use-of-uninitialized-value'
 ]
-HIGH_SEVERITY_CRASH_TYPES = [
+HIGH_SEVERITY_CRASH_TYPES: list[str] = [
     'Bad-cast', 'Heap-double-free', 'Heap-use-after-free',
     'Security DCHECK failure', 'Use-after-poison'
 ]
 
-SEVERITY_ORDER = [
+SEVERITY_ORDER: list[int] = [
     SecuritySeverity.LOW, SecuritySeverity.MEDIUM, SecuritySeverity.HIGH,
     SecuritySeverity.CRITICAL
 ]
 
 
-def _modify_severity(severity,
-                     delta,
-                     min_severity=SecuritySeverity.LOW,
-                     max_severity=SecuritySeverity.CRITICAL):
+def _modify_severity(
+    severity: int,
+    delta: int,
+    min_severity: int = SecuritySeverity.LOW,
+    max_severity: int = SecuritySeverity.CRITICAL,
+) -> int:
   """Increase/decrease the given |severity| by |delta|."""
   min_index = SEVERITY_ORDER.index(min_severity)
   max_index = SEVERITY_ORDER.index(max_severity)
@@ -63,7 +65,7 @@ def _modify_severity(severity,
   return SEVERITY_ORDER[severity_index]
 
 
-def get_analyzer(name):
+def get_analyzer(name: str) -> 'SeverityAnalyzerSanitizer | None':
   """Return an analyzer for the given |name|."""
   if name == 'sanitizer_generic':
     return SeverityAnalyzerSanitizer()
@@ -74,9 +76,16 @@ def get_analyzer(name):
   return None
 
 
-def get_security_severity(crash_type, crash_output, job_name,
-                          requires_gestures):
+def get_security_severity(
+    crash_type: str | None,
+    crash_output: str | None,
+    job_name: str | None,
+    requires_gestures: bool = False,
+) -> int | None:
   """Convenience function to get the security severity of a crash."""
+  if not crash_type or not crash_output or not job_name:
+    return None
+
   analyzer = None
   severity_analyzer_name = environment.get_value('SECURITY_SEVERITY_ANALYZER')
 
@@ -103,7 +112,12 @@ def get_security_severity(crash_type, crash_output, job_name,
 class SeverityAnalyzerSanitizer:
   """Generic ASan severity analyzer."""
 
-  def analyze(self, crash_type, crash_output, requires_gestures):
+  def analyze(
+      self,
+      crash_type: str,
+      crash_output: str,
+      requires_gestures: bool,
+  ) -> int | None:
     """Return a security severity based on the ASan crash output."""
 
     manual_severity_match = re.search(
@@ -141,15 +155,20 @@ class SeverityAnalyzerSanitizer:
 class SeverityAnalyzerSanitizerChrome(SeverityAnalyzerSanitizer):
   """Chrome specific severity analyzer."""
 
-  PROCESS_TYPE_EXCEPTIONS = [
+  PROCESS_TYPE_EXCEPTIONS: list[str] = [
       'Use-of-uninitialized-value',
   ]
 
-  def __init__(self, is_compromised_renderer):
+  def __init__(self, is_compromised_renderer: bool) -> None:
     SeverityAnalyzerSanitizer.__init__(self)
-    self.is_compromised_renderer = is_compromised_renderer
+    self.is_compromised_renderer: bool = is_compromised_renderer
 
-  def analyze(self, crash_type, crash_output, requires_gestures):
+  def analyze(
+      self,
+      crash_type: str,
+      crash_output: str,
+      requires_gestures: bool,
+  ) -> int | None:
     """Return a security severity based on the ASan crash output."""
     # Base severity.
     severity = SeverityAnalyzerSanitizer.analyze(self, crash_type, crash_output,
@@ -166,10 +185,10 @@ class SeverityAnalyzerSanitizerChrome(SeverityAnalyzerSanitizer):
     return severity
 
   @staticmethod
-  def _find_process_type(crash_output):
+  def _find_process_type(crash_output: str) -> str | None:
     """Return the process type of the process that crashed."""
     # TODO(ochang): Support Android.
-    process_type = None
+    process_type: str | None = None
     # This is best effort, and won't work in cases where we have weird stacks
     # (or V8). Since we only care right now if this is a browser process (where
     # this should be rare from an uncompromised renderer), it shouldn't matter
@@ -198,9 +217,9 @@ class SeverityAnalyzerSanitizerChrome(SeverityAnalyzerSanitizer):
     return process_type
 
 
-def severity_to_string(severity):
+def severity_to_string(severity: int | None) -> str:
   """Convert a severity value to a human-readable string."""
-  severity_map = {
+  severity_map: dict[int | None, str] = {
       SecuritySeverity.CRITICAL: 'Critical',
       SecuritySeverity.HIGH: 'High',
       SecuritySeverity.MEDIUM: 'Medium',
@@ -211,9 +230,9 @@ def severity_to_string(severity):
   return severity_map.get(severity, '')
 
 
-def string_to_severity(severity):
+def string_to_severity(severity: str) -> int:
   """Convert a string value to a severity value."""
-  severity_map = {
+  severity_map: dict[str, int] = {
       'critical': SecuritySeverity.CRITICAL,
       'high': SecuritySeverity.HIGH,
       'medium': SecuritySeverity.MEDIUM,

@@ -20,6 +20,17 @@ import json
 import os
 import random
 import re
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import ClassVar
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Type
+from typing import Union
 
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
@@ -33,9 +44,9 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
-STATS_FILE_EXTENSION = '.stats2'
+STATS_FILE_EXTENSION: str = '.stats2'
 
-JOB_RUN_SCHEMA = {
+JOB_RUN_SCHEMA: Dict[str, Any] = {
     'fields': [{
         'name': 'testcases_executed',
         'type': 'INTEGER',
@@ -120,7 +131,8 @@ class FuzzerStatsError(ValueError):
   """Fuzzer stats exception."""
 
 
-def _timedelta_to_duration_string(time_delta):
+def _timedelta_to_duration_string(
+    time_delta: Union[datetime.timedelta, str]) -> str:
   """Converts a datetime.timedelta to ISO8601 duration string.
 
   BigQuery Load API requires the ISO8601 duration string rather than an INTERVAL
@@ -144,65 +156,68 @@ def _timedelta_to_duration_string(time_delta):
 class BaseRun:
   """Base run."""
 
-  VALID_FIELDNAME_PATTERN = re.compile(r'[a-zA-Z][a-zA-Z0-9_]*')
+  VALID_FIELDNAME_PATTERN: ClassVar[re.Pattern[str]] = re.compile(
+      r'[a-zA-Z][a-zA-Z0-9_]*')
 
-  def __init__(self, fuzzer, job, build_revision, timestamp):
-    self._stats_data = {
+  def __init__(self, fuzzer: Optional[str], job: Optional[str],
+               build_revision: Optional[int],
+               timestamp: Optional[float]) -> None:
+    self._stats_data: Dict[str, Any] = {
         'fuzzer': fuzzer,
         'job': job,
         'build_revision': build_revision,
         'timestamp': timestamp,
     }
 
-  def __getitem__(self, key):
+  def __getitem__(self, key: str) -> Any:
     return self._stats_data.__getitem__(key)
 
-  def __setitem__(self, key, value):
+  def __setitem__(self, key: str, value: Any) -> None:
     if not re.compile(self.VALID_FIELDNAME_PATTERN):
       raise ValueError('Invalid key name.')
 
     return self._stats_data.__setitem__(key, value)
 
-  def __delitem__(self, key):
+  def __delitem__(self, key: str) -> None:
     return self._stats_data.__delitem__(key)
 
-  def __contains__(self, key):
+  def __contains__(self, key: object) -> bool:
     return self._stats_data.__contains__(key)
 
-  def to_json(self):
+  def to_json(self) -> str:
     """Return JSON representation of the stats."""
     return json.dumps(self._stats_data)
 
-  def update(self, other):
+  def update(self, other: Dict[str, Any]) -> None:
     """Update stats with a dict."""
     self._stats_data.update(other)
 
   @property
-  def data(self):
+  def data(self) -> Dict[str, Any]:
     return self._stats_data
 
   @property
-  def kind(self):
+  def kind(self) -> str:
     return self._stats_data['kind']
 
   @property
-  def fuzzer(self):
+  def fuzzer(self) -> str:
     return self._stats_data['fuzzer']
 
   @property
-  def job(self):
+  def job(self) -> str:
     return self._stats_data['job']
 
   @property
-  def build_revision(self):
+  def build_revision(self) -> int:
     return self._stats_data['build_revision']
 
   @property
-  def timestamp(self):
+  def timestamp(self) -> float:
     return self._stats_data['timestamp']
 
   @staticmethod
-  def from_json(json_data):
+  def from_json(json_data: str) -> Optional['BaseRun']:
     """Convert json to the run."""
     try:
       data = json.loads(json_data)
@@ -237,22 +252,23 @@ class BaseRun:
 class JobRun(BaseRun):
   """Represents stats for a particular job run."""
 
-  SCHEMA = JOB_RUN_SCHEMA
+  SCHEMA: ClassVar[Optional[Dict[str, Any]]] = JOB_RUN_SCHEMA
 
   # `crashes` is a new field that will replace `new_crashes` and `old_crashes`.
-  def __init__(self,
-               fuzzer,
-               job,
-               build_revision,
-               timestamp,
-               number_of_testcases,
-               new_crashes,
-               known_crashes,
-               crashes,
-               testcases_generated=None,
-               testcase_generation_duration=None,
-               testcase_execution_duration=None,
-               fuzzing_duration=None):
+  def __init__(
+      self,
+      fuzzer: Optional[str],
+      job: Optional[str],
+      build_revision: Optional[int],
+      timestamp: Optional[float],
+      number_of_testcases: int,
+      new_crashes: int,
+      known_crashes: int,
+      crashes: Any,
+      testcases_generated: Optional[int] = None,
+      testcase_generation_duration: Union[datetime.timedelta, str, None] = None,
+      testcase_execution_duration: Union[datetime.timedelta, str, None] = None,
+      fuzzing_duration: Union[datetime.timedelta, str, None] = None) -> None:
     super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'JobRun',
@@ -279,9 +295,11 @@ class JobRun(BaseRun):
 class TestcaseRun(BaseRun):
   """Represents stats for a particular testcase run."""
 
-  SCHEMA = None
+  SCHEMA: ClassVar[Optional[Dict[str, Any]]] = None
 
-  def __init__(self, fuzzer, job, build_revision, timestamp):
+  def __init__(self, fuzzer: Optional[str], job: Optional[str],
+               build_revision: Optional[int],
+               timestamp: Optional[float]) -> None:
     super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'TestcaseRun',
@@ -292,12 +310,13 @@ class TestcaseRun(BaseRun):
       self._stats_data['source'] = source
 
   @staticmethod
-  def get_stats_filename(testcase_file_path):
+  def get_stats_filename(testcase_file_path: str) -> str:
     """Get stats filename for the given testcase."""
     return testcase_file_path + STATS_FILE_EXTENSION
 
   @staticmethod
-  def read_from_disk(testcase_file_path, delete=False):
+  def read_from_disk(testcase_file_path: str,
+                     delete: bool = False) -> Optional[BaseRun]:
     """Read the TestcaseRun for the given testcase."""
     stats_file_path = TestcaseRun.get_stats_filename(testcase_file_path)
     if not os.path.exists(stats_file_path):
@@ -313,7 +332,8 @@ class TestcaseRun(BaseRun):
     return fuzzer_run
 
   @staticmethod
-  def write_to_disk(testcase_run, testcase_file_path):
+  def write_to_disk(testcase_run: Optional[BaseRun],
+                    testcase_file_path: str) -> None:
     """Write the given TestcaseRun for |testcase_file_path| to disk."""
     if not testcase_run:
       return
@@ -326,15 +346,15 @@ class TestcaseRun(BaseRun):
 class QueryGroupBy:
   """GroupBy enum."""
 
-  GROUP_BY_NONE = 0
-  GROUP_BY_REVISION = 1
-  GROUP_BY_DAY = 2
-  GROUP_BY_TIME = 3
-  GROUP_BY_JOB = 4
-  GROUP_BY_FUZZER = 5
+  GROUP_BY_NONE: ClassVar[int] = 0
+  GROUP_BY_REVISION: ClassVar[int] = 1
+  GROUP_BY_DAY: ClassVar[int] = 2
+  GROUP_BY_TIME: ClassVar[int] = 3
+  GROUP_BY_JOB: ClassVar[int] = 4
+  GROUP_BY_FUZZER: ClassVar[int] = 5
 
 
-def group_by_to_field_name(group_by):
+def group_by_to_field_name(group_by: Optional[int]) -> Optional[str]:
   """Convert QueryGroupBy value to its corresponding field name."""
   if group_by == QueryGroupBy.GROUP_BY_REVISION:
     return 'build_revision'
@@ -357,7 +377,10 @@ def group_by_to_field_name(group_by):
 class BuiltinFieldData:
   """Represents a cell value for a builtin field."""
 
-  def __init__(self, value, sort_key=None, link=None):
+  def __init__(self,
+               value: Any,
+               sort_key: Any = None,
+               link: Optional[str] = None) -> None:
     self.value = value
     self.sort_key = sort_key
     self.link = link
@@ -366,11 +389,12 @@ class BuiltinFieldData:
 class BuiltinFieldSpecifier:
   """Represents a builtin field."""
 
-  def __init__(self, name, alias=None):
+  def __init__(self, name: str, alias: Optional[str] = None) -> None:
     self.name = name
     self.alias = alias
 
-  def create(self, ctx=None):
+  def create(self, ctx: Optional['BuiltinFieldContext'] = None
+            ) -> Optional['BuiltinField']:
     """Create the actual BuiltinField."""
     constructor = BUILTIN_FIELD_CONSTRUCTORS.get(self.name)
     if not constructor:
@@ -378,37 +402,43 @@ class BuiltinFieldSpecifier:
 
     return constructor(ctx)
 
-  def field_class(self):
+  def field_class(self) -> Optional[Type['BuiltinField']]:
     """Return the class for the field."""
     constructor = BUILTIN_FIELD_CONSTRUCTORS.get(self.name)
     if not constructor:
       return None
 
     if isinstance(constructor, functools.partial):
-      return constructor.func
+      return cast(Type['BuiltinField'], constructor.func)
 
-    return constructor
+    return cast(Type['BuiltinField'], constructor)
 
 
 class BuiltinField:
   """Base Builtin field."""
 
-  def __init__(self, ctx=None):
+  CONTEXT_CLASS: ClassVar[Optional[Type['BuiltinFieldContext']]] = None
+  VALUE_TYPE: ClassVar[Optional[Type[Any]]] = None
+
+  def __init__(self, ctx: Optional['BuiltinFieldContext'] = None) -> None:
     self.ctx = ctx
 
-  def get(self, group_by, group_by_value):  # pylint: disable=unused-argument
+  def get(self, group_by: int,
+          group_by_value: Any) -> Optional[BuiltinFieldData]:
     """Return BuiltinFieldData."""
-    return None
+    del group_by, group_by_value
 
 
 class BuiltinFieldContext:
   """Context for builtin fields."""
 
-  def __init__(self, fuzzer=None, jobs=None):
+  def __init__(self,
+               fuzzer: Optional[str] = None,
+               jobs: Optional[Sequence[str]] = None) -> None:
     self.fuzzer = fuzzer
     self.jobs = jobs
 
-  def single_job_or_none(self):
+  def single_job_or_none(self) -> Optional[str]:
     """Return the job if only 1 is specified, or None."""
     if self.jobs and len(self.jobs) == 1:
       return self.jobs[0]
@@ -419,35 +449,44 @@ class BuiltinFieldContext:
 class CoverageFieldContext(BuiltinFieldContext):
   """Coverage field context. Acts as a cache."""
 
-  def __init__(self, fuzzer=None, jobs=None):
+  def __init__(self,
+               fuzzer: Optional[str] = None,
+               jobs: Optional[Sequence[str]] = None) -> None:
     super().__init__(fuzzer=fuzzer, jobs=jobs)
 
   @memoize.wrap(memoize.FifoInMemory(256))
-  def get_coverage_info(self, fuzzer, date=None):
+  def get_coverage_info(self,
+                        fuzzer: Optional[str],
+                        date: Optional[Union[datetime.date, str]] = None
+                       ) -> Optional[data_types.CoverageInformation]:
     """Return coverage info of child fuzzers."""
     if fuzzer in data_types.BUILTIN_FUZZERS:
       # Get coverage info for a job (i.e. a project).
       job = self.single_job_or_none()
-      project = data_handler.get_project_name(job)
+      project = data_handler.get_project_name(cast(str, job))
       return get_coverage_info(project, date)
 
-    fuzz_target = data_handler.get_fuzz_target(fuzzer)
+    fuzz_target = data_handler.get_fuzz_target(cast(str, fuzzer))
     if fuzz_target:
       fuzzer = fuzz_target.project_qualified_name()
 
     return get_coverage_info(fuzzer, date)
 
 
-class BaseCoverageField:
+class BaseCoverageField(BuiltinField):
   """Base builtin field class for coverage related fields."""
 
-  CONTEXT_CLASS = CoverageFieldContext
+  CONTEXT_CLASS: ClassVar[Optional[Type[
+      BuiltinFieldContext]]] = CoverageFieldContext
 
-  def __init__(self, ctx):
-    self.ctx = ctx
+  def __init__(self, ctx: Optional[CoverageFieldContext] = None) -> None:
+    super().__init__(ctx)
+    self.ctx: Optional[CoverageFieldContext] = ctx
 
-  def get_coverage_info(self, group_by, group_by_value):
+  def get_coverage_info(self, group_by: int, group_by_value: Any
+                       ) -> Optional[data_types.CoverageInformation]:
     """Return coverage information."""
+    assert self.ctx is not None
     coverage_info = None
     if group_by == QueryGroupBy.GROUP_BY_DAY:
       # Return coverage data for the fuzzer and the day.
@@ -470,15 +509,18 @@ class BaseCoverageField:
 class CoverageField(BaseCoverageField):
   """Coverage field."""
 
-  EDGE = 0
-  FUNCTION = 1
-  VALUE_TYPE = float
+  EDGE: ClassVar[int] = 0
+  FUNCTION: ClassVar[int] = 1
+  VALUE_TYPE: ClassVar[Optional[Type[Any]]] = float
 
-  def __init__(self, coverage_type, ctx=None):
+  def __init__(self,
+               coverage_type: int,
+               ctx: Optional[CoverageFieldContext] = None) -> None:
     super().__init__(ctx)
     self.coverage_type = coverage_type
 
-  def get(self, group_by, group_by_value):
+  def get(self, group_by: int,
+          group_by_value: Any) -> Optional[BuiltinFieldData]:
     """Return data."""
     coverage_info = self.get_coverage_info(group_by, group_by_value)
     if not coverage_info:
@@ -495,8 +537,8 @@ class CoverageField(BaseCoverageField):
       return None
 
     if not total:
-      logs.error(
-          'Invalid coverage info: total equals 0 for "%s".' % self.ctx.fuzzer)
+      logs.error('Invalid coverage info: total equals 0 for "%s".' % cast(
+          CoverageFieldContext, self.ctx).fuzzer)
       return BuiltinFieldData('No coverage', sort_key=0.0)
 
     percentage = 100.0 * float(covered) / total
@@ -506,12 +548,10 @@ class CoverageField(BaseCoverageField):
 
 class CorpusBackupField(BaseCoverageField):
   """Link to the latest corpus backup archive."""
-  VALUE_TYPE = str
+  VALUE_TYPE: ClassVar[Optional[Type[Any]]] = str
 
-  def __init__(self, ctx=None):
-    super().__init__(ctx)
-
-  def get(self, group_by, group_by_value):
+  def get(self, group_by: int,
+          group_by_value: Any) -> Optional[BuiltinFieldData]:
     """Return data."""
     coverage_info = self.get_coverage_info(group_by, group_by_value)
     if not coverage_info:
@@ -532,17 +572,21 @@ class CorpusBackupField(BaseCoverageField):
 class CorpusSizeField(BaseCoverageField):
   """Corpus size field."""
 
-  CORPUS = 0
-  QUARANTINE = 1
-  VALUE_TYPE = int
+  CORPUS: ClassVar[int] = 0
+  QUARANTINE: ClassVar[int] = 1
+  VALUE_TYPE: ClassVar[Optional[Type[Any]]] = int
 
-  def __init__(self, corpus_type, ctx=None):
+  def __init__(self,
+               corpus_type: int,
+               ctx: Optional[CoverageFieldContext] = None) -> None:
     super().__init__(ctx)
     self.corpus_type = corpus_type
 
-  def get(self, group_by, group_by_value):
+  def get(self, group_by: int,
+          group_by_value: Any) -> Optional[BuiltinFieldData]:
     """Return data."""
-    if (self.ctx.fuzzer in data_types.BUILTIN_FUZZERS and
+    if (cast(CoverageFieldContext,
+             self.ctx).fuzzer in data_types.BUILTIN_FUZZERS and
         group_by == QueryGroupBy.GROUP_BY_DAY):
       # Explicitly return None here, as coverage_info below might exist and have
       # default corpus size of 0, which might look confusing on the stats page.
@@ -575,12 +619,10 @@ class CorpusSizeField(BaseCoverageField):
 class CoverageReportField(BaseCoverageField):
   """Coverage report field."""
 
-  VALUE_TYPE = str
+  VALUE_TYPE: ClassVar[Optional[Type[Any]]] = str
 
-  def __init__(self, ctx=None):
-    super().__init__(ctx)
-
-  def get(self, group_by, group_by_value):
+  def get(self, group_by: int,
+          group_by_value: Any) -> Optional[BuiltinFieldData]:
     """Return data."""
     coverage_info = self.get_coverage_info(group_by, group_by_value)
     if not coverage_info or not coverage_info.html_report_url:
@@ -590,26 +632,30 @@ class CoverageReportField(BaseCoverageField):
     return BuiltinFieldData(display_value, link=coverage_info.html_report_url)
 
 
-def _logs_bucket_key_fn(func, args, kwargs):  # pylint: disable=unused-argument
-  return 'fuzzer_logs_bucket:' + args[1]
+def _logs_bucket_key_fn(func: Any, args: Tuple[Any, ...],
+                        kwargs: Dict[str, Any]) -> str:
+  del func, kwargs
+  return 'fuzzer_logs_bucket:' + str(args[1])
 
 
 class FuzzerRunLogsContext(BuiltinFieldContext):
   """Fuzzer logs context."""
 
-  MEMCACHE_TTL = 30 * 60
+  MEMCACHE_TTL: ClassVar[int] = 30 * 60
 
-  def __init__(self, fuzzer=None, jobs=None):
+  def __init__(self,
+               fuzzer: Optional[str] = None,
+               jobs: Optional[Sequence[str]] = None) -> None:
     super().__init__(fuzzer=fuzzer, jobs=jobs)
 
   @memoize.wrap(memoize.FifoInMemory(1024))
-  def _get_logs_bucket_from_job(self, job_type):
+  def _get_logs_bucket_from_job(self, job_type: Optional[str]) -> Optional[str]:
     """Get logs bucket from job."""
     return data_handler.get_value_from_job_definition_or_environment(
-        job_type, 'FUZZ_LOGS_BUCKET')
+        cast(str, job_type), 'FUZZ_LOGS_BUCKET')
 
   @memoize.wrap(memoize.Memcache(MEMCACHE_TTL, key_fn=_logs_bucket_key_fn))
-  def _get_logs_bucket_from_fuzzer(self, fuzzer_name):
+  def _get_logs_bucket_from_fuzzer(self, fuzzer_name: str) -> Optional[str]:
     """Get logs bucket from fuzzer (child fuzzers only)."""
     jobs = [
         mapping.job for mapping in fuzz_target_utils.get_fuzz_target_jobs(
@@ -625,7 +671,9 @@ class FuzzerRunLogsContext(BuiltinFieldContext):
 
     return None
 
-  def get_logs_bucket(self, fuzzer_name=None, job_type=None):
+  def get_logs_bucket(self,
+                      fuzzer_name: Optional[str] = None,
+                      job_type: Optional[str] = None) -> Optional[str]:
     """Return logs bucket for the job."""
     if job_type:
       return self._get_logs_bucket_from_job(job_type)
@@ -639,11 +687,18 @@ class FuzzerRunLogsContext(BuiltinFieldContext):
 class FuzzerRunLogsField(BuiltinField):
   """Fuzzer logs field."""
 
-  CONTEXT_CLASS = FuzzerRunLogsContext
-  VALUE_TYPE = str
+  CONTEXT_CLASS: ClassVar[Optional[Type[
+      BuiltinFieldContext]]] = FuzzerRunLogsContext
+  VALUE_TYPE: ClassVar[Optional[Type[Any]]] = str
 
-  def _get_logs_bucket_path(self, group_by, group_by_value):
+  def __init__(self, ctx: Optional[FuzzerRunLogsContext] = None) -> None:
+    super().__init__(ctx)
+    self.ctx: Optional[FuzzerRunLogsContext] = ctx
+
+  def _get_logs_bucket_path(self, group_by: int,
+                            group_by_value: Any) -> Optional[str]:
     """Return logs bucket path."""
+    assert self.ctx is not None
     fuzzer = self.ctx.fuzzer
     job = self.ctx.single_job_or_none()
     date = None
@@ -676,7 +731,8 @@ class FuzzerRunLogsField(BuiltinField):
     return 'gs:/' + fuzzer_logs.get_logs_directory(logs_bucket, fuzzer, job,
                                                    date)
 
-  def get(self, group_by, group_by_value):
+  def get(self, group_by: int,
+          group_by_value: Any) -> Optional[BuiltinFieldData]:
     """Return data."""
     logs_path = self._get_logs_bucket_path(group_by, group_by_value)
     if not logs_path:
@@ -689,23 +745,23 @@ class QueryField:
   """Represents a query field."""
 
   def __init__(self,
-               table_alias,
-               field_name,
-               aggregate_function,
-               select_alias=None):
+               table_alias: str,
+               field_name: str,
+               aggregate_function: Optional[str],
+               select_alias: Optional[str] = None) -> None:
     self.table_alias = table_alias
     self.name = field_name
     self.aggregate_function = aggregate_function
     self.select_alias = select_alias or field_name
 
-  def is_custom(self):
+  def is_custom(self) -> bool:
     """Return true if this field uses complex query. This field won't appear
       in the SELECT's fields automatically. We will need to define how to get
       the data."""
-    return (self.aggregate_function and
-            self.aggregate_function.lower() == 'custom')
+    return bool(self.aggregate_function and
+                self.aggregate_function.lower() == 'custom')
 
-  def __str__(self):
+  def __str__(self) -> str:
     if self.aggregate_function:
       result = '%s(%s.%s)' % (self.aggregate_function, self.table_alias,
                               self.name)
@@ -721,13 +777,16 @@ class QueryField:
 class Query:
   """Represents a stats query."""
 
-  def _ensure_valid_name(self, name, regex):
+  def _ensure_valid_name(self, name: Optional[str],
+                         regex: re.Pattern[str]) -> None:
     """Ensure that the given name is valid for fuzzer/jobs."""
     if name and not regex.match(name):
       raise FuzzerStatsError('Invalid fuzzer or job name.')
 
-  def __init__(self, fuzzer_name, job_types, query_fields, group_by, date_start,
-               date_end, base_table, alias):
+  def __init__(self, fuzzer_name: str, job_types: Optional[Sequence[str]],
+               query_fields: Sequence[QueryField], group_by: int,
+               date_start: datetime.date, date_end: datetime.date,
+               base_table: str, alias: str) -> None:
     assert group_by is not None
 
     self._ensure_valid_name(fuzzer_name, data_types.Fuzzer.VALID_NAME_REGEX)
@@ -747,7 +806,7 @@ class Query:
 
     self.fuzzer_or_engine_name = get_fuzzer_or_engine_name(fuzzer_name)
 
-  def _group_by_select(self):
+  def _group_by_select(self) -> Optional[str]:
     """Return a group by field."""
     if self.group_by == QueryGroupBy.GROUP_BY_DAY:
       return ('TIMESTAMP_TRUNC(TIMESTAMP_SECONDS(CAST('
@@ -758,11 +817,11 @@ class Query:
 
     return group_by_to_field_name(self.group_by)
 
-  def _group_by(self):
+  def _group_by(self) -> Optional[str]:
     """Return the group by part of the query."""
     return group_by_to_field_name(self.group_by)
 
-  def _select_fields(self):
+  def _select_fields(self) -> str:
     """Return fields for the query."""
     group_by_select = self._group_by_select()
     fields = [group_by_select] if group_by_select else []
@@ -778,7 +837,7 @@ class Query:
 
     return ', '.join(fields)
 
-  def _table_name(self):
+  def _table_name(self) -> str:
     """Return the table name for the query."""
     app_id = utils.get_application_id()
 
@@ -786,19 +845,19 @@ class Query:
 
     return '`%s`.%s.%s' % (app_id, dataset, self.base_table)
 
-  def _where(self):
+  def _where(self) -> str:
     """Return the where part of the query."""
     result = []
     result.extend(self._partition_selector())
     result.extend(self._job_and_fuzzer_selector())
 
-    result = ' AND '.join(result)
-    if result:
-      return 'WHERE ' + result
+    where_clause = ' AND '.join(result)
+    if where_clause:
+      return 'WHERE ' + where_clause
 
     return ''
 
-  def _job_and_fuzzer_selector(self):
+  def _job_and_fuzzer_selector(self) -> List[str]:
     """Return the job filter condition."""
     result = []
     if self.job_types:
@@ -810,7 +869,7 @@ class Query:
 
     return result
 
-  def _partition_selector(self):
+  def _partition_selector(self) -> List[str]:
     """Return the partition filter condition."""
     result = ('(_PARTITIONTIME BETWEEN TIMESTAMP_SECONDS(%d) '
               'AND TIMESTAMP_SECONDS(%d))')
@@ -820,7 +879,7 @@ class Query:
                   int(utils.utc_date_to_timestamp(self.date_end)))
     ]
 
-  def build(self):
+  def build(self) -> str:
     """Return query."""
     query_parts = [
         'SELECT',
@@ -830,8 +889,9 @@ class Query:
         self._where(),
     ]
 
-    if self._group_by():
-      query_parts += ['GROUP BY', self._group_by()]
+    group_by = self._group_by()
+    if group_by:
+      query_parts += ['GROUP BY', group_by]
 
     return ' '.join(query_parts)
 
@@ -839,10 +899,11 @@ class Query:
 class TestcaseQuery(Query):
   """The query class for TestcaseRun Query."""
 
-  ALIAS = 't'
+  ALIAS: ClassVar[str] = 't'
 
-  def __init__(self, fuzzer_name, job_types, query_fields, group_by, date_start,
-               date_end):
+  def __init__(self, fuzzer_name: str, job_types: Optional[Sequence[str]],
+               query_fields: Sequence[QueryField], group_by: int,
+               date_start: datetime.date, date_end: datetime.date) -> None:
     super().__init__(
         fuzzer_name=fuzzer_name,
         job_types=job_types,
@@ -857,13 +918,13 @@ class TestcaseQuery(Query):
 class JobQuery(Query):
   """The query class for JobRun Query."""
 
-  DEFAULT_FIELDS = """
+  DEFAULT_FIELDS: ClassVar[str] = """
     sum(j.testcases_executed) as testcases_executed,
     custom(j.total_crashes) as total_crashes,
     custom(j.new_crashes) as new_crashes,
     custom(j.known_crashes) as known_crashes
   """
-  SQL = """
+  SQL: ClassVar[str] = """
     WITH
       JobRunWithConcatedCrashes AS (
         SELECT
@@ -918,10 +979,11 @@ class JobQuery(Query):
     FROM
       JobRunWithSummary
   """
-  ALIAS = 'j'
+  ALIAS: ClassVar[str] = 'j'
 
-  def __init__(self, fuzzer_name, job_types, query_fields, group_by, date_start,
-               date_end):
+  def __init__(self, fuzzer_name: str, job_types: Optional[Sequence[str]],
+               query_fields: Sequence[QueryField], group_by: int,
+               date_start: datetime.date, date_end: datetime.date) -> None:
 
     super().__init__(
         fuzzer_name=fuzzer_name,
@@ -933,7 +995,7 @@ class JobQuery(Query):
         base_table='JobRun',
         alias=JobQuery.ALIAS)
 
-  def build(self):
+  def build(self) -> str:
     """Return query."""
     sql = JobQuery.SQL.format(
         table_name=self._table_name(),
@@ -947,8 +1009,9 @@ class JobQuery(Query):
 class TableQuery:
   """Query for generating results in a table."""
 
-  def __init__(self, fuzzer_name, job_types, stats_columns, group_by,
-               date_start, date_end):
+  def __init__(self, fuzzer_name: str, job_types: Optional[Sequence[str]],
+               stats_columns: str, group_by: int, date_start: datetime.date,
+               date_end: datetime.date) -> None:
     assert group_by
 
     self.fuzzer_name = fuzzer_name
@@ -956,11 +1019,11 @@ class TableQuery:
     self.group_by = group_by
     self.date_start = date_start
     self.date_end = date_end
-    self.job_run_query = None
-    self.testcase_run_query = None
+    self.job_run_query: Optional[JobQuery] = None
+    self.testcase_run_query: Optional[TestcaseQuery] = None
 
-    job_run_fields = []
-    testcase_run_fields = []
+    job_run_fields: List[QueryField] = []
+    testcase_run_fields: List[QueryField] = []
     fields = parse_stats_column_fields(stats_columns)
 
     for field in fields:
@@ -992,8 +1055,10 @@ class TableQuery:
     assert self.job_run_query or self.testcase_run_query, (
         'Unable to create query.')
 
-  def _join_subqueries(self):
+  def _join_subqueries(self) -> str:
     """Create an inner join for subqueries."""
+    assert self.job_run_query is not None
+    assert self.testcase_run_query is not None
     result = [
         '(%s) as %s' % (self.job_run_query.build(), self.job_run_query.alias),
         'INNER JOIN',
@@ -1006,14 +1071,16 @@ class TableQuery:
     ]
     return ' '.join(result)
 
-  def _single_subquery(self):
+  def _single_subquery(self) -> str:
     """Create a single subquery."""
     query = self.job_run_query or self.testcase_run_query
+    assert query is not None
     return '(%s) as %s' % (query.build(), query.alias)
 
-  def build(self):
+  def build(self) -> str:
     """Build the table query."""
     valid_run_query = self.job_run_query or self.testcase_run_query
+    assert valid_run_query is not None
     result = [
         # We need to do the below to avoid the duplicate column name error.
         'SELECT {0}.{1}, * EXCEPT({1}) FROM'.format(
@@ -1029,7 +1096,9 @@ class TableQuery:
     return ' '.join(result)
 
 
-def get_coverage_info(fuzzer, date=None):
+def get_coverage_info(fuzzer: Optional[str],
+                      date: Optional[Union[datetime.date, str]] = None
+                     ) -> Optional[data_types.CoverageInformation]:
   """Returns a CoverageInformation entity for a given fuzzer and date. If date
   is not specified, returns the latest entity available."""
   query = data_types.CoverageInformation.query(
@@ -1044,7 +1113,8 @@ def get_coverage_info(fuzzer, date=None):
   return query.get()
 
 
-def get_gcs_stats_path(kind, fuzzer, timestamp):
+def get_gcs_stats_path(kind: str, fuzzer: str,
+                       timestamp: float) -> Optional[str]:
   """Return gcs path in the format "/bucket/path/to/containing_dir/" for the
   given fuzzer, job, and timestamp or revision."""
   bucket_name = big_query.get_bucket()
@@ -1059,7 +1129,8 @@ def get_gcs_stats_path(kind, fuzzer, timestamp):
 
 
 @environment.local_noop
-def upload_stats(stats_list, filename=None):
+def upload_stats(stats_list: List[BaseRun],
+                 filename: Optional[str] = None) -> None:
   """Upload the fuzzer run to the bigquery bucket. Assumes that all the stats
   given are for the same fuzzer/job run."""
   if not stats_list:
@@ -1084,7 +1155,7 @@ def upload_stats(stats_list, filename=None):
     filename = '%016x' % random.randint(0, (1 << 64) - 1) + '.json'
 
   # Handle runs that bleed into the next day.
-  def timestamp_start_of_day(s):
+  def timestamp_start_of_day(s: BaseRun) -> float:
     return utils.utc_date_to_timestamp(
         datetime.datetime.utcfromtimestamp(s.timestamp).date())
 
@@ -1093,8 +1164,10 @@ def upload_stats(stats_list, filename=None):
   for timestamp, stats in itertools.groupby(stats_list, timestamp_start_of_day):
     upload_data = '\n'.join(stat.to_json() for stat in stats)
 
-    day_path = 'gs:/' + get_gcs_stats_path(
-        kind, fuzzer_or_engine_name, timestamp=timestamp) + filename
+    gcs_stats_path = get_gcs_stats_path(
+        kind, fuzzer_or_engine_name, timestamp=timestamp)
+    assert gcs_stats_path is not None
+    day_path = 'gs:/' + gcs_stats_path + filename
 
     if storage.write_data(upload_data.encode('utf-8'), day_path):
       logs.info(f'Uploaded {kind} stats for {fuzzer} to {day_path}.')
@@ -1102,7 +1175,8 @@ def upload_stats(stats_list, filename=None):
       logs.error(f'Failed to upload {kind} stats for {fuzzer} to {day_path}.')
 
 
-def parse_stats_column_fields(column_fields):
+def parse_stats_column_fields(
+    column_fields: str) -> List[Union[QueryField, BuiltinFieldSpecifier]]:
   """Parse the stats column fields."""
   # e.g. 'sum(t.field_name) as display_name'.
   aggregate_regex = re.compile(r'^(\w+)\(([a-z])\.([^\)]+)\)(\s*as\s*(\w+))?$')
@@ -1110,7 +1184,7 @@ def parse_stats_column_fields(column_fields):
   # e.g. '_EDGE_COV as blah'.
   builtin_regex = re.compile(r'^(_\w+)(\s*as\s*(\w+))?$')
 
-  fields = []
+  fields: List[Union[QueryField, BuiltinFieldSpecifier]] = []
   parts = [field.strip() for field in column_fields.split(',')]
   for part in parts:
     match = aggregate_regex.match(part)
@@ -1138,21 +1212,21 @@ def parse_stats_column_fields(column_fields):
   return fields
 
 
-def get_fuzzer_or_engine_name(fuzzer_name):
+def get_fuzzer_or_engine_name(fuzzer_name: str) -> str:
   """Return fuzzing engine name if it exists, or |fuzzer_name|."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
   if fuzz_target:
-    return fuzz_target.engine
+    return cast(str, fuzz_target.engine)
 
   return fuzzer_name
 
 
-def dataset_name(fuzzer_name):
+def dataset_name(fuzzer_name: str) -> str:
   """Get the stats dataset name for the given |fuzzer_name|."""
   return fuzzer_name.replace('-', '_') + '_stats'
 
 
-BUILTIN_FIELD_CONSTRUCTORS = {
+BUILTIN_FIELD_CONSTRUCTORS: Dict[str, Callable[..., BuiltinField]] = {
     '_EDGE_COV':
         functools.partial(CoverageField, CoverageField.EDGE),
     '_FUNC_COV':

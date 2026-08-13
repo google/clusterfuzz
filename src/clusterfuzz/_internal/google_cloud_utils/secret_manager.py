@@ -15,12 +15,12 @@
 from google.cloud import secretmanager
 
 
-def get_secret_manager_client():
+def get_secret_manager_client() -> secretmanager.SecretManagerServiceClient:
   """Returns the secretmanager client."""
   return secretmanager.SecretManagerServiceClient()
 
 
-def get(secret_id, project):
+def get(secret_id: str, project: str) -> bytes:
   """Returns the value of the secret identified by |secret_id| in
     |project|."""
   client = get_secret_manager_client()

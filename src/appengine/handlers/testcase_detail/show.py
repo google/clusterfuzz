@@ -16,6 +16,10 @@
 import datetime
 import html
 import re
+from typing import Any
+from typing import cast
+from typing import Optional
+from typing import Sequence
 
 import flask
 import jinja2
@@ -41,7 +45,7 @@ from libs import form
 from libs import handler
 from libs import helpers
 
-FIND_SIMILAR_ISSUES_OPTIONS = [{
+FIND_SIMILAR_ISSUES_OPTIONS: list[dict[str, str]] = [{
     'type': 'open',
     'label': 'Open'
 }, {
@@ -49,25 +53,25 @@ FIND_SIMILAR_ISSUES_OPTIONS = [{
     'label': 'All'
 }]
 
-CRASH_STATE_REGEXES = [
+CRASH_STATE_REGEXES: list[str] = [
     r'bad-cast to (.+) from.*', r'bad-cast to (.+)', r'(.+) +in +.+'
 ]
 
-COMPILED_CRASH_STATE_REGEXES = [
+COMPILED_CRASH_STATE_REGEXES: list[re.Pattern] = [
     re.compile(r, flags=re.IGNORECASE) for r in CRASH_STATE_REGEXES
 ]
 
 # [<ffffff900808f5ac>] dump_backtrace+0x0/0x34c
 # http://go/pakernel/msm-google/+/40e9b2ff3a280a8775cfcd5841e530ce78f94355/
 # arch/arm64/kernel/traps.c#96;msm-google/arch/arm64/kernel/traps.c
-KERNEL_LINK_REGEX = re.compile(
+KERNEL_LINK_REGEX: re.Pattern = re.compile(
     r'(.+)(http:\/\/go\/pakernel\/[^;]+);([^;]+);(.*)')
-KERNEL_LINK_FORMAT = r'%s<a href="%s">%s</a>%s'
+KERNEL_LINK_FORMAT: str = r'%s<a href="%s">%s</a>%s'
 
-STACKTRACE_MAX_LENGTH = 500000
+STACKTRACE_MAX_LENGTH: int = 500000
 
 
-def _truncate_stacktrace(stacktrace):
+def _truncate_stacktrace(stacktrace: str) -> str:
   """Truncate stacktrace if necessary."""
   if len(stacktrace) > STACKTRACE_MAX_LENGTH:
     # Read first and last |STACKTRACE_MAX_LENGTH/2| bytes.
@@ -79,7 +83,8 @@ def _truncate_stacktrace(stacktrace):
   return stacktrace
 
 
-def _parse_suspected_cls(predator_result):
+def _parse_suspected_cls(
+    predator_result: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
   """Parse raw suspected_cls into dict."""
   if not predator_result:
     return None
@@ -87,24 +92,24 @@ def _parse_suspected_cls(predator_result):
   # The raw result contains some additional information that we don't need here.
   # Everything we're concerned with is a part of the "result" object included
   # with the response.
-  predator_result = predator_result['result']
+  predator_result_dict = cast(dict[str, Any], predator_result['result'])
   return {
-      'found': predator_result.get('found'),
-      'suspected_project': predator_result.get('suspected_project'),
-      'suspected_components': predator_result.get('suspected_components'),
-      'changelists': predator_result.get('suspected_cls'),
-      'feedback_url': predator_result.get('feedback_url'),
-      'error_message': predator_result.get('error_message'),
+      'found': predator_result_dict.get('found'),
+      'suspected_project': predator_result_dict.get('suspected_project'),
+      'suspected_components': predator_result_dict.get('suspected_components'),
+      'changelists': predator_result_dict.get('suspected_cls'),
+      'feedback_url': predator_result_dict.get('feedback_url'),
+      'error_message': predator_result_dict.get('error_message'),
   }
 
 
-def highlight_common_stack_frames(crash_stacktrace):
+def highlight_common_stack_frames(crash_stacktrace: str) -> str:
   """Highlights common stack frames between first two stacks."""
-  crash_stacks = [[]]
-  highlighted_crash_stacktrace_lines = []
-  old_frame_no = 0
-  stack_index = 0
-  stack_trace_line_format = '^ *#([0-9]+) *0x[0-9a-f]+ (.*)'
+  crash_stacks: list[list[str]] = [[]]
+  highlighted_crash_stacktrace_lines: list[str] = []
+  old_frame_no: int = 0
+  stack_index: int = 0
+  stack_trace_line_format = r'^ *#([0-9]+) *0x[0-9a-f]+ (.*)'
 
   for line in crash_stacktrace.splitlines():
     # Stacktrace separator prefix.
@@ -129,7 +134,7 @@ def highlight_common_stack_frames(crash_stacktrace):
     return crash_stacktrace
 
   # Compare stack frames between first two stacks.
-  match_index = -1
+  match_index: Any = -1
   start_index_crash_stack_1 = len(crash_stacks[0]) - 1
   start_index_crash_stack_2 = len(crash_stacks[1]) - 1
   while True:
@@ -176,7 +181,7 @@ def highlight_common_stack_frames(crash_stacktrace):
   return '\n'.join(highlighted_crash_stacktrace_lines)
 
 
-def _linkify_android_kernel_stack_frame_if_needed(line):
+def _linkify_android_kernel_stack_frame_if_needed(line: str) -> str:
   """Linkify links to android kernel source."""
   match = KERNEL_LINK_REGEX.match(line)
   if match:
@@ -186,8 +191,10 @@ def _linkify_android_kernel_stack_frame_if_needed(line):
   return line
 
 
-def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
-                      job_type):
+def filter_stacktrace(crash_stacktrace: Optional[str],
+                      crash_type: Optional[str],
+                      revisions_dict: Optional[dict[str, Any]],
+                      platform: Optional[str], job_type: Optional[str]) -> str:
   """Clean up and format a stack trace for display."""
   if not crash_stacktrace:
     return ''
@@ -195,8 +202,8 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
   # Truncate stacktrace if it's too big.
   crash_stacktrace = _truncate_stacktrace(crash_stacktrace)
 
-  filtered_crash_lines = []
-  linkifier = source_mapper.StackFrameLinkifier(revisions_dict)
+  filtered_crash_lines: list[str] = []
+  linkifier = source_mapper.StackFrameLinkifier(cast(Any, revisions_dict))
   for line in crash_stacktrace.splitlines():
     # Html escape line content to prevent XSS.
     line = html.escape(line, quote=True)
@@ -219,22 +226,26 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
 class Line:
   """Represent a stacktrace line."""
 
-  def __init__(self, line_number, content, important):
+  line_number: int
+  content: str
+  important: bool
+
+  def __init__(self, line_number: int, content: str, important: bool) -> None:
     self.line_number = line_number
     self.content = content
     self.important = important
 
-  def __str__(self):
+  def __str__(self) -> str:
     return 'Line(%d, "%s", %s)' % (self.line_number, self.content,
                                    self.important)
 
-  def __eq__(self, other):
+  def __eq__(self, other: object) -> bool:
     return hash(self) == hash(other)
 
-  def __hash__(self):
+  def __hash__(self) -> int:
     return hash(self.__str__())
 
-  def to_dict(self):
+  def to_dict(self) -> dict[str, Any]:
     return {
         'lineNumber': self.line_number,
         'content': self.content,
@@ -243,7 +254,7 @@ class Line:
     }
 
 
-def _is_line_important(line_content, frames):
+def _is_line_important(line_content: str, frames: Sequence[str]) -> bool:
   """Check if the line contains a frame; it means the line is
      important."""
   for frame in frames:
@@ -252,12 +263,12 @@ def _is_line_important(line_content, frames):
   return False
 
 
-def get_stack_frames(crash_state_lines):
+def get_stack_frames(crash_state_lines: Sequence[str]) -> list[str]:
   """Get the stack frames from the crash state. Sometimes the crash state
      contains a type of crash, e.g. 'Bad-cast to content::RenderWidget from
      content::RenderWidgetHostViewAura'. The stack frame is
      'content::RenderWidget'."""
-  frames = []
+  frames: list[str] = []
   for line in crash_state_lines:
     added = False
     for regex in COMPILED_CRASH_STATE_REGEXES:
@@ -272,7 +283,9 @@ def get_stack_frames(crash_state_lines):
   return frames
 
 
-def convert_to_lines(raw_stacktrace, crash_state_lines, crash_type):
+def convert_to_lines(raw_stacktrace: Optional[str],
+                     crash_state_lines: Sequence[str],
+                     crash_type: str) -> list[Line]:
   """Convert an array of string to an array of Line."""
   if not raw_stacktrace or not raw_stacktrace.strip():
     return []
@@ -281,30 +294,32 @@ def convert_to_lines(raw_stacktrace, crash_state_lines, crash_type):
 
   frames = get_stack_frames(crash_state_lines)
   escaped_frames = [markupsafe.escape(f) for f in frames]
-  combined_frames = frames + escaped_frames
+  combined_frames = frames + cast(list[str], escaped_frames)
 
   # Certain crash types have their own customized frames that are not related to
   # the stacktrace. Therefore, we make our best effort to preview stacktrace
-  # in a reasonable way; we preview around the the top of the stacktrace.
+  # in a reasonable way; we preview around the top of the stacktrace.
   for unique_type in data_types.CRASH_TYPES_WITH_UNIQUE_STATE:
     if crash_type.startswith(unique_type):
       combined_frames = ['ERROR']
       break
 
-  lines = []
+  lines: list[Line] = []
   for index, content in enumerate(raw_lines):
     important = _is_line_important(content, combined_frames)
     lines.append(Line(index + 1, content, important))
   return lines
 
 
-def get_testcase_detail_by_id(testcase_id):
+def get_testcase_detail_by_id(testcase_id: Any) -> dict[str, Any]:
   """Get testcase detail for rendering the testcase detail page."""
   testcase = access.check_access_and_get_testcase(testcase_id)
   return get_testcase_detail(testcase)
 
 
-def _get_revision_range_html_from_string(job_type, platform_id, revision_range):
+def _get_revision_range_html_from_string(job_type: Optional[str],
+                                         platform_id: Optional[str],
+                                         revision_range: str) -> str:
   """Return revision range html for a revision range and job type given a range
   string."""
   try:
@@ -316,10 +331,10 @@ def _get_revision_range_html_from_string(job_type, platform_id, revision_range):
                                   end_revision)
 
 
-def _get_revision_range_html(job_type,
-                             platform_id,
-                             start_revision,
-                             end_revision=None):
+def _get_revision_range_html(job_type: Optional[str],
+                             platform_id: Optional[str],
+                             start_revision: Any,
+                             end_revision: Any = None) -> str:
   """Return revision range html for a revision range and job type."""
   if end_revision is None:
     end_revision = start_revision
@@ -333,7 +348,7 @@ def _get_revision_range_html(job_type,
   return revisions.format_revision_list(component_rev_list)
 
 
-def _get_blob_size_string(blob_key):
+def _get_blob_size_string(blob_key: Optional[str]) -> Optional[str]:
   """Return blob size string."""
   blob_size = blobs.get_blob_size(blob_key)
   if blob_size is None:
@@ -342,7 +357,7 @@ def _get_blob_size_string(blob_key):
   return utils.get_size_string(blob_size)
 
 
-def _format_reproduction_help(reproduction_help):
+def _format_reproduction_help(reproduction_help: Optional[str]) -> str:
   """Format a reproduction help string as HTML (linkified with break tags)."""
   if not reproduction_help:
     return ''
@@ -350,12 +365,12 @@ def _format_reproduction_help(reproduction_help):
   return jinja2.utils.urlize(reproduction_help).replace('\n', '<br>')
 
 
-def get_testcase_detail(testcase):
+def get_testcase_detail(testcase: data_types.Testcase) -> dict[str, Any]:
   """Get testcase detail for rendering the testcase detail page."""
   config = db_config.get()
   crash_address = testcase.crash_address
   crash_state = testcase.crash_state
-  crash_state_lines = crash_state.strip().splitlines()
+  crash_state_lines = cast(str, crash_state).strip().splitlines()
   crash_type = data_handler.get_crash_type_string(testcase)
   external_user = not access.has_access(job_type=testcase.job_type)
   issue_url = issue_tracker_utils.get_issue_url(testcase)
@@ -408,11 +423,11 @@ def get_testcase_detail(testcase):
   crash_revisions_dict = revisions.get_component_revisions_dict(
       crash_revision, testcase.job_type, platform_id=testcase.platform_id)
   crash_stacktrace = data_handler.get_stacktrace(testcase)
-  crash_stacktrace = filter_stacktrace(crash_stacktrace, testcase.crash_type,
-                                       crash_revisions_dict, testcase.platform,
-                                       testcase.job_type)
-  crash_stacktrace = convert_to_lines(crash_stacktrace, crash_state_lines,
-                                      crash_type)
+  filtered_crash_stacktrace = filter_stacktrace(
+      crash_stacktrace, testcase.crash_type, crash_revisions_dict,
+      testcase.platform, testcase.job_type)
+  crash_stacktrace_lines = convert_to_lines(filtered_crash_stacktrace,
+                                            crash_state_lines, crash_type)
 
   last_tested_crash_revision = metadata.get('last_tested_crash_revision')
   last_tested_crash_revisions_dict = revisions.get_component_revisions_dict(
@@ -421,11 +436,11 @@ def get_testcase_detail(testcase):
       platform_id=testcase.platform_id)
   last_tested_crash_stacktrace = data_handler.get_stacktrace(
       testcase, stack_attribute='last_tested_crash_stacktrace')
-  last_tested_crash_stacktrace = filter_stacktrace(
+  filtered_last_tested_stacktrace = filter_stacktrace(
       last_tested_crash_stacktrace, testcase.crash_type,
       last_tested_crash_revisions_dict, testcase.platform, testcase.job_type)
-  last_tested_crash_stacktrace = convert_to_lines(last_tested_crash_stacktrace,
-                                                  crash_state_lines, crash_type)
+  last_tested_crash_stacktrace_lines = convert_to_lines(
+      filtered_last_tested_stacktrace, crash_state_lines, crash_type)
 
   privileged_user = access.has_access(need_privileged_access=True)
 
@@ -469,14 +484,14 @@ def get_testcase_detail(testcase):
     # no associated bug.
     if not testcase.bug_information:
       auto_delete_timestamp = utils.utc_datetime_to_timestamp(
-          last_crash_time + datetime.timedelta(
+          cast(Any, last_crash_time) + datetime.timedelta(
               days=data_types.UNREPRODUCIBLE_TESTCASE_NO_BUG_DEADLINE))
 
     # Set auto-close timestamp for unreproducible testcases with
     # an associated bug.
     if testcase.open and testcase.bug_information:
       auto_close_timestamp = utils.utc_datetime_to_timestamp(
-          last_crash_time + datetime.timedelta(
+          cast(Any, last_crash_time) + datetime.timedelta(
               days=data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE))
 
   memory_tool_display_string = environment.get_memory_tool_display_string(
@@ -529,7 +544,7 @@ def get_testcase_detail(testcase):
           regression,
       'crash_stacktrace': {
           'lines':
-              crash_stacktrace,
+              crash_stacktrace_lines,
           'revision':
               revisions.get_real_revision(
                   crash_revision,
@@ -539,7 +554,7 @@ def get_testcase_detail(testcase):
       },
       'last_tested_crash_stacktrace': {
           'lines':
-              last_tested_crash_stacktrace,
+              last_tested_crash_stacktrace_lines,
           'revision':
               revisions.get_real_revision(
                   last_tested_crash_revision,
@@ -592,11 +607,11 @@ def get_testcase_detail(testcase):
       'is_local_development':
           environment.is_running_on_app_engine_development(),
       'fuzzer_display':
-          fuzzer_display._asdict(),
+          cast(Any, fuzzer_display)._asdict(),
   }
 
 
-def is_admin_or_not_oss_fuzz():
+def is_admin_or_not_oss_fuzz() -> bool:
   """Return True if the current user is an admin or if this is not OSS-Fuzz."""
   return not utils.is_oss_fuzz() or auth.is_current_user_admin()
 
@@ -605,7 +620,7 @@ class Handler(base_handler.Handler):
   """Handler that shows a testcase in detail."""
 
   @handler.get(handler.HTML)
-  def get(self, testcase_id=None):
+  def get(self, testcase_id: Any = None) -> base_handler.Response:
     """Serve the testcase detail HTML page."""
     values = {'info': get_testcase_detail_by_id(testcase_id)}
     return self.render('testcase-detail.html', values)
@@ -614,7 +629,7 @@ class Handler(base_handler.Handler):
 class DeprecatedHandler(base_handler.Handler):
   """Deprecated handler to show old style testcase link with key."""
 
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Serve the redirect to the current test case detail page."""
     testcase_id = flask.request.args.get('key')
     if not testcase_id:
@@ -628,9 +643,9 @@ class RefreshHandler(base_handler.Handler):
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.oauth
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Serve the testcase detail JSON."""
-    testcase_id = flask.request.get('testcaseId')
+    testcase_id = cast(Any, flask.request).get('testcaseId')
     return self.render_json(get_testcase_detail_by_id(testcase_id))
 
 
@@ -638,10 +653,10 @@ class TaskLogHandler(base_handler.Handler):
   """Handler for downloading a task's log."""
 
   @handler.get(handler.TEXT)
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Serve the task log."""
     testcase = access.check_access_and_get_testcase(
-        flask.request.args.get('testcase_id'))
+        cast(Any, flask.request.args.get('testcase_id')))
 
     task_id = flask.request.args.get('task_id')
     if not task_id:

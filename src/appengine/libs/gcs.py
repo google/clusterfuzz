@@ -14,13 +14,15 @@
 """App Engine GCS helpers."""
 
 import base64
-import collections
 import datetime
 import json
 import time
+from typing import Any
+from typing import cast
+from typing import NamedTuple
 import urllib.parse
 
-import googleapiclient
+import googleapiclient.discovery
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -31,20 +33,25 @@ STORAGE_URL = 'https://storage.googleapis.com/%s'
 DEFAULT_URL_VALID_SECONDS = 30 * 60  # 30 minutes.
 MAX_UPLOAD_SIZE = 15 * 1024 * 1024 * 1024  # 15 GB.
 
-GcsUpload = collections.namedtuple(
-    'GcsUpload',
-    ['url', 'bucket', 'key', 'google_access_id', 'policy', 'signature'])
+
+class GcsUpload(NamedTuple):
+  url: str
+  bucket: str
+  key: str
+  google_access_id: str
+  policy: bytes
+  signature: bytes
 
 
 class GcsError(Exception):
   """Base class for exceptions in this module."""
 
 
-def sign_data(data):
+def sign_data(data: bytes) -> bytes:
   """Sign data with the default App Engine service account."""
   iam = googleapiclient.discovery.build('iamcredentials', 'v1')
-  service_account = 'projects/-/serviceAccounts/' + utils.service_account_email(
-  )
+  service_account = 'projects/-/serviceAccounts/' + cast(
+      str, utils.service_account_email())
 
   response = iam.projects().serviceAccounts().signBlob(  # pylint: disable=no-member
       name=service_account,
@@ -62,7 +69,10 @@ def sign_data(data):
 class SignedGcsHandler:
   """Handler for signing and redirecting to a GCS object."""
 
-  def serve_gcs_object(self, bucket, object_path, content_disposition=None):
+  def serve_gcs_object(self,
+                       bucket: str,
+                       object_path: str,
+                       content_disposition: str | None = None) -> Any:
     """Serve a GCS object."""
     url = get_signed_url(bucket, object_path)
 
@@ -73,18 +83,18 @@ class SignedGcsHandler:
 
       url += '&' + urllib.parse.urlencode(content_disposition_params)
 
-    return self.redirect(url)  # pylint: disable=no-member
+    return self.redirect(url)  # type: ignore # pylint: disable=no-member
 
 
-def _get_expiration_time(expiry_seconds):
+def _get_expiration_time(expiry_seconds: int) -> int:
   """Return a timestamp |expiry_seconds| from now."""
   return int(time.time() + expiry_seconds)
 
 
-def get_signed_url(bucket_name,
-                   path,
-                   method='GET',
-                   expiry=DEFAULT_URL_VALID_SECONDS):
+def get_signed_url(bucket_name: str,
+                   path: str,
+                   method: str = 'GET',
+                   expiry: int = DEFAULT_URL_VALID_SECONDS) -> str:
   """Return a signed url."""
   timestamp = _get_expiration_time(expiry)
   blob = '%s\n\n\n%d\n/%s/%s' % (method, timestamp, bucket_name, path)
@@ -97,7 +107,7 @@ def get_signed_url(bucket_name,
   else:
     url = STORAGE_URL % bucket_name
     signed_blob = sign_data(blob.encode('utf-8'))
-    service_account_name = utils.service_account_email()
+    service_account_name = cast(str, utils.service_account_email())
 
   params = {
       'GoogleAccessId': service_account_name,
@@ -108,12 +118,14 @@ def get_signed_url(bucket_name,
   return str(url + '/' + path + '?' + urllib.parse.urlencode(params))
 
 
-def prepare_upload(bucket_name, path, expiry=DEFAULT_URL_VALID_SECONDS):
+def prepare_upload(bucket_name: str,
+                   path: str,
+                   expiry: int = DEFAULT_URL_VALID_SECONDS) -> GcsUpload:
   """Prepare a signed GCS upload."""
   expiration_time = (
       datetime.datetime.utcnow() + datetime.timedelta(seconds=expiry))
 
-  conditions = [
+  conditions: list[Any] = [
       {
           'key': path
       },
@@ -138,12 +150,12 @@ def prepare_upload(bucket_name, path, expiry=DEFAULT_URL_VALID_SECONDS):
   else:
     url = STORAGE_URL % bucket_name
     signature = base64.b64encode(sign_data(policy))
-    service_account_name = utils.service_account_email()
+    service_account_name = cast(str, utils.service_account_email())
 
   return GcsUpload(url, bucket_name, path, service_account_name, policy,
                    signature)
 
 
-def prepare_blob_upload():
+def prepare_blob_upload() -> GcsUpload:
   """Prepare a signed GCS blob upload."""
   return prepare_upload(storage.blobs_bucket(), blobs.generate_new_blob_name())

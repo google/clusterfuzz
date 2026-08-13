@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for getting testcase variants."""
+
+from typing import Any
+
 from clusterfuzz._internal.datastore import data_types
 from handlers import base_handler
 from libs import handler
@@ -20,10 +23,10 @@ from libs import handler
 class Handler(base_handler.Handler):
   """Handler that return testcase variants."""
 
-  def get_variants(self, testcase):
+  def get_variants(self, testcase: data_types.Testcase) -> list[dict[str, Any]]:
     """Get testcase variants"""
 
-    def _display_status(status):
+    def _display_status(status: int | None) -> str:
       """Return status for display."""
       if status == data_types.TestcaseVariantStatus.PENDING:
         return 'Pending'
@@ -36,7 +39,7 @@ class Handler(base_handler.Handler):
 
       return 'Unknown'
 
-    items = []
+    items: list[dict[str, Any]] = []
     variants = data_types.TestcaseVariant.query(
         data_types.TestcaseVariant.testcase_id == testcase.key.id()).order(
             data_types.TestcaseVariant.job_type)
@@ -47,7 +50,7 @@ class Handler(base_handler.Handler):
         continue
 
       is_pending = variant.status == data_types.TestcaseVariantStatus.PENDING
-      item = {
+      item: dict[str, Any] = {
           'isPending': is_pending,
           'status': _display_status(variant.status),
           'job': variant.job_type,
@@ -72,10 +75,10 @@ class Handler(base_handler.Handler):
 
   @handler.get(handler.JSON)
   @handler.check_testcase_access
-  def get(self, testcase):
+  def get(self, testcase: data_types.Testcase) -> base_handler.Response:
     """Return testcase variants."""
-    items = []
-    message = None
+    items: list[dict[str, Any]] = []
+    message: str | None = None
     if testcase.one_time_crasher_flag:
       message = 'Not run for unreproducible testcases.'
     elif not testcase.minimized_keys:

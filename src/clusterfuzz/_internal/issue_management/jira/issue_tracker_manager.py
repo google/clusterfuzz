@@ -14,47 +14,55 @@
 """Issue tracker manager functions."""
 
 import json
+from typing import Any
+from typing import cast
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 import jira
+import jira.resilientsession
+import jira.resources
 
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.metrics import logs
 
-UNCREATED_JIRA_ISSUE_ID = -1
+UNCREATED_JIRA_ISSUE_ID: int = -1
 
 
 class IssueTrackerManager:
   """Issue tracker manager."""
 
-  def __init__(self, project_name):
+  def __init__(self, project_name: str) -> None:
     """Construct an issue tracker manager instance based on parameters."""
-    self._client = None
-    self.project_name = project_name
+    self._client: Optional[jira.JIRA] = None
+    self.project_name: str = project_name
 
   @property
-  def client(self):
+  def client(self) -> jira.JIRA:
     """HTTP Client."""
     if self._client is None:
       self._client = self._create_client()
 
     return self._client
 
-  def _create_client(self):
+  def _create_client(self) -> jira.JIRA:
     """Return a client object for querying the issue tracker."""
     config = db_config.get()
-    credentials = json.loads(config.jira_credentials)
-    jira_url = config.jira_url
+    credentials = json.loads(config.jira_credentials)  # type: ignore
+    jira_url = config.jira_url  # type: ignore
     jira_client = jira.JIRA(
         jira_url, auth=(credentials['username'], credentials['password']))
     return jira_client
 
-  def save(self, issue):
+  def save(self, issue: Any) -> None:
     """Save an issue."""
     if issue.id == UNCREATED_JIRA_ISSUE_ID:
       return self._create(issue)
     return self._update(issue)
 
-  def create(self):
+  def create(self) -> jira.resources.Issue:
     """Create an issue object locally."""
     raw_fields = {
         'id': f'{UNCREATED_JIRA_ISSUE_ID}',
@@ -69,7 +77,7 @@ class IssueTrackerManager:
                                       raw_fields)
     return jira_issue
 
-  def _transition_issue_status_if_updated(self, issue):
+  def _transition_issue_status_if_updated(self, issue: Any) -> None:
     """Transitions the status of the issue if updated. Jira has a separate
     endpoint to transition status."""
     # Brittle - we should be pulling the equivalent of 'new' from the policy.
@@ -84,7 +92,8 @@ class IssueTrackerManager:
     if not isinstance(issue.status, jira.resources.Resource):
       self.client.transition_issue(issue.jira_issue, transition=issue.status)
 
-  def _add_watchers(self, issue, update_if_different=False):
+  def _add_watchers(self, issue: Any,
+                    update_if_different: bool = False) -> None:
     """Add watchers to the ticket. Jira has a separate endpoint to
     add watchers."""
 
@@ -106,7 +115,7 @@ class IssueTrackerManager:
       except Exception:
         logs.error(f'Error adding watcher {watcher} to issue {issue.id}')
 
-  def _get_issue_fields(self, issue):
+  def _get_issue_fields(self, issue: Any) -> Dict[str, Any]:
     """Get issue fields to populate the ticket"""
     # Get labels from LabelStore.
     labels = list(issue.labels)
@@ -114,7 +123,7 @@ class IssueTrackerManager:
     # Get components from LabelStore.
     components = list(issue.components)
 
-    fields = {
+    fields: Dict[str, Any] = {
         'summary': issue.title,
         'description': issue.body,
         'labels': labels,
@@ -135,7 +144,7 @@ class IssueTrackerManager:
       fields['priority'] = {'name': 'Major - P2'}
     return fields
 
-  def _create(self, issue):
+  def _create(self, issue: Any) -> None:
     """Create an issue."""
 
     fields = self._get_issue_fields(issue)
@@ -143,7 +152,7 @@ class IssueTrackerManager:
     self._add_watchers(jira_issue)
     issue.jira_issue = jira_issue
 
-  def _update(self, issue):
+  def _update(self, issue: Any) -> None:
     """Update an issue."""
 
     update_fields = self._get_issue_fields(issue)
@@ -151,7 +160,7 @@ class IssueTrackerManager:
     self._add_watchers(issue, update_if_different=True)
     issue.jira_issue.update(fields=update_fields)
 
-  def get_watchers(self, issue):
+  def get_watchers(self, issue: Any) -> List[str]:
     """Retrieve list of watchers."""
     if issue.id == UNCREATED_JIRA_ISSUE_ID:
       return []
@@ -161,17 +170,19 @@ class IssueTrackerManager:
       watchers.append(watcher.name)
     return watchers
 
-  def get_issue(self, issue_id):
+  def get_issue(self,
+                issue_id: Union[str, int]) -> Optional[jira.resources.Issue]:
     """Retrieve an issue object with a specific id."""
     issue = self.client.issue(str(issue_id))
     return issue
 
-  def get_issue_count(self, query_string):
+  def get_issue_count(self, query_string: str) -> int:
     """Return number of issues for a given query."""
     issues = self.client.search_issues(query_string)
     return len(issues)
 
-  def get_issues(self, query_string, max_results=10000):
+  def get_issues(self, query_string: str,
+                 max_results: int = 10000) -> List[jira.resources.Issue]:
     """Return all issues for a given query."""
     issues = self.client.search_issues(query_string, maxResults=max_results)
-    return issues
+    return cast(List[jira.resources.Issue], issues)

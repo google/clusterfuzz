@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """External reproduction updates."""
+
 import json
 
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -19,16 +20,17 @@ from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import helpers
 
-OLD_PROTOCOL = '1'  # Old message format: Data is a stacktrace.
-NEW_PROTOCOL = '2'  # New message format: Data is a JSON array of stracktraces.
+OLD_PROTOCOL: str = '1'  # Old message format: Data is a stacktrace.
+NEW_PROTOCOL: str = '2'  # New format: Data is a JSON array of stacktraces.
 
 
-def _mark_as_fixed(testcase, revision):
+def _mark_as_fixed(testcase: data_types.Testcase, revision: int) -> None:
   """Mark bug as fixed."""
   testcase.open = False
   # Bisection not available for external reproduction infrastructure. Assume
@@ -38,7 +40,8 @@ def _mark_as_fixed(testcase, revision):
       testcase, revision, message=f'fixed in r{revision}')
 
 
-def _mark_errored(testcase, revision, error):
+def _mark_errored(testcase: data_types.Testcase, revision: int,
+                  error: str) -> None:
   """Mark testcase as errored out."""
   message = 'Received error from external infra, marking testcase as NA.'
   logs.warning(message, error=error, testcase_id=testcase.key.id())
@@ -49,10 +52,12 @@ def _mark_errored(testcase, revision, error):
       testcase, revision, message=message)
 
 
-def handle_update(testcase, revision, stacktraces, error, protocol_version):
+def handle_update(testcase: data_types.Testcase, revision: int,
+                  stacktraces: list[str], error: str | None,
+                  protocol_version: str) -> None:
   """Handle update."""
 
-  def is_still_crashing(st_index, stacktrace):
+  def is_still_crashing(st_index: int, stacktrace: str) -> bool:
     """Check if the the given stackstrace indicates
       the testcase is still crashing"""
     state = stack_analyzer.get_crash_data(
@@ -90,7 +95,7 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
   last_tested_revision = (
       testcase.get_metadata('last_tested_revision') or testcase.crash_revision)
 
-  if revision < last_tested_revision:
+  if revision < last_tested_revision:  # pyright: ignore
     logs.warning(f'Revision {revision} less than previously tested '
                  f'revision {last_tested_revision}.')
     return
@@ -115,8 +120,9 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
 
   # Record use of fuzz target to avoid garbage collection (since fuzz_task does
   # not run).
-  data_handler.record_fuzz_target(fuzz_target.engine, fuzz_target.binary,
-                                  testcase.job_type)
+  if fuzz_target:
+    data_handler.record_fuzz_target(fuzz_target.engine, fuzz_target.binary,
+                                    testcase.job_type)
 
   for st_index, stacktrace in enumerate(stacktraces):
     if is_still_crashing(st_index, stacktrace):
@@ -136,13 +142,13 @@ class Handler(base_handler.Handler):
   """External reproduction update."""
 
   @handler.pubsub_push
-  def post(self, message):
+  def post(self, message: pubsub.Message) -> str:
     """Handle a post request."""
-    testcase_id = message.attributes.get('testcaseId')
+    testcase_id = message.attributes.get('testcaseId')  # type: ignore
     if not testcase_id:
       raise helpers.EarlyExitError('Missing testcaseId.', 400)
 
-    revision = message.attributes.get('revision')
+    revision = message.attributes.get('revision')  # type: ignore
     if not revision or not revision.isdigit():
       raise helpers.EarlyExitError('Missing revision.', 400)
 
@@ -158,7 +164,8 @@ class Handler(base_handler.Handler):
       logs.info(f'No stacktrace provided (testcase_id={testcase_id}).')
       stacktrace = ''
 
-    protocol_version = message.attributes.get('protocolVersion', OLD_PROTOCOL)
+    protocol_version = (message.attributes or {}).get('protocolVersion',
+                                                      OLD_PROTOCOL)
     if protocol_version == OLD_PROTOCOL:
       # Old: stacktrace is a str.
       stacktraces = [stacktrace]
@@ -173,6 +180,6 @@ class Handler(base_handler.Handler):
       # Invalid: stacktrace is presumably ill-formed.
       stacktraces = []
 
-    error = message.attributes.get('error')
+    error = message.attributes.get('error')  # type: ignore
     handle_update(testcase, revision, stacktraces, error, protocol_version)
     return 'OK'

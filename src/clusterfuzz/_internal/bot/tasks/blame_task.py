@@ -15,6 +15,7 @@
 
 import json
 import re
+from typing import Any
 
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
@@ -32,7 +33,10 @@ SRC_COMPONENT_OVERRIDES = {
 UNINTERESTING_LINES_REGEX = re.compile(r'.*:(VERBOSE\d|INFO|WARNING):')
 
 
-def _compute_rolls(start_revisions_dict, end_revisions_dict):
+def _compute_rolls(
+    start_revisions_dict: dict[str, Any],
+    end_revisions_dict: dict[str, Any],
+) -> list[dict[str, Any]]:
   """Compute rolls between the start and end revision."""
   result = []
   for path, entry in end_revisions_dict.items():
@@ -61,7 +65,7 @@ def _compute_rolls(start_revisions_dict, end_revisions_dict):
   return result
 
 
-def _extract_url_and_sha_from_deps_entry(entry):
+def _extract_url_and_sha_from_deps_entry(entry: Any) -> tuple[str, str]:
   """Split a DEPS file entry into a URL and git sha."""
   assert 'url' in entry and 'rev' in entry, 'Unexpected format: %s' % entry
   url = entry['url']
@@ -74,7 +78,8 @@ def _extract_url_and_sha_from_deps_entry(entry):
   return url, sha
 
 
-def _format_component_revisions_for_predator(component_revisions):
+def _format_component_revisions_for_predator(
+    component_revisions: dict[str, Any]) -> list[dict[str, Any]]:
   """Convert a dict of dependency rolls to the format Predator expects."""
   result = []
   for path, entry in component_revisions.items():
@@ -88,7 +93,8 @@ def _format_component_revisions_for_predator(component_revisions):
   return result
 
 
-def _is_predator_testcase(testcase):
+def _is_predator_testcase(testcase: data_types.Testcase,
+                         ) -> tuple[bool, str | None]:
   """Return bool and error message for whether this testcase is applicable to
   predator or not."""
   if build_manager.is_custom_binary():
@@ -104,7 +110,7 @@ def _is_predator_testcase(testcase):
   return True, None
 
 
-def _filter_stacktrace(stacktrace):
+def _filter_stacktrace(stacktrace: str) -> str:
   """Reduces noise from stacktrace and limit its size to avoid pubsub request
   limit of one megabyte."""
   filtered_stacktrace_size = 0
@@ -125,7 +131,10 @@ def _filter_stacktrace(stacktrace):
   return '\n'.join(reversed(filtered_stacktrace_lines))
 
 
-def _prepare_component_revisions_dict(revision, job_type):
+def _prepare_component_revisions_dict(
+    revision: int | str | None,
+    job_type: str | None,
+) -> tuple[dict[str, Any] | None, str | None]:
   """Get a component revisions dict and git sha for a revision and job type.
 
   Revision is expected to be a commit position."""
@@ -140,7 +149,8 @@ def _prepare_component_revisions_dict(revision, job_type):
   return revisions_dict, revisions_dict['src']['rev']
 
 
-def _set_predator_result_with_error(testcase, error_message):
+def _set_predator_result_with_error(testcase: data_types.Testcase,
+                                    error_message: str | None) -> None:
   """Sets predator result with error."""
   predator_result = {
       'result': {
@@ -153,14 +163,17 @@ def _set_predator_result_with_error(testcase, error_message):
       }
   }
 
-  testcase = data_handler.get_testcase_by_id(testcase.key.id())
+  testcase_id = testcase.key.id()
+  assert testcase_id is not None
+  testcase = data_handler.get_testcase_by_id(testcase_id)
   testcase.set_metadata(
       'predator_result', predator_result, update_testcase=False)
   testcase.delete_metadata('blame_pending', update_testcase=False)
   testcase.put()
 
 
-def _prepare_predator_message(testcase):
+def _prepare_predator_message(testcase: data_types.Testcase,
+                             ) -> pubsub.Message | None:
   """Prepare the json sent to the Predator service for the given test case."""
   result, error_message = _is_predator_testcase(testcase)
   if not result:
@@ -172,13 +185,15 @@ def _prepare_predator_message(testcase):
   # Do a None check since we can return {} for revision = 0.
   if crash_revisions_dict is None:
     _set_predator_result_with_error(
-        testcase, 'Failed to fetch component revisions for revision %s.' %
-        testcase.crash_revision)
+        testcase,
+        'Failed to fetch component revisions for revision %s.' %
+        testcase.crash_revision,
+    )
     return None
 
   dependency_rolls = []
   start_revision_hash = end_revision_hash = None
-  if ':' in testcase.regression:
+  if testcase.regression and ':' in testcase.regression:
     regression_parts = testcase.regression.split(':', 1)
     start_revision = int(regression_parts[0])
     end_revision = int(regression_parts[1])
@@ -188,20 +203,25 @@ def _prepare_predator_message(testcase):
     # Do a None check since we can return {} for revision = 0.
     if start_revisions_dict is None:
       _set_predator_result_with_error(
-          testcase, 'Failed to fetch component revisions for revision %s.' %
-          start_revision)
+          testcase,
+          'Failed to fetch component revisions for revision %s.' %
+          start_revision,
+      )
       return None
 
-    end_revisions_dict, end_revision_hash = (
-        _prepare_component_revisions_dict(end_revision, testcase.job_type))
+    end_revisions_dict, end_revision_hash = _prepare_component_revisions_dict(
+        end_revision, testcase.job_type)
     # Do a None check since we can return {} for revision = 0.
     if end_revisions_dict is None:
       _set_predator_result_with_error(
           testcase,
-          'Failed to fetch component revisions for revision %s.' % end_revision)
+          'Failed to fetch component revisions for revision %s.' % end_revision,
+      )
       return None
 
     if start_revision != 0:
+      assert start_revisions_dict is not None
+      assert end_revisions_dict is not None
       dependency_rolls = _compute_rolls(start_revisions_dict,
                                         end_revisions_dict)
 
@@ -225,7 +245,8 @@ def _prepare_predator_message(testcase):
   real_dep_path = SRC_COMPONENT_OVERRIDES.get(repo_url, 'src')
   if real_dep_path != 'src':
     for dependency_list in [
-        dependency_rolls, crash_revision_component_revisions_list
+        dependency_rolls,
+        crash_revision_component_revisions_list,
     ]:
       for entry in dependency_list:
         if entry['dep_path'] == 'src':
@@ -254,7 +275,7 @@ def _prepare_predator_message(testcase):
               'sanitizer': environment.get_memory_tool_name(testcase.job_type),
               'security_flag': testcase.security_flag,
               'job_type': testcase.job_type,
-              'testcase_id': testcase.key.id()
+              'testcase_id': testcase.key.id(),
           },
           'platform': testcase.platform,
           'client_id': 'clusterfuzz',
@@ -262,14 +283,15 @@ def _prepare_predator_message(testcase):
       }).encode('utf-8'))
 
 
-def _clear_blame_result_and_set_pending_flag(testcase):
+def _clear_blame_result_and_set_pending_flag(testcase: data_types.Testcase,
+                                            ) -> None:
   """Clear blame result and set pending bit."""
   testcase.set_metadata('blame_pending', True, update_testcase=False)
   testcase.set_metadata('predator_result', None, update_testcase=False)
   testcase.put()
 
 
-def _execute_task(testcase_id):
+def _execute_task(testcase_id: int | str) -> None:
   """Attempt to find the CL introducing the bug associated with testcase_id."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -287,8 +309,10 @@ def _execute_task(testcase_id):
   if not message:
     testcase = data_handler.get_testcase_by_id(testcase_id)
     data_handler.update_testcase_comment(
-        testcase, data_types.TaskState.ERROR,
-        'Failed to generate request for Predator')
+        testcase,
+        data_types.TaskState.ERROR,
+        'Failed to generate request for Predator',
+    )
     return
 
   # Clear existing results and mark blame result as pending.
@@ -303,7 +327,7 @@ def _execute_task(testcase_id):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)
 
 
-def execute_task(testcase_id, _):
+def execute_task(testcase_id: int | str, _: str = '') -> None:
   """Set logs context and execute blame task."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):

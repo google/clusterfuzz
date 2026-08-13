@@ -27,7 +27,7 @@ _RETRIES = 3
 _DELAY = 1
 
 
-def _get_raw(path, timeout=None):
+def _get_raw(path: str, timeout: float | int | None = None) -> str:
   """Internal helper to get metadata without retries."""
   attribute_url = _METADATA_URL + path
   headers = {'Metadata-Flavor': 'Google'}
@@ -43,12 +43,12 @@ def _get_raw(path, timeout=None):
     retries=_RETRIES,
     delay=_DELAY,
     function='python.google_cloud_utils.compute_metadata.get')
-def get(path):
+def get(path: str) -> str:
   """Get GCE metadata value."""
   return _get_raw(path)
 
 
-def is_gce():
+def is_gce() -> bool:
   """Return whether or not we're on GCE."""
   try:
     sock = socket.create_connection((_METADATA_SERVER, 80))
@@ -59,14 +59,14 @@ def is_gce():
   return True
 
 
-def get_preempted_status():
+def get_preempted_status() -> str:
   """Gets the preemption status of the instance."""
   # We use a short timeout and no retries because this is called frequently
   # in a background loop and should fail fast.
   return _get_raw('instance/preempted', timeout=5)
 
 
-def is_preemptible():
+def is_preemptible() -> bool:
   """Returns True if the instance is preemptible (or Spot)."""
   # Skip metadata queries on App Engine or K8s. These environments emulate or
   # proxy the metadata server but lack standard GCE scheduling keys, returning

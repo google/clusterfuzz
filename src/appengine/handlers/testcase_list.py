@@ -13,6 +13,10 @@
 # limitations under the License.
 """Handler that gets the testcase list page."""
 
+from typing import Any
+from typing import cast
+from typing import Mapping
+
 from flask import request
 
 from clusterfuzz._internal.base import errors
@@ -27,9 +31,9 @@ from libs import handler
 from libs import helpers
 from libs.query import datastore_query
 
-PAGE_SIZE = 20
-MORE_LIMIT = 100 - PAGE_SIZE  # exactly 5 pages
-FIELDS = [
+PAGE_SIZE: int = 20
+MORE_LIMIT: int = 100 - PAGE_SIZE  # exactly 5 pages
+FIELDS: list[str] = [
     'crash_type',
     'crash_state',
     'job_type',
@@ -54,10 +58,13 @@ FIELDS = [
 class GroupFilter(filters.Filter):
   """Filter for group."""
 
-  def __init__(self):
+  param_key: str
+
+  def __init__(self) -> None:
     self.param_key = 'group'
 
-  def add(self, query, params):
+  def add(self, query: datastore_query.Query,
+          params: Mapping[str, Any]) -> None:
     """Add group filter."""
     value = params.get(self.param_key, '')
     if filters.is_empty(value):
@@ -66,7 +73,7 @@ class GroupFilter(filters.Filter):
     query.filter('group_id', helpers.cast(value, int, "'group' must be int."))
 
 
-KEYWORD_FILTERS = [
+KEYWORD_FILTERS: list[filters.Filter] = [
     GroupFilter(),
     filters.String('bug_indices', 'issue'),
     filters.String('platform', 'platform'),
@@ -78,7 +85,7 @@ KEYWORD_FILTERS = [
     filters.String('job_type', 'job'),
 ]
 
-FILTERS = [
+FILTERS: list[filters.Filter] = [
     filters.String('impact_version_indices', 'impact'),
     filters.Boolean('has_bug_flag', 'issue'),
     filters.Boolean('open', 'open'),
@@ -88,11 +95,11 @@ FILTERS = [
     filters.String('job_type', 'job'),
     filters.String('fuzzer_name_indices', 'fuzzer'),
     filters.String('project_name', 'project'),
-    filters.Int('crash_revision', 'revision_greater_than', operator='>')
+    filters.Int('crash_revision', 'revision_greater_than', operator='>'),
 ]
 
 
-def add_filters(query, params):
+def add_filters(query: datastore_query.Query, params: dict[str, Any]) -> None:
   """Add filters based on params."""
   if not filters.has_params(params, FILTERS) and not params.get('showall'):
     params['open'] = 'yes'
@@ -110,10 +117,12 @@ def add_filters(query, params):
   filters.add(query, params, FILTERS)
 
 
-def get_result():
+def get_result() -> tuple[dict[str, Any], dict[str, Any]]:
   """Get the result for the testcase list page."""
-  params = dict(request.iterparams())
-  page = helpers.cast(request.get('page') or 1, int, "'page' is not an int.")
+  request_any = cast(Any, request)
+  params = dict(request_any.iterparams())
+  page = helpers.cast(
+      request_any.get('page') or 1, int, "'page' is not an int.")
 
   query = datastore_query.Query(data_types.Testcase)
   crash_access.add_scope(query, params, 'security_flag', 'job_type',
@@ -181,7 +190,7 @@ class Handler(base_handler.Handler):
 
   @handler.get(handler.HTML)
   @handler.oauth
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Get and render the testcase list in HTML."""
     result, params = get_result()
     field_values = {
@@ -199,18 +208,18 @@ class CacheHandler(base_handler.Handler):
   """Handler for exercising cache."""
 
   @handler.cron()
-  def get(self):
+  def get(self) -> None:
     """Handle a GET request."""
     # pylint: disable=unexpected-keyword-arg
 
     # Memoize all project and job names.
-    _ = data_handler.get_all_project_names(__memoize_force__=True)
-    _ = data_handler.get_all_job_type_names(__memoize_force__=True)
+    _ = cast(Any, data_handler.get_all_project_names)(__memoize_force__=True)
+    _ = cast(Any, data_handler.get_all_job_type_names)(__memoize_force__=True)
 
     # Memoize both variants of get_all_fuzzer_names_including_children.
-    _ = data_handler.get_all_fuzzer_names_including_children(
+    _ = cast(Any, data_handler.get_all_fuzzer_names_including_children)(
         include_parents=True, __memoize_force__=True)
-    _ = data_handler.get_all_fuzzer_names_including_children(
+    _ = cast(Any, data_handler.get_all_fuzzer_names_including_children)(
         __memoize_force__=True)
 
     # Memoize expensive testcase attribute calls.
@@ -230,7 +239,7 @@ class JsonHandler(base_handler.Handler):
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.oauth
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Get and render the testcase list in JSON."""
     result, _ = get_result()
     return self.render_json(result)

@@ -14,12 +14,19 @@
 """The module chooses the leader given a group of testcases. It needs to be here
   because it is used by group_task.py and attribute_builder.py."""
 
+from collections.abc import Callable
+from collections.abc import Iterable
 import itertools
+from typing import Any
+from typing import TypeVar
 
 from clusterfuzz._internal.system import environment
 
+T = TypeVar('T')
 
-def find_index(items, condition_fn):
+
+def find_index(items: Iterable[T],
+               condition_fn: Callable[[T], bool]) -> int | None:
   """Return the index of the first item whose condition_fn is True."""
   for index, item in enumerate(items):
     if condition_fn(item):
@@ -27,23 +34,24 @@ def find_index(items, condition_fn):
   return None
 
 
-def is_reproducible(item):
+def is_reproducible(item: Any) -> bool:
   """Return True if the testcase is reproducible by checking the
     one_time_crasher_flag."""
   return not item.one_time_crasher_flag
 
 
-def has_issue(item):
+def has_issue(item: Any) -> bool:
   """Return True if the testcase has an issue."""
   return bool(item.issue_id)
 
 
-def is_reproducible_and_has_issue(item):
+def is_reproducible_and_has_issue(item: Any) -> bool:
   """Return True if the testcase is reproducible and has an issue."""
   return is_reproducible(item) and has_issue(item)
 
 
-def choose(testcase_map, group_map=None):
+def choose(testcase_map: dict[Any, Any],
+           group_map: dict[Any, Any] | None = None) -> None:
   """Choose one leader for each group. We choose the highest quality testcase to
     be the leader.
 
@@ -51,12 +59,12 @@ def choose(testcase_map, group_map=None):
       testcase_map: a dict of (testcase_id, testcase). A dict contains testcases
           from multiple groups.
   """
-  scores = {}
+  scores: dict[Any, int] = {}
 
-  def _key_func(testcase):
+  def _key_func(testcase: Any) -> Any:
     return testcase.group_id
 
-  def _get_score(testcase_id):
+  def _get_score(testcase_id: Any) -> int:
     return scores[testcase_id]
 
   testcases = sorted([v for _, v in testcase_map.items()], key=_key_func)
@@ -64,9 +72,9 @@ def choose(testcase_map, group_map=None):
     if group_id == 0:  # group_id=0 means there's no group.
       continue
 
-    items = sorted(items, reverse=True, key=lambda t: t.timestamp)
+    group_items = sorted(items, reverse=True, key=lambda t: t.timestamp)
 
-    for item in items:
+    for item in group_items:
       item.is_leader = False
       item_score = 0
       if item.security_flag:
@@ -77,17 +85,19 @@ def choose(testcase_map, group_map=None):
         item_score += 1
       scores[item.id] = item_score
 
-    items = sorted(items, reverse=True, key=lambda t: _get_score(t.id))
+    group_items = sorted(
+        group_items, reverse=True, key=lambda t: _get_score(t.id))
 
-    leader_index = find_index(items, is_reproducible_and_has_issue)
+    leader_index = find_index(group_items, is_reproducible_and_has_issue)
     if leader_index is None:
-      leader_index = find_index(items, has_issue)
+      leader_index = find_index(group_items, has_issue)
     if leader_index is None:
-      leader_index = find_index(items, is_reproducible)
+      leader_index = find_index(group_items, is_reproducible)
 
     if leader_index is None:
       leader_index = 0
 
-    items[leader_index].is_leader = True
+    group_items[leader_index].is_leader = True
     if group_map:
-      group_map[items[leader_index].group_id].leader_id = items[leader_index].id
+      group_map[group_items[leader_index].group_id].leader_id = group_items[
+          leader_index].id

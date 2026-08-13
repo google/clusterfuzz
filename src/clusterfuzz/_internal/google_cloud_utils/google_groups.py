@@ -14,6 +14,7 @@
 """Helper for google groups management."""
 
 import threading
+from typing import Any
 from urllib import parse
 
 from googleapiclient import discovery
@@ -33,7 +34,7 @@ GROUP_MEMBERSHIP_CACHE_TTL = 60 * 60  # 1 hour.
 _local = threading.local()
 
 
-def get_identity_api() -> discovery.Resource | None:
+def get_identity_api() -> Any:
   """Return cloud identity api client."""
   if not hasattr(_local, 'identity_service'):
     creds, _ = credentials.get_default()
@@ -43,7 +44,7 @@ def get_identity_api() -> discovery.Resource | None:
   return _local.identity_service
 
 
-def get_group_settings_api() -> discovery.Resource | None:
+def get_group_settings_api() -> Any:
   """Return the groups settings api client."""
   if not hasattr(_local, 'groups_settings_service'):
     scopes = ['https://www.googleapis.com/auth/apps.groups.settings']

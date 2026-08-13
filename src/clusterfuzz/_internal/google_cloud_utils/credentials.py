@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Cloud credential helpers."""
+from collections.abc import Sequence
 import json
+from typing import Any
 
+import google.auth
 from google.auth import compute_engine
 from google.auth import credentials
 from google.auth import impersonated_credentials
@@ -28,12 +31,6 @@ from clusterfuzz._internal.google_cloud_utils import secret_manager
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-try:
-  import google.auth
-except ImportError:
-  # Can't be imported on App Engine.
-  pass
-
 # Retry params.
 FAIL_RETRIES = 5
 FAIL_WAIT = 10
@@ -46,7 +43,7 @@ _SCOPES = [
 _SIGNING_KEY_SECRET_ID = 'gcs-signer-key'
 
 
-def _use_anonymous_credentials():
+def _use_anonymous_credentials() -> bool:
   """Returns whether or not to use anonymous credentials."""
   if (environment.get_value('INTEGRATION') or
       environment.get_value('UNTRUSTED_RUNNER_TESTS') or
@@ -63,22 +60,26 @@ def _use_anonymous_credentials():
     delay=FAIL_WAIT,
     function='google_cloud_utils.credentials.get_default')
 @memoize.wrap(memoize.FifoInMemory(1))
-def get_default(scopes=None):
+def get_default(scopes: Sequence[str] | None = None
+               ) -> tuple[credentials.Credentials, str | bytes | None]:
   """Get default Google Cloud credentials."""
   if _use_anonymous_credentials():
     return credentials.AnonymousCredentials(), ''
   return google.auth.default(scopes=scopes)
 
 
-def get_storage_signing_service_account():
-  """Gets a dedicated signing account for signing storage objects."""
+def get_storage_signing_service_account() -> dict[str, Any] | None:
+  """Returns service account credentials dict for signing."""
   if _use_anonymous_credentials():
     return None
   project_id = utils.get_application_id()
-  return json.loads(secret_manager.get(_SIGNING_KEY_SECRET_ID, project_id))
+  return json.loads(secret_manager.get(_SIGNING_KEY_SECRET_ID,
+                                       project_id))  # type: ignore
 
 
-def get_signing_credentials(service_account_info):
+def get_signing_credentials(
+    service_account_info: dict[str, Any] | None
+) -> tuple[credentials.Credentials, str | None] | None:
   """Returns signing credentials for signing URLs."""
   if _use_anonymous_credentials():
     return None
@@ -98,13 +99,15 @@ def get_signing_credentials(service_account_info):
     creds.refresh(request)
 
     signing_creds = compute_engine.IDTokenCredentials(
-        request, '', service_account_email=creds.service_account_email)
+        request,
+        '',
+        service_account_email=getattr(creds, 'service_account_email', None))
     token = creds.token
   return signing_creds, token
 
 
 def get_scoped_service_account_credentials(
-    scopes: list[str]) -> impersonated_credentials.Credentials | None:
+    scopes: Sequence[str]) -> impersonated_credentials.Credentials | None:
   """Gets scoped credentials by self-impersonating the service account."""
   creds, _ = get_default()
   service_account_email = getattr(creds, 'service_account_email', None)

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Stack analyzer module."""
 
+from typing import cast
+
 from clusterfuzz import stacktraces
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.platforms.android import \
@@ -20,10 +22,11 @@ from clusterfuzz._internal.platforms.android import \
 from clusterfuzz._internal.platforms.linux.lkl import kernel_utils as lkl_kernel
 from clusterfuzz._internal.system import environment
 
-MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS = 64
+MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS: int = 64
 
 
-def linkify_kernel_or_lkl_stacktrace_if_needed(crash_info):
+def linkify_kernel_or_lkl_stacktrace_if_needed(
+    crash_info: stacktraces.CrashInfo) -> None:
   """Linkify Android Kernel or lkl stacktrace."""
   kernel_prefix = ''
   kernel_hash = ''
@@ -41,7 +44,9 @@ def linkify_kernel_or_lkl_stacktrace_if_needed(crash_info):
     _linkify_android_kernel_stacktrace(crash_info, kernel_prefix, kernel_hash)
 
 
-def _linkify_android_kernel_stacktrace(crash_info, kernel_prefix, kernel_hash):
+def _linkify_android_kernel_stacktrace(crash_info: stacktraces.CrashInfo,
+                                       kernel_prefix: str,
+                                       kernel_hash: str) -> None:
   """Linkify Android Kernel or lkl stacktrace."""
   temp_crash_stacktrace = ''
   for line in crash_info.crash_stacktrace.splitlines():
@@ -51,11 +56,12 @@ def _linkify_android_kernel_stacktrace(crash_info, kernel_prefix, kernel_hash):
   crash_info.crash_stacktrace = temp_crash_stacktrace
 
 
-def get_crash_data(crash_data,
-                   symbolize_flag=True,
-                   fuzz_target=None,
-                   already_symbolized=False,
-                   detect_ooms_and_hangs=None) -> stacktraces.CrashInfo:
+def get_crash_data(
+    crash_data: str,
+    symbolize_flag: bool = True,
+    fuzz_target: str | None = None,
+    already_symbolized: bool = False,
+    detect_ooms_and_hangs: bool | None = None) -> stacktraces.CrashInfo:
   """Get crash parameters from crash data.
   Crash parameters include crash type, address, state and stacktrace.
   If the stacktrace is not already symbolized, we will try to symbolize it
@@ -94,8 +100,8 @@ def get_crash_data(crash_data,
   redzone_size = environment.get_value('REDZONE')
   if detect_ooms_and_hangs is None:
     report_value = environment.get_value('REPORT_OOMS_AND_HANGS')
-    detect_ooms_and_hangs = (
-        report_value == 'FORCE' or report_value and
+    detect_ooms_and_hangs = cast(
+        bool, report_value == 'FORCE' or report_value and
         (not redzone_size or
          redzone_size <= MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS))
 

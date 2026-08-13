@@ -13,7 +13,11 @@
 # limitations under the License.
 """Handler for creating issue."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
+from flask import Response
 
 from handlers import base_handler
 from libs import handler
@@ -24,7 +28,7 @@ class Handler(base_handler.Handler):
   """Handler that creates an issue."""
 
   @staticmethod
-  def delete_testcase(testcase_id):
+  def delete_testcase(testcase_id: int | str) -> None:
     """Delete a testcase."""
     testcase = helpers.get_testcase(testcase_id)
 
@@ -40,7 +44,7 @@ class Handler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
   @handler.check_admin_access
-  def post(self):
+  def post(self) -> Response:
     """Delete a testcase."""
-    testcase_id = request.get('testcaseId')
+    testcase_id = cast(Any, request).get('testcaseId')
     return self.render_json({'testcaseId': self.delete_testcase(testcase_id)})

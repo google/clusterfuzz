@@ -13,6 +13,10 @@
 # limitations under the License.
 """Antlr Tokenizer"""
 
+from collections.abc import Callable
+from collections.abc import Iterable
+import typing
+
 import antlr4
 
 from clusterfuzz._internal.base import utils
@@ -24,10 +28,13 @@ class AntlrTokenizer:
   $ antlr4 -Dlanguage=Pythonn <AntlrGrammar.g4>
   and allows user to tokenize files using that grammar."""
 
-  def __init__(self, lexer):
+  def __init__(
+      self,
+      lexer: type[antlr4.Lexer] | Callable[[antlr4.InputStream], antlr4.Lexer]
+  ) -> None:
     self._lexer = lexer
 
-  def fill(self, stream):
+  def fill(self, stream: antlr4.CommonTokenStream) -> int:
     """Helper function. antlr4.CommonTokenStream.fill should work, but
     it does not fetch all of the tokens. This is a replacement that works."""
     i = 0
@@ -35,7 +42,7 @@ class AntlrTokenizer:
       i += 1
     return i
 
-  def tokenize(self, data):
+  def tokenize(self, data: bytes) -> list[str]:
     """Takes in a file and uses the antlr lexer to return a list of tokens"""
     # Antlr expects a string, but test cases are not necessarily valid utf-8.
     try:
@@ -46,11 +53,13 @@ class AntlrTokenizer:
     stream = antlr4.CommonTokenStream(self._lexer(lexer_input))
     end = self.fill(stream)
     tokens = stream.getTokens(0, end)
+    assert tokens is not None
     return [token.text for token in tokens]
 
-  def combine(self, tokens):
+  def combine(self, tokens: Iterable[str | bytes]) -> bytes:
     """Token combiner passed to minimizer"""
     # This tokenizer must handle either bytes or str inputs. Antlr works with
     # strings, but the tokenizer validation step uses the original data, which
     # is always raw bytes.
-    return b''.join(utils.encode_as_unicode(t) for t in tokens)
+    return b''.join(
+        typing.cast(bytes, utils.encode_as_unicode(t)) for t in tokens)

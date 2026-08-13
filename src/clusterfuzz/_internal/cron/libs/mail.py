@@ -23,7 +23,7 @@ from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.metrics import logs
 
 
-def send(to_email, subject, html_content):
+def send(to_email: str, subject: str, html_content: str) -> None:
   """Send email."""
   sendgrid_api_key = db_config.get_value('sendgrid_api_key')
   if not sendgrid_api_key:

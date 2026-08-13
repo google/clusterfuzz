@@ -19,26 +19,39 @@ import functools
 import inspect
 import sys
 import time
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Optional
+from typing import ParamSpec
+from typing import Sequence
+from typing import TypeVar
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+_P = ParamSpec('_P')
+_R = TypeVar('_R')
 
-def sleep(seconds):
+
+def sleep(seconds: float | int) -> None:
   """Invoke time.sleep. This is to avoid the flakiness of time.sleep. See:
   crbug.com/770375"""
   time.sleep(seconds)
 
 
-def _should_ignore_delay_for_testing():
-  return (environment.get_value('PY_UNITTESTS') or
-          environment.get_value('INTEGRATION') or
-          environment.get_value('UNTRUSTED_RUNNER_TESTS') or
-          environment.get_value('LOCAL_DEVELOPMENT') or
-          environment.get_value('UTASK_TESTS'))
+def _should_ignore_delay_for_testing() -> bool:
+  return cast(
+      bool,
+      environment.get_value('PY_UNITTESTS') or
+      environment.get_value('INTEGRATION') or
+      environment.get_value('UNTRUSTED_RUNNER_TESTS') or
+      environment.get_value('LOCAL_DEVELOPMENT') or
+      environment.get_value('UTASK_TESTS'))
 
 
-def get_delay(num_try, delay, backoff):
+def get_delay(num_try: int, delay: float | int,
+              backoff: float | int) -> float | int:
   """Compute backoff delay."""
   delay = delay * (backoff**(num_try - 1))
   if _should_ignore_delay_for_testing():
@@ -48,12 +61,12 @@ def get_delay(num_try, delay, backoff):
   return delay
 
 
-def wrap(retries,
-         delay,
-         function,
-         backoff=2,
-         exception_types=None,
-         retry_on_false=False):
+def wrap(retries: int,
+         delay: float | int,
+         function: str,
+         backoff: float | int = 2,
+         exception_types: Optional[Sequence[type[BaseException]]] = None,
+         retry_on_false: bool = False) -> Callable[[Any], Any]:
   """Retry decorator for a function."""
 
   assert delay > 0
@@ -63,12 +76,12 @@ def wrap(retries,
   if exception_types is None:
     exception_types = [Exception]
 
-  def is_exception_type(exception):
+  def is_exception_type(exception: BaseException) -> bool:
     return any(
         isinstance(exception, exception_type)
         for exception_type in exception_types)
 
-  def decorator(func):
+  def decorator(func: Any) -> Any:
     """Decorator for the given function."""
     tries = retries + 1
     is_generator = inspect.isgeneratorfunction(func)
@@ -76,7 +89,8 @@ def wrap(retries,
     if is_generator:
       function_with_type += ' (generator)'
 
-    def handle_retry(num_try, exception=None):
+    def handle_retry(num_try: int,
+                     exception: Optional[BaseException] = None) -> bool:
       """Handle retry."""
       from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -101,7 +115,7 @@ def wrap(retries,
       return False
 
     @functools.wraps(func)
-    def _wrapper(*args, **kwargs):
+    def _wrapper(*args: Any, **kwargs: Any) -> Any:
       """Regular function wrapper."""
       from clusterfuzz._internal.metrics import monitoring_metrics
 
@@ -126,7 +140,7 @@ def wrap(retries,
       return None
 
     @functools.wraps(func)
-    def _generator_wrapper(*args, **kwargs):
+    def _generator_wrapper(*args: Any, **kwargs: Any) -> Any:
       """Generator function wrapper."""
       # This argument is not applicable for generator functions.
       assert not retry_on_false

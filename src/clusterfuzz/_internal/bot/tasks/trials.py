@@ -16,6 +16,13 @@
 import json
 import os
 import random
+from typing import Any
+from typing import cast
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Set
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
@@ -28,12 +35,14 @@ TRIALS_CONFIG_FILENAME = 'clusterfuzz_trials_config.json'
 
 class AppArgs:
 
-  def __init__(self, probability, contradicts=None):
+  def __init__(self,
+               probability: float,
+               contradicts: Optional[List[str]] = None) -> None:
     self.probability = probability
     self.contradicts = contradicts or []
 
 
-def preprocess_get_db_trials():
+def preprocess_get_db_trials() -> List[Any]:
   app_name = get_app_name()
   if not app_name:
     return []
@@ -41,7 +50,7 @@ def preprocess_get_db_trials():
   return [uworker_io.entity_to_protobuf(trial) for trial in trial_query]
 
 
-def get_app_name():
+def get_app_name() -> Optional[str]:
   """Gets a normalized APP_NAME"""
   app_name = environment.get_value('APP_NAME')
   if not app_name:
@@ -59,8 +68,8 @@ def get_app_name():
 class Trials:
   """Helper class for selecting app-specific extra flags."""
 
-  def __init__(self, db_trials):
-    self.trials = {}
+  def __init__(self, db_trials: Sequence[Any]) -> None:
+    self.trials: Dict[str, AppArgs] = {}
     self._db_trials = [
         uworker_io.entity_from_protobuf(trial, data_types.Trial)
         for trial in db_trials
@@ -71,8 +80,9 @@ class Trials:
       return
 
     for trial in self._db_trials:
-      self.trials[trial.app_args] = AppArgs(trial.probability,
-                                            trial.contradicts)
+      self.trials[cast(str, trial.app_args)] = AppArgs(
+          cast(float, trial.probability),
+          cast(Optional[List[str]], trial.contradicts))
 
     app_dir = environment.get_value('APP_DIR')
     if not app_dir:
@@ -94,10 +104,10 @@ class Trials:
       logs.warning('Unable to parse config file: %s' % str(e))
       return
 
-  def setup_additional_args_for_app(self, shuffle=True):
+  def setup_additional_args_for_app(self, shuffle: bool = True) -> None:
     """Select additional args for the specified app at random."""
-    trial_args = []
-    contradicts = set()
+    trial_args: List[str] = []
+    contradicts: Set[str] = set()
 
     trial_keys = list(self.trials.keys())
 

@@ -13,16 +13,13 @@
 # limitations under the License.
 """Centipede engine interface."""
 
-from collections import namedtuple
 import csv
 import os
 import pathlib
 import re
 import shutil
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Any
+from typing import NamedTuple
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
@@ -41,7 +38,11 @@ _CLEAN_EXIT_SECS = 10
 
 CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*(.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
-TargetBinaries = namedtuple('TargetBinaries', ['unsanitized', 'sanitized'])
+
+
+class TargetBinaries(NamedTuple):
+  unsanitized: pathlib.Path | None
+  sanitized: pathlib.Path
 
 
 class CentipedeError(Exception):
@@ -51,27 +52,28 @@ class CentipedeError(Exception):
 class CentipedeOptions(engine.FuzzOptions):
   """Centipede engine options."""
 
-  def __init__(self, corpus_dir, arguments, strategies, workdir,
-               new_corpus_dir):
+  def __init__(self, corpus_dir: str, arguments: list[str],
+               strategies: dict[str, Any], workdir: str,
+               new_corpus_dir: str) -> None:
     super().__init__(corpus_dir, arguments, strategies)
     # Directory to add new units
     self.new_corpus_dir = new_corpus_dir
     self.workdir = workdir
 
 
-def _get_runner(target_path):
+def _get_runner(target_path: str) -> new_process.UnicodeProcessRunner:
   """Gets the Centipede runner."""
   centipede_path = pathlib.Path(target_path).parent / 'centipede'
   if not centipede_path.exists():
     raise CentipedeError('Centipede not found in build')
 
-  centipede_path = str(centipede_path)
+  centipede_path_str = str(centipede_path)
   if environment.get_value('USE_UNSHARE'):
-    return new_process.UnicodeModifierRunner(centipede_path)
-  return new_process.UnicodeProcessRunner(centipede_path)
+    return new_process.UnicodeModifierRunner(centipede_path_str)
+  return new_process.UnicodeProcessRunner(centipede_path_str)
 
 
-def _get_reproducer_path(log, reproducers_dir):
+def _get_reproducer_path(log: str, reproducers_dir: str) -> pathlib.Path | None:
   """Gets the reproducer path, if any."""
   crash_match = CRASH_REGEX.search(log)
   if not crash_match:
@@ -82,17 +84,17 @@ def _get_reproducer_path(log, reproducers_dir):
   return crash_path
 
 
-def _set_sanitizer_options(fuzzer_path):
+def _set_sanitizer_options(fuzzer_path: str) -> None:
   """Sets sanitizer options based on .options file overrides."""
   engine_common.process_sanitizer_options_overrides(fuzzer_path)
   sanitizer_options_var = environment.get_current_memory_tool_var()
+  assert sanitizer_options_var is not None
   sanitizer_options = environment.get_memory_tool_options(
       sanitizer_options_var, {})
   environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
 
 
-def _parse_centipede_stats(
-    stats_file: str) -> Optional[Dict[str, Union[int, float]]]:
+def _parse_centipede_stats(stats_file: str) -> dict[str, int | float] | None:
   """Parses the Centipede stats file and returns a dictionary with labels
   and their respective values.
 
@@ -120,7 +122,7 @@ def _parse_centipede_stats(
       desc = rows[0][:-1]
       latest_stats = rows[-1][:-1]
 
-      def to_number(x: str) -> Union[int, float]:
+      def to_number(x: str) -> int | float:
         return int(x) if x.isdigit() else float(x)
 
       return {desc[i]: to_number(latest_stats[i]) for i in range(0, len(desc))}
@@ -129,7 +131,7 @@ def _parse_centipede_stats(
     return None
 
 
-def _parse_centipede_logs(log_lines: List[str]) -> Dict[str, int]:
+def _parse_centipede_logs(log_lines: list[str]) -> dict[str, int]:
   """Parses Centipede outputs and generates stats for it.
 
   Args:
@@ -161,10 +163,10 @@ class Engine(engine.Engine):
   """Centipede engine implementation."""
 
   @property
-  def name(self):
+  def name(self) -> str:
     return 'centipede'
 
-  def _get_arguments(self, fuzzer_path):
+  def _get_arguments(self, fuzzer_path: str) -> fuzzer_options.FuzzerArguments:
     """Gets the fuzzer arguments.
     Returns default arguments and arguments specified by the options field.
     Args:
@@ -193,7 +195,8 @@ class Engine(engine.Engine):
 
     return arguments
 
-  def fuzz_additional_processing_timeout(self, options):
+  def fuzz_additional_processing_timeout(self,
+                                         options: engine.FuzzOptions) -> int:
     """Return the maximum additional timeout in seconds for additional
     operations in fuzz() (e.g. merging back new items).
 
@@ -204,10 +207,12 @@ class Engine(engine.Engine):
       An int representing the number of seconds required.
     """
     del options
-    return engine_common.get_merge_timeout(engine_common.DEFAULT_MERGE_TIMEOUT)
+    return int(
+        engine_common.get_merge_timeout(engine_common.DEFAULT_MERGE_TIMEOUT))
 
   # pylint: disable=unused-argument
-  def prepare(self, corpus_dir, target_path, build_dir):
+  def prepare(self, corpus_dir: str, target_path: str,
+              build_dir: str) -> CentipedeOptions:
     """Prepares for a fuzzing session, by generating options.
 
     Args:
@@ -249,7 +254,7 @@ class Engine(engine.Engine):
     return CentipedeOptions(corpus_dir, arguments.list(), {}, workdir,
                             new_corpus_dir)
 
-  def _get_binary_paths(self, target_path):
+  def _get_binary_paths(self, target_path: str) -> TargetBinaries:
     """Gets the paths to the main and auxiliary binaries based on |target_path|
     Args:
       target_path: Path to the main target in a string.
@@ -283,7 +288,7 @@ class Engine(engine.Engine):
 
     return target_binaries
 
-  def _get_auxiliary_target_path(self, target_path):
+  def _get_auxiliary_target_path(self, target_path: str) -> pathlib.Path:
     """Gets the auxiliary target path based on the main |target_path|.
     When exists, it points to the sanitized binary, which is required by fuzzing
     (as an auxiliary) and crash reproduction.
@@ -296,12 +301,14 @@ class Engine(engine.Engine):
     """
     # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
     build_dir = environment.get_value('BUILD_DIR')
+    assert build_dir is not None
     auxiliary_target_name = pathlib.Path(target_path).name
     auxiliary_target_path = pathlib.Path(
         build_dir, fuzzer_utils.EXTRA_BUILD_DIR, auxiliary_target_name)
     return auxiliary_target_path
 
-  def fuzz(self, target_path, options, reproducers_dir, max_time):  # pylint: disable=unused-argument
+  def fuzz(self, target_path: str, options: CentipedeOptions,
+           reproducers_dir: str, max_time: int) -> engine.FuzzResult:  # pylint: disable=unused-argument
     """Runs a fuzz session.
 
     Args:
@@ -335,6 +342,9 @@ class Engine(engine.Engine):
         timeout=timeout,
         terminate_before_kill=True,
         terminate_wait_time=_CLEAN_EXIT_SECS)
+    assert fuzz_result.output is not None
+    assert fuzz_result.command is not None
+    assert fuzz_result.time_executed is not None
     log_lines = fuzz_result.output.splitlines()
     fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
@@ -342,7 +352,7 @@ class Engine(engine.Engine):
 
     workdir = options.workdir
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
-    crashes = []
+    crashes: list[engine.Crash] = []
     if reproducer_path:
       # Centipde doesn't remove carshing inputs from the corpus, this workaround
       # removes the crashing input in case it's present in the corpus directory.
@@ -359,9 +369,7 @@ class Engine(engine.Engine):
     stats_filename = f'fuzzing-stats-{os.path.basename(target_path)}.000000.csv'
 
     stats_file = os.path.join(workdir, stats_filename)
-    stats = _parse_centipede_stats(stats_file)
-    if not stats:
-      stats = {}
+    stats: dict[str, Any] = _parse_centipede_stats(stats_file) or {}
     actual_duration = int(
         stats.get('FuzzTimeSec_Avg', fuzz_result.time_executed or 0.0))
     fuzzing_time_percent = 100 * actual_duration / float(max_time)
@@ -387,8 +395,9 @@ class Engine(engine.Engine):
           input_dirs=[options.new_corpus_dir],
           output_dir=options.corpus_dir,
           reproducers_dir=reproducers_dir,
-          max_time=engine_common.get_merge_timeout(
-              engine_common.DEFAULT_MERGE_TIMEOUT),
+          max_time=int(
+              engine_common.get_merge_timeout(
+                  engine_common.DEFAULT_MERGE_TIMEOUT)),
           # Use the same workdir that was used for fuzzing.
           # This allows us to skip rerunning the fuzzing inputs.
           workdir=workdir)
@@ -409,11 +418,11 @@ class Engine(engine.Engine):
                              stats, fuzz_result.time_executed)
 
   @staticmethod
-  def trim_logs(fuzz_log):
+  def trim_logs(fuzz_log: str) -> str:
     """Strips the 'CRASH LOG:' prefix that breaks stacktrace parsing.
 
     Args:
-      fuzz_result: The ProcessResult returned by running fuzzer binary.
+      fuzz_log: The ProcessResult returned by running fuzzer binary.
     """
     trimmed_log_lines = [
         line[len(_CRASH_LOG_PREFIX):]
@@ -422,7 +431,8 @@ class Engine(engine.Engine):
     ]
     return '\n'.join(trimmed_log_lines)
 
-  def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
+  def reproduce(self, target_path: str, input_path: str, arguments: list[str],
+                max_time: int) -> engine.ReproduceResult:  # pylint: disable=unused-argument
     """Reproduces a crash given an input.
 
     Args:
@@ -471,12 +481,17 @@ class Engine(engine.Engine):
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
     else:
       os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
+    assert result.output is not None
+    assert result.command is not None
+    assert result.return_code is not None
+    assert result.time_executed is not None
     result.output = Engine.trim_logs(result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def _strip_fuzzing_arguments(self, arguments):
+  def _strip_fuzzing_arguments(self, arguments: fuzzer_options.FuzzerArguments
+                              ) -> fuzzer_options.FuzzerArguments:
     """Remove arguments only needed for fuzzing."""
     for argument in [
         constants.FORK_SERVER_FLAGNAME,
@@ -491,13 +506,13 @@ class Engine(engine.Engine):
     return arguments
 
   def minimize_corpus(self,
-                      target_path,
-                      arguments,
-                      input_dirs,
-                      output_dir,
-                      reproducers_dir,
-                      max_time,
-                      workdir=None):
+                      target_path: str,
+                      arguments: list[str],
+                      input_dirs: list[str],
+                      output_dir: str,
+                      reproducers_dir: str,
+                      max_time: int,
+                      workdir: str | None = None) -> engine.FuzzResult:
     """Runs corpus minimization.
     Args:
       target_path: Path to the target.
@@ -536,7 +551,10 @@ class Engine(engine.Engine):
     ]
     logs.info(f'Running Generate Corpus file for Centipede with args: {args}')
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
-    max_time -= result.time_executed
+    assert result.time_executed is not None
+    assert result.output is not None
+    assert result.command is not None
+    max_time -= int(result.time_executed)
 
     if result.timed_out or max_time < 0:
       logs.warning(
@@ -553,7 +571,10 @@ class Engine(engine.Engine):
     ]
     logs.info(f'Running Corpus Distillation with args: {args}')
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
-    max_time -= result.time_executed
+    assert result.time_executed is not None
+    assert result.output is not None
+    assert result.command is not None
+    max_time -= int(result.time_executed)
 
     if result.timed_out or max_time < 0:
       logs.warning(
@@ -581,6 +602,9 @@ class Engine(engine.Engine):
     ]
     logs.info(f'Converting corpus to files with the following args: {args}')
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    assert result.output is not None
+    assert result.command is not None
+    assert result.time_executed is not None
 
     if result.timed_out or max_time < 0:
       logs.warning(
@@ -608,7 +632,7 @@ class Engine(engine.Engine):
     return engine.FuzzResult(result.output, result.command, [], None,
                              result.time_executed, result.timed_out)
 
-  def _get_smallest_crasher(self, workdir_path):
+  def _get_smallest_crasher(self, workdir_path: str) -> str | None:
     """Returns the path to the smallest crash in Centipede's |workdir_path|."""
     if not os.path.isdir(workdir_path):
       logs.error(f'Work directory does not exist: {workdir_path}')
@@ -630,8 +654,9 @@ class Engine(engine.Engine):
     minimum_testcase = min(testcases, key=os.path.getsize)
     return minimum_testcase
 
-  def minimize_testcase(self, target_path, arguments, input_path, output_path,
-                        max_time):
+  def minimize_testcase(self, target_path: str, arguments: list[str],
+                        input_path: str, output_path: str,
+                        max_time: int) -> engine.ReproduceResult:
     """Minimizes a testcase.
     Args:
       target_path: Path to the target.
@@ -669,10 +694,15 @@ class Engine(engine.Engine):
       shutil.copyfile(minimum_testcase, output_path)
     else:
       shutil.copyfile(input_path, output_path)
+    assert result.command is not None
+    assert result.return_code is not None
+    assert result.time_executed is not None
+    assert result.output is not None
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+  def cleanse(self, target_path: str, arguments: list[str], input_path: str,
+              output_path: str, max_time: int) -> engine.ReproduceResult:
     """Cleanses a testcase.
     Args:
       target_path: Path to the target.

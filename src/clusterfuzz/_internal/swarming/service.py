@@ -24,7 +24,7 @@ from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming.api import SwarmingApi
 from clusterfuzz._internal.swarming.api import SwarmingApiError
 
-SWARMING_MAIN_QUEUE_LIMIT_DEFAULT = 25
+SWARMING_MAIN_QUEUE_LIMIT_DEFAULT: int = 25
 
 
 class SwarmingService(remote_task_types.RemoteTaskInterface):
@@ -32,11 +32,12 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
 
   _api: SwarmingApi
 
-  def __init__(self):
-    self._api = SwarmingApi.create()
-    if self._api is None:
+  def __init__(self) -> None:
+    api = SwarmingApi.create()
+    if api is None:
       raise ValueError(
           'Failed to instantiate SwarmingApi. Swarming config not available.')
+    self._api = api
 
   # pylint: disable=no-member
   def _get_dimension(self, request: swarming_pb2.NewTaskRequest,
@@ -77,8 +78,9 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
 
     return False
 
-  def create_utask_main_job(self, module: str, job_type: str,
-                            input_download_url: str):
+  def create_utask_main_job(
+      self, module: str, job_type: str,
+      input_download_url: str) -> remote_task_types.RemoteTask | None:
     """Creates a single swarming task for a uworker main task."""
     command = task_utils.get_command_from_module(module)
     swarming_task = remote_task_types.RemoteTask(command, job_type,
@@ -97,7 +99,7 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
     """Creates many remote tasks for uworker main tasks.
        Returns the tasks that couldn't be created.
     """
-    unscheduled_tasks = []
+    unscheduled_tasks: list[remote_task_types.RemoteTask] = []
     logs.info(f'[Swarming] Pushing {len(remote_tasks)} tasks trough service.')
     for i, task in enumerate(remote_tasks):
       if not swarming.is_swarming_task(task.job_type):
@@ -133,7 +135,7 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
         unscheduled_tasks.extend(remote_tasks[i:])
         break
 
-      response: swarming_pb2.NewTaskResponse
+      response: swarming_pb2.TaskRequestResponse
       try:
         response = self._api.push_task(task_req)
       except SwarmingApiError as api_failure:

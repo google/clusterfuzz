@@ -13,10 +13,10 @@
 # limitations under the License.
 """Tools for fast HTTP operations."""
 import asyncio
+from collections.abc import AsyncIterator
+from collections.abc import Sequence
 import itertools
-from typing import List
-from typing import Sequence
-from typing import Tuple
+from typing import Any
 import urllib.parse
 
 import aiohttp
@@ -29,7 +29,7 @@ from clusterfuzz._internal.metrics import logs
 _HTTP_TIMEOUT_SECONDS = aiohttp.ClientTimeout(total=300)
 
 
-def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
+def download_urls(urls_and_filepaths: Sequence[tuple[str, str]]) -> list[bool]:
   """Downloads multiple urls to filepaths in parallel and asynchronously.
   Tolerates errors. Returns a list of whether each download was successful."""
   utils.python_gc()
@@ -50,15 +50,15 @@ def download_urls(urls_and_filepaths: List[Tuple[str, str]]) -> List[bool]:
     return list(itertools.chain(*download_results))
 
 
-def _download_files(urls_and_paths: Sequence[Tuple[str, str]]) -> List[bool]:
+def _download_files(urls_and_paths: Sequence[tuple[str, str]]) -> list[bool]:
   """Non-async function that starts an event loop to asynchronously download
   URLs."""
   urls, paths = list(zip(*urls_and_paths))
   return asyncio.run(_async_download_files(list(urls), list(paths)))
 
 
-async def _async_download_files(urls: List[str],
-                                paths: List[str]) -> List[bool]:
+async def _async_download_files(urls: Sequence[str],
+                                paths: Sequence[str]) -> list[bool]:
   """Asynchronously downloads multiple files."""
   async with aiohttp.ClientSession(timeout=_HTTP_TIMEOUT_SECONDS) as session:
     tasks = [
@@ -75,13 +75,13 @@ async def _error_tolerant_download_file(session: aiohttp.ClientSession,
     # TODO(metzman): Catch specific exceptions.
     await _async_download_file(session, url, path)
     return True
-  except:
+  except Exception:
     logs.warning(f'Failed to download {url}.')
     return False
 
 
 async def _async_download_file(session: aiohttp.ClientSession, url: str,
-                               path: str):
+                               path: str) -> None:
   """Asynchronously downloads |url| and writes it to |path|."""
   async with session.get(url) as response:
     response.raise_for_status()
@@ -92,15 +92,16 @@ async def _async_download_file(session: aiohttp.ClientSession, url: str,
         file_handle.write(chunk)
 
 
-def _get_blob_url(bucket_name, blob_name):
+def _get_blob_url(bucket_name: str, blob_name: str) -> str:
   blob_name = urllib.parse.quote(blob_name, safe='')
   return (
       f'https://storage.googleapis.com/storage/v1/b/{bucket_name}/o/{blob_name}'
   )
 
 
-async def delete_blob_async(bucket_name: str, blob_name: str, session,
-                            auth_token):
+async def delete_blob_async(bucket_name: str, blob_name: str,
+                            session: aiohttp.ClientSession,
+                            auth_token: str) -> None:
   """Asynchronously deletes a GCS blob."""
   url = _get_blob_url(bucket_name, blob_name)
   headers = {
@@ -114,12 +115,13 @@ async def delete_blob_async(bucket_name: str, blob_name: str, session,
         logs.error(f'Failed to delete blob {blob_name}. Status code + resp: '
                    f'{response.status} {response_text}.')
   except google.api_core.exceptions.NotFound:
-    logs.info(f'Not found: {blob_name} {response_text}.')
+    logs.info(f'Not found: {blob_name} {response_text}.')  # pyright: ignore
   except Exception as e:
     logs.error(f'Couldn\'t delete {blob_name}: {e}.')
 
 
-async def list_blobs_async(bucket_name, path, auth_token):
+async def list_blobs_async(bucket_name: str, path: str,
+                           auth_token: str) -> AsyncIterator[dict[str, Any]]:
   """Asynchronously lists blobs, yielding dicts containing their size, updated
   time and name."""
   async with aiohttp.ClientSession(timeout=_HTTP_TIMEOUT_SECONDS) as session:

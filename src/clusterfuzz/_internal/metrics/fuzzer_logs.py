@@ -27,12 +27,13 @@ LOG_EXTENSION = '.log'
 LOG_PATH_FORMAT = DATE_FORMAT + '/' + TIME_FORMAT
 
 
-def get_bucket():
+def get_bucket() -> str | None:
   """Return path to fuzzer logs bucket."""
   return local_config.ProjectConfig().get('logs.fuzzer.bucket')
 
 
-def get_log_relative_path(log_time, file_extension=None):
+def get_log_relative_path(log_time: datetime.datetime,
+                          file_extension: str | None = None) -> str:
   """Generate a relative path for a log using the given time.
   Args:
     log_time: A datetime object.
@@ -47,7 +48,10 @@ def get_log_relative_path(log_time, file_extension=None):
   return log_time.strftime(LOG_PATH_FORMAT) + file_extension
 
 
-def get_logs_directory(bucket_name, fuzzer_name, job_type=None, logs_date=None):
+def get_logs_directory(bucket_name: str | None,
+                       fuzzer_name: str | None,
+                       job_type: str | None = None,
+                       logs_date: datetime.date | str | None = None) -> str:
   """Get directory path of logs for a given fuzzer/job.
   Args:
     bucket_name: Bucket logs are stored in.
@@ -70,11 +74,11 @@ def get_logs_directory(bucket_name, fuzzer_name, job_type=None, logs_date=None):
   return path
 
 
-def get_logs_gcs_path(bucket_name=None,
-                      time=None,
-                      fuzzer_name=None,
-                      job_type=None,
-                      file_extension=None):
+def get_logs_gcs_path(bucket_name: str | None = None,
+                      time: datetime.datetime | None = None,
+                      fuzzer_name: str | None = None,
+                      job_type: str | None = None,
+                      file_extension: str | None = None) -> str:
   """Determines the GCS path to upload a log file to.
   Args:
     bucket_name: Bucket logs are stored in.
@@ -105,13 +109,13 @@ def get_logs_gcs_path(bucket_name=None,
   return log_path
 
 
-def upload_to_logs(bucket_name,
-                   contents,
-                   time=None,
-                   fuzzer_name=None,
-                   job_type=None,
-                   file_extension=None,
-                   signed_upload_url=None):
+def upload_to_logs(bucket_name: str | None,
+                   contents: str | bytes,
+                   time: datetime.datetime | None = None,
+                   fuzzer_name: str | None = None,
+                   job_type: str | None = None,
+                   file_extension: str | None = None,
+                   signed_upload_url: str | None = None) -> None:
   """Uploads file contents to log directory in GCS bucket.
   Args:
     bucket_name: Bucket logs are stored in.
@@ -150,10 +154,10 @@ def upload_to_logs(bucket_name,
     logs.error('Failed to write file to logs bucket.', log_path=log_path)
 
 
-def upload_script_log(log_contents,
-                      fuzzer_name=None,
-                      job_type=None,
-                      signed_upload_url=None):
+def upload_script_log(log_contents: str,
+                      fuzzer_name: str | None = None,
+                      job_type: str | None = None,
+                      signed_upload_url: str | None = None) -> None:
   """Uploads logs to script logs GCS bucket.
   Args:
     logs_bucket: Bucket logs are stored in.

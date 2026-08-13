@@ -16,11 +16,15 @@
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
 from clusterfuzz._internal.protos import untrusted_runner_pb2
 
+# pylint: disable=no-member
 
-def symbolize_stacktrace(request):
+
+def symbolize_stacktrace(
+    request: untrusted_runner_pb2.SymbolizeStacktraceRequest,
+) -> untrusted_runner_pb2.SymbolizeStacktraceResponse:
   """Symbolize stacktrace."""
   symbolized_stacktrace = stack_symbolizer.symbolize_stacktrace(
       request.unsymbolized_crash_stacktrace, request.enable_inline_frames)
 
-  return untrusted_runner_pb2.SymbolizeStacktraceResponse(  # pylint: disable=no-member
+  return untrusted_runner_pb2.SymbolizeStacktraceResponse(
       symbolized_stacktrace=symbolized_stacktrace)

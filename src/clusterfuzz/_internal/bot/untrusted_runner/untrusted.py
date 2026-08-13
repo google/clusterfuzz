@@ -13,12 +13,20 @@
 # limitations under the License.
 """Untrusted instance."""
 
+# pyright: reportAttributeAccessIssue=none
+
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Iterator
 from concurrent import futures
 import functools
 import os
 import threading
 import time
 import traceback
+from typing import Any
+from typing import cast
+from typing import TypeVar
 
 import grpc
 
@@ -42,13 +50,19 @@ from . import tasks_impl
 
 SHUTDOWN_GRACE_SECONDS = 5
 
+_F = TypeVar('_F', bound=Callable[..., Any])
+
 # pylint: disable=no-member
 
 
 class WorkerState:
   """Worker's state."""
 
-  def __init__(self):
+  server: grpc.Server | None
+  shutting_down: threading.Event
+  start_time: int | None
+
+  def __init__(self) -> None:
     self.server = None
     self.shutting_down = threading.Event()
     self.start_time = None
@@ -61,11 +75,11 @@ _rpc_count_lock = threading.Lock()
 _rpc_count = 0
 
 
-def wrap_servicer(func):
+def wrap_servicer(func: _F) -> _F:
   """Wrap a servicer to add additional functionality."""
 
   @functools.wraps(func)
-  def wrapper(self, request, context):  # pylint: disable=unused-argument
+  def wrapper(self: Any, request: Any, context: grpc.ServicerContext) -> Any:  # pylint: disable=unused-argument
     """Wrapper function."""
     global _rpc_count
 
@@ -92,7 +106,7 @@ def wrap_servicer(func):
 
     return result
 
-  return wrapper
+  return cast(_F, wrapper)
 
 
 class UntrustedRunnerServicer(
@@ -100,102 +114,186 @@ class UntrustedRunnerServicer(
   """Untrusted runner implementation."""
 
   @wrap_servicer
-  def GetStatus(self, request, context):  # pylint: disable=unused-argument
+  def GetStatus(
+      self,
+      request: untrusted_runner_pb2.GetStatusRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.GetStatusResponse:  # pylint: disable=unused-argument
     return untrusted_runner_pb2.GetStatusResponse(
         revision=utils.current_source_version(),
         start_time=_worker_state.start_time,
         bot_name=environment.get_value('BOT_NAME'))
 
   @wrap_servicer
-  def SetupRegularBuild(self, request, _):
+  def SetupRegularBuild(
+      self,
+      request: untrusted_runner_pb2.SetupRegularBuildRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.SetupBuildResponse:
     return build_setup.setup_regular_build(request)
 
   @wrap_servicer
-  def RunAndWait(self, request, context):
+  def RunAndWait(
+      self,
+      request: untrusted_runner_pb2.RunAndWaitRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.RunAndWaitResponse:
     return remote_process.run_and_wait(request, context)
 
   @wrap_servicer
-  def RunProcess(self, request, context):
+  def RunProcess(
+      self,
+      request: untrusted_runner_pb2.RunProcessRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.RunProcessResponse:
     return remote_process.run_process(request, context)
 
   @wrap_servicer
-  def CreateDirectory(self, request, context):
+  def CreateDirectory(
+      self,
+      request: untrusted_runner_pb2.CreateDirectoryRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.CreateDirectoryResponse:
     return file_impl.create_directory(request, context)
 
   @wrap_servicer
-  def RemoveDirectory(self, request, context):
+  def RemoveDirectory(
+      self,
+      request: untrusted_runner_pb2.RemoveDirectoryRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.RemoveDirectoryResponse:
     return file_impl.remove_directory(request, context)
 
   @wrap_servicer
-  def ListFiles(self, request, context):
+  def ListFiles(
+      self,
+      request: untrusted_runner_pb2.ListFilesRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.ListFilesResponse:
     return file_impl.list_files(request, context)
 
   @wrap_servicer
-  def CopyFileTo(self, request_iterator, context):
+  def CopyFileTo(
+      self,
+      request_iterator: Iterable[untrusted_runner_pb2.FileChunk],
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.CopyFileToResponse:
     return file_impl.copy_file_to_worker(request_iterator, context)
 
   @wrap_servicer
-  def CopyFileFrom(self, request, context):
+  def CopyFileFrom(
+      self,
+      request: untrusted_runner_pb2.CopyFileFromRequest,
+      context: grpc.ServicerContext,
+  ) -> Iterator[untrusted_runner_pb2.FileChunk]:
     return file_impl.copy_file_from_worker(request, context)
 
   @wrap_servicer
-  def Stat(self, request, context):
+  def Stat(
+      self,
+      request: untrusted_runner_pb2.StatRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.StatResponse:
     return file_impl.stat(request, context)
 
   @wrap_servicer
-  def UpdateEnvironment(self, request, _):
+  def UpdateEnvironment(
+      self,
+      request: untrusted_runner_pb2.UpdateEnvironmentRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.UpdateEnvironmentResponse:
     os.environ.update(request.env)
     return untrusted_runner_pb2.UpdateEnvironmentResponse()
 
   @wrap_servicer
-  def ResetEnvironment(self, _, context):  # pylint: disable=unused-argument
+  def ResetEnvironment(
+      self,
+      request: untrusted_runner_pb2.ResetEnvironmentRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.ResetEnvironmentResponse:  # pylint: disable=unused-argument
     environment.reset_environment()
     return untrusted_runner_pb2.ResetEnvironmentResponse()
 
   @wrap_servicer
-  def UpdateSource(self, request, context):  # pylint: disable=unused-argument
+  def UpdateSource(
+      self,
+      request: untrusted_runner_pb2.UpdateSourceRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.UpdateSourceResponse:  # pylint: disable=unused-argument
     # Exit and let run.py update source.
     _worker_state.shutting_down.set()
     return untrusted_runner_pb2.UpdateSourceResponse()
 
   @wrap_servicer
-  def SymbolizeStacktrace(self, request, _):
+  def SymbolizeStacktrace(
+      self,
+      request: untrusted_runner_pb2.SymbolizeStacktraceRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.SymbolizeStacktraceResponse:
     return symbolize.symbolize_stacktrace(request)
 
   @wrap_servicer
-  def TerminateStaleApplicationInstances(self, request, context):  # pylint: disable=unused-argument
+  def TerminateStaleApplicationInstances(
+      self,
+      request: untrusted_runner_pb2.TerminateStaleApplicationInstancesRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.TerminateStaleApplicationInstancesResponse:  # pylint: disable=unused-argument
     process_handler.terminate_stale_application_instances()
     return untrusted_runner_pb2.TerminateStaleApplicationInstancesResponse()
 
   @wrap_servicer
-  def GetFuzzTargets(self, request, context):
+  def GetFuzzTargets(
+      self,
+      request: untrusted_runner_pb2.GetFuzzTargetsRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.GetFuzzTargetsResponse:
     return file_impl.get_fuzz_targets(request, context)
 
   @wrap_servicer
-  def ProcessTestcase(self, request, context):
-    return tasks_impl.process_testcase(request, context)
+  def ProcessTestcase(
+      self,
+      request: untrusted_runner_pb2.ProcessTestcaseRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.EngineReproduceResult:
+    return tasks_impl.process_testcase(request, context)  # type: ignore
 
   @wrap_servicer
-  def EngineFuzz(self, request, context):
+  def EngineFuzz(
+      self,
+      request: untrusted_runner_pb2.EngineFuzzRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.EngineFuzzResponse:
     return tasks_impl.engine_fuzz(request, context)
 
   @wrap_servicer
-  def EngineReproduce(self, request, context):
+  def EngineReproduce(
+      self,
+      request: untrusted_runner_pb2.EngineReproduceRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.EngineReproduceResult:
     return tasks_impl.engine_reproduce(request, context)
 
   @wrap_servicer
-  def PruneCorpus(self, request, context):
-    return tasks_impl.prune_corpus(request, context)
+  def PruneCorpus(
+      self,
+      request: untrusted_runner_pb2.PruneCorpusRequest,
+      context: grpc.ServicerContext,
+  ) -> untrusted_runner_pb2.PruneCorpusResponse:
+    return tasks_impl.prune_corpus(request, context)  # type: ignore
 
 
 class HeartbeatServicer(heartbeat_pb2_grpc.HeartbeatServicer):
   """Heartbeat service (for keeping connections alive)."""
 
-  def Beat(self, _, context):  # pylint: disable=unused-argument
+  def Beat(
+      self,
+      request: heartbeat_pb2.HeartbeatRequest,
+      context: grpc.ServicerContext,
+  ) -> heartbeat_pb2.HeartbeatResponse:  # pylint: disable=unused-argument
     return heartbeat_pb2.HeartbeatResponse()
 
 
-def _get_tls_cert_and_key():
+def _get_tls_cert_and_key() -> tuple[bytes, bytes]:
   """Get the TLS cert from instance metadata."""
   # TODO(ochang): Implement a fake metadata server for testing.
   local_cert_location = environment.get_value('UNTRUSTED_TLS_CERT_FOR_TESTING')
@@ -215,7 +313,7 @@ def _get_tls_cert_and_key():
   return cert_contents, key_contents
 
 
-def start_server():
+def start_server() -> None:
   """Start the server."""
   # Check overall free disk space. If we are running too low, clear all
   # data directories like builds, fuzzers, data bundles, etc.
@@ -225,20 +323,20 @@ def start_server():
   assert cert_contents and key_contents
   server_credentials = grpc.ssl_server_credentials([(key_contents,
                                                      cert_contents)])
-  _worker_state.server = grpc.server(
+  server_instance = grpc.server(
       futures.ThreadPoolExecutor(max_workers=config.NUM_WORKER_THREADS),
       options=config.GRPC_OPTIONS)
+  _worker_state.server = server_instance
 
   untrusted_runner_pb2_grpc.add_UntrustedRunnerServicer_to_server(
-      UntrustedRunnerServicer(), _worker_state.server)
+      UntrustedRunnerServicer(), server_instance)
   heartbeat_pb2_grpc.add_HeartbeatServicer_to_server(HeartbeatServicer(),
-                                                     _worker_state.server)
+                                                     server_instance)
 
-  _worker_state.server.add_secure_port('[::]:%d' % config.PORT,
-                                       server_credentials)
+  server_instance.add_secure_port('[::]:%d' % config.PORT, server_credentials)
 
   _worker_state.start_time = int(time.time())
-  _worker_state.server.start()
+  server_instance.start()
 
   logs.info('Server started.')
 
@@ -246,7 +344,7 @@ def start_server():
   _worker_state.shutting_down.wait()
 
   logs.info('Server shutting down.')
-  stopped = _worker_state.server.stop(SHUTDOWN_GRACE_SECONDS)
+  stopped = server_instance.stop(SHUTDOWN_GRACE_SECONDS)
   stopped.wait()
 
   # Prevent python GIL deadlocks on shutdown. See https://crbug.com/744680.
@@ -254,6 +352,6 @@ def start_server():
   os._exit(0)
 
 
-def server():
+def server() -> grpc.Server | None:
   """Return the grpc.Server."""
   return _worker_state.server

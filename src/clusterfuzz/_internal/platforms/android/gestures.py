@@ -15,17 +15,18 @@
 
 import os
 import random
+from typing import Any
 
 from . import adb
 
 # Fixed delay in milliseconds between consecutive monkey events.
-MONKEY_THROTTLE_DELAY = 100
+MONKEY_THROTTLE_DELAY: int = 100
 
 # Maximum number of monkey events per testcase.
-NUM_MONKEY_EVENTS = 25
+NUM_MONKEY_EVENTS: int = 25
 
 
-def get_random_gestures(_):
+def get_random_gestures(_: Any) -> list[str]:
   """Return a random gesture seed from monkey framework natively supported by
   Android OS."""
   random_seed = random.getrandbits(32)
@@ -33,7 +34,7 @@ def get_random_gestures(_):
   return [gesture]
 
 
-def run_gestures(gestures, *_):
+def run_gestures(gestures: list[str], *_: Any) -> None:
   """Run the provided interaction gestures."""
   package_name = os.getenv('PKG_NAME')
   if not package_name:

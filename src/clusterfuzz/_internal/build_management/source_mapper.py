@@ -14,29 +14,40 @@
 """Helper functions for fetch source links."""
 
 import re
+from typing import Any
+from typing import ClassVar
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Type
+from typing import Union
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 
-DRIVE_LETTER_REGEX = re.compile(r'^[a-zA-Z]:\\')
-RANGE_LIMIT = 10000
-SOURCE_START_ID = 'src/'
-SOURCE_STRIP_REGEX = re.compile(r'^[/]?src[/]?')
-STACK_FRAME_PATH_LINE_REGEX = re.compile(
+DRIVE_LETTER_REGEX: re.Pattern[str] = re.compile(r'^[a-zA-Z]:\\')
+RANGE_LIMIT: int = 10000
+SOURCE_START_ID: str = 'src/'
+SOURCE_STRIP_REGEX: re.Pattern[str] = re.compile(r'^[/]?src[/]?')
+STACK_FRAME_PATH_LINE_REGEX: re.Pattern[str] = re.compile(
     r'(?<=\[|\(|\s)([a-zA-Z/.][^\s]*?)\s*(:|@)\s*(\d+)(?=\]$|\)$|:\d+$|$)')
-JAVA_STACK_FRAME_REGEX = re.compile(
+JAVA_STACK_FRAME_REGEX: re.Pattern[str] = re.compile(
     r'at (?P<path>[a-zA-Z0-9\.\/]+)\.(?P<method>[a-zA-Z0-9\.\/]+)\([a-zA-Z0-9]+'
     r'\.java\:(?P<line>\d+)\)')
 
 
 class ComponentPath:
+  """Component path info."""
 
-  def __init__(self, source=None, relative_path=None, display_path=None):
+  def __init__(self,
+               source: Optional[str] = None,
+               relative_path: Optional[str] = None,
+               display_path: Optional[str] = None) -> None:
     self.source = source
     self.relative_path = relative_path
     self.display_path = display_path
 
-  def __eq__(self, other):
+  def __eq__(self, other: Any) -> bool:
     return (self.source == other.source and
             self.relative_path == other.relative_path and
             self.display_path == other.display_path)
@@ -44,28 +55,32 @@ class ComponentPath:
 
 class VCSViewer:
   """Base viewer class."""
-  VCS_URL_REGEX = None
-  VCS_REVISION_SUB = None
-  VCS_REVISION_DIFF_SUB = None
-  VCS_REVISION_PATH_LINE_SUB = None
+  VCS_URL_REGEX: ClassVar[Optional[re.Pattern[str]]] = None
+  VCS_REVISION_SUB: ClassVar[Optional[str]] = None
+  VCS_REVISION_DIFF_SUB: ClassVar[Optional[str]] = None
+  VCS_REVISION_PATH_LINE_SUB: ClassVar[Optional[str]] = None
 
-  def __init__(self, url):
+  def __init__(self, url: str) -> None:
     self.url = url
 
-  def get_mapped_url(self, repl, **kwargs):
+  def get_mapped_url(self, repl: str, **kwargs: Any) -> str:
     """Return mapped url given a url map and arguments."""
+    assert self.VCS_URL_REGEX is not None
     mapped_url = self.VCS_URL_REGEX.sub(repl, self.url)
     mapped_url = mapped_url.format(**kwargs)
     return mapped_url
 
-  def get_source_url_for_revision(self, revision):
+  def get_source_url_for_revision(self,
+                                  revision: Union[int, str]) -> Optional[str]:
     """Return source revision url given a url and revision."""
     if not self.VCS_REVISION_SUB:
       return None
 
     return self.get_mapped_url(self.VCS_REVISION_SUB, revision=revision)
 
-  def get_source_url_for_revision_diff(self, start_revision, end_revision):
+  def get_source_url_for_revision_diff(
+      self, start_revision: Union[int, str],
+      end_revision: Union[int, str]) -> Optional[str]:
     """Return source revision diff url given a url and revision."""
     if not self.VCS_REVISION_DIFF_SUB:
       return None
@@ -76,7 +91,9 @@ class VCSViewer:
         end_revision=end_revision,
         range_limit=RANGE_LIMIT)
 
-  def get_source_url_for_revision_path_and_line(self, revision, path, line):
+  def get_source_url_for_revision_path_and_line(
+      self, revision: Union[int, str], path: str,
+      line: Union[int, str]) -> Optional[str]:
     """Return source revision url given a url, revision, path and line."""
     if not self.VCS_REVISION_PATH_LINE_SUB:
       return None
@@ -144,7 +161,7 @@ class MercurialVCS(VCSViewer):
   VCS_REVISION_PATH_LINE_SUB = r'\1/file/{revision}/{path}#l{line}'
 
 
-VCS_LIST = [
+VCS_LIST: List[Type[VCSViewer]] = [
     FreeDesktopVCS,
     GitHubVCS,
     GitLabVCS,
@@ -155,7 +172,8 @@ VCS_LIST = [
 ]
 
 
-def get_component_source_and_relative_path(path, revisions_dict):
+def get_component_source_and_relative_path(
+    path: str, revisions_dict: Optional[Dict[str, Any]]) -> ComponentPath:
   """Get component source and relative path given a revisions dictionary and
   path."""
   if not revisions_dict:
@@ -189,28 +207,29 @@ def get_component_source_and_relative_path(path, revisions_dict):
                        normalized_path)
 
 
-def get_vcs_viewer_for_url(url):
+def get_vcs_viewer_for_url(url: str) -> Optional[VCSViewer]:
   """Return a VCS instance given an input url."""
   for vcs in VCS_LIST:
+    assert vcs.VCS_URL_REGEX is not None
     if vcs.VCS_URL_REGEX.match(url):
       return vcs(url)
 
   return None
 
 
-def should_linkify_java_stack_frames():
+def should_linkify_java_stack_frames() -> Any:
   return local_config.Config(local_config.PROJECT_PATH).get('linkify_java')
 
 
 class StackFrameLinkifier:
   """Class for converting stackframes to clickable links to the source code."""
 
-  def __init__(self, revisions_dict):
+  def __init__(self, revisions_dict: Dict[str, Any]) -> None:
     self.revisions_dict = revisions_dict
     # Make this a class so we're not requerying the config so often.
     self.should_linkify_java_stack_frames = should_linkify_java_stack_frames()
 
-  def convert_java_stack_frame(self, stack_frame):
+  def convert_java_stack_frame(self, stack_frame: str) -> str:
     """Converts a Java |stack_frame| to a more C-like one so the rest of our
     magic works on it. Returns |stack_frame| if not Java."""
     if not self.should_linkify_java_stack_frames:
@@ -225,7 +244,7 @@ class StackFrameLinkifier:
     path = path.replace('.', '/')
     return f' in {method} {path}.java:{line}'
 
-  def linkify_stack_frame(self, stack_frame):
+  def linkify_stack_frame(self, stack_frame: str) -> str:
     """Linkify a stack frame with source links to its repo."""
     stack_frame = self.convert_java_stack_frame(stack_frame)
     match = STACK_FRAME_PATH_LINE_REGEX.search(stack_frame)
@@ -241,6 +260,8 @@ class StackFrameLinkifier:
     if not component_path.source:
       # Can't find any matching component source in revisions dict, bail out.
       return stack_frame
+
+    assert component_path.relative_path is not None
 
     source_dict = self.revisions_dict[component_path.source]
     repo_url = source_dict['url']
@@ -262,7 +283,7 @@ class StackFrameLinkifier:
     return linkified_stack_frame
 
 
-def normalize_source_path(path):
+def normalize_source_path(path: str) -> Optional[str]:
   """Normalizes source path for comparison with component sources."""
   # Account for ../../ at start of path due to working directory
   # out/<build_dir>/ at time of build generation (chromium only).

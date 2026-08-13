@@ -13,8 +13,11 @@
 # limitations under the License.
 """Functions for running gsutil."""
 
+from collections.abc import Callable
+from collections.abc import Sequence
 import os
 import shutil
+from typing import Any
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -26,12 +29,12 @@ from clusterfuzz._internal.system import new_process
 FILES_SYNC_TIMEOUT = 5 * 60 * 60
 
 
-def use_gcloud_for_command(command):
+def use_gcloud_for_command(command: str) -> bool:
   """Returns whether to use gcloud storage for the given command."""
   return bool(environment.get_value(f'USE_GCLOUD_STORAGE_{command.upper()}'))
 
 
-def get_gcloud_path():
+def get_gcloud_path() -> str | None:
   """Get path to gcloud executable."""
   gcloud_executable = 'gcloud'
   if environment.platform() == 'WINDOWS':
@@ -55,7 +58,7 @@ def get_gcloud_path():
   return None
 
 
-def get_gsutil_path():
+def get_gsutil_path() -> str | None:
   """Get path to gsutil executable.
 
   Returns:
@@ -81,7 +84,7 @@ def get_gsutil_path():
   return gsutil_absolute_path
 
 
-def _multiprocessing_args():
+def _multiprocessing_args() -> list[str]:
   """Get multiprocessing args for gsutil."""
   if utils.cpu_count() == 1:
     # GSUtil's default thread count is 5 as it assumes the common configuration
@@ -91,7 +94,7 @@ def _multiprocessing_args():
   return []
 
 
-def _filter_path(path, write=False):
+def _filter_path(path: str, write: bool = False) -> str:
   """Filters path if needed. In local development environment, this uses local
   paths from an emulated GCS instead of real GCS. `write` indicates whether if
   `path` is a GCS write destination and that intermediate paths should be
@@ -117,10 +120,18 @@ def _filter_path(path, write=False):
 class GSUtilRunner:
   """GSUtil/gcloud storage runner."""
 
-  def __init__(self, process_runner=new_process.ProcessRunner):
+  def __init__(
+      self,
+      process_runner: Callable[
+          ..., new_process.ProcessRunner] = new_process.ProcessRunner,
+  ) -> None:
     self._process_runner = process_runner
 
-  def _get_runner_and_args(self, use_gcloud_storage, quiet=False):
+  def _get_runner_and_args(
+      self,
+      use_gcloud_storage: bool,
+      quiet: bool = False,
+  ) -> tuple[new_process.ProcessRunner, list[str]]:
     """Get the process runner and default arguments."""
     if use_gcloud_storage:
       executable_path = get_gcloud_path()
@@ -142,7 +153,13 @@ class GSUtilRunner:
 
     return runner, additional_args
 
-  def run_gsutil(self, arguments, use_gcloud_storage, quiet=False, **kwargs):
+  def run_gsutil(
+      self,
+      arguments: list[str],
+      use_gcloud_storage: bool,
+      quiet: bool = False,
+      **kwargs: Any,
+  ) -> new_process.ProcessResult:
     """Run GSUtil or gcloud storage."""
     runner, additional_args = self._get_runner_and_args(use_gcloud_storage,
                                                         quiet)
@@ -189,12 +206,14 @@ class GSUtilRunner:
           arguments=arg_str)
       raise
 
-  def rsync(self,
-            source,
-            destination,
-            timeout=FILES_SYNC_TIMEOUT,
-            delete=True,
-            exclusion_pattern=None):
+  def rsync(
+      self,
+      source: str,
+      destination: str,
+      timeout: float = FILES_SYNC_TIMEOUT,
+      delete: bool = True,
+      exclusion_pattern: str | None = None,
+  ) -> new_process.ProcessResult:
     """Rsync with gsutil or gcloud storage."""
     use_gcloud = use_gcloud_for_command('rsync')
     if use_gcloud:
@@ -217,7 +236,12 @@ class GSUtilRunner:
 
     return self.run_gsutil(command, use_gcloud, timeout=timeout, quiet=True)
 
-  def download_file(self, gcs_url, file_path, timeout=None):
+  def download_file(
+      self,
+      gcs_url: str,
+      file_path: str,
+      timeout: float | None = None,
+  ) -> bool:
     """Download a file from GCS."""
     use_gcloud = use_gcloud_for_command('cp')
     command = ['cp', _filter_path(gcs_url), file_path]
@@ -229,12 +253,14 @@ class GSUtilRunner:
 
     return result.return_code == 0
 
-  def upload_file(self,
-                  file_path,
-                  gcs_url,
-                  timeout=None,
-                  gzip=False,
-                  metadata=None):
+  def upload_file(
+      self,
+      file_path: str,
+      gcs_url: str,
+      timeout: float | None = None,
+      gzip: bool = False,
+      metadata: dict[str, str] | None = None,
+  ) -> bool:
     """Upload a single file to a given GCS url."""
     if not file_path or not gcs_url:
       return False
@@ -301,7 +327,12 @@ class GSUtilRunner:
 
     return True
 
-  def upload_files_to_url(self, file_paths, gcs_url, timeout=None):
+  def upload_files_to_url(
+      self,
+      file_paths: Sequence[str],
+      gcs_url: str,
+      timeout: float | None = None,
+  ) -> bool:
     """Upload files to the given GCS url."""
     if not file_paths or not gcs_url:
       return False

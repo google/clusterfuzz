@@ -13,7 +13,12 @@
 # limitations under the License.
 """File operations implementations."""
 
+from collections.abc import Iterable
+from collections.abc import Iterator
 import os
+from typing import cast
+
+import grpc
 
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzers_utils
 from clusterfuzz._internal.protos import untrusted_runner_pb2
@@ -21,24 +26,33 @@ from clusterfuzz._internal.system import shell
 
 from . import file_utils
 
-# pylint: disable=no-member
+# pylint: disable=no-member,unused-argument
 
 
-def create_directory(request, _):
+def create_directory(
+    request: untrusted_runner_pb2.CreateDirectoryRequest,
+    context: grpc.ServicerContext,
+) -> untrusted_runner_pb2.CreateDirectoryResponse:
   """Create a directory."""
   result = shell.create_directory(request.path, request.create_intermediates)
   return untrusted_runner_pb2.CreateDirectoryResponse(result=result)
 
 
-def remove_directory(request, _):
+def remove_directory(
+    request: untrusted_runner_pb2.RemoveDirectoryRequest,
+    context: grpc.ServicerContext,
+) -> untrusted_runner_pb2.RemoveDirectoryResponse:
   """Remove a directory."""
   result = shell.remove_directory(request.path, request.recreate)
   return untrusted_runner_pb2.RemoveDirectoryResponse(result=result)
 
 
-def list_files(request, _):
+def list_files(
+    request: untrusted_runner_pb2.ListFilesRequest,
+    context: grpc.ServicerContext,
+) -> untrusted_runner_pb2.ListFilesResponse:
   """List files."""
-  file_paths = []
+  file_paths: list[str] = []
   if request.recursive:
     for root, _, files in shell.walk(request.path):
       for filename in files:
@@ -50,10 +64,13 @@ def list_files(request, _):
   return untrusted_runner_pb2.ListFilesResponse(file_paths=file_paths)
 
 
-def copy_file_to_worker(request_iterator, context):
+def copy_file_to_worker(
+    request_iterator: Iterable[untrusted_runner_pb2.FileChunk],
+    context: grpc.ServicerContext,
+) -> untrusted_runner_pb2.CopyFileToResponse:
   """Copy file from host to worker."""
   metadata = dict(context.invocation_metadata())
-  path = metadata['path-bin'].decode('utf-8')
+  path = cast(bytes, metadata['path-bin']).decode('utf-8')
 
   # Create intermediate directories if needed.
   directory = os.path.dirname(path)
@@ -71,7 +88,10 @@ def copy_file_to_worker(request_iterator, context):
   return untrusted_runner_pb2.CopyFileToResponse(result=True)
 
 
-def copy_file_from_worker(request, context):
+def copy_file_from_worker(
+    request: untrusted_runner_pb2.CopyFileFromRequest,
+    context: grpc.ServicerContext,
+) -> Iterator[untrusted_runner_pb2.FileChunk]:
   """Copy file from worker to host."""
   path = request.path
   if not os.path.isfile(path):
@@ -83,7 +103,10 @@ def copy_file_from_worker(request, context):
   context.set_trailing_metadata([('result', 'ok')])
 
 
-def stat(request, _):
+def stat(
+    request: untrusted_runner_pb2.StatRequest,
+    context: grpc.ServicerContext,
+) -> untrusted_runner_pb2.StatResponse:
   """Stat a path."""
   if not os.path.exists(request.path):
     return untrusted_runner_pb2.StatResponse(result=False)
@@ -98,7 +121,10 @@ def stat(request, _):
       st_ctime=stat_result.st_ctime)
 
 
-def get_fuzz_targets(request, _):
+def get_fuzz_targets(
+    request: untrusted_runner_pb2.GetFuzzTargetsRequest,
+    context: grpc.ServicerContext,
+) -> untrusted_runner_pb2.GetFuzzTargetsResponse:
   """Get list of fuzz targets."""
   fuzz_target_paths = fuzzers_utils.get_fuzz_targets_local(request.path)
   return untrusted_runner_pb2.GetFuzzTargetsResponse(

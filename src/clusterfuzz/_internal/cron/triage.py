@@ -17,6 +17,7 @@ import collections
 import datetime
 import itertools
 import json
+from typing import Iterable
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
@@ -29,6 +30,7 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.issue_management.issue_tracker import IssueTracker
 from clusterfuzz._internal.metrics import crash_stats
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
@@ -36,28 +38,34 @@ from clusterfuzz._internal.metrics import monitoring_metrics
 
 from . import grouper
 
-MAX_BUGS_PER_PROJECT_PER_24HRS_DEFAULT = 100
-UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
+MAX_BUGS_PER_PROJECT_PER_24HRS_DEFAULT: int = 100
+UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES: list[str] = [
     'Out-of-memory', 'Stack-overflow', 'Timeout'
 ]
-TRIAGE_MESSAGE_KEY = 'triage_message'
+TRIAGE_MESSAGE_KEY: str = 'triage_message'
 
 
-def _add_triage_message(testcase, message):
+def _add_triage_message(testcase: data_types.Testcase, message: str) -> None:
   """Add a triage message."""
   if testcase.get_metadata(TRIAGE_MESSAGE_KEY) == message:
     # Message already exists, skip update.
     return
   # Re-fetch testcase to get latest entity and avoid race condition in updates.
-  testcase = data_handler.get_testcase_by_id(testcase.key.id())
-  testcase.set_metadata(TRIAGE_MESSAGE_KEY, message)
+  testcase_id = testcase.key.id()
+  assert testcase_id is not None
+  fetched_testcase = data_handler.get_testcase_by_id(testcase_id)
+  assert fetched_testcase is not None
+  fetched_testcase.set_metadata(TRIAGE_MESSAGE_KEY, message)
 
 
-def _create_filed_bug_metadata(testcase):
+def _create_filed_bug_metadata(testcase: data_types.Testcase) -> None:
   """Create a dummy bug entry for a test case."""
   metadata = data_types.FiledBug()
   metadata.timestamp = datetime.datetime.utcnow()
-  metadata.testcase_id = testcase.key.id()
+  testcase_id = testcase.key.id()
+  assert testcase_id is not None
+  metadata.testcase_id = int(testcase_id)
+  assert testcase.bug_information is not None
   metadata.bug_information = int(testcase.bug_information)
   metadata.group_id = testcase.group_id
   metadata.crash_type = testcase.crash_type
@@ -69,9 +77,9 @@ def _create_filed_bug_metadata(testcase):
   metadata.put()
 
 
-def _get_excluded_jobs():
+def _get_excluded_jobs() -> list[str]:
   """Return list of jobs excluded from bug filing."""
-  excluded_jobs = []
+  excluded_jobs: list[str] = []
 
   jobs = ndb_utils.get_all_from_model(data_types.Job)
   for job in jobs:
@@ -79,12 +87,13 @@ def _get_excluded_jobs():
 
     # Exclude experimental jobs.
     if utils.string_is_true(job_environment.get('EXPERIMENTAL')):
+      assert job.name is not None
       excluded_jobs.append(job.name)
 
   return excluded_jobs
 
 
-def _is_bug_filed(testcase):
+def _is_bug_filed(testcase: data_types.Testcase) -> bool:
   """Indicate if the bug is already filed."""
   # Check if the testcase is already associated with a bug.
   if testcase.bug_information:
@@ -99,9 +108,9 @@ def _is_bug_filed(testcase):
   return False
 
 
-def _is_blocking_progress_android(testcase):
+def _is_blocking_progress_android(testcase: data_types.Testcase) -> bool:
   """Checks the crash frequency if it is reported on libfuzzer"""
-  if testcase.job_type.startswith('libfuzzer'):
+  if (testcase.job_type or '').startswith('libfuzzer'):
     # Get crash statistics data on this unreproducible crash for last X days.
     last_hour = crash_stats.get_last_successful_hour()
     if not last_hour:
@@ -146,14 +155,14 @@ def _is_blocking_progress_android(testcase):
   return False
 
 
-def is_crash_important_android(testcase):
+def is_crash_important_android(testcase: data_types.Testcase) -> bool:
   """"Indicate if the android crash is important to file."""
   if _is_blocking_progress_android(testcase):
     return True
   return False
 
 
-def _is_crash_important(testcase):
+def _is_crash_important(testcase: data_types.Testcase) -> bool:
   """Indicate if the crash is important to file."""
   if not testcase.one_time_crasher_flag:
     # A reproducible crash is an important crash.
@@ -222,10 +231,11 @@ def _is_crash_important(testcase):
           data_types.FILE_UNREPRODUCIBLE_TESTCASE_MIN_CRASH_THRESHOLD)
 
 
-def _check_and_update_similar_bug(testcase, issue_tracker):
+def _check_and_update_similar_bug(testcase: data_types.Testcase,
+                                  issue_tracker: IssueTracker) -> bool:
   """Get list of similar open issues and ones that were recently closed."""
   # Get similar testcases from the same group.
-  similar_testcases_from_group = []
+  similar_testcases_from_group: Iterable[data_types.Testcase] = []
   if testcase.group_id:
     group_query = data_types.Testcase.query(
         data_types.Testcase.group_id == testcase.group_id)
@@ -241,9 +251,10 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
       data_types.Testcase.project_name == testcase.project_name,
       data_types.Testcase.status == 'Processed')
 
-  similar_testcases_from_query = ndb_utils.get_all_from_query(
-      same_crash_params_query,
-      batch_size=data_types.TESTCASE_ENTITY_QUERY_LIMIT // 2)
+  similar_testcases_from_query: Iterable[
+      data_types.Testcase] = ndb_utils.get_all_from_query(
+          same_crash_params_query,
+          batch_size=data_types.TESTCASE_ENTITY_QUERY_LIMIT // 2)
   for similar_testcase in itertools.chain(similar_testcases_from_group,
                                           similar_testcases_from_query):
     # Exclude ourself from comparison.
@@ -280,7 +291,7 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
     # file another one.
     policy = issue_tracker_policy.get(issue_tracker.project)
     ignore_label = policy.label('ignore')
-    if ignore_label in issue.labels:
+    if ignore_label and ignore_label in issue.labels:
       _add_triage_message(
           testcase,
           ('Skipping filing a bug since similar testcase ({testcase_id}) in '
@@ -316,7 +327,8 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
   return False
 
 
-def _emit_bug_filing_from_testcase_elapsed_time_metric(testcase):
+def _emit_bug_filing_from_testcase_elapsed_time_metric(
+    testcase: data_types.Testcase) -> None:
   testcase_age = testcase.get_age_in_seconds()
   if not testcase_age:
     return
@@ -328,7 +340,8 @@ def _emit_bug_filing_from_testcase_elapsed_time_metric(testcase):
       })
 
 
-def _file_issue(testcase, issue_tracker, throttler):
+def _file_issue(testcase: data_types.Testcase, issue_tracker: IssueTracker,
+                throttler: 'Throttler') -> bool:
   """File an issue for the testcase."""
   logs.info(f'_file_issue for {testcase.key.id()}')
   filed = False
@@ -375,24 +388,25 @@ def _file_issue(testcase, issue_tracker, throttler):
   return filed
 
 
-def _set_testcase_stuck_state(testcase: data_types.Testcase, state: bool):
+def _set_testcase_stuck_state(testcase: data_types.Testcase,
+                              state: bool) -> None:
   if testcase.stuck_in_triage == state:
     return
   testcase.stuck_in_triage = state
   testcase.put()
 
 
-untriaged_testcases = {}
+untriaged_testcases: dict[tuple[str, str], int] = {}
 
 
-def _increment_untriaged_testcase_count(job, status):
+def _increment_untriaged_testcase_count(job: str, status: str) -> None:
   identifier = (job, status)
   if identifier not in untriaged_testcases:
     untriaged_testcases[identifier] = 0
   untriaged_testcases[identifier] += 1
 
 
-def _emit_untriaged_testcase_count_metric():
+def _emit_untriaged_testcase_count_metric() -> None:
   for (job, status) in untriaged_testcases:
     monitoring_metrics.UNTRIAGED_TESTCASE_COUNT.set(
         untriaged_testcases[(job, status)],
@@ -402,23 +416,24 @@ def _emit_untriaged_testcase_count_metric():
         })
 
 
-PENDING_ANALYZE = 'pending_analyze'
-PENDING_CRITICAL_TASKS = 'pending_critical_tasks'
-PENDING_PROGRESSION = 'pending_progression'
-PENDING_GROUPING = 'pending_grouping'
-PENDING_FILING = 'pending_filing'
+PENDING_ANALYZE: str = 'pending_analyze'
+PENDING_CRITICAL_TASKS: str = 'pending_critical_tasks'
+PENDING_PROGRESSION: str = 'pending_progression'
+PENDING_GROUPING: str = 'pending_grouping'
+PENDING_FILING: str = 'pending_filing'
 
 
 def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase,
-                                        step: str):
+                                        step: str) -> None:
   """Emmits a metric to track age of untriaged testcases."""
-  if not testcase.get_age_in_seconds():
+  testcase_age = testcase.get_age_in_seconds()
+  if not testcase_age:
     return
 
   logs.info(f'Emiting UNTRIAGED_TESTCASE_AGE for testcase {testcase.key.id()} '
-            f'(age = {testcase.get_age_in_seconds()}), step = {step}')
+            f'(age = {testcase_age}), step = {step}')
   monitoring_metrics.UNTRIAGED_TESTCASE_AGE.add(
-      testcase.get_age_in_seconds() / 3600,
+      testcase_age / 3600,
       labels={
           'job': testcase.job_type,
           'platform': testcase.platform,
@@ -426,7 +441,8 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase,
       })
 
 
-def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
+def _triage_testcase(testcase: data_types.Testcase, excluded_jobs: list[str],
+                     all_jobs: list[str], throttler: 'Throttler') -> None:
   """Files a bug for a given testcase."""
   testcase_id = testcase.key.id()
   critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
@@ -564,13 +580,13 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
 
 
 @logs.cron_log_context()
-def main():
+def main() -> bool:
   """Files bugs."""
   try:
     logs.info('Grouping testcases.')
     grouper.group_testcases()
     logs.info('Grouping done.')
-  except:
+  except:  # pylint: disable=bare-except
     logs.error('Error occurred while grouping test cases.')
     return False
 
@@ -607,21 +623,23 @@ def main():
 class Throttler:
   """Bug throttler"""
 
-  def __init__(self):
-    self._bug_filed_per_job_per_24hrs = collections.defaultdict(int)
-    self._bug_filed_per_project_per_24hrs = collections.defaultdict(int)
-    self._bug_throttling_cutoff = datetime.datetime.now() - datetime.timedelta(
-        hours=24)
+  def __init__(self) -> None:
+    self._bug_filed_per_job_per_24hrs: dict[str | None,
+                                            int] = collections.defaultdict(int)
+    self._bug_filed_per_project_per_24hrs: dict[
+        str | None, int] = collections.defaultdict(int)
+    self._bug_throttling_cutoff: datetime.datetime = datetime.datetime.now(
+    ) - datetime.timedelta(hours=24)
     for bug in ndb_utils.get_all_from_query(
         data_types.FiledBug.query(
             data_types.FiledBug.timestamp >= self._bug_throttling_cutoff)):
       self._bug_filed_per_job_per_24hrs[bug.job_type] += 1
       self._bug_filed_per_project_per_24hrs[bug.project_name] += 1
 
-    self._max_bugs_per_job_per_24hrs = {}
-    self._max_bugs_per_project_per_24hrs = {}
+    self._max_bugs_per_job_per_24hrs: dict[str | None, int | None] = {}
+    self._max_bugs_per_project_per_24hrs: dict[str | None, int] = {}
 
-  def _get_job_bugs_filing_max(self, job_type):
+  def _get_job_bugs_filing_max(self, job_type: str | None) -> int | None:
     """Gets the maximum number of bugs that can be filed for a given job."""
     if job_type in self._max_bugs_per_job_per_24hrs:
       return self._max_bugs_per_job_per_24hrs[job_type]
@@ -631,14 +649,14 @@ class Throttler:
     if job and 'MAX_BUGS_PER_24HRS' in job.get_environment():
       try:
         max_bugs = int(job.get_environment()['MAX_BUGS_PER_24HRS'])
-      except Exception:
+      except:  # pylint: disable=bare-except
         logs.error('Invalid environment value of \'MAX_BUGS_PER_24HRS\' '
                    f'for job type {job_type}.')
 
     self._max_bugs_per_job_per_24hrs[job_type] = max_bugs
     return max_bugs
 
-  def _get_project_bugs_filing_max(self, job_type):
+  def _get_project_bugs_filing_max(self, job_type: str | None) -> int:
     """Gets the maximum number of bugs that can be filed per project."""
     project = data_handler.get_project_name(job_type)
     if project in self._max_bugs_per_project_per_24hrs:
@@ -650,14 +668,14 @@ class Throttler:
     max_bugs = MAX_BUGS_PER_PROJECT_PER_24HRS_DEFAULT
     try:
       max_bugs = int(config.get('max_bugs_per_project_per_24hrs', max_bugs))
-    except:
+    except:  # pylint: disable=bare-except
       logs.error('Invalid config value of \'max_bugs_per_project_per_24hrs\' '
                  f'for issue tracker {issue_tracker_name}')
 
     self._max_bugs_per_project_per_24hrs[project] = max_bugs
     return max_bugs
 
-  def should_throttle(self, testcase):
+  def should_throttle(self, testcase: data_types.Testcase) -> bool:
     """Returns whether the current bug needs to be throttled."""
     job_bugs_filing_max = self._get_job_bugs_filing_max(testcase.job_type)
 

@@ -13,22 +13,26 @@
 # limitations under the License.
 """Bisection infrastructure functions."""
 
+from typing import cast
+
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.system import environment
 
 
-def _get_topic():
+def _get_topic() -> str | None:
   """Get the Pub/Sub topic for publishing tasks."""
-  return local_config.ProjectConfig().get('bisect_service.pubsub_topic')
+  return cast(str | None,
+              local_config.ProjectConfig().get('bisect_service.pubsub_topic'))
 
 
-def notify_bisection_invalid(testcase):
+def notify_bisection_invalid(testcase: data_types.Testcase) -> None:
   """Notify the bisection infrastructure of a testcase getting into invalid
   state."""
   pubsub_topic = _get_topic()
@@ -44,7 +48,7 @@ def notify_bisection_invalid(testcase):
   ])
 
 
-def request_bisection(testcase):
+def request_bisection(testcase: data_types.Testcase) -> None:
   """Request precise bisection."""
   pubsub_topic = _get_topic()
   if not pubsub_topic:
@@ -80,7 +84,12 @@ def request_bisection(testcase):
     testcase.set_metadata('requested_fixed_bisect', True)
 
 
-def _check_commits(testcase, bisect_type, old_commit, new_commit):
+def _check_commits(
+    testcase: data_types.Testcase,
+    bisect_type: str,
+    old_commit: str | None,
+    new_commit: str | None,
+) -> tuple[str | None, str | None]:
   """Check old and new commit validity."""
   if old_commit != new_commit or build_manager.is_custom_binary():
     return old_commit, new_commit
@@ -97,6 +106,7 @@ def _check_commits(testcase, bisect_type, old_commit, new_commit):
   # on a uworker, move it to preprocess.
   bad_revisions = build_manager.get_job_bad_revisions()
   revision_list = build_manager.get_revisions_list(bucket_path, bad_revisions)
+  assert revision_list is not None
 
   last_tested_revision = testcase.get_metadata('last_tested_crash_revision')
   known_crash_revision = last_tested_revision or testcase.crash_revision
@@ -116,7 +126,12 @@ def _check_commits(testcase, bisect_type, old_commit, new_commit):
   raise ValueError('Invalid bisection type: ' + bisect_type)
 
 
-def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
+def _make_bisection_request(
+    pubsub_topic: str,
+    testcase: data_types.Testcase,
+    target: data_types.FuzzTarget,
+    bisect_type: str,
+) -> bool:
   """Make a bisection request to the external bisection service. Returns whether
   or not a request was actually made."""
   if bisect_type == 'fixed':
@@ -168,7 +183,7 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
                   severity_analyzer.severity_to_string(
                       testcase.security_severity),
               'timestamp':
-                  testcase.timestamp.isoformat(),
+                  testcase.timestamp.isoformat() if testcase.timestamp else '',
               'repo_url':
                   repo_url,
           })
@@ -176,7 +191,10 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
   return True
 
 
-def _get_commits(commit_range, job_type):
+def _get_commits(
+    commit_range: str | None,
+    job_type: str | None,
+) -> tuple[str | None, str | None]:
   """Get commits from range."""
   if not commit_range or commit_range == 'NA':
     return None, None
@@ -198,7 +216,7 @@ def _get_commits(commit_range, job_type):
   return old_commit, new_commit
 
 
-def _get_keys(testcase):
+def _get_keys(testcase: data_types.Testcase) -> str | None:
   if testcase.minimized_keys and testcase.minimized_keys != 'NA':
     return testcase.minimized_keys
   return testcase.fuzzed_keys
