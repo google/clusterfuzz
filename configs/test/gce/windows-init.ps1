@@ -304,7 +304,8 @@ Set-Content $packageSetupFilePath "Skipped package install"
 echo y | chkdsk C: /F /I /C
 
 # Install dependencies using uv
-$env:Path += ";c:\python311;c:\python311\scripts"
+$pipxBinDir = cmd /c c:\python311\python -m pipx environment --value PIPX_BIN_DIR
+$env:Path += ";c:\python311;c:\python311\scripts;$pipxBinDir"
 cd c:\clusterfuzz
 cmd /c uv sync
 

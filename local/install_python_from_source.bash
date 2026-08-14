@@ -22,7 +22,8 @@ make install
 curl -O https://bootstrap.pypa.io/get-pip.py
 $HOME/.localpython/bin/python3 get-pip.py
 $HOME/.localpython/bin/python3.11 -m pip install pipx==1.10.0
-pipx install uv==0.12.3
+$HOME/.localpython/bin/python3.11 -m pipx install uv==0.12.3
+export PATH="$PATH:$($HOME/.localpython/bin/python3.11 -m pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")"
 
 # Copy distutils to this new install
 git clone --branch v3.11.9 https://github.com/python/cpython.git	
