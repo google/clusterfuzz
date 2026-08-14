@@ -96,6 +96,7 @@ fi
 if ! command -v uv &> /dev/null; then
   pipx install uv==0.12.3
 fi
+export PATH="$PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")"
 uv sync
 source .venv/bin/activate
 

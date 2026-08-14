@@ -100,7 +100,9 @@ RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C
     cd /tmp/Python-3.11.4 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
-RUN pip3.11 --no-cache-dir install pipx==1.10.0 && pipx install uv==0.12.3 && ln -s /root/.local/bin/uv /usr/local/bin/uv
+RUN pip3.11 --no-cache-dir install pipx==1.10.0
+RUN pipx install uv==0.12.3
+RUN ln -s $(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "/root/.local/bin")/uv /usr/local/bin/uv
 RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11 && \
     ln -s /usr/bin/python3.11 /usr/bin/python3
 
