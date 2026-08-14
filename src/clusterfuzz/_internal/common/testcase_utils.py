@@ -13,10 +13,6 @@
 # limitations under the License.
 """Holds helpers for reuse across different tasks."""
 
-import datetime
-import os
-from typing import Optional
-
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
@@ -30,7 +26,8 @@ TESTCASE_TRIAGE_DURATION_REGRESSION_COMPLETED_STEP = 'regression_completed'
 TESTCASE_TRIAGE_DURATION_ISSUE_UPDATED_STEP = 'issue_updated'
 
 
-def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
+def emit_testcase_triage_duration_metric(testcase_id: int | str,
+                                         step: str) -> None:
   """Finds out if a testcase is fuzzer generated or manually uploaded,
       and emits the TESTCASE_TRIAGE_DURATION metric."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -47,12 +44,13 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
 
   from_fuzzer = not get_testcase_upload_metadata(testcase_id)
 
-  if not testcase.get_age_in_seconds():
+  age_in_seconds = testcase.get_age_in_seconds()
+  if not age_in_seconds:
     logs.warning(f'No timestamp associated to testcase {testcase_id},'
                  ' failed to emit TESTCASE_TRIAGE_DURATION metric.')
     return
 
-  testcase_age_in_hours = testcase.get_age_in_seconds() / (60 * 60)
+  testcase_age_in_hours = age_in_seconds / (60 * 60)
 
   logs.info('Emiting TESTCASE_TRIAGE_DURATION metric for testcase '
             f'{testcase_id} (age = {testcase_age_in_hours} hours.) '
@@ -68,6 +66,6 @@ def emit_testcase_triage_duration_metric(testcase_id: int, step: str):
 
 
 def get_testcase_upload_metadata(
-    testcase_id) -> Optional[data_types.TestcaseUploadMetadata]:
+    testcase_id: int | str) -> data_types.TestcaseUploadMetadata | None:
   return data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()

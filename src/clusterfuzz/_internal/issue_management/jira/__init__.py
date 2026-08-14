@@ -14,12 +14,20 @@
 """Jira issue tracker."""
 
 import datetime
+from typing import Any
+from typing import cast
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 from urllib.parse import urljoin
 
 from dateutil import parser
 
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.issue_management import issue_tracker
+from clusterfuzz._internal.issue_management.issue_tracker import Action
+from clusterfuzz._internal.issue_management.issue_tracker import LabelStore
 from clusterfuzz._internal.issue_management.jira.issue_tracker_manager import \
     IssueTrackerManager
 
@@ -27,102 +35,103 @@ from clusterfuzz._internal.issue_management.jira.issue_tracker_manager import \
 class Issue(issue_tracker.Issue):
   """Represents an issue."""
 
-  def __init__(self, itm, jira_issue):
+  def __init__(self, itm: IssueTrackerManager, jira_issue: Any) -> None:
     self.itm = itm
     self.jira_issue = jira_issue
 
-    self._ccs = issue_tracker.LabelStore(self.itm.get_watchers(self.jira_issue))
-    self._components = issue_tracker.LabelStore(
-        self.jira_issue.fields.components)
-    self._labels = issue_tracker.LabelStore(self.jira_issue.fields.labels)
+    self._ccs = LabelStore(self.itm.get_watchers(self.jira_issue))
+    self._components = LabelStore(self.jira_issue.fields.components)
+    self._labels = LabelStore(self.jira_issue.fields.labels)
 
   @property
-  def issue_tracker(self):
+  def issue_tracker(self) -> 'IssueTracker':
     """The IssueTracker for this issue."""
     return IssueTracker(self.itm)
 
   @property
-  def id(self):
+  def id(self) -> int:
     """The issue identifier."""
     return int(self.jira_issue.id)
 
   @property
-  def key(self):
+  def key(self) -> str:
     """The issue key (e.g. FUZZ-123)."""
-    return self.jira_issue.key
+    return str(self.jira_issue.key)
 
   @property
-  def title(self):
+  def title(self) -> Optional[str]:
     """The issue title."""
     return self.jira_issue.fields.summary
 
   @title.setter
-  def title(self, new_title):
+  def title(self, new_title: Optional[str]) -> None:
     self.jira_issue.fields.summary = new_title
 
   @property
-  def reporter(self):
+  def reporter(self) -> Optional[str]:
     """The issue reporter."""
     return self.jira_issue.fields.reporter
 
   @reporter.setter
-  def reporter(self, new_reporter):
+  def reporter(self, new_reporter: Optional[str]) -> None:
     self.jira_issue.fields.reporter = new_reporter
 
   @property
-  def is_open(self):
+  def is_open(self) -> bool:
     """Whether the issue is open."""
     return self.jira_issue.fields.resolution is None
 
   @property
-  def closed_time(self):
+  def closed_time(self) -> Optional[datetime.datetime]:
     return datetime.datetime.fromtimestamp(
-        parser.parse(self.jira_issue.fields.resolutiondate).timestamp())
+        cast(datetime.datetime,
+             parser.parse(self.jira_issue.fields.resolutiondate)).timestamp())
 
   @property
-  def status(self):
+  def status(self) -> Optional[str]:
     """The issue status."""
     return self.jira_issue.fields.status
 
   @status.setter
-  def status(self, new_status):
+  def status(self, new_status: Optional[str]) -> None:
     self.jira_issue.fields.status = new_status
 
   @property
-  def body(self):
+  def body(self) -> Optional[str]:
     """The issue body."""
     return self.jira_issue.fields.description
 
   @body.setter
-  def body(self, new_body):
+  def body(self, new_body: Optional[str]) -> None:
     self.jira_issue.fields.description = new_body
 
   @property
-  def assignee(self):
+  def assignee(self) -> Optional[str]:
     """The issue assignee."""
     return self.jira_issue.fields.assignee
 
   @assignee.setter
-  def assignee(self, new_assignee):
+  def assignee(self, new_assignee: Optional[str]) -> None:
     self.jira_issue.fields.assignee = new_assignee
 
   @property
-  def ccs(self):
+  def ccs(self) -> LabelStore:
     """The issue CC list."""
     return self._ccs
 
   @property
-  def labels(self):
+  def labels(self) -> LabelStore:
     """The issue labels list."""
     return self._labels
 
   @property
-  def components(self):
+  def components(self) -> LabelStore:
     """The issue component list."""
     return self._components
 
   # FIXME: Add support for notify arguments
-  def save(self, new_comment=None, notify=True):  # pylint: disable=unused-argument
+  def save(self, new_comment: Optional[str] = None,
+           notify: bool = True) -> None:  # pylint: disable=unused-argument
     """Save the issue."""
     # add new comment to issue
     if new_comment:
@@ -149,36 +158,38 @@ class Issue(issue_tracker.Issue):
     self.itm.save(self)
 
   @property
-  def actions(self):
+  def actions(self) -> Tuple[Action, ...]:
     return ()
 
   @property
-  def merged_into(self):
+  def merged_into(self) -> Optional[Union[int, str]]:
     pass
 
 
 class IssueTracker(issue_tracker.IssueTracker):
   """Issue tracker interface."""
 
-  def __init__(self, itm):
+  def __init__(self, itm: IssueTrackerManager) -> None:
     self._itm = itm
 
   @property
-  def project(self):
+  def project(self) -> str:
     return self._itm.project_name
 
-  def new_issue(self):
+  def new_issue(self) -> Issue:
     jira_issue = self._itm.create()
     return Issue(self._itm, jira_issue)
 
-  def get_issue(self, issue_id):
+  def get_issue(self, issue_id: Union[int, str]) -> Optional[Issue]:
     jira_issue = self._itm.get_issue(issue_id)
     if not jira_issue:
       return None
 
     return Issue(self._itm, jira_issue)
 
-  def find_issues(self, keywords=None, only_open=False):
+  def find_issues(self,
+                  keywords: Optional[Union[str, List[str]]] = None,
+                  only_open: Optional[bool] = False) -> List[Issue]:
     """Find issues."""
     search_text = 'project = {project_name}' + _get_search_text(keywords)
     search_text = search_text.format(project_name=self._itm.project_name)
@@ -188,41 +199,46 @@ class IssueTracker(issue_tracker.IssueTracker):
     return [Issue(self._itm, issue) for issue in issues]
 
   def find_issues_with_filters(self,
-                               keywords=None,
-                               query_filters=None,
-                               only_open=None):
+                               keywords: Optional[Any] = None,
+                               query_filters: Optional[Any] = None,
+                               only_open: Optional[bool] = None) -> List[Issue]:
     """Find issues given query filters."""
     # Jira treats keywords and query filters the same for queries.
-    return self.find_issues(keywords + query_filters, only_open)
+    return self.find_issues(keywords + query_filters, only_open)  # type: ignore
 
-  def issue_url(self, issue_id):
+  def issue_url(self, issue_id: Union[int, str]) -> Optional[str]:
     """Return the issue URL with the given ID."""
     issue = self.get_issue(issue_id)
     if not issue:
       return None
 
     config = db_config.get()
-    url = urljoin(config.jira_url, f'/browse/{str(issue.key)}')
+    url = urljoin(cast(Any, config).jira_url, f'/browse/{str(issue.key)}')
     return url
 
-  def find_issues_url(self, keywords=None, only_open=None):
+  def find_issues_url(self,
+                      keywords: Optional[Union[str, List[str]]] = None,
+                      only_open: Optional[bool] = None) -> Optional[str]:
     search_text = 'project = {project_name}' + _get_search_text(keywords)
     search_text = search_text.format(project_name=self._itm.project_name)
     if only_open:
       search_text += ' AND resolution = Unresolved'
     config = db_config.get()
-    return urljoin(config.jira_url, f'/issues/?jql={search_text}')
+    return urljoin(cast(Any, config).jira_url, f'/issues/?jql={search_text}')
 
-  def find_issues_url_with_filters(self,
-                                   keywords=None,
-                                   query_filters=None,
-                                   only_open=None):
+  def find_issues_url_with_filters(
+      self,
+      keywords: Optional[Any] = None,
+      query_filters: Optional[Any] = None,
+      only_open: Optional[bool] = None) -> Optional[str]:
     """Return the issue URL with the given ID and additional query filters."""
     # Jira treats keywords and query filters the same for queries.
-    return self.find_issues_url(keywords + query_filters, only_open)
+    return self.find_issues_url(
+        cast(Any, keywords) + cast(Any, query_filters), only_open)
 
 
-def _get_issue_tracker_manager_for_project(project_name):
+def _get_issue_tracker_manager_for_project(
+    project_name: Optional[str]) -> Optional[IssueTrackerManager]:
   """Return jira issue tracker manager for the given project."""
   # If there is no issue tracker set, bail out.
   if not project_name or project_name == 'disabled':
@@ -231,7 +247,8 @@ def _get_issue_tracker_manager_for_project(project_name):
   return IssueTrackerManager(project_name=project_name)
 
 
-def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
+def get_issue_tracker(project_name: Optional[str],
+                      config: Any) -> Optional[IssueTracker]:  # pylint: disable=unused-argument
   """Get the issue tracker for the project name."""
   itm = _get_issue_tracker_manager_for_project(project_name)
   if itm is None:
@@ -240,7 +257,7 @@ def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
   return IssueTracker(itm)
 
 
-def _get_search_text(keywords):
+def _get_search_text(keywords: Any) -> str:
   """Get search text."""
   jira_special_characters = '+-&|!(){}[]^~*?\\:'
   search_text = ''

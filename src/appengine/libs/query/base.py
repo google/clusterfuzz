@@ -17,22 +17,26 @@
 
   This must be compatible with libs.filters and libs.crash_access."""
 
+from collections.abc import Sequence
+from typing import Any
+from typing import Self
+
 
 class Query:
   """Represent the interface for Query."""
 
-  def filter(self, field, value, operator='='):
+  def filter(self, field: str, value: Any, operator: str = '=') -> None:
     """Filter by a single value."""
     raise NotImplementedError
 
-  def filter_in(self, field, values):
+  def filter_in(self, field: str, values: Sequence[Any]) -> None:
     """Filter by multiple values."""
     raise NotImplementedError
 
-  def union(self, *queries):
+  def union(self, *queries: Self) -> None:
     """Union all queries with OR conditions."""
     raise NotImplementedError
 
-  def new_subquery(self):
+  def new_subquery(self) -> Self:
     """Instantiate a query that is compatible with the current query."""
     raise NotImplementedError

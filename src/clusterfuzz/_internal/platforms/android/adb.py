@@ -13,7 +13,6 @@
 # limitations under the License.
 """ADB shell related functions."""
 
-import collections
 import os
 import re
 import signal
@@ -22,6 +21,11 @@ import subprocess
 import tempfile
 import threading
 import time
+from typing import Any
+from typing import cast
+from typing import NamedTuple
+from typing import Optional
+from typing import Union
 
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
@@ -30,48 +34,55 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
-ADB_TIMEOUT = 1200  # Should be lower than |REBOOT_TIMEOUT|.
-BAD_STATE_WAIT = 60 * 60  # 60 mins
-BOOT_WAIT_INTERVAL = 60 * 2
-CUTTLEFISH_USER = 'vsoc-01'
-CUTTLEFISH_CVD_PORT = 6520
-DEFAULT_DEVICE_MEMORY_MB = 2048
-DEVICE = collections.namedtuple('Device', ['serial', 'path'])
-DEVICE_HANG_STRING = None
-DEVICE_NOT_FOUND_STRING = 'error: device \'{serial}\' not found'
-DEVICE_OFFLINE_STRING = 'error: device offline'
-FACTORY_RESET_WAIT = 60
-KERNEL_LOG_FILES = [
+ADB_TIMEOUT: int = 1200  # Should be lower than |REBOOT_TIMEOUT|.
+BAD_STATE_WAIT: int = 60 * 60  # 60 mins
+BOOT_WAIT_INTERVAL: int = 60 * 2
+CUTTLEFISH_USER: str = 'vsoc-01'
+CUTTLEFISH_CVD_PORT: int = 6520
+DEFAULT_DEVICE_MEMORY_MB: int = 2048
+
+
+class Device(NamedTuple):
+  serial: str
+  path: str
+
+
+DEVICE = Device
+DEVICE_HANG_STRING: Optional[str] = None
+DEVICE_NOT_FOUND_STRING: str = 'error: device \'{serial}\' not found'
+DEVICE_OFFLINE_STRING: str = 'error: device offline'
+FACTORY_RESET_WAIT: int = 60
+KERNEL_LOG_FILES: list[str] = [
     '/proc/last_kmsg',
     '/sys/fs/pstore/console-ramoops',
 ]
-MONKEY_PROCESS_NAME = 'monkey'
-WAIT_FOR_DEVICE_TIMEOUT = 600
-REBOOT_TIMEOUT = 3600
-RECOVERY_CMD_TIMEOUT = 60 * 2
-GET_DEVICE_STATE_TIMEOUT = 20
-STOP_CVD_WAIT = 20
-LAUNCH_CVD_TIMEOUT = 2700
-CMD_KILL_CROSVM = 'pkill crosvm'
+MONKEY_PROCESS_NAME: str = 'monkey'
+WAIT_FOR_DEVICE_TIMEOUT: int = 600
+REBOOT_TIMEOUT: int = 3600
+RECOVERY_CMD_TIMEOUT: int = 60 * 2
+GET_DEVICE_STATE_TIMEOUT: int = 20
+STOP_CVD_WAIT: int = 20
+LAUNCH_CVD_TIMEOUT: int = 2700
+CMD_KILL_CROSVM: str = 'pkill crosvm'
 
 # Output patterns to parse "lsusb" output.
-LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
-LSUSB_SERIAL_RE = re.compile(r'\s+iSerial\s+\d\s+(.*)')
+LSUSB_BUS_RE: re.Pattern = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
+LSUSB_SERIAL_RE: re.Pattern = re.compile(r'\s+iSerial\s+\d\s+(.*)')
 
 # This is a constant value defined in usbdevice_fs.h in Linux system.
-USBDEVFS_RESET = ord('U') << 8 | 20
+USBDEVFS_RESET: int = ord('U') << 8 | 20
 
-RAMOOPS_READER_GCS_PATH = 'gs://haiku-storage/trusty/ramoops_reader.py'
+RAMOOPS_READER_GCS_PATH: str = 'gs://haiku-storage/trusty/ramoops_reader.py'
 
 
-def bad_state_reached():
+def bad_state_reached() -> None:
   """Wait when device is in a bad state and exit."""
   persistent_cache.clear_values()
   logs.log_fatal_and_exit(
       'Device in bad state.', wait_before_exit=BAD_STATE_WAIT)
 
 
-def connect_to_cuttlefish_device():
+def connect_to_cuttlefish_device() -> Optional[str]:
   """Connect to Cuttlefish cvd."""
   logs.info('Connect to cuttlefish device.')
   device_serial = environment.get_value('ANDROID_SERIAL')
@@ -79,51 +90,57 @@ def connect_to_cuttlefish_device():
   return execute_command(connect_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
 
-def copy_local_directory_to_remote(local_directory, remote_directory):
+def copy_local_directory_to_remote(local_directory: str,
+                                   remote_directory: str) -> None:
   """Copies local directory contents to a device directory."""
   create_directory_if_needed(remote_directory)
   if os.listdir(local_directory):
     run_command(['push', '%s/.' % local_directory, remote_directory], True)
 
 
-def copy_local_file_to_remote(local_file_path, remote_file_path):
+def copy_local_file_to_remote(local_file_path: str,
+                              remote_file_path: str) -> None:
   """Copies local file to a device file."""
   create_directory_if_needed(os.path.dirname(remote_file_path))
   run_command(['push', local_file_path, remote_file_path], True)
 
 
-def copy_remote_directory_to_local(remote_directory, local_directory):
+def copy_remote_directory_to_local(remote_directory: str,
+                                   local_directory: str) -> None:
   """Copies local directory contents to a device directory."""
   run_command(['pull', '%s/.' % remote_directory, local_directory])
 
 
-def copy_remote_file_to_local(remote_file_path, local_file_path):
+def copy_remote_file_to_local(remote_file_path: str,
+                              local_file_path: str) -> None:
   """Copies device file to a local file."""
   shell.create_directory(
       os.path.dirname(local_file_path), create_intermediates=True)
   run_command(['pull', remote_file_path, local_file_path])
 
 
-def create_directory_if_needed(device_directory):
+def create_directory_if_needed(device_directory: str) -> None:
   """Creates a directory on the device if it doesn't already exist."""
   run_shell_command(['mkdir', '-p', device_directory])
 
 
-def directory_exists(directory_path):
+def directory_exists(directory_path: str) -> bool:
   """Return whether a directory exists or not."""
   expected = '0'
   result = run_shell_command('\'test -d "%s"; echo $?\'' % directory_path)
   return result == expected
 
 
-def execute_command(cmd, timeout=None, on_cuttlefish_host=False):
+def execute_command(cmd: str,
+                    timeout: Optional[Union[int, float]] = None,
+                    on_cuttlefish_host: bool = False) -> Optional[str]:
   """Spawns a subprocess to run the given shell command."""
   if on_cuttlefish_host and environment.is_android_cuttlefish():
     # Auto accept key fingerprint for ssh command.
     cmd = ('ssh -o StrictHostKeyChecking=no '
            f'{get_cuttlefish_ssh_target()} "{cmd}"')
 
-  so = []
+  so: list[bytes] = []
   # pylint: disable=consider-using-with
   output_dest = tempfile.TemporaryFile()
   # pylint: disable=subprocess-popen-preexec-fn,consider-using-with
@@ -136,8 +153,9 @@ def execute_command(cmd, timeout=None, on_cuttlefish_host=False):
       preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL),
       bufsize=0)
 
-  def run():
+  def run() -> None:
     """Thread target function that waits for subprocess to complete."""
+    output = None
     try:
       pipe.communicate()
       output_dest.seek(0)
@@ -168,7 +186,10 @@ def execute_command(cmd, timeout=None, on_cuttlefish_host=False):
   return bytes_output.strip().decode('utf-8', errors='ignore')
 
 
-def copy_to_cuttlefish(src_path, dest_path, timeout=None):
+def copy_to_cuttlefish(src_path: str,
+                       dest_path: str,
+                       timeout: Optional[Union[int, float]] = None
+                      ) -> Optional[str]:
   """Copy file to cuttlefish device."""
   cvd_address = get_cuttlefish_ssh_target()
   return execute_command(
@@ -177,7 +198,7 @@ def copy_to_cuttlefish(src_path, dest_path, timeout=None):
       timeout=timeout)
 
 
-def factory_reset():
+def factory_reset() -> None:
   """Reset device to factory state."""
   logs.info('reached factory_reset')
   if environment.is_android_cuttlefish():
@@ -200,30 +221,30 @@ def factory_reset():
   time.sleep(FACTORY_RESET_WAIT)
 
 
-def file_exists(file_path):
+def file_exists(file_path: str) -> bool:
   """Return whether a file exists or not."""
   expected = '0'
   result = run_shell_command('\'test -f "%s"; echo $?\'' % file_path)
   return result == expected
 
 
-def get_adb_command_line(adb_cmd):
+def get_adb_command_line(adb_cmd: str) -> str:
   """Return adb command line for running an adb command."""
   device_serial = environment.get_value('ANDROID_SERIAL')
   adb_cmd_line = '%s -s %s %s' % (get_adb_path(), device_serial, adb_cmd)
   return adb_cmd_line
 
 
-def get_adb_path():
+def get_adb_path() -> str:
   """Return path to ADB binary."""
-  adb_path = environment.get_value('ADB')
+  adb_path: Optional[str] = environment.get_value('ADB')
   if adb_path:
     return adb_path
 
   return os.path.join(environment.get_platform_resources_directory(), 'adb')
 
 
-def get_device_state():
+def get_device_state() -> Optional[str]:
   """Return the device status."""
   if environment.is_android_emulator():
     fastboot_state = run_fastboot_command(
@@ -235,15 +256,15 @@ def get_device_state():
   return execute_command(state_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
 
-def get_fastboot_command_line(fastboot_cmd):
+def get_fastboot_command_line(fastboot_cmd: str) -> str:
   """Return fastboot command line for running a fastboot command."""
   fastboot_cmd_line = '%s %s' % (get_fastboot_path(), fastboot_cmd)
   return fastboot_cmd_line
 
 
-def get_fastboot_path():
+def get_fastboot_path() -> str:
   """Return path to fastboot binary."""
-  fastboot_path = environment.get_value('FASTBOOT')
+  fastboot_path: Optional[str] = environment.get_value('FASTBOOT')
   if fastboot_path:
     return fastboot_path
 
@@ -251,7 +272,7 @@ def get_fastboot_path():
                       'fastboot')
 
 
-def get_file_checksum(file_path):
+def get_file_checksum(file_path: str) -> Optional[str]:
   """Return file's md5 checksum."""
   if not file_exists(file_path):
     return None
@@ -259,15 +280,15 @@ def get_file_checksum(file_path):
   return run_shell_command(['md5sum', '-b', file_path])
 
 
-def get_file_size(file_path):
+def get_file_size(file_path: str) -> Optional[int]:
   """Return file's size."""
   if not file_exists(file_path):
     return None
 
-  return int(run_shell_command(['stat', '-c%s', file_path]))
+  return int(cast(str, run_shell_command(['stat', '-c%s', file_path])))
 
 
-def get_kernel_log_content():
+def get_kernel_log_content() -> str:
   """Return content of kernel logs."""
   kernel_log_content = ''
   for kernel_log_file in KERNEL_LOG_FILES:
@@ -276,7 +297,7 @@ def get_kernel_log_content():
   return kernel_log_content
 
 
-def extract_logcat_from_ramdump_and_reboot():
+def extract_logcat_from_ramdump_and_reboot() -> str:
   """Extracts logcat from ramdump kernel log and reboots."""
   run_fastboot_command(
       ['oem', 'ramdump', 'stage_file', 'kernel.log'],
@@ -302,15 +323,15 @@ def extract_logcat_from_ramdump_and_reboot():
   return logcat
 
 
-def get_ps_output():
+def get_ps_output() -> Optional[str]:
   """Return ps output for all processes."""
   return run_shell_command(['ps', '-A'])
 
 
-def get_process_and_child_pids(process_name):
+def get_process_and_child_pids(process_name: str) -> list[int]:
   """Return process and child pids matching a process name."""
-  pids = []
-  ps_output_lines = get_ps_output().splitlines()
+  pids: list[int] = []
+  ps_output_lines = cast(str, get_ps_output()).splitlines()
 
   while True:
     old_pids_length = len(pids)
@@ -323,7 +344,7 @@ def get_process_and_child_pids(process_name):
         line_process_pid = int(data[1])
         # Parent PID is in the third column.
         line_parent_pid = int(data[2])
-      except:
+      except Exception:
         continue
 
       # If we have already processed this pid, no more work to do.
@@ -353,12 +374,12 @@ def get_process_and_child_pids(process_name):
   return pids
 
 
-def get_property(property_name):
+def get_property(property_name: str) -> Optional[str]:
   """Return property's value."""
   return run_shell_command(['getprop', property_name])
 
 
-def hard_reset():
+def hard_reset() -> None:
   """Perform a hard reset of the device."""
   if environment.is_android_cuttlefish():
     # There is no recovery step at this point for a cuttlefish bot, so just exit
@@ -387,17 +408,17 @@ def hard_reset():
       run_shell_command('recovery --wipe_data')
 
 
-def kill_processes_and_children_matching_name(process_name):
+def kill_processes_and_children_matching_name(process_name: str) -> None:
   """Kills process along with children matching names."""
   process_and_child_pids = get_process_and_child_pids(process_name)
   if not process_and_child_pids:
     return
 
-  kill_command = ['kill', '-9'] + process_and_child_pids
+  kill_command: list[Union[str, int]] = ['kill', '-9'] + process_and_child_pids
   run_shell_command(kill_command)
 
 
-def read_data_from_file(file_path):
+def read_data_from_file(file_path: str) -> Optional[str]:
   """Return device's file content."""
   if not file_exists(file_path):
     return None
@@ -405,12 +426,12 @@ def read_data_from_file(file_path):
   return run_shell_command(['cat', '"%s"' % file_path])
 
 
-def reboot():
+def reboot() -> None:
   """Reboots device."""
   run_command('reboot')
 
 
-def start_cuttlefish_device():
+def start_cuttlefish_device() -> None:
   """Start the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
@@ -425,7 +446,7 @@ def start_cuttlefish_device():
   execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
 
 
-def copy_images_to_cuttlefish():
+def copy_images_to_cuttlefish() -> None:
   """Copy and Combine cvd host package and OTA images."""
   image_directory = environment.get_value('IMAGES_DIR')
   cvd_dir = environment.get_value('CVD_DIR')
@@ -437,7 +458,7 @@ def copy_images_to_cuttlefish():
     copy_to_cuttlefish(image_src, image_dest)
 
 
-def stop_cuttlefish_device():
+def stop_cuttlefish_device() -> None:
   """Stops the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
@@ -461,7 +482,7 @@ def stop_cuttlefish_device():
       kill_helpers_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
 
 
-def restart_cuttlefish_device():
+def restart_cuttlefish_device() -> None:
   """Restarts the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
@@ -470,7 +491,7 @@ def restart_cuttlefish_device():
   execute_command(restart_cvd_cmd, on_cuttlefish_host=True)
 
 
-def recreate_cuttlefish_device():
+def recreate_cuttlefish_device() -> None:
   """Recreate cuttlefish device, restoring from backup images."""
   logs.info('Reimaging cuttlefish device.')
   cvd_dir = environment.get_value('CVD_DIR')
@@ -487,7 +508,7 @@ def recreate_cuttlefish_device():
   start_cuttlefish_device()
 
 
-def remount():
+def remount() -> None:
   """Remount /system as read/write."""
   run_as_root()
   run_command('remount')
@@ -495,24 +516,24 @@ def remount():
   run_as_root()
 
 
-def restart_adb():
+def restart_adb() -> None:
   run_command('kill-server')
   run_command('start-server')
 
 
-def remove_directory(device_directory, recreate=False):
+def remove_directory(device_directory: str, recreate: bool = False) -> None:
   """Delete everything inside of a device directory and recreate if needed."""
   run_shell_command('rm -rf %s' % device_directory, root=True)
   if recreate:
     create_directory_if_needed(device_directory)
 
 
-def remove_file(file_path):
+def remove_file(file_path: str) -> None:
   """Remove file."""
   run_shell_command('rm -f %s' % file_path, root=True)
 
 
-def reset_device_connection():
+def reset_device_connection() -> bool:
   """Reset the connection to the physical device through USB. Returns whether
   or not the reset succeeded."""
   if environment.is_android_cuttlefish():
@@ -531,7 +552,7 @@ def reset_device_connection():
   return True
 
 
-def get_cuttlefish_device_ip():
+def get_cuttlefish_device_ip() -> Optional[str]:
   """Return the ip address of cuttlefish device."""
   try:
     return socket.gethostbyname('cuttlefish')
@@ -540,22 +561,22 @@ def get_cuttlefish_device_ip():
   return None
 
 
-def set_cuttlefish_device_serial():
+def set_cuttlefish_device_serial() -> None:
   """Set the ANDROID_SERIAL to cuttlefish ip and port."""
   device_serial = '%s:%d' % (get_cuttlefish_device_ip(), CUTTLEFISH_CVD_PORT)
   environment.set_value('ANDROID_SERIAL', device_serial)
   logs.info('Set cuttlefish device serial: %s' % device_serial)
 
 
-def get_cuttlefish_ssh_target():
+def get_cuttlefish_ssh_target() -> str:
   """Return the target for cuttlefish ssh connection."""
   return f'{CUTTLEFISH_USER}@{get_cuttlefish_device_ip()}'
 
 
-def get_device_path():
+def get_device_path() -> Optional[str]:
   """Gets a device path to be cached and used by reset_usb."""
 
-  def _get_usb_devices():
+  def _get_usb_devices() -> list[Device]:
     """Returns a list of device objects containing a serial and USB path."""
     usb_list_cmd = 'lsusb -v'
     output = execute_command(usb_list_cmd, timeout=RECOVERY_CMD_TIMEOUT)
@@ -564,8 +585,9 @@ def get_device_path():
                  'host restart might be needed.')
       bad_state_reached()
 
-    devices = []
-    path = None
+    devices: list[Device] = []
+    path: Optional[str] = None
+    assert output is not None
     for line in output.splitlines():
       match = LSUSB_BUS_RE.match(line)
       if match:
@@ -579,7 +601,7 @@ def get_device_path():
 
     return devices
 
-  def _get_device_path_for_serial():
+  def _get_device_path_for_serial() -> Optional[str]:
     """Return device path. Assumes a simple ANDROID_SERIAL."""
     devices = _get_usb_devices()
     for device in devices:
@@ -588,11 +610,12 @@ def get_device_path():
 
     return None
 
-  def _get_device_path_for_usb():
+  def _get_device_path_for_usb() -> str:
     """Returns a device path.
 
     Assumes ANDROID_SERIAL in the form "usb:<identifier>"."""
     # Android serial may reference a usb device rather than a serial number.
+    assert device_serial is not None
     device_id = device_serial[len('usb:'):]
     bus_number = int(
         open('/sys/bus/usb/devices/%s/busnum' % device_id).read().strip())
@@ -604,13 +627,13 @@ def get_device_path():
     return None
 
   device_serial = environment.get_value('ANDROID_SERIAL')
-  if device_serial.startswith('usb:'):
+  if cast(str, device_serial).startswith('usb:'):
     return _get_device_path_for_usb()
 
   return _get_device_path_for_serial()
 
 
-def reset_usb():
+def reset_usb() -> bool:
   """Reset USB bus for a device serial."""
   if environment.is_android_cuttlefish():
     # Nothing to do here.
@@ -637,7 +660,7 @@ def reset_usb():
   try:
     with open(device_path, 'w') as f:
       fcntl.ioctl(f, USBDEVFS_RESET)
-  except:
+  except Exception:
     logs.warning('Failed to reset usb.')
     return False
 
@@ -646,7 +669,7 @@ def reset_usb():
   return True
 
 
-def revert_asan_device_setup_if_needed():
+def revert_asan_device_setup_if_needed() -> None:
   """Reverts ASan device setup if installed."""
   if not environment.get_value('ASAN_DEVICE_SETUP'):
     return
@@ -663,7 +686,7 @@ def revert_asan_device_setup_if_needed():
   execute_command(command, timeout=RECOVERY_CMD_TIMEOUT)
 
 
-def run_as_root():
+def run_as_root() -> None:
   """Restart adbd and runs as root."""
   # Check if we are already running as root. If yes bail out.
   if get_property('service.adb.root') == '1':
@@ -674,7 +697,10 @@ def run_as_root():
   wait_for_device()
 
 
-def run_command(cmd, log_output=False, timeout=None, recover=True):
+def run_command(cmd: Union[str, list[Any]],
+                log_output: bool = False,
+                timeout: Optional[Union[int, float]] = None,
+                recover: bool = True) -> Optional[str]:
   """Run a command in adb shell."""
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
@@ -719,14 +745,14 @@ def run_command(cmd, log_output=False, timeout=None, recover=True):
   return output
 
 
-def run_shell_command(cmd,
-                      log_output=False,
-                      root=False,
-                      timeout=None,
-                      recover=True):
+def run_shell_command(cmd: Union[str, list[Any]],
+                      log_output: bool = False,
+                      root: bool = False,
+                      timeout: Optional[Union[int, float]] = None,
+                      recover: bool = True) -> Optional[str]:
   """Run adb shell command (with root if needed)."""
 
-  def _escape_specials(command):
+  def _escape_specials(command: str) -> str:
     return command.replace('\\', '\\\\').replace('"', '\\"')
 
   if isinstance(cmd, list):
@@ -748,7 +774,10 @@ def run_shell_command(cmd,
       full_cmd, log_output=log_output, timeout=timeout, recover=recover)
 
 
-def run_fastboot_command(cmd, log_output=True, timeout=None):
+def run_fastboot_command(
+    cmd: Union[str, list[Any]],
+    log_output: bool = True,
+    timeout: Optional[Union[int, float]] = None) -> Optional[str]:
   """Run a command in fastboot shell."""
   if environment.is_android_cuttlefish():
     # We can't run fastboot commands on Android cuttlefish instances.
@@ -765,7 +794,7 @@ def run_fastboot_command(cmd, log_output=True, timeout=None):
   return output
 
 
-def setup_adb():
+def setup_adb() -> None:
   """Sets up ADB binary for use."""
   adb_binary_path = get_adb_path()
 
@@ -774,7 +803,7 @@ def setup_adb():
     environment.set_value('ADB', adb_binary_path)
 
 
-def start_shell():
+def start_shell() -> None:
   """Stops shell."""
   # Make sure we are running as root.
   run_as_root()
@@ -783,16 +812,16 @@ def start_shell():
   wait_until_fully_booted()
 
 
-def stop_shell():
+def stop_shell() -> None:
   """Stops shell."""
   # Make sure we are running as root.
   run_as_root()
   run_shell_command('stop')
 
 
-def time_since_last_reboot():
+def time_since_last_reboot() -> float:
   """Return time in seconds since last reboot."""
-  uptime_string = run_shell_command(['cat', '/proc/uptime']).split(
+  uptime_string = cast(str, run_shell_command(['cat', '/proc/uptime'])).split(
       ' ', maxsplit=1)[0]
   try:
     return float(uptime_string)
@@ -800,28 +829,30 @@ def time_since_last_reboot():
     # Sometimes, adb can just hang or return null output. In these cases, just
     # return infinity uptime value.
     return float('inf')
+  except AttributeError:
+    return float('inf')
 
 
-def wait_for_device(recover=True):
+def wait_for_device(recover: bool = True) -> None:
   """Waits indefinitely for the device to come online."""
   run_command(
       'wait-for-device', timeout=WAIT_FOR_DEVICE_TIMEOUT, recover=recover)
 
 
-def wait_until_fully_booted():
+def wait_until_fully_booted() -> bool:
   """Wait until device is fully booted or timeout expires."""
 
-  def boot_completed():
+  def boot_completed() -> bool:
     expected = '1'
     result = run_shell_command('getprop sys.boot_completed')
     return result == expected
 
-  def drive_ready():
+  def drive_ready() -> bool:
     expected = '0'
     result = run_shell_command('\'test -d "/"; echo $?\'')
     return result == expected
 
-  def package_manager_ready():
+  def package_manager_ready() -> bool:
     expected = 'package:/system/framework/framework-res.apk'
     result = run_shell_command('pm path android')
     if not result:
@@ -868,7 +899,7 @@ def wait_until_fully_booted():
   return False
 
 
-def write_command_line_file(command_line, app_path):
+def write_command_line_file(command_line: str, app_path: str) -> None:
   """Write command line file with command line argument for the application."""
   command_line_path = environment.get_value('COMMAND_LINE_PATH')
   if not command_line_path:
@@ -885,7 +916,9 @@ def write_command_line_file(command_line, app_path):
   write_data_to_file(command_line_file_contents, command_line_path)
 
 
-def write_data_to_file(contents, file_path, should_reboot=True):
+def write_data_to_file(contents: str,
+                       file_path: str,
+                       should_reboot: bool = True) -> None:
   """Writes content to file.
   
   Args:

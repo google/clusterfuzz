@@ -16,12 +16,13 @@
 import datetime
 import json
 import math
+from typing import Any
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.system import environment
 
-SQL = """
+SQL: str = """
 WITH
   # Deduplicate rows in case build_crash_stats runs twice on the same hour.
   uniqueRows AS (
@@ -111,7 +112,7 @@ ORDER BY {sort_by} DESC, total_count DESC
 """
 
 
-def get_remainder_for_index(true_end, time_span):
+def get_remainder_for_index(true_end: int, time_span: int) -> int:
   """Get remainder. This should be tested together with
     convert_index_to_hour."""
   # The remainder needs +1 because the cut-off is at the end of true_end.
@@ -120,7 +121,7 @@ def get_remainder_for_index(true_end, time_span):
   return (true_end % time_span) + 1
 
 
-def convert_index_to_hour(index, time_span, remainder):
+def convert_index_to_hour(index: int, time_span: int, remainder: int) -> int:
   """Convert index to hour."""
   # This needs -1 because the end hour is inclusive. For example, if the period
   # represents [2, 26), the end hour is 25.
@@ -131,8 +132,17 @@ def convert_index_to_hour(index, time_span, remainder):
   return ((index + 1) * time_span) + remainder - 1
 
 
-def get(end, days, block, group_by, where_clause, group_having_clause, sort_by,
-        offset, limit):
+def get(
+    end: int,
+    days: int,
+    block: str,
+    group_by: str,
+    where_clause: str,
+    group_having_clause: str,
+    sort_by: str,
+    offset: int,
+    limit: int | None = None,
+) -> tuple[int, list[dict[str, Any]]]:
   """Query from BigQuery given the params."""
   if where_clause:
     where_clause = '(%s) AND ' % where_clause
@@ -203,12 +213,12 @@ def get(end, days, block, group_by, where_clause, group_having_clause, sort_by,
   return result.total_count, items
 
 
-def get_datetime(hours):
+def get_datetime(hours: int) -> datetime.datetime:
   """Get datetime obj from hours from epoch."""
   return datetime.datetime.utcfromtimestamp(hours * 60 * 60)
 
 
-def _get_first_or_last_successful_hour(is_last):
+def _get_first_or_last_successful_hour(is_last: bool) -> int | None:
   """Get the first successful hour."""
   order = data_types.BuildCrashStatsJobHistory.end_time_in_hours
   if is_last:
@@ -221,12 +231,12 @@ def _get_first_or_last_successful_hour(is_last):
   return item.end_time_in_hours
 
 
-def get_last_successful_hour():
+def get_last_successful_hour() -> int | None:
   """Get the last hour that ran successfully. We want to run the next hour."""
   return _get_first_or_last_successful_hour(is_last=True)
 
 
-def get_min_hour():
+def get_min_hour() -> int:
   """Get the first hour that ran successfully (for the date-time picker)."""
   hour = _get_first_or_last_successful_hour(is_last=False)
 
@@ -239,7 +249,7 @@ def get_min_hour():
   return (hour or 0) + 1
 
 
-def get_max_hour():
+def get_max_hour() -> int:
   """Get the last hour that can be selected by the date-time picker."""
   hour = get_last_successful_hour()
 
@@ -253,7 +263,8 @@ def get_max_hour():
 
 
 @environment.local_noop
-def get_last_crash_time(testcase):
+def get_last_crash_time(testcase: data_types.Testcase,
+                       ) -> datetime.datetime | None:
   """Return timestamp for last crash with same crash params as testcase."""
   client = big_query.Client()
 

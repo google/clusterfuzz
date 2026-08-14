@@ -14,8 +14,12 @@
 """Handler for the regression page."""
 
 import json
+from typing import Any
+from typing import cast
+from typing import Mapping
 
 from flask import request
+from flask import Response
 
 from clusterfuzz._internal.google_cloud_utils import big_query
 from handlers import base_handler
@@ -63,7 +67,8 @@ ORDER BY count DESC
 class RevisionFilter(filters.Filter):
   """Filter for revision."""
 
-  def add(self, query, params):
+  def add(self, query: big_query_query.Query,
+          params: Mapping[str, Any]) -> None:
     """Set query according to revision and type params."""
     if not params.get('revision'):
       raise helpers.EarlyExitError('Please specify the revision.', 400)
@@ -79,7 +84,8 @@ class RevisionFilter(filters.Filter):
 class KeywordFilter(filters.Filter):
   """Filter for keyword."""
 
-  def add(self, query, params):
+  def add(self, query: big_query_query.Query,
+          params: Mapping[str, Any]) -> None:
     """Set query according to search param."""
     value = params.get('q', '')
     if filters.is_empty(value):
@@ -95,7 +101,8 @@ class KeywordFilter(filters.Filter):
 class IncludeZeroFilter(filters.Filter):
   """Filter for including a range starting with 0."""
 
-  def add(self, query, params):
+  def add(self, query: big_query_query.Query,
+          params: Mapping[str, Any]) -> None:
     """Set query based on if range should include 0 or not."""
     value = params.get('includeZero', False)
     prefix = params['type']
@@ -107,8 +114,10 @@ class IncludeZeroFilter(filters.Filter):
 class TypeFilter(filters.Filter):
   """Filter for type."""
 
-  def add(self, query, params):  # pylint: disable=unused-argument
+  def add(self, query: big_query_query.Query,
+          params: Mapping[str, Any]) -> None:
     """Validate type param is either regression or fixed."""
+    # pylint: disable=unused-argument
     value = params.get('type', 'regression')
 
     if value not in ['fixed', 'regression']:
@@ -116,7 +125,7 @@ class TypeFilter(filters.Filter):
           "'type' can only be either 'fixed' or 'regression'.", 400)
 
 
-FILTERS = [
+FILTERS: list[filters.Filter] = [
     TypeFilter(),
     RevisionFilter(),
     KeywordFilter(),
@@ -124,7 +133,8 @@ FILTERS = [
 ]
 
 
-def get(params, query, offset, limit):
+def get(params: Mapping[str, Any], query: big_query_query.Query, offset: int,
+        limit: int) -> tuple[list[dict[str, Any]], int]:
   """Get the data from BigQuery."""
   sql = SQL.format(
       table_id='%ss' % params['type'],
@@ -137,11 +147,13 @@ def get(params, query, offset, limit):
   return result.rows, result.total_count
 
 
-def get_result():
+def get_result() -> tuple[dict[str, Any], dict[str, Any]]:
   """Get the result for the crash stats page."""
-  params = dict(request.iterparams())
+  request_any = cast(Any, request)
+  params: dict[str, Any] = dict(request_any.iterparams())
   params['type'] = params.get('type', 'regression')
-  page = helpers.cast(request.get('page') or 1, int, "'page' is not an int.")
+  page = helpers.cast(
+      request_any.get('page') or 1, int, "'page' is not an int.")
 
   is_revision_empty = 'revision' not in params
 
@@ -151,7 +163,7 @@ def get_result():
 
   if is_revision_empty:
     total_count = 0
-    rows = []
+    rows: list[dict[str, Any]] = []
   else:
     filters.add(query, params, FILTERS)
     rows, total_count = get(
@@ -161,7 +173,7 @@ def get_result():
         limit=PAGE_SIZE)
     helpers.log('Regression', helpers.VIEW_OPERATION)
 
-  result = {
+  result: dict[str, Any] = {
       'totalPages': (total_count // PAGE_SIZE) + 1,
       'page': page,
       'pageSize': PAGE_SIZE,
@@ -178,7 +190,7 @@ class Handler(base_handler.Handler):
   @handler.unsupported_on_local_server
   @handler.get(handler.HTML)
   @handler.oauth
-  def get(self):
+  def get(self) -> Response:
     """Get and render the commit range in HTML."""
     result, params = get_result()
     return self.render('commit_range.html', {
@@ -194,13 +206,13 @@ class JsonHandler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.oauth
   @handler.allowed_cors
-  def post(self):
+  def post(self) -> Response:
     """Get and render the commit range in JSON."""
     result, params = get_result()
     result['params'] = params
     return self.render_json(result)
 
   @handler.allowed_cors
-  def options(self):
+  def options(self) -> str:
     """Responds with CORS headers."""
     return ''

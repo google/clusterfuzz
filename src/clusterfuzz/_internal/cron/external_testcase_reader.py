@@ -15,6 +15,8 @@
 
 import datetime
 import re
+from typing import Any
+from typing import cast
 
 from google.cloud import storage
 import requests
@@ -26,14 +28,14 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.issue_management.google_issue_tracker import \
     issue_tracker
 
-ACCEPTED_FILETYPES = [
+ACCEPTED_FILETYPES: list[str] = [
     'text/javascript', 'application/pdf', 'text/html', 'application/zip'
 ]
-ISSUETRACKER_ACCEPTED_STATE = 'ACCEPTED'
-ISSUETRACKER_WONTFIX_STATE = 'NOT_REPRODUCIBLE'
+ISSUETRACKER_ACCEPTED_STATE: str = 'ACCEPTED'
+ISSUETRACKER_WONTFIX_STATE: str = 'NOT_REPRODUCIBLE'
 
 
-def get_vrp_uploaders(config):
+def get_vrp_uploaders(config: Any) -> list[str]:
   """Checks whether the given reporter has permission to upload."""
   storage_client = storage.Client()
   bucket = storage_client.bucket(config.get('vrp-uploaders-bucket'))
@@ -42,8 +44,9 @@ def get_vrp_uploaders(config):
   return members
 
 
-def close_issue_if_invalid(upload_request, attachment_info, description,
-                           vrp_uploaders):
+def close_issue_if_invalid(upload_request: issue_tracker.Issue,
+                           attachment_info: Any, description: str | None,
+                           vrp_uploaders: list[str]) -> bool:
   """Closes any invalid upload requests with a helpful message."""
   comment_message = (
       'Hello, this issue is automatically closed. Please file a new bug after'
@@ -96,9 +99,10 @@ def close_issue_if_invalid(upload_request, attachment_info, description,
   return invalid
 
 
-def close_issue_if_not_reproducible(issue, config):
+def close_issue_if_not_reproducible(issue: issue_tracker.Issue,
+                                    config: Any) -> bool:
   if issue.status == ISSUETRACKER_ACCEPTED_STATE and filed_n_days_ago(
-      issue.created_time, config):
+      cast(str, issue.created_time), config):
     comment_message = ('Clusterfuzz failed to reproduce - '
                        'please check testcase details for more info.')
     issue.status = ISSUETRACKER_WONTFIX_STATE
@@ -107,14 +111,15 @@ def close_issue_if_not_reproducible(issue, config):
   return False
 
 
-def filed_n_days_ago(issue_created_time_string, config):
+def filed_n_days_ago(issue_created_time_string: str, config: Any) -> bool:
   created_time = datetime.datetime.strptime(issue_created_time_string,
                                             '%Y-%m-%dT%H:%M:%S.%fZ')
   return datetime.datetime.now() - created_time > datetime.timedelta(
       days=config.get('submitted-buffer-days'))
 
 
-def submit_testcase(issue_id, file, filename, filetype, cmds):
+def submit_testcase(issue_id: int | str, file: bytes | str, filename: str,
+                    filetype: str, cmds: str | None) -> requests.Response:
   """Uploads the given testcase file to Clusterfuzz."""
   if filetype == 'text/javascript':
     job = 'linux_asan_d8_dbg'
@@ -152,7 +157,7 @@ def submit_testcase(issue_id, file, filename, filetype, cmds):
       'https://clusterfuzz.com/upload-testcase/upload', data=data, timeout=10)
 
 
-def handle_testcases(tracker, config):
+def handle_testcases(tracker: issue_tracker.IssueTracker, config: Any) -> None:
   """Fetches and submits testcases from bugs or closes unnecessary bugs."""
 
   # Handle bugs that were already submitted and still open.
@@ -171,32 +176,35 @@ def handle_testcases(tracker, config):
       keywords=[],
       query_filters=['componentid:1600865', 'status:new'],
       only_open=True)
-  if len(issues) == 0:
+  if len(issues) == 0:  # type: ignore
     return
 
   vrp_uploaders = get_vrp_uploaders(config)
 
   # Rudimentary rate limiting -
   # Process only a certain number of bugs per reporter for each job run.
-  reporters_map = {}
+  reporters_map: dict[str, int] = {}
 
   for issue in issues:
     attachment_metadata = tracker.get_attachment_metadata(issue.id)
     commandline_flags = tracker.get_description(issue.id)
-    if reporters_map.get(issue.reporter,
+    if reporters_map.get(cast(str, issue.reporter),
                          0) > config.get('max-report-count-per-run'):
       continue
-    reporters_map[issue.reporter] = reporters_map.get(issue.reporter, 1) + 1
+    reporters_map[cast(
+        str,
+        issue.reporter)] = reporters_map.get(cast(str, issue.reporter), 1) + 1
     if close_issue_if_invalid(issue, attachment_metadata, commandline_flags,
                               vrp_uploaders):
       helpers.log('Closing issue {issue_id} as it is invalid', issue.id)
       continue
 
     # Submit valid testcases.
-    attachment_metadata = attachment_metadata[0]
+    attachment_metadata = attachment_metadata[0]  # type: ignore
     attachment = tracker.get_attachment(
         attachment_metadata['attachmentDataRef']['resourceName'])
-    submit_testcase(issue.id, attachment, attachment_metadata['filename'],
+    submit_testcase(issue.id, cast(bytes | str,
+                                   attachment), attachment_metadata['filename'],
                     attachment_metadata['contentType'], commandline_flags)
     comment_message = 'Testcase submitted to clusterfuzz'
     issue.status = ISSUETRACKER_ACCEPTED_STATE
@@ -205,7 +213,7 @@ def handle_testcases(tracker, config):
     helpers.log('Submitted testcase file for issue {issue_id}', issue.id)
 
 
-def main():
+def main() -> None:
   tracker = issue_tracker.IssueTracker('chromium', None,
                                        {'default_component_id': 1363614})
   handle_testcases(tracker, local_config.ExternalTestcaseReaderConfig())

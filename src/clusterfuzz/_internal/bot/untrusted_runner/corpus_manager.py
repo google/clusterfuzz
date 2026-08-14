@@ -22,18 +22,24 @@ from . import remote_process_host
 class RemoteGSUtilRunner(gsutil.GSUtilRunner):
   """Remote GSUtil runner."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     super().__init__(process_runner=remote_process_host.RemoteProcessRunner)
 
 
 class RemoteFuzzTargetCorpus(corpus_manager.FuzzTargetCorpus):
   """libFuzzer corpus sync that runs on untrusted bot."""
 
-  def __init__(self, fuzzer_name, fuzzer_executable_name, quarantine=False):
+  def __init__(
+      self,
+      fuzzer_name: str,
+      fuzzer_executable_name: str,
+      quarantine: bool = False,
+  ) -> None:
     super().__init__(
         fuzzer_name,
         fuzzer_executable_name,
         quarantine,
         # Never log results for remote corpora since the state is on the worker.
         log_results=False,
-        gsutil_runner_func=RemoteGSUtilRunner)
+        gsutil_runner_func=RemoteGSUtilRunner,
+    )

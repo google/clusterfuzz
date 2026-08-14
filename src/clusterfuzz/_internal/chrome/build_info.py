@@ -14,29 +14,31 @@
 """Utilities for fetching build info from OmahaProxy."""
 
 import json
+from typing import Any
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-BUILD_INFO_PATTERN = ('([a-z]+),([a-z]+),([0-9.]+),'
-                      '[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,'
-                      '([0-9a-f]+),.*')
-BUILD_INFO_URL_CD = ('https://chromiumdash.appspot.com/fetch_releases?'
-                     'num=1&platform={platform}')
+BUILD_INFO_PATTERN: str = ('([a-z]+),([a-z]+),([0-9.]+),'
+                           '[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,'
+                           '([0-9a-f]+),.*')
+BUILD_INFO_URL_CD: str = ('https://chromiumdash.appspot.com/fetch_releases?'
+                          'num=1&platform={platform}')
 
 
 class BuildInfo:
   """BuildInfo holds build metadata pulled from OmahaProxy."""
 
-  def __init__(self, platform, build_type, version, revision):
+  def __init__(self, platform: str, build_type: str, version: str,
+               revision: str) -> None:
     self.platform = platform
     self.build_type = build_type
     self.version = version
     self.revision = revision
 
 
-def _convert_platform_to_chromiumdash_platform(platform):
+def _convert_platform_to_chromiumdash_platform(platform: str) -> str:
   """Converts platform to Chromium Dash platform.
   Note that Windows in Chromium Dash is win64 and we only want win32."""
   platform_lower = platform.lower()
@@ -45,7 +47,8 @@ def _convert_platform_to_chromiumdash_platform(platform):
   return platform_lower.capitalize()
 
 
-def _fetch_releases_from_chromiumdash(platform, channel=None):
+def _fetch_releases_from_chromiumdash(
+    platform: str, channel: str | None = None) -> list[dict[str, Any]]:
   """Makes a Call to chromiumdash's fetch_releases api,
   and returns its json array response."""
   chromiumdash_platform = _convert_platform_to_chromiumdash_platform(platform)
@@ -70,14 +73,14 @@ def _fetch_releases_from_chromiumdash(platform, channel=None):
   return build_info_json
 
 
-def get_production_builds_info_from_cd(platform):
+def get_production_builds_info_from_cd(platform: str) -> list[BuildInfo]:
   """Gets the build information from Chromium Dash for production builds.
 
   Omits platforms containing digits, namely, win64.
   Omits channels containing underscore, namely, canary_asan.
   Platform is e.g. ANDROID, LINUX, MAC, WINDOWS.
   """
-  builds_metadata = []
+  builds_metadata: list[BuildInfo] = []
   build_info_json = _fetch_releases_from_chromiumdash(platform)
   for info in build_info_json:
     build_type = info['channel'].lower()
@@ -100,7 +103,7 @@ def get_production_builds_info_from_cd(platform):
   return builds_metadata
 
 
-def get_release_milestone(build_type, platform):
+def get_release_milestone(build_type: str, platform: str) -> int | None:
   """Return milestone for a particular release."""
   if build_type == 'head':
     actual_build_type = 'canary'
@@ -122,12 +125,13 @@ def get_release_milestone(build_type, platform):
   return None
 
 
-def get_build_to_revision_mappings(platform=None):
+def get_build_to_revision_mappings(
+    platform: str | None = None) -> dict[str, dict[str, str]]:
   """Gets the build information."""
   if not platform:
     platform = environment.platform()
 
-  result = {}
+  result: dict[str, dict[str, str]] = {}
   build_info_json = _fetch_releases_from_chromiumdash(platform)
 
   for info in build_info_json:

@@ -13,13 +13,16 @@
 # limitations under the License.
 """Functions for corpus synchronization with GCS."""
 
+from collections.abc import Callable
+from collections.abc import Sequence
 import datetime
 import itertools
 import os
 import re
 import shutil
 import tempfile
-from typing import Optional
+from typing import Any
+from typing import cast
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import task_types
@@ -29,6 +32,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import shell
 
 try:
@@ -36,32 +40,33 @@ try:
 
   # Disable "invalid-name" because fixing the issue will cause pylint to
   # complain the None assignment is incorrectly named.
-  DEFAULT_GSUTIL_RUNNER = gsutil.GSUtilRunner  # pylint: disable=invalid-name
-except:
+  DEFAULT_GSUTIL_RUNNER: Any = gsutil.GSUtilRunner  # pylint: disable=invalid-name
+except:  # pylint: disable=bare-except
   # This is expected to fail on App Engine.
-  gsutil = None
+  gsutil = None  # type: ignore
   DEFAULT_GSUTIL_RUNNER = None
 
-BACKUP_ARCHIVE_FORMAT = 'zip'
-CORPUS_FILES_SYNC_TIMEOUT = 60 * 60
-LATEST_BACKUP_TIMESTAMP = 'latest'
-PUBLIC_BACKUP_TIMESTAMP = 'public'
-REGRESSIONS_GCS_PATH_SUFFIX = '_regressions'
+BACKUP_ARCHIVE_FORMAT: str = 'zip'
+CORPUS_FILES_SYNC_TIMEOUT: int = 60 * 60
+LATEST_BACKUP_TIMESTAMP: str = 'latest'
+PUBLIC_BACKUP_TIMESTAMP: str = 'public'
+REGRESSIONS_GCS_PATH_SUFFIX: str = '_regressions'
 
-ZIPPED_PATH_PREFIX = 'zipped'
-PARTIAL_ZIPCORPUS_PREFIX = 'partial'
-BASE_ZIPCORPUS_PREFIX = 'base'
+ZIPPED_PATH_PREFIX: str = 'zipped'
+PARTIAL_ZIPCORPUS_PREFIX: str = 'partial'
+BASE_ZIPCORPUS_PREFIX: str = 'base'
 
-RSYNC_ERROR_REGEX = (br'CommandException:\s*(\d+)\s*files?/objects? '
-                     br'could not be copied/removed')
+RSYNC_ERROR_REGEX: bytes = (br'CommandException:\s*(\d+)\s*files?/objects? '
+                            br'could not be copied/removed')
 
-MAX_SYNC_ERRORS = 10
+MAX_SYNC_ERRORS: int = 10
 
 # Default used by shutil.
-COPY_BUFFER_SIZE = 16 * 1024
+COPY_BUFFER_SIZE: int = 16 * 1024
 
 
-def _rsync_errors_below_threshold(gsutil_result, max_errors):
+def _rsync_errors_below_threshold(gsutil_result: new_process.ProcessResult,
+                                  max_errors: int) -> bool:
   """Check if the number of errors during rsync is lower than our threshold."""
   match = re.search(RSYNC_ERROR_REGEX, gsutil_result.output, re.MULTILINE)
   if not match:
@@ -77,7 +82,8 @@ def _rsync_errors_below_threshold(gsutil_result, max_errors):
   return error_count <= max_errors
 
 
-def _handle_rsync_result(gsutil_result, max_errors):
+def _handle_rsync_result(gsutil_result: new_process.ProcessResult,
+                         max_errors: int) -> bool:
   """Handle rsync result."""
   if gsutil_result.return_code == 0:
     sync_succeeded = True
@@ -90,12 +96,12 @@ def _handle_rsync_result(gsutil_result, max_errors):
   return sync_succeeded and not gsutil_result.timed_out
 
 
-def _count_corpus_files(directory):
+def _count_corpus_files(directory: str) -> int:
   """Count the number of corpus files."""
   return shell.get_directory_file_count(directory)
 
 
-def rename_file_to_sha(filepath, directory=None):
+def rename_file_to_sha(filepath: str, directory: str | None = None) -> str:
   if directory is None:
     directory = os.path.dirname(filepath)
   sha1sum = utils.file_hash(filepath)
@@ -104,15 +110,15 @@ def rename_file_to_sha(filepath, directory=None):
   return new_filepath
 
 
-def legalize_filenames(filepaths):
+def legalize_filenames(filepaths: Sequence[str]) -> list[str]:
   """Convert the name of every file in |filepaths| a name that is legal on
   Windows. Returns list of legally named files."""
   if environment.is_trusted_host():
-    return filepaths
+    return cast(list[str], filepaths)
 
   illegal_chars = {'<', '>', ':', '\\', '|', '?', '*'}
-  legally_named = []
-  failed_to_move_filepaths = []
+  legally_named: list[str] = []
+  failed_to_move_filepaths: list[str] = []
   for filepath in filepaths:
     _, basename = os.path.split(filepath)
     if not any(char in illegal_chars for char in basename):
@@ -136,7 +142,7 @@ def legalize_filenames(filepaths):
   return legally_named
 
 
-def legalize_corpus_files(directory):
+def legalize_corpus_files(directory: str) -> None:
   """Convert the name of every corpus file in |directory| to a name that is
   allowed on Windows."""
   # Iterate through return value of legalize_filenames to convert every
@@ -149,11 +155,13 @@ class GcsCorpus:
   """Google Cloud Storage corpus."""
 
   # TODO(metzman): Consider merging this with FuzzTargetCorpus.
-  def __init__(self,
-               bucket_name,
-               bucket_path='/',
-               log_results=True,
-               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER):
+  def __init__(
+      self,
+      bucket_name: str,
+      bucket_path: str = '/',
+      log_results: bool = True,
+      gsutil_runner_func: Callable[[], Any] | None = DEFAULT_GSUTIL_RUNNER,
+  ) -> None:
     """Inits the GcsCorpus.
 
     Args:
@@ -163,17 +171,17 @@ class GcsCorpus:
     self._bucket_name = bucket_name
     self._bucket_path = bucket_path
     self._log_results = log_results
-    self._gsutil_runner = gsutil_runner_func()
+    self._gsutil_runner: Any = cast(Callable[[], Any], gsutil_runner_func)()
 
   @property
-  def bucket_name(self):
+  def bucket_name(self) -> str:
     return self._bucket_name
 
   @property
-  def bucket_path(self):
+  def bucket_path(self) -> str:
     return self._bucket_path
 
-  def get_gcs_url(self):
+  def get_gcs_url(self) -> str:
     """Build corpus GCS URL for gsutil.
     Returns:
       A string giving the GCS URL.
@@ -188,9 +196,9 @@ class GcsCorpus:
     return url
 
   def rsync_from_disk(self,
-                      directory,
-                      timeout=CORPUS_FILES_SYNC_TIMEOUT,
-                      delete=True):
+                      directory: str,
+                      timeout: int = CORPUS_FILES_SYNC_TIMEOUT,
+                      delete: bool = True) -> bool:
     """Upload local files to GCS and remove files which do not exist locally.
 
     Args:
@@ -210,9 +218,9 @@ class GcsCorpus:
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
 
   def rsync_to_disk(self,
-                    directory,
-                    timeout=CORPUS_FILES_SYNC_TIMEOUT,
-                    delete=True):
+                    directory: str,
+                    timeout: int = CORPUS_FILES_SYNC_TIMEOUT,
+                    delete: bool = True) -> bool:
     """Run gsutil to download corpus files from GCS.
 
     Args:
@@ -232,7 +240,9 @@ class GcsCorpus:
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
 
-  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT):
+  def upload_files(self,
+                   file_paths: Sequence[str],
+                   timeout: int = CORPUS_FILES_SYNC_TIMEOUT) -> Any:
     """Upload files to the GCS.
 
     Args:
@@ -255,13 +265,15 @@ class GcsCorpus:
 class FuzzTargetCorpus(GcsCorpus):
   """Engine fuzzer (libFuzzer, AFL) specific corpus."""
 
-  def __init__(self,
-               engine,
-               project_qualified_target_name,
-               quarantine=False,
-               log_results=True,
-               include_regressions=False,
-               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER):
+  def __init__(
+      self,
+      engine: str,
+      project_qualified_target_name: str,
+      quarantine: bool = False,
+      log_results: bool = True,
+      include_regressions: bool = False,
+      gsutil_runner_func: Callable[[], Any] | None = DEFAULT_GSUTIL_RUNNER,
+  ) -> None:
     """Inits the FuzzTargetCorpus.
 
     Args:
@@ -295,7 +307,7 @@ class FuzzTargetCorpus(GcsCorpus):
         gsutil_runner_func=gsutil_runner_func,
     )
 
-    self._regressions_corpus = GcsCorpus(
+    self._regressions_corpus: GcsCorpus | None = GcsCorpus(
         sync_corpus_bucket_name,
         f'/{self._engine}/{self._project_qualified_target_name}'
         f'{REGRESSIONS_GCS_PATH_SUFFIX}',
@@ -303,17 +315,17 @@ class FuzzTargetCorpus(GcsCorpus):
         gsutil_runner_func=gsutil_runner_func) if include_regressions else None
 
   @property
-  def engine(self):
+  def engine(self) -> str:
     return self._engine
 
   @property
-  def project_qualified_target_name(self):
+  def project_qualified_target_name(self) -> str:
     return self._project_qualified_target_name
 
   def rsync_from_disk(self,
-                      directory,
-                      timeout=CORPUS_FILES_SYNC_TIMEOUT,
-                      delete=True):
+                      directory: str,
+                      timeout: int = CORPUS_FILES_SYNC_TIMEOUT,
+                      delete: bool = True) -> bool:
     """Upload local files to GCS and remove files which do not exist locally.
 
     Overridden to have additional logging.
@@ -336,9 +348,9 @@ class FuzzTargetCorpus(GcsCorpus):
     return result
 
   def rsync_to_disk(self,
-                    directory,
-                    timeout=CORPUS_FILES_SYNC_TIMEOUT,
-                    delete=True):
+                    directory: str,
+                    timeout: int = CORPUS_FILES_SYNC_TIMEOUT,
+                    delete: bool = True) -> bool:
     """Run gsutil to download corpus files from GCS.
 
     Overridden to have additional logging.
@@ -374,11 +386,12 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   """Implementation of GCS corpus that uses protos (uworker-compatible) for fuzz
   targets."""
 
-  def __init__(self,
-               engine,
-               project_qualified_target_name,
-               proto_corpus,
-               allow_engine_override=True):
+  def __init__(
+      self,
+      engine: str,
+      project_qualified_target_name: str,
+      proto_corpus: 'uworker_msg_pb2.FuzzTargetCorpus',  # pylint: disable=no-member
+      allow_engine_override: bool = True) -> None:
     # TODO(metzman): Do we need project_qualified_target_name?
 
     # This is used to let AFL share corpora with libFuzzer.
@@ -390,13 +403,16 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     self.proto_corpus = proto_corpus
     proto_corpus.engine = self._engine
     proto_corpus.project_qualified_target_name = project_qualified_target_name
-    self._filenames_to_delete_urls_mapping = {}
+    self._filenames_to_delete_urls_mapping: dict[str, str | None] = {}
 
-  def serialize(self):
+  def serialize(self) -> 'uworker_msg_pb2.FuzzTargetCorpus':  # pylint: disable=no-member
     return self.proto_corpus
 
   @classmethod
-  def deserialize(cls, proto_corpus):
+  def deserialize(
+      cls,
+      proto_corpus: 'uworker_msg_pb2.FuzzTargetCorpus'  # pylint: disable=no-member
+  ) -> 'ProtoFuzzTargetCorpus':
     return ProtoFuzzTargetCorpus(
         proto_corpus.engine,
         proto_corpus.project_qualified_target_name,
@@ -404,9 +420,9 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
         allow_engine_override=False)
 
   def rsync_from_disk(self,
-                      directory,
-                      timeout=CORPUS_FILES_SYNC_TIMEOUT,
-                      delete=True):
+                      directory: str,
+                      timeout: int = CORPUS_FILES_SYNC_TIMEOUT,
+                      delete: bool = True) -> bool:
     """Upload local files to GCS and remove files which do not exist locally.
 
     Overridden to have additional logging.
@@ -420,7 +436,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       A bool indicating whether or not the command succeeded.
     """
     filenames_to_delete_dict = self._filenames_to_delete_urls_mapping.copy()
-    filepaths_to_upload = []
+    filepaths_to_upload: list[str] = []
     logs.info('Rsyncing corpus from disk.')
     for filepath in shell.get_files_list(directory):
       filepath = rename_file_to_sha(filepath)
@@ -434,7 +450,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
         filepaths_to_upload.append(filepath)
 
     logs.info('Uploading corpus.')
-    results = self.upload_files(filepaths_to_upload)
+    results: list[bool] = self.upload_files(filepaths_to_upload)
     logs.info('Done uploading corpus.')
     filenames_to_delete = [
         delete_url for delete_url in set(filenames_to_delete_dict.values())
@@ -464,9 +480,9 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     return results.count(False) < MAX_SYNC_ERRORS
 
   def rsync_to_disk(self,
-                    directory,
-                    timeout=CORPUS_FILES_SYNC_TIMEOUT,
-                    delete=True) -> bool:
+                    directory: str,
+                    timeout: int = CORPUS_FILES_SYNC_TIMEOUT,
+                    delete: bool = True) -> bool:
     """Sync fuzz target corpus to disk."""
     if not self._sync_corpus_to_disk(self.proto_corpus.corpus, directory):
       return False
@@ -480,7 +496,10 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     logs.info(f'{num_files} corpus files downloaded.')
     return True
 
-  def _sync_corpus_to_disk(self, corpus, directory):
+  def _sync_corpus_to_disk(
+      self,
+      corpus: 'uworker_msg_pb2.Corpus',  # pylint: disable=no-member
+      directory: str) -> bool:
     """Syncs a corpus from GCS to disk."""
     shell.create_directory(directory, create_intermediates=True)
     if corpus.backup_url:
@@ -490,7 +509,8 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       temp_zipfile = tempfile.NamedTemporaryFile(
           dir=tmpdir, suffix='.zip', delete=False)
       try:
-        storage.download_signed_url_to_file(corpus.backup_url, temp_zipfile)
+        storage.download_signed_url_to_file(corpus.backup_url,
+                                            cast(Any, temp_zipfile))
         temp_zipfile.close()
         with archive.open(temp_zipfile.name) as reader:
           reader.extract_all(directory)
@@ -501,7 +521,8 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       finally:
         os.unlink(temp_zipfile.name)
 
-    results = storage.download_signed_urls(corpus.corpus_urls, directory)
+    results = storage.download_signed_urls(
+        cast(Any, corpus.corpus_urls), directory)
     fails = 0
     # Convert this to a dict so proto's map doesn't return a default value for
     # missing keys (this hides errors).
@@ -517,7 +538,11 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     # TODO(metzman): Add timeout and tolerance for missing URLs.
     return fails < MAX_SYNC_ERRORS
 
-  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT) -> bool:
+  def upload_files(
+      self,
+      file_paths: Sequence[str],
+      timeout: int = CORPUS_FILES_SYNC_TIMEOUT,
+  ) -> list[bool]:
     del timeout
     num_upload_urls = len(self.proto_corpus.corpus.upload_urls)
     if len(file_paths) > num_upload_urls:
@@ -526,8 +551,8 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       file_paths = file_paths[:num_upload_urls]
 
     logs.info(f'Uploading {len(file_paths)} corpus files.')
-    results = storage.upload_signed_urls(self.proto_corpus.corpus.upload_urls,
-                                         file_paths)
+    results: list[bool] = storage.upload_signed_urls(
+        cast(Any, self.proto_corpus.corpus.upload_urls), cast(Any, file_paths))
 
     # Make sure we don't reuse upload_urls.
     urls_remaining = self.proto_corpus.corpus.upload_urls[len(results):]
@@ -536,12 +561,13 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
 
     return results
 
-  def get_gcs_url(self):
+  def get_gcs_url(self) -> str:
     return self.proto_corpus.corpus.gcs_url
 
 
-def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
-                            project_qualified_target_name, date):
+def gcs_url_for_backup_file(
+    backup_bucket_name: str | None, fuzzer_name: str | None,
+    project_qualified_target_name: str | None, date: Any) -> str | None:
   """Build GCS URL for corpus backup file for the given date.
 
   Returns:
@@ -559,7 +585,8 @@ def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
   return f'{backup_dir.rstrip("/")}/{backup_file}'
 
 
-def backup_corpus(dated_backup_signed_url, corpus, directory):
+def backup_corpus(dated_backup_signed_url: str | None, corpus: Any,
+                  directory: str) -> bool:
   """Archive and store corpus as a backup.
 
   Args:
@@ -603,9 +630,8 @@ def backup_corpus(dated_backup_signed_url, corpus, directory):
   return backup_succeeded
 
 
-def gcs_url_for_backup_directory(
-    backup_bucket_name, fuzzer_name,
-    project_qualified_target_name) -> Optional[str]:
+def gcs_url_for_backup_directory(backup_bucket_name: str, fuzzer_name: str,
+                                 project_qualified_target_name: str) -> str:
   """Build GCS URL for corpus backup directory.
 
   Returns:
@@ -615,13 +641,13 @@ def gcs_url_for_backup_directory(
           f'{project_qualified_target_name}/')
 
 
-def _get_regressions_corpus_gcs_url(bucket_name, bucket_path):
+def _get_regressions_corpus_gcs_url(bucket_name: str, bucket_path: str) -> str:
   """Return gcs path to directory containing crash regressions."""
   return _get_gcs_url(
       bucket_name, bucket_path, suffix=REGRESSIONS_GCS_PATH_SUFFIX)
 
 
-def _get_gcs_url(bucket_name, bucket_path, suffix=''):
+def _get_gcs_url(bucket_name: str, bucket_path: str, suffix: str = '') -> str:
   """Build corpus GCS URL for gsutil.
   Returns:
     A string giving the GCS URL.
@@ -639,7 +665,7 @@ def _get_gcs_url(bucket_name, bucket_path, suffix=''):
 
 
 def get_proto_data_bundle_corpus(
-    data_bundle) -> uworker_msg_pb2.DataBundleCorpus:  # pylint: disable=no-member
+    data_bundle: Any) -> uworker_msg_pb2.DataBundleCorpus:  # pylint: disable=no-member
   """Returns a data bundle corpus that can be used by uworkers or trusted
   workers to download the data bundle files using the fastest means available to
   them."""
@@ -666,24 +692,27 @@ def get_proto_data_bundle_corpus(
   return data_bundle_corpus
 
 
-def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
+def sync_data_bundle_corpus_to_disk(
+    data_bundle_corpus: 'uworker_msg_pb2.DataBundleCorpus',  # pylint: disable=no-member
+    directory: str) -> bool:
+  """Syncs a data bundle corpus to disk."""
   if (not task_types.task_main_runs_on_uworker() and
       not environment.is_uworker()):
     # Fast path for when we don't need an untrusted worker to run a task.
-    return gsutil.GSUtilRunner().rsync(
+    return cast(Any, gsutil).GSUtilRunner().rsync(
         data_bundle_corpus.gcs_url, directory, delete=False).return_code == 0
-  results = storage.download_signed_urls(data_bundle_corpus.corpus_urls,
-                                         directory)
+  results = storage.download_signed_urls(
+      cast(Any, data_bundle_corpus.corpus_urls), directory)
   fails = [result.url for result in results if not result.url]
   return len(fails) < MAX_SYNC_ERRORS
 
 
-def get_proto_corpus(bucket_name,
-                     bucket_path,
-                     max_upload_urls,
-                     include_delete_urls=False,
-                     max_download_urls=None,
-                     backup_url=None):
+def get_proto_corpus(bucket_name: str,
+                     bucket_path: str,
+                     max_upload_urls: int,
+                     include_delete_urls: bool = False,
+                     max_download_urls: int | None = None,
+                     backup_url: str | None = None) -> 'uworker_msg_pb2.Corpus':  # pylint: disable=no-member
   """Returns a proto representation of a corpus."""
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
   corpus = uworker_msg_pb2.Corpus(gcs_url=gcs_url)  # pylint: disable=no-member
@@ -699,8 +728,8 @@ def get_proto_corpus(bucket_name,
   if backup_exists:
     # Corpus backup can take up to 24 hours, get any corpus element before the
     # backup was made.
-    corpus.backup_url = storage.get_signed_download_url(backup_url)
-    backup = list(storage.get_blobs(backup_url, single_file=True))
+    corpus.backup_url = storage.get_signed_download_url(cast(str, backup_url))
+    backup = list(storage.get_blobs(cast(str, backup_url), single_file=True))
     start_time = backup[0]['updated'] - datetime.timedelta(days=1)
     blobs = storage.get_blobs(gcs_url)
     urls = (f'{storage.GS_PREFIX}/{bucket_name}/{blob["name"]}'
@@ -726,9 +755,9 @@ def get_proto_corpus(bucket_name,
   return corpus
 
 
-def get_target_bucket_and_path(engine,
-                               project_qualified_target_name,
-                               quarantine=False):
+def get_target_bucket_and_path(engine: str,
+                               project_qualified_target_name: str,
+                               quarantine: bool = False) -> tuple[str, str]:
   """Gets target and bucket path for the corpus."""
   engine = os.getenv('CORPUS_FUZZER_NAME_OVERRIDE', engine)
   if quarantine:
@@ -740,14 +769,14 @@ def get_target_bucket_and_path(engine,
   return sync_corpus_bucket_name, f'/{engine}/{project_qualified_target_name}'
 
 
-def get_fuzz_target_corpus(engine,
-                           project_qualified_target_name,
-                           quarantine=False,
-                           include_regressions=False,
-                           include_delete_urls=False,
-                           max_upload_urls=10000,
-                           max_download_urls=None,
-                           use_backup=False):
+def get_fuzz_target_corpus(engine: str,
+                           project_qualified_target_name: str,
+                           quarantine: bool = False,
+                           include_regressions: bool = False,
+                           include_delete_urls: bool = False,
+                           max_upload_urls: int = 10000,
+                           max_download_urls: int | None = None,
+                           use_backup: bool = False) -> ProtoFuzzTargetCorpus:
   """Copies the corpus from gcs to disk. Can run on uworker."""
   fuzz_target_corpus = uworker_msg_pb2.FuzzTargetCorpus()  # pylint: disable=no-member
   bucket_name, bucket_path = get_target_bucket_and_path(
@@ -787,14 +816,16 @@ def get_fuzz_target_corpus(engine,
                                fuzz_target_corpus)
 
 
-def get_regressions_signed_upload_url(engine, project_qualified_target_name):
+def get_regressions_signed_upload_url(
+    engine: str, project_qualified_target_name: str) -> str:
   bucket, path = get_target_bucket_and_path(engine,
                                             project_qualified_target_name)
   regression_url = _get_regressions_corpus_gcs_url(bucket, path)
   return storage.get_arbitrary_signed_upload_url(regression_url)
 
 
-def get_pruning_corpora_urls(engine, project_qualified_name):
+def get_pruning_corpora_urls(engine: str,
+                             project_qualified_name: str) -> tuple[str, str]:
   bucket_name, bucket_path = get_target_bucket_and_path(
       engine, project_qualified_name, False)
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
@@ -804,7 +835,9 @@ def get_pruning_corpora_urls(engine, project_qualified_name):
   return gcs_url, quarantine_gcs_url
 
 
-def get_corpuses_for_pruning(engine, project_qualified_name):
+def get_corpuses_for_pruning(
+    engine: str, project_qualified_name: str
+) -> tuple[ProtoFuzzTargetCorpus, ProtoFuzzTargetCorpus]:
   """Returns a fuzz target corpus and quarantine corpus for pruning."""
   # We need to include upload URLs because of corpus pollination. This is
   # unfortunate as it is probably rarely used.

@@ -20,7 +20,8 @@ from clusterfuzz._internal.system import environment
 # pylint: disable=no-member
 
 
-def _build_response(build, result):
+def _build_response(build: build_manager.Build,
+                    result: bool) -> untrusted_runner_pb2.SetupBuildResponse:
   if not result:
     return untrusted_runner_pb2.SetupBuildResponse(result=False)
 
@@ -36,7 +37,8 @@ def _build_response(build, result):
       fuzz_targets=build.fuzz_targets or [])
 
 
-def setup_regular_build(request):
+def setup_regular_build(request: untrusted_runner_pb2.SetupRegularBuildRequest
+                       ) -> untrusted_runner_pb2.SetupBuildResponse:
   """Set up a regular build."""
   build = build_manager.RegularBuild(request.base_build_dir, request.revision,
                                      request.build_url, request.build_prefix,

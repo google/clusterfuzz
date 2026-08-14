@@ -16,18 +16,19 @@
 import ast
 import random
 import time
+from typing import Any
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 
 try:
-  from pywinauto import application
+  from pywinauto import application  # type: ignore
 except ImportError:
   # This can be imported from appengine, so make sure we don't exception out.
-  pass
+  application: Any = None
 
 
-def find_windows_for_process(process_id):
+def find_windows_for_process(process_id: int) -> list[Any]:
   """Return visible windows belonging to a process."""
   pids = utils.get_process_ids(process_id)
   if not pids:
@@ -59,7 +60,7 @@ def find_windows_for_process(process_id):
   return visible_windows
 
 
-def get_random_gestures(gesture_count):
+def get_random_gestures(gesture_count: int) -> list[str]:
   """Return list of random gesture command strings."""
   gestures_types = [
       'key,Letters', 'key,Letters', 'key,Letters', 'key,Letters', 'mouse,MA',
@@ -118,8 +119,8 @@ def get_random_gestures(gesture_count):
   return gestures
 
 
-def run_gestures(gestures, process_id, process_status, start_time, timeout,
-                 windows):
+def run_gestures(gestures: list[str], process_id: int, process_status: Any,
+                 start_time: float, timeout: float, windows: list[Any]) -> None:
   """Run the provided interaction gestures."""
   if not windows:
     windows += find_windows_for_process(process_id)

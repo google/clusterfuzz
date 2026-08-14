@@ -68,7 +68,7 @@ steps:
     bash ./local/install_deps.bash
     
     # Get into the venv
-    source "$$(python3.11 -m pipenv --venv)/bin/activate"
+    source .venv/bin/activate
 
     # Check if the _PROJECT substitution was provided.
     if [ -z "${_PROJECT}" ]; then

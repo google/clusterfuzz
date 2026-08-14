@@ -17,6 +17,7 @@
 import datetime
 import random
 import time
+from typing import cast
 
 from google.cloud import ndb
 from google.cloud.ndb import exceptions
@@ -26,25 +27,25 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-DEFAULT_MAX_HOLD_SECONDS = 60 * 10
+DEFAULT_MAX_HOLD_SECONDS: int = 60 * 10
 
-LOCK_CHECK_SLEEP_MULTIPLIER = 10
-LOCK_CHECK_TIMEOUT = 60 * 60
+LOCK_CHECK_SLEEP_MULTIPLIER: int = 10
+LOCK_CHECK_TIMEOUT: int = 60 * 60
 
-MAX_WAIT_EXPONENT = 6
-NUM_STATISTICS_SHARDS = 50
+MAX_WAIT_EXPONENT: int = 6
+NUM_STATISTICS_SHARDS: int = 50
 
-TRANSACTION_RETRIES = 0
+TRANSACTION_RETRIES: int = 0
 
 
-def _get_current_lock_zone():
+def _get_current_lock_zone() -> str | None:
   """Get the current zone for locking purposes."""
   if environment.get_value('LOCAL_DEVELOPMENT', False):
     return 'local'
 
   platform = environment.get_platform_group().lower()
   platform_group_mappings = db_config.get_value('platform_group_mappings')
-  for mapping in platform_group_mappings.splitlines():
+  for mapping in cast(str, platform_group_mappings).splitlines():
     if ';' not in mapping:
       continue
 
@@ -58,7 +59,7 @@ def _get_current_lock_zone():
   return platform
 
 
-def _get_key_name_with_lock_zone(key_name):
+def _get_key_name_with_lock_zone(key_name: str) -> str | None:
   """Return the lock key name with the current lock zone."""
   current_zone = _get_current_lock_zone()
   if not current_zone:
@@ -68,7 +69,11 @@ def _get_key_name_with_lock_zone(key_name):
   return current_zone + ';' + key_name
 
 
-def _try_acquire_lock(key_name, expiration_time, holder):
+def _try_acquire_lock(
+    key_name: str,
+    expiration_time: datetime.datetime,
+    holder: str | None,
+) -> data_types.Lock:
   """Actual lock acquire that runs in a transaction."""
   lock_entity = ndb.Key(data_types.Lock, key_name).get()
 
@@ -88,16 +93,18 @@ def _try_acquire_lock(key_name, expiration_time, holder):
   return lock_entity
 
 
-def acquire_lock(key_name,
-                 max_hold_seconds=DEFAULT_MAX_HOLD_SECONDS,
-                 retries=None,
-                 by_zone=True):
+def acquire_lock(
+    key_name: str,
+    max_hold_seconds: int = DEFAULT_MAX_HOLD_SECONDS,
+    retries: int | None = None,
+    by_zone: bool = True,
+) -> datetime.datetime | None:
   """Acquire a lock for the given key name. Returns the expiration time if
   succeeded, otherwise None. The lock holder is responsible for making sure it
   doesn't assume the lock is still held after the expiration time."""
   logs.info('Acquiring lock for %s.' % key_name)
   failed_acquires = 0
-  total_wait = 0
+  total_wait: float = 0
   wait_exponent = 1
 
   if by_zone:
@@ -113,9 +120,10 @@ def acquire_lock(key_name,
   while total_wait < LOCK_CHECK_TIMEOUT:
     try:
       lock_entity = ndb.transaction(
-          lambda: _try_acquire_lock(key_name,
-                                    expiration_time=datetime.datetime.utcnow() +
-                                    expiration_delta, holder=bot_name),
+          lambda: _try_acquire_lock(
+              key_name,
+              expiration_time=datetime.datetime.utcnow() + expiration_delta,
+              holder=bot_name),
           retries=TRANSACTION_RETRIES)
 
       if lock_entity.holder == bot_name:
@@ -143,7 +151,11 @@ def acquire_lock(key_name,
   return None
 
 
-def release_lock(key_name, force_release=False, by_zone=True):
+def release_lock(
+    key_name: str,
+    force_release: bool = False,
+    by_zone: bool = True,
+) -> None:
   """Release a lock for the given key name."""
   logs.info('Releasing lock for %s.' % key_name)
   bot_name = environment.get_value('BOT_NAME')

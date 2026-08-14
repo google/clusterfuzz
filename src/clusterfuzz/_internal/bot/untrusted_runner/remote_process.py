@@ -13,6 +13,9 @@
 # limitations under the License.
 """Remote process implementation."""
 
+from typing import Any
+from typing import cast
+
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz._internal.system import new_process
@@ -20,25 +23,31 @@ from clusterfuzz._internal.system import process_handler
 
 from . import protobuf_utils
 
+# pylint: disable=no-member
 
-def process_result_to_proto(process_result):
+
+def process_result_to_proto(process_result: new_process.ProcessResult,
+                           ) -> untrusted_runner_pb2.ProcessResult:
   """Convert new_process.ProcessResult to proto."""
-  process_result_proto = untrusted_runner_pb2.ProcessResult(  # pylint: disable=no-member
+  process_result_proto = untrusted_runner_pb2.ProcessResult(
       return_code=process_result.return_code,
       output=process_result.output,
       time_executed=process_result.time_executed,
       timed_out=process_result.timed_out)
 
-  process_result_proto.command.extend(process_result.command)  # pylint: disable=no-member
+  process_result_proto.command.extend(cast(list[str], process_result.command))
 
   return process_result_proto
 
 
-def run_and_wait(request, _):
+def run_and_wait(
+    request: untrusted_runner_pb2.RunAndWaitRequest,
+    _: Any,
+) -> untrusted_runner_pb2.RunAndWaitResponse:
   """Implementation of RunAndWait."""
   process_runner = new_process.ProcessRunner(request.executable_path,
                                              request.default_args)
-  args = {}
+  args: dict[str, Any] = {}
   protobuf_utils.get_protobuf_field(args, request.popen_args, 'bufsize')
   protobuf_utils.get_protobuf_field(args, request.popen_args, 'executable')
   protobuf_utils.get_protobuf_field(args, request.popen_args, 'shell')
@@ -58,13 +67,16 @@ def run_and_wait(request, _):
 
   logs.info('Running command: %s' % process_runner.get_command())
 
-  return untrusted_runner_pb2.RunAndWaitResponse(  # pylint: disable=no-member
+  return untrusted_runner_pb2.RunAndWaitResponse(
       result=process_result_to_proto(process_runner.run_and_wait(**args)))
 
 
-def run_process(request, _):
+def run_process(
+    request: untrusted_runner_pb2.RunProcessRequest,
+    _: Any,
+) -> untrusted_runner_pb2.RunProcessResponse:
   """Implementation of RunProcess."""
-  args = {}
+  args: dict[str, Any] = {}
   protobuf_utils.get_protobuf_field(args, request, 'cmdline')
   protobuf_utils.get_protobuf_field(args, request, 'current_working_directory')
   protobuf_utils.get_protobuf_field(args, request, 'timeout')
@@ -80,9 +92,7 @@ def run_process(request, _):
   protobuf_utils.get_protobuf_field(args, request, 'ignore_children')
 
   return_code, execution_time, output = process_handler.run_process(**args)
-  response = untrusted_runner_pb2.RunProcessResponse(  # pylint: disable=no-member
-      return_code=return_code,
-      execution_time=execution_time,
-      output=output)
+  response = untrusted_runner_pb2.RunProcessResponse(
+      return_code=return_code, execution_time=execution_time, output=output)
 
   return response

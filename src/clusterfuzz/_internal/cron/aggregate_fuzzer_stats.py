@@ -14,12 +14,15 @@
 """Cron job to aggregate fuzzer stats onto a daily_stats BigQuery table."""
 
 import argparse
+from collections.abc import Sequence
 from concurrent.futures import as_completed
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import io
 import json
 import time
+from typing import Any
+from typing import cast
 
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseUpload
@@ -37,11 +40,11 @@ from clusterfuzz._internal.system import environment
 # Limit worker count to 4 concurrent threads to prevent exhaustion of
 # project-wide queued interactive queries quota (1,000 maximum). See
 # https://cloud.google.com/bigquery/quotas#query_jobs
-NUM_THREADS = 4
-NUM_RETRIES = 2
-RETRY_SLEEP_TIME = 5
+NUM_THREADS: int = 4
+NUM_RETRIES: int = 2
+RETRY_SLEEP_TIME: int = 5
 
-DAILY_STATS_SCHEMA = {
+DAILY_STATS_SCHEMA: dict[str, Any] = {
     'fields': [{
         'name': 'fuzzer_name',
         'type': 'STRING',
@@ -81,7 +84,7 @@ DAILY_STATS_SCHEMA = {
     'clusterfuzz._internal.cron.aggregate_fuzzer_stats._execute_insert_request',
     backoff=2,
     exception_types=[httplib2.HttpLib2Error])
-def _execute_insert_request(request):
+def _execute_insert_request(request: Any) -> None:
   """Executes a table/dataset insert request, retrying on transport errors."""
   try:
     request.execute()
@@ -96,7 +99,7 @@ def _execute_insert_request(request):
     raise
 
 
-def _create_dataset_if_needed(bigquery_client, dataset_id):
+def _create_dataset_if_needed(bigquery_client: Any, dataset_id: str) -> None:
   """Writes a dataset for the `dataset_id`. No-op if it already exists"""
   project_id = utils.get_application_id()
   dataset_body = {
@@ -111,7 +114,8 @@ def _create_dataset_if_needed(bigquery_client, dataset_id):
   _execute_insert_request(dataset_insert)
 
 
-def _create_table_if_needed(bigquery_client, dataset_id, table_id, schema):
+def _create_table_if_needed(bigquery_client: Any, dataset_id: str,
+                            table_id: str, schema: dict[str, Any]) -> None:
   """Writes a table for the `table_id`. No-op if it already exists"""
   project_id = utils.get_application_id()
   table_body = {
@@ -132,7 +136,8 @@ def _create_table_if_needed(bigquery_client, dataset_id, table_id, schema):
   _execute_insert_request(table_insert)
 
 
-def _poll_completion(bigquery_client, project_id, job_id):
+def _poll_completion(bigquery_client: Any, project_id: str | None,
+                     job_id: str) -> dict[str, Any]:
   """Poll bigquery for job completion."""
   response = bigquery_client.jobs().get(
       projectId=project_id, jobId=job_id).execute(num_retries=2)
@@ -144,7 +149,8 @@ def _poll_completion(bigquery_client, project_id, job_id):
   return response
 
 
-def _query_fuzzer_stats(fuzzer_name, project_id, target_date_str):
+def _query_fuzzer_stats(fuzzer_name: str, project_id: str | None,
+                        target_date_str: str) -> list[dict[str, Any]]:
   """Queries single fuzzer stats for the given target date."""
   dataset_id = fuzzer_stats.dataset_name(fuzzer_name)
   table_id = 'JobRun'
@@ -197,12 +203,14 @@ def _query_fuzzer_stats(fuzzer_name, project_id, target_date_str):
     return []
 
 
-def _gather_all_stats(fuzzers, project_id, target_date_str):
+def _gather_all_stats(fuzzers: Sequence[data_types.Fuzzer],
+                      project_id: str | None,
+                      target_date_str: str) -> list[dict[str, Any]]:
   """Gathers fuzzer statistics concurrently using a thread pool."""
   all_rows = []
   with ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
     future_to_fuzzer = {
-        executor.submit(_query_fuzzer_stats, fuzzer.name, project_id,
+        executor.submit(_query_fuzzer_stats, cast(str, fuzzer.name), project_id,
                         target_date_str): fuzzer for fuzzer in fuzzers
     }
 
@@ -218,8 +226,9 @@ def _gather_all_stats(fuzzers, project_id, target_date_str):
   return all_rows
 
 
-def _persist_daily_stats(all_rows, bigquery_client, project_id,
-                         date_partition_str):
+def _persist_daily_stats(all_rows: list[dict[str, Any]], bigquery_client: Any,
+                         project_id: str | None,
+                         date_partition_str: str) -> None:
   """Writes gathered row statistics to destination table."""
   if not all_rows:
     logs.error(f'No data to write to daily_stats on {date_partition_str}')
@@ -270,7 +279,7 @@ def _persist_daily_stats(all_rows, bigquery_client, project_id,
     logs.error('Failed to execute batch load job in BigQuery', exception=e)
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> bool:
   """Main entry point for the aggregate_fuzzer_stats cron job."""
   parser = argparse.ArgumentParser(prog='aggregate_fuzzer_stats')
   parser.add_argument(

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Task queue functions."""
 
+from collections.abc import Generator
+from collections.abc import Sequence
 import contextlib
 import datetime
 import functools
@@ -20,8 +22,11 @@ import json
 import random
 import threading
 import time
-from typing import List
+from typing import Any
+from typing import cast
 from typing import Optional
+from typing import Type
+from typing import TypeVar
 
 from google.cloud import monitoring_v3
 
@@ -35,7 +40,6 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
-from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -44,39 +48,46 @@ from clusterfuzz._internal.platforms.android import constants
 from clusterfuzz._internal.system import environment
 
 # Task queue prefixes for various job types.
-JOBS_PREFIX = 'jobs'
-HIGH_END_JOBS_PREFIX = 'high-end-jobs'
+JOBS_PREFIX: str = 'jobs'
+HIGH_END_JOBS_PREFIX: str = 'high-end-jobs'
 
 # Default task queue names for various job types. These will be different for
 # different platforms with the platform name added as suffix later.
-JOBS_TASKQUEUE = JOBS_PREFIX
-HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
+JOBS_TASKQUEUE: str = JOBS_PREFIX
+HIGH_END_JOBS_TASKQUEUE: str = HIGH_END_JOBS_PREFIX
 
 # Limits on number of tasks leased at once and in total.
-MAX_LEASED_TASKS_LIMIT = 1000
-MAX_TASKS_LIMIT = 100000
+MAX_LEASED_TASKS_LIMIT: int = 1000
+MAX_TASKS_LIMIT: int = 100000
 
 # The stated limit is 1000, but in reality meassages do not get delivered
 # around this limit. We should probably switch to the real client library.
-MAX_PUBSUB_MESSAGES_PER_REQ = 250
+MAX_PUBSUB_MESSAGES_PER_REQ: int = 250
 
 # Various variables for task leasing and completion times (in seconds).
-TASK_COMPLETION_BUFFER = 90 * 60
-TASK_CREATION_WAIT_INTERVAL = 2 * 60
-TASK_EXCEPTION_WAIT_INTERVAL = 5 * 60
-TASK_LEASE_SECONDS = 6 * 60 * 60  # Can be overridden via environment variable.
-TASK_LEASE_SECONDS_BY_COMMAND = {
+TASK_COMPLETION_BUFFER: int = 90 * 60
+TASK_CREATION_WAIT_INTERVAL: int = 2 * 60
+TASK_EXCEPTION_WAIT_INTERVAL: int = 5 * 60
+# Can be overridden via environment variable.
+TASK_LEASE_SECONDS: int = 6 * 60 * 60
+TASK_LEASE_SECONDS_BY_COMMAND: dict[str, int] = {
     'corpus_pruning': 24 * 60 * 60,
     'regression': 24 * 60 * 60,
 }
 
 
-def get_task_duration(command):
+def _utc_from_timestamp(timestamp: float) -> datetime.datetime:
+  """Convert a timestamp to a UTC datetime object."""
+  return datetime.datetime.fromtimestamp(
+      timestamp, datetime.timezone.utc).replace(tzinfo=None)
+
+
+def get_task_duration(command: str) -> int:
   """Gets the duration of a task."""
   return TASK_LEASE_SECONDS_BY_COMMAND.get(command, TASK_LEASE_SECONDS)
 
 
-TASK_QUEUE_DISPLAY_NAMES = {
+TASK_QUEUE_DISPLAY_NAMES: dict[str, str] = {
     'LINUX': 'Linux',
     'LINUX_WITH_GPU': 'Linux (with GPU)',
     'LINUX_UNTRUSTED': 'Linux (untrusted)',
@@ -91,37 +102,39 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'WINDOWS_WITH_GPU': 'Windows (with GPU)',
 }
 
-VALID_REDO_TASKS = ['minimize', 'regression', 'progression', 'impact', 'blame']
+VALID_REDO_TASKS: list[str] = [
+    'minimize', 'regression', 'progression', 'impact', 'blame'
+]
 
-LEASE_FAIL_WAIT = 10
-LEASE_RETRIES = 5
+LEASE_FAIL_WAIT: int = 10
+LEASE_RETRIES: int = 5
 
-TASK_PAYLOAD_KEY = 'task_payload'
-TASK_END_TIME_KEY = 'task_end_time'
+TASK_PAYLOAD_KEY: str = 'task_payload'
+TASK_END_TIME_KEY: str = 'task_end_time'
 
-POSTPROCESS_QUEUE = 'postprocess'
-UTASK_MAIN_QUEUE = 'utask_main'
-PREPROCESS_QUEUE = 'preprocess'
+POSTPROCESS_QUEUE: str = 'postprocess'
+UTASK_MAIN_QUEUE: str = 'utask_main'
+PREPROCESS_QUEUE: str = 'preprocess'
 
-SWARMING_QUEUES = {
+SWARMING_QUEUES: dict[str, str] = {
     PREPROCESS_QUEUE: 'preprocess-swarming',
     UTASK_MAIN_QUEUE: 'utask_main-swarming',
 }
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
-SUBQUEUE_IDENTIFIER = ':'
+SUBQUEUE_IDENTIFIER: str = ':'
 
-UTASK_QUEUE_PULL_SECONDS = 150
+UTASK_QUEUE_PULL_SECONDS: int = 150
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
-MAX_UTASKS = 3000
+MAX_UTASKS: int = 3000
 
 # Time window to get the metrics.
 # We should look for metrics in
 # start = now - _QUEUE_LIMIT_INTERVAL
 # end = now
-_QUEUE_LIMIT_INTERVAL = 5 * 60  # 5 minutes.
+_QUEUE_LIMIT_INTERVAL: int = 5 * 60  # 5 minutes.
 
 
 class Error(Exception):
@@ -130,18 +143,18 @@ class Error(Exception):
 
 class InvalidRedoTask(Error):
 
-  def __init__(self, task):
+  def __init__(self, task: str) -> None:
     super().__init__("The task '%s' is invalid." % task)
 
 
-def queue_suffix_for_platform(platform):
+def queue_suffix_for_platform(platform: str) -> str:
   """Get the queue suffix for a platform."""
   # Handle the case where a subqueue is used.
   platform = platform.lower().replace(SUBQUEUE_IDENTIFIER, '-')
   return '-' + platform.lower().replace('_', '-')
 
 
-def default_queue_suffix():
+def default_queue_suffix() -> str:
   """Get the queue suffix for the current platform."""
   queue_override = environment.get_value('QUEUE_OVERRIDE')
   logs.info(f'QUEUE_OVERRIDE is [{queue_override}]. '
@@ -159,37 +172,36 @@ def default_queue_suffix():
   return platform_suffix
 
 
-def regular_queue(prefix=JOBS_PREFIX):
+def regular_queue(prefix: str = JOBS_PREFIX) -> str:
   """Get the regular jobs queue."""
   if full_utask_task_model():
     return PREPROCESS_QUEUE
   return prefix + default_queue_suffix()
 
 
-def high_end_queue():
+def high_end_queue() -> str:
   """Get the high end jobs queue."""
   return regular_queue(prefix=HIGH_END_JOBS_PREFIX)
 
 
-def default_queue():
+def default_queue() -> str:
   """Get the default jobs queue."""
   thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
-  if thread_multiplier and thread_multiplier > 1:
+  if thread_multiplier and cast(int, thread_multiplier) > 1:
     return high_end_queue()
 
   return regular_queue()
 
 
-def default_android_queue():
+def default_android_queue() -> str:
   """Get the generic 'android' queue that is not tied to a specific device."""
   # Note: environment.platform() is not used as it could return different
   # values based on the devices.
-  # E.g: Pixel 8 it is 'ANDROID_MTE' for Pixel 5 it is 'ANDROID_DEP'
-  # TODO: Update this when b/347727208 is fixed
+  # Android is only supported on Linux bots.
   return JOBS_PREFIX + queue_suffix_for_platform('ANDROID')
 
 
-def get_command_override():
+def get_command_override() -> Optional['Task']:
   """Get command override task."""
   command_override = environment.get_value('COMMAND_OVERRIDE', '').strip()
   if not command_override:
@@ -199,10 +211,10 @@ def get_command_override():
   if len(parts) != 3:
     raise ValueError('Command override should have 3 components.')
 
-  return Task(*parts, is_command_override=True)
+  return Task(parts[0], parts[1], parts[2], is_command_override=True)
 
 
-def get_fuzz_task():
+def get_fuzz_task() -> Optional['Task']:
   """Try to get a fuzz task."""
   argument, job = fuzzer_selection.get_fuzz_task_payload()
   if not argument:
@@ -211,7 +223,7 @@ def get_fuzz_task():
   return Task('fuzz', argument, job)
 
 
-def get_high_end_task():
+def get_high_end_task() -> Optional['Task']:
   """Get a high end task."""
   task = get_regular_task(queue=high_end_queue())
   if not task:
@@ -221,7 +233,7 @@ def get_high_end_task():
   return task
 
 
-def get_regular_task(queue=None):
+def get_regular_task(queue: Optional[str] = None) -> Optional['Task']:
   """Get a regular task."""
   if not queue:
     queue = regular_queue()
@@ -253,7 +265,7 @@ def get_regular_task(queue=None):
     return task
 
 
-def get_machine_template_for_queue(queue_name):
+def get_machine_template_for_queue(queue_name: str) -> Optional[dict]:
   """Gets the machine template for the instance used to execute a task from
   |queue_name|. This will be used by tworkers to schedule the appropriate
   machine using batch to execute the utask_main part of a utask."""
@@ -284,36 +296,39 @@ def get_machine_template_for_queue(queue_name):
   return None
 
 
-def get_machine_templates():
+def get_machine_templates() -> list[dict]:
   """Returns machine templates."""
   # TODO(metzman): Cache this.
-  clusters_config = local_config.Config(local_config.GCE_CLUSTERS_PATH).get()
-  project = utils.get_application_id()
-  conf = clusters_config[project]
-  return conf['instance_templates']
+  clusters_config = cast(
+      dict,
+      local_config.Config(local_config.GCE_CLUSTERS_PATH).get())
+  project = cast(str, utils.get_application_id())
+  conf = cast(dict, clusters_config[project])
+  return cast(list[dict], conf['instance_templates'])
 
 
 class PubSubPuller:
   """PubSub client providing convenience methods for pulling."""
 
-  def __init__(self, queue):
+  def __init__(self, queue: str) -> None:
     self.client = pubsub.PubSubClient()
     self.application_id = utils.get_application_id()
     self.queue = queue
 
-  def get_messages(self, max_messages=1):
+  def get_messages(self, max_messages: int = 1) -> list[pubsub.ReceivedMessage]:
     """Pulls a list of messages up to |max_messages| from self.queue using
     pubsub."""
     return self.client.pull_from_subscription(
         pubsub.subscription_name(self.application_id, self.queue), max_messages)
 
-  def get_messages_time_limited(self, max_messages, time_limit_secs):
+  def get_messages_time_limited(self, max_messages: int, time_limit_secs: int
+                               ) -> list[pubsub.ReceivedMessage]:
     """Returns up to |max_messages|. Waits up until |time_limit_secs| to get to
     |max_messages|."""
     start_time = time.time()
-    messages = []
+    messages: list[pubsub.ReceivedMessage] = []
 
-    def is_done_collecting_messages():
+    def is_done_collecting_messages() -> bool:
       curr_time = time.time()
       if curr_time - start_time >= time_limit_secs:
         logs.info('Timed out collecting messages.')
@@ -332,7 +347,7 @@ class PubSubPuller:
     return messages
 
 
-def get_postprocess_task():
+def get_postprocess_task() -> Optional['PubSubTask']:
   """Gets a postprocess task if one exists."""
   # This should only be run on non-preemptible bots.
   if not task_utils.is_remotely_executing_utasks():
@@ -340,7 +355,7 @@ def get_postprocess_task():
   # Postprocess is platform-agnostic, so we run all such tasks on our
   # most generic and plentiful bots only. In other words, we avoid
   # wasting our precious non-linux bots on generic postprocess tasks.
-  if not environment.platform().lower() == 'linux':
+  if environment.platform().lower() != 'linux':
     return None
 
   queue_name = POSTPROCESS_QUEUE
@@ -359,7 +374,7 @@ def get_postprocess_task():
   return task
 
 
-def allow_all_tasks():
+def allow_all_tasks() -> bool:
   """Returns True if the bot should be allowed to execute any task.
 
   Preemptible bots are not allowed to execute all tasks, because some tasks
@@ -368,7 +383,7 @@ def allow_all_tasks():
   return not environment.get_value('PREEMPTIBLE')
 
 
-def get_preprocess_task():
+def get_preprocess_task() -> Optional['PubSubTask']:
   """Get a preprocess task."""
   queue_name = PREPROCESS_QUEUE
   base_os_version = environment.get_value('BASE_OS_VERSION')
@@ -387,7 +402,7 @@ def get_preprocess_task():
   return task
 
 
-def tworker_get_task(override_queue: str = None):
+def tworker_get_task(override_queue: Optional[str] = None) -> Optional['Task']:
   """Gets a task for a tworker to do."""
   assert environment.is_tworker()
   # TODO(metzman): Pulling tasks is relatively expensive compared to
@@ -408,7 +423,7 @@ def tworker_get_task(override_queue: str = None):
   return get_preprocess_task()
 
 
-def get_task():
+def get_task() -> Optional['Task']:
   """Returns an ordinary (non-utask_main) task that is pulled from a ClusterFuzz
   task queue."""
   task = get_command_override()
@@ -426,7 +441,7 @@ def get_task():
 
     # Check the high-end jobs queue for bots with multiplier greater than 1.
     thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
-    if thread_multiplier and thread_multiplier > 1:
+    if thread_multiplier and cast(int, thread_multiplier) > 1:
       task = get_high_end_task()
       if task:
         return task
@@ -474,23 +489,29 @@ def get_task():
   return task
 
 
-def construct_payload(command, argument, job, queue=None):
+def construct_payload(command: str,
+                      argument: Any,
+                      job: Any,
+                      queue: Optional[str] = None) -> str:
   """Constructs payload for task, a standard description of tasks."""
   return ' '.join([command, str(argument), str(job), str(queue)])
+
+
+_TaskT = TypeVar('_TaskT', bound='Task')
 
 
 class Task:
   """Represents a task."""
 
   def __init__(self,
-               command,
-               argument,
-               job,
-               eta=None,
-               is_command_override=False,
-               high_end=False,
-               extra_info=None,
-               queue=None):
+               command: str,
+               argument: Any,
+               job: Any,
+               eta: Optional[datetime.datetime] = None,
+               is_command_override: bool = False,
+               high_end: bool = False,
+               extra_info: Optional[dict[str, Any]] = None,
+               queue: Optional[str] = None) -> None:
     self.command = command
     self.argument = argument
     self.job = job
@@ -500,22 +521,22 @@ class Task:
     self.extra_info = extra_info
     self.queue = queue
 
-  def __repr__(self):
+  def __repr__(self) -> str:
     return f'Task: {self.command} {self.argument} {self.job} {self.queue}'
 
-  def attribute(self, _):
-    return None
+  def attribute(self, key: str) -> Any:
+    del key
 
-  def payload(self):
+  def payload(self) -> str:
     """Get the payload."""
     return construct_payload(self.command, self.argument, self.job, self.queue)
 
-  def to_pubsub_message(self):
+  def to_pubsub_message(self) -> pubsub.Message:
     """Convert the task to a pubsub message."""
     attributes = {
         'command': self.command,
         'argument': str(self.argument),
-        'job': self.job,
+        'job': cast(str, self.job),
     }
     if self.extra_info is not None:
       for attribute, value in self.extra_info.items():
@@ -529,14 +550,14 @@ class Task:
     return pubsub.Message(attributes=attributes)
 
   @contextlib.contextmanager
-  def lease(self):
+  def lease(self) -> Generator[Any, None, None]:
     """Maintain a lease for the task. Track only start and end by default."""
     # Assume default time for non-pubsub tasks.
     track_task_start(self, TASK_LEASE_SECONDS)
     yield
     track_task_end()
 
-  def set_queue(self, queue):
+  def set_queue(self: _TaskT, queue: Optional[str]) -> _TaskT:
     self.queue = queue
     return self
 
@@ -544,31 +565,35 @@ class Task:
 class PubSubTask(Task):
   """A Pub/Sub task."""
 
-  def __init__(self, pubsub_message):
+  def __init__(self, pubsub_message: pubsub.ReceivedMessage) -> None:
     self._pubsub_message = pubsub_message
     super().__init__(
         self.attribute('command'), self.attribute('argument'),
         self.attribute('job'))
 
-    self.extra_info = {
+    attributes = self._pubsub_message.attributes or {}
+    self.extra_info: dict[str, Any] = {
         key: value
-        for key, value in self._pubsub_message.attributes.items()
+        for key, value in attributes.items()
         if key not in {'command', 'argument', 'job', 'eta'}
     }
 
-    self.eta = datetime.datetime.utcfromtimestamp(float(self.attribute('eta')))
-    self._should_ack = True
+    self.eta: Optional[datetime.datetime] = _utc_from_timestamp(
+        float(self.attribute('eta')))
+    self._should_ack: bool = True
 
-  def attribute(self, key):
+  def attribute(self, key: str) -> Any:
     """Return attribute value."""
     try:
+      if self._pubsub_message.attributes is None:
+        raise KeyError(key)
       return self._pubsub_message.attributes[key]
     except KeyError:
       logs.error((f'KeyError: Missing key {key} in message: '
                   f'{self._pubsub_message.attributes}'))
       raise
 
-  def defer(self):
+  def defer(self) -> bool:
     """Defer a task until its ETA. Returns whether or not we deferred."""
     if self.eta is None:
       return False
@@ -583,12 +608,13 @@ class PubSubTask(Task):
         min(pubsub.MAX_ACK_DEADLINE, time_until_eta))
     return True
 
-  def cancel_lease_ack(self):
+  def cancel_lease_ack(self) -> None:
     """Cancels acknowledgement of the lease."""
     self._should_ack = False
 
   @contextlib.contextmanager
-  def lease(self, _event=None):  # pylint: disable=arguments-differ
+  def lease(self, _event: Optional[threading.Event] = None
+           ) -> Generator[Any, None, None]:  # pylint: disable=arguments-differ
     """Maintain a lease for the task."""
     self._should_ack = True
     task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
@@ -614,16 +640,17 @@ class PubSubTask(Task):
       self._pubsub_message.ack()
     track_task_end()
 
-  def dont_retry(self):
+  def dont_retry(self) -> None:
     self._pubsub_message.ack()
 
 
 class PubSubTTask(PubSubTask):
   """TTask from pubsub."""
-  TTASK_TIMEOUT = 30 * 60
+  TTASK_TIMEOUT: int = 30 * 60
 
   @contextlib.contextmanager
-  def lease(self, _event=None):  # pylint: disable=arguments-differ
+  def lease(self, _event: Optional[threading.Event] = None
+           ) -> Generator[Any, None, None]:  # pylint: disable=arguments-differ
     """Maintain a lease for the task."""
     task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
         self.command, get_task_lease_timeout())
@@ -652,7 +679,8 @@ class PubSubTTask(PubSubTask):
     track_task_end()
 
 
-def _filter_task_for_os_mismatch(message, queue) -> bool:
+def _filter_task_for_os_mismatch(message: pubsub.ReceivedMessage,
+                                 queue: Optional[str]) -> bool:
   """Filters a Pub/Sub message if its OS version mismatches the bot's OS.
 
   This function compares the `base_os_version` attribute from the message
@@ -675,7 +703,8 @@ def _filter_task_for_os_mismatch(message, queue) -> bool:
     False.
   """
   base_os_version = environment.get_value('BASE_OS_VERSION')
-  message_base_os_version = message.attributes.get('base_os_version')
+  attributes = cast(dict[str, Any], message.attributes)
+  message_base_os_version = attributes.get('base_os_version')
 
   if not message_base_os_version:
     return False
@@ -692,8 +721,11 @@ def _filter_task_for_os_mismatch(message, queue) -> bool:
   return False
 
 
-def get_task_from_message(message, queue=None, can_defer=True,
-                          task_cls=None) -> Optional[PubSubTask]:
+def get_task_from_message(
+    message: Optional[pubsub.ReceivedMessage],
+    queue: Optional[str] = None,
+    can_defer: bool = True,
+    task_cls: Optional[Type[PubSubTask]] = None) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
@@ -714,12 +746,16 @@ def get_task_from_message(message, queue=None, can_defer=True,
   # Check that this task should be run now (past the ETA). Otherwise we defer
   # its execution.
   if can_defer and task.defer():
+    # If the task is deferred, the leaser thread will still be running.
+    # We must cancel the acknowledgement of the lease to allow it to be
+    # pulled again when it is ready.
+    task.cancel_lease_ack()
     return None
 
   return task
 
 
-def get_utask_mains(queue_name: str) -> List[PubSubTask]:
+def get_utask_mains(queue_name: str) -> list[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
   base_os_version = environment.get_value('BASE_OS_VERSION')
@@ -772,10 +808,12 @@ def get_utask_main_queue_size(queue_name: str) -> int:
   return 0
 
 
-def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
+def handle_multiple_utask_main_messages(
+    messages: Sequence[pubsub.ReceivedMessage],
+    queue: Optional[str]) -> list[PubSubTask]:
   """Merges tasks specified in |messages| into a list for processing on this
   bot."""
-  tasks = []
+  tasks: list[PubSubTask] = []
   for message in messages:
     # We shouldn't defer as that was done for the preprocess part of this ttask.
     task = get_task_from_message(message, queue, can_defer=False)
@@ -789,29 +827,31 @@ def handle_multiple_utask_main_messages(messages, queue) -> List[PubSubTask]:
   return tasks
 
 
-def initialize_task(message, task_cls=None) -> PubSubTask:
+def initialize_task(
+    message: pubsub.ReceivedMessage,
+    task_cls: Optional[Type[PubSubTask]] = None) -> Optional[PubSubTask]:
   """Creates a task from |messages|."""
   if task_cls is None:
     task_cls = PubSubTask
 
-  if message.attributes.get('eventType') not in {
-      'OBJECT_FINALIZE', 'OBJECT_DELETE'
-  }:
+  attributes = cast(dict[str, Any], message.attributes)
+  if attributes.get('eventType') not in {'OBJECT_FINALIZE', 'OBJECT_DELETE'}:
     return task_cls(message)
 
   # Handle postprocess task.
   # The GCS API for pub/sub notifications uses the data field unlike
   # ClusterFuzz which uses attributes more.
-  data = json.loads(message.data)
+  data = json.loads(cast(str, message.data))
   name = data['name']
   bucket = data['bucket']
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
   task = PostprocessPubSubTask(output_url_argument, message)
-  if message.attributes.get('eventType') == 'OBJECT_DELETE':
+  if attributes.get('eventType') == 'OBJECT_DELETE':
     # These may be from maintainer action to reduce the size of the buckets,
     # just ignore these.
     task.ack()
     return None
+
   return task
 
 
@@ -819,32 +859,33 @@ class PostprocessPubSubTask(PubSubTask):
   """A postprocess task received over pub/sub."""
 
   def __init__(self,
-               output_url_argument,
-               pubsub_message,
-               is_command_override=False):
+               output_url_argument: str,
+               pubsub_message: pubsub.ReceivedMessage,
+               is_command_override: bool = False) -> None:
+    # pylint: disable=super-init-not-called
     command = 'postprocess'
     job_type = 'none'
     eta = None
     high_end = False
-    grandparent_class = super(PubSubTask, self)
-    grandparent_class.__init__(command, output_url_argument, job_type, eta,
-                               is_command_override, high_end)
+    Task.__init__(  # pylint: disable=non-parent-init-called
+        self, command, output_url_argument, job_type, eta, is_command_override,
+        high_end)
     self._pubsub_message = pubsub_message
 
-  def ack(self):
+  def ack(self) -> None:
     self._pubsub_message.ack()
 
 
 class _PubSubLeaserThread(threading.Thread):
   """Thread that continuously renews the lease for a message."""
 
-  EXTENSION_TIME_SECONDS = 10 * 60  # 10 minutes.
+  EXTENSION_TIME_SECONDS: int = 10 * 60  # 10 minutes.
 
   def __init__(self,
-               message,
-               done_event,
-               max_lease_seconds,
-               ack_on_timeout=False):
+               message: pubsub.ReceivedMessage,
+               done_event: threading.Event,
+               max_lease_seconds: int,
+               ack_on_timeout: bool = False) -> None:
     super().__init__()
 
     self.daemon = True
@@ -853,7 +894,7 @@ class _PubSubLeaserThread(threading.Thread):
     self._max_lease_seconds = max_lease_seconds
     self._ack_on_timeout = ack_on_timeout
 
-  def run(self):
+  def run(self) -> None:
     """Run the leaser thread."""
     latest_end_time = time.time() + self._max_lease_seconds
 
@@ -900,7 +941,9 @@ def add_utask_main(command: str, input_url: str, job_type: str,
       extra_info={'initial_command': initial_command})
 
 
-def bulk_add_tasks(tasks, queue=None, eta_now=False):
+def bulk_add_tasks(tasks: Sequence[Task],
+                   queue: Optional[str] = None,
+                   eta_now: bool = False) -> None:
   """Adds |tasks| in bulk to |queue|."""
   # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
@@ -923,18 +966,18 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
     pubsub_client.publish(topic_name, batch)
 
 
-def add_task(command,
-             argument,
-             job_type,
-             queue=None,
-             wait_time=None,
-             extra_info=None):
+def add_task(command: str,
+             argument: Any,
+             job_type: str | None,
+             queue: Optional[str] = None,
+             wait_time: Optional[int] = None,
+             extra_info: Optional[dict[str, Any]] = None) -> None:
   """Add a new task to the job queue."""
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
   base_os_version = None
-  if job_type != 'none':
+  if job_type and job_type != 'none':
     job = data_types.Job.query(data_types.Job.name == job_type).get()
     if not job:
       raise Error(f'Job {job_type} not found.')
@@ -959,17 +1002,19 @@ def add_task(command,
   extra_info = extra_info or {}
   if base_os_version:
     extra_info['base_os_version'] = base_os_version
-  task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
+  task = Task(
+      command, argument, job_type or 'none', eta=eta, extra_info=extra_info)
 
   bulk_add_tasks([task], queue=queue)
 
 
-def get_task_lease_timeout():
+def get_task_lease_timeout() -> int:
   """Return the task lease timeout."""
-  return environment.get_value('TASK_LEASE_SECONDS', TASK_LEASE_SECONDS)
+  return cast(int,
+              environment.get_value('TASK_LEASE_SECONDS', TASK_LEASE_SECONDS))
 
 
-def get_task_completion_deadline():
+def get_task_completion_deadline() -> float:
   """Return task completion deadline. This gives an additional buffer over the
   task lease deadline."""
   start_time = time.time()
@@ -979,25 +1024,27 @@ def get_task_completion_deadline():
 
 @functools.lru_cache
 def full_utask_task_model() -> bool:
-  return local_config.ProjectConfig().get('full_utask_model.enabled', False)
+  return cast(
+      bool,
+      local_config.ProjectConfig().get('full_utask_model.enabled', False))
 
 
-def queue_for_platform(platform, is_high_end=False):
+def queue_for_platform(platform: str | None, is_high_end: bool = False) -> str:
   """Return the queue for the platform."""
   if full_utask_task_model():
     return PREPROCESS_QUEUE
   prefix = HIGH_END_JOBS_PREFIX if is_high_end else JOBS_PREFIX
-  return prefix + queue_suffix_for_platform(platform)
+  return prefix + queue_suffix_for_platform(platform or '')
 
 
-def queue_for_testcase(testcase):
+def queue_for_testcase(testcase: data_types.Testcase) -> str:
   """Return the right queue for the testcase."""
-  is_high_end = (
+  is_high_end = bool(
       testcase.queue and testcase.queue.startswith(HIGH_END_JOBS_PREFIX))
   return queue_for_job(testcase.job_type, is_high_end=is_high_end)
 
 
-def queue_for_job(job_name, is_high_end=False):
+def queue_for_job(job_name: str | None, is_high_end: bool = False) -> str:
   """Queue for job."""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job:
@@ -1006,7 +1053,8 @@ def queue_for_job(job_name, is_high_end=False):
   return queue_for_platform(job.platform, is_high_end)
 
 
-def redo_testcase(testcase, tasks, user_email):
+def redo_testcase(testcase: data_types.Testcase, tasks: Sequence[str],
+                  user_email: str) -> None:
   """Redo specific tasks for a testcase. This is requested by the user from the
   web interface."""
   for task in tasks:
@@ -1019,7 +1067,7 @@ def redo_testcase(testcase, tasks, user_email):
   impact = 'impact' in tasks
   blame = 'blame' in tasks
 
-  task_list = []
+  task_list: list[str] = []
   testcase_id = testcase.key.id()
 
   # Metadata keys to clear based on which redo tasks were selected.
@@ -1034,7 +1082,8 @@ def redo_testcase(testcase, tasks, user_email):
     ]
 
     # If this testcase was archived during minimization, update the state.
-    testcase.archive_state &= ~data_types.ArchiveStatus.MINIMIZED
+    testcase.archive_state = cast(
+        int, testcase.archive_state) & ~data_types.ArchiveStatus.MINIMIZED
 
   if regression:
     task_list.append('regression')
@@ -1064,8 +1113,9 @@ def redo_testcase(testcase, tasks, user_email):
   for key in metadata_keys_to_clear:
     testcase.delete_metadata(key, update_testcase=False)
 
-  testcase.comments += '[%s] %s: Redo task(s): %s\n' % (
-      utils.current_date_time(), user_email, ', '.join(sorted(task_list)))
+  testcase.comments = cast(
+      str, testcase.comments) + '[%s] %s: Redo task(s): %s\n' % (
+          utils.current_date_time(), user_email, ', '.join(sorted(task_list)))
   testcase.one_time_crasher_flag = False
   testcase.put()
 
@@ -1129,18 +1179,18 @@ def redo_testcase(testcase, tasks, user_email):
         wait_time=wait_time)
 
 
-def get_task_payload():
+def get_task_payload() -> Optional[str]:
   """Return current task payload."""
   return persistent_cache.get_value(TASK_PAYLOAD_KEY)
 
 
-def get_task_end_time():
+def get_task_end_time() -> Optional[datetime.datetime]:
   """Return current task end time."""
   return persistent_cache.get_value(
-      TASK_END_TIME_KEY, constructor=datetime.datetime.utcfromtimestamp)
+      TASK_END_TIME_KEY, constructor=_utc_from_timestamp)
 
 
-def track_task_start(task, task_duration):
+def track_task_start(task: Task, task_duration: float | int) -> None:
   """Cache task information."""
   persistent_cache.set_value(TASK_PAYLOAD_KEY, task.payload())
   persistent_cache.set_value(TASK_END_TIME_KEY, time.time() + task_duration)
@@ -1150,7 +1200,7 @@ def track_task_start(task, task_duration):
   data_handler.update_heartbeat(force_update=True)
 
 
-def track_task_end():
+def track_task_end() -> None:
   """Remove cached task information."""
   persistent_cache.delete_value(TASK_PAYLOAD_KEY)
   persistent_cache.delete_value(TASK_END_TIME_KEY)

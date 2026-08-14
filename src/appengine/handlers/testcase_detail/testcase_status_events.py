@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper functions for getting testcase status information from events."""
+from collections.abc import Callable
+from collections.abc import Iterator
+from collections.abc import Mapping
 from dataclasses import asdict
 import datetime
 import json
-from typing import Iterator
-from typing import Mapping
+from typing import Any
+from typing import cast
 from typing import TypeAlias
 import urllib.parse
 
@@ -44,10 +47,10 @@ def _format_timestamp(timestamp: datetime.datetime) -> str:
 class TestcaseStatusInfo:
   """Methods to retrieve and format testcase events information."""
 
-  TASK_EVENTS_NAMES = ('analyze', 'minimize', 'progression', 'regression',
-                       'variant')
-  CHROME_TASK_EVENTS_NAMES = ('blame', 'impact')
-  LIFECYCLE_EVENTS_TYPES = (
+  TASK_EVENTS_NAMES: tuple[str, ...] = ('analyze', 'minimize', 'progression',
+                                        'regression', 'variant')
+  CHROME_TASK_EVENTS_NAMES: tuple[str, ...] = ('blame', 'impact')
+  LIFECYCLE_EVENTS_TYPES: tuple[str, ...] = (
       events.EventTypes.ISSUE_CLOSING,
       events.EventTypes.ISSUE_FILING,
       events.EventTypes.TESTCASE_CREATION,
@@ -56,10 +59,10 @@ class TestcaseStatusInfo:
       events.EventTypes.TESTCASE_REJECTION,
   )
 
-  def __init__(self, testcase_id: int):
+  def __init__(self, testcase_id: int) -> None:
     """Initializes the TestcaseStatusInfo with a testcase ID."""
     self._testcase_id = testcase_id
-    self._formatters = {
+    self._formatters: dict[str, Callable[[Any], EventInfo]] = {
         events.EventTypes.TASK_EXECUTION:
             self._format_task_execution_event,
         events.EventTypes.TESTCASE_CREATION:
@@ -79,7 +82,7 @@ class TestcaseStatusInfo:
             self._format_testcase_grouping_event,
     }
 
-  def _get_event_selectors(self):
+  def _get_event_selectors(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """Returns the selectors for task and lifecycle events."""
     task_events_names = self.TASK_EVENTS_NAMES
     lifecycle_events_types = self.LIFECYCLE_EVENTS_TYPES
@@ -204,8 +207,8 @@ class TestcaseStatusInfo:
 
     # String sorting works here because timestamps are in the
     # `strftime('%Y-%m-%d %H:%M:%S.%f UTC')` format.
-    task_events_info.sort(key=lambda x: x.get('timestamp', ''))
-    lifecycle_events_info.sort(key=lambda x: x.get('timestamp', ''))
+    task_events_info.sort(key=lambda x: cast(str, x.get('timestamp', '')))
+    lifecycle_events_info.sort(key=lambda x: cast(str, x.get('timestamp', '')))
 
     return {
         'task_events_info': task_events_info,
@@ -216,7 +219,7 @@ class TestcaseStatusInfo:
 class TestcaseEventHistory:
   """Methods to retrieve the testcase events history."""
 
-  def __init__(self, testcase_id: int):
+  def __init__(self, testcase_id: int) -> None:
     self._testcase_id = testcase_id
 
   def _get_time_range_filter(self, days: int) -> str:
@@ -235,7 +238,8 @@ class TestcaseEventHistory:
     query += f' AND {self._get_time_range_filter(days=31)}'
     return query
 
-  def _enrich_event_info_with_gcp_log_url(self, event_info: EventInfo) -> None:
+  def _enrich_event_info_with_gcp_log_url(self,
+                                          event_info: dict[str, Any]) -> None:
     """Adds the GCP log URL to the event info."""
     required_info = {
         'project_id': utils.get_logging_cloud_project_id(),
@@ -244,7 +248,8 @@ class TestcaseEventHistory:
     }
     if all(required_info.values()):
       project_id, task_id, task_name = required_info.values()
-      query = self._get_task_log_query_filter(task_id, task_name)
+      query = self._get_task_log_query_filter(
+          cast(str, task_id), cast(str, task_name))
       encoded_query = urllib.parse.quote(query)
       event_info['gcp_log_url'] = (
           _BASE_LOGS_URL + f'?project={project_id}&query={encoded_query}')
@@ -253,13 +258,15 @@ class TestcaseEventHistory:
       logs.error('Unable to generate GCP log URL due to missing info. '
                  f'Missing info: {missing}')
 
-  def _format_event_for_history(self, event: events.Event) -> EventInfo:
+  def _format_event_for_history(self, event: events.Event) -> dict[str, Any]:
     """Formats an event for display in the event history table."""
-    event_info = {k: v for k, v in asdict(event).items() if v is not None}
+    event_info: dict[str, Any] = {
+        k: v for k, v in asdict(event).items() if v is not None
+    }
     event_info['timestamp'] = _format_timestamp(event.timestamp)
     return event_info
 
-  def get_history(self) -> Iterator[Mapping]:
+  def get_history(self) -> Iterator[dict[str, Any]]:
     """Get all testcase events information in reverse chronological order."""
     event_history = events.get_events_from_testcase(self._testcase_id)
     for event in event_history:
@@ -285,7 +292,7 @@ def get_testcase_status_info(testcase_id: int) -> Mapping[str, list[EventInfo]]:
   return TestcaseStatusInfo(testcase_id).get_info()
 
 
-def get_testcase_event_history(testcase_id: int) -> list[Mapping]:
+def get_testcase_event_history(testcase_id: int) -> list[dict[str, Any]]:
   """Public function to get event history (reverse chronological order)."""
   return list(TestcaseEventHistory(testcase_id).get_history())
 

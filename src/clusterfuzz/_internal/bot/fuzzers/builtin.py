@@ -15,6 +15,7 @@
 # NOTE: This module is deprecated and will be replaced with
 # lib.clusterfuzz.fuzz.engine.
 
+from collections.abc import Sequence
 import os
 import random
 import sys
@@ -31,7 +32,7 @@ from clusterfuzz._internal.system import shell
 class BuiltinFuzzerResult:
   """Result of running a builtin fuzzer."""
 
-  def __init__(self, output, corpus_directory=None):
+  def __init__(self, output: str, corpus_directory: str | None = None) -> None:
     self.output = output
     self.corpus_directory = corpus_directory
 
@@ -45,16 +46,19 @@ class BuiltinFuzzerError(Exception):
 class BuiltinFuzzer:
   """Builtin fuzzer."""
 
-  def run(self, input_directory, output_directory, no_of_files):
+  def run(self, input_directory: str, output_directory: str,
+          no_of_files: int) -> BuiltinFuzzerResult:
     raise NotImplementedError
 
   @property
-  def fuzzer_directory(self):
-    return os.path.abspath(
-        os.path.dirname(sys.modules[self.__module__].__file__))
+  def fuzzer_directory(self) -> str:
+    module_file = sys.modules[self.__module__].__file__
+    assert module_file is not None
+    return os.path.abspath(os.path.dirname(module_file))
 
 
-def get_corpus_directory(input_directory, project_qualified_name):
+def get_corpus_directory(input_directory: str,
+                         project_qualified_name: str) -> str:
   """Get the corpus directory given a project qualified fuzz target name."""
   corpus_directory = os.path.join(input_directory, project_qualified_name)
   if environment.is_trusted_host():
@@ -73,11 +77,11 @@ def get_corpus_directory(input_directory, project_qualified_name):
 class EngineFuzzer(BuiltinFuzzer):
   """Builtin fuzzer for fuzzing engines such as libFuzzer."""
 
-  def generate_arguments(self, fuzzer_path):
+  def generate_arguments(self, fuzzer_path: str) -> str:
     """Generate arguments for the given fuzzer."""
     raise NotImplementedError
 
-  def _get_fuzzer_binary_name_and_path(self):
+  def _get_fuzzer_binary_name_and_path(self) -> tuple[str, str]:
     """Returns the fuzzer binary name and its path."""
     # Fuchsia doesn't use file paths to call fuzzers, just the name of the
     # fuzzer, so we set both from FUZZ_TARGET here.
@@ -103,7 +107,8 @@ class EngineFuzzer(BuiltinFuzzer):
       fuzzer_binary_name = os.path.basename(fuzzer_path)
     return fuzzer_binary_name, fuzzer_path
 
-  def run(self, input_directory, output_directory, no_of_files):
+  def run(self, input_directory: str, output_directory: str,
+          no_of_files: int) -> BuiltinFuzzerResult:
     """Run the fuzzer to generate testcases."""
 
     fuzzer_binary_name, fuzzer_path = self._get_fuzzer_binary_name_and_path()
@@ -159,7 +164,7 @@ class EngineFuzzer(BuiltinFuzzer):
     return BuiltinFuzzerResult(output=output, corpus_directory=corpus_directory)
 
 
-def _get_fuzzer_path(target_list, fuzzer_name):
+def _get_fuzzer_path(target_list: Sequence[str], fuzzer_name: str) -> str:
   """Return the full fuzzer path and actual binary name of |fuzzer_name|."""
   fuzzer_filename = environment.get_executable_filename(fuzzer_name)
   for path in target_list:

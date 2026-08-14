@@ -15,6 +15,8 @@
 
 import json
 import os
+from typing import Any
+from typing import cast
 from urllib.parse import quote
 
 import google.auth.exceptions
@@ -26,18 +28,18 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 
 # HTTP request timeout in seconds.
-HTTP_TIMEOUT = 60
+HTTP_TIMEOUT: int = 60
 
 # 20 MB default chunk size for file downloads.
-DEFAULT_CHUNK_SIZE = 20 * 1024 * 1024
+DEFAULT_CHUNK_SIZE: int = 20 * 1024 * 1024
 
 
 class AndroidBuildV4Api:
   """HTTP client for Android Build API V4 REST endpoints."""
 
-  BASE_URL = 'https://androidbuild-pa.googleapis.com'
+  BASE_URL: str = 'https://androidbuild-pa.googleapis.com'
 
-  def __init__(self, token: str):
+  def __init__(self, token: str) -> None:
     """Initializes the Android Build API V4 client.
 
     Do not call this directly. Use AndroidBuildV4Api.create_authenticated()
@@ -46,7 +48,7 @@ class AndroidBuildV4Api:
     Args:
       token: OAuth2 authorization bearer token.
     """
-    self.token = token
+    self.token: str = token
 
   @staticmethod
   def create_authenticated(
@@ -65,7 +67,7 @@ class AndroidBuildV4Api:
     """
     if not credentials.valid:
       credentials.refresh(Request())
-    return AndroidBuildV4Api(credentials.token)
+    return AndroidBuildV4Api(cast(str, credentials.token))
 
   def _get_headers(self) -> dict[str, str]:
     """Returns headers required for Android Build API V4 requests.
@@ -98,13 +100,14 @@ class AndroidBuildV4Api:
         request_timeout=HTTP_TIMEOUT,
         raise_for_not_found=True,
         stream=True)
+    response_obj = cast(requests.Response, response)
     with open(output_path, 'wb') as f:
-      for chunk in response.iter_content(chunk_size=DEFAULT_CHUNK_SIZE):
+      for chunk in response_obj.iter_content(chunk_size=DEFAULT_CHUNK_SIZE):
         if chunk:
-          f.write(chunk)
+          f.write(cast(bytes, chunk))
 
   def list_builds(self, branch: str, target: str,
-                  signed: bool = False) -> dict | None:
+                  signed: bool = False) -> dict[str, Any] | None:
     """List builds for a branch and target.
 
     Args:
@@ -115,7 +118,7 @@ class AndroidBuildV4Api:
     Returns:
       JSON response dictionary containing builds, or None on failure.
     """
-    params = {
+    params: dict[str, Any] = {
         'buildType': 'submitted',
         'branches': branch,
         'targets': target,
@@ -133,9 +136,9 @@ class AndroidBuildV4Api:
           headers=self._get_headers(),
           request_timeout=HTTP_TIMEOUT,
           raise_for_not_found=True)
-      data = json.loads(response_text)
+      data = json.loads(cast(str, response_text))
       if data.get('builds') and len(data['builds']) > 0:
-        return data
+        return cast(dict[str, Any], data)
       return None
     except (requests.exceptions.RequestException,
             google.auth.exceptions.GoogleAuthError, ValueError) as e:
@@ -148,7 +151,7 @@ class AndroidBuildV4Api:
                      target: str,
                      attempt_id: str = 'latest',
                      regexp: str | None = None,
-                     page_size: int = 100) -> list:
+                     page_size: int = 100) -> list[dict[str, Any]]:
     """List artifacts for a given build.
 
     Args:
@@ -161,15 +164,15 @@ class AndroidBuildV4Api:
     Returns:
       List of artifact dictionary objects.
     """
-    params = {'pageSize': page_size}
+    params: dict[str, Any] = {'pageSize': page_size}
     if regexp:
       params['nameRegexp'] = regexp
 
     path = f'/v4/builds/{bid}/{target}/attempts/{attempt_id}/artifacts'
     url = f'{self.BASE_URL}{path}'
-    artifacts = []
+    artifacts: list[dict[str, Any]] = []
 
-    page_token = None
+    page_token: str | None = None
     while True:
       if page_token:
         params['pageToken'] = page_token
@@ -181,7 +184,7 @@ class AndroidBuildV4Api:
             headers=self._get_headers(),
             request_timeout=HTTP_TIMEOUT,
             raise_for_not_found=True)
-        result = json.loads(response_text)
+        result = json.loads(cast(str, response_text))
       except (requests.exceptions.RequestException,
               google.auth.exceptions.GoogleAuthError, ValueError) as e:
         logs.error(
@@ -198,7 +201,7 @@ class AndroidBuildV4Api:
     return artifacts
 
   def get_artifact_metadata(self, bid: str, target: str, attempt_id: str,
-                            name: str) -> dict | None:
+                            name: str) -> dict[str, Any] | None:
     """Get artifact metadata.
 
     Args:
@@ -220,8 +223,9 @@ class AndroidBuildV4Api:
           headers=self._get_headers(),
           request_timeout=HTTP_TIMEOUT,
           raise_for_not_found=True)
-      data = json.loads(response_text)
-      return data.get('buildArtifactMetadata', data)
+      data = json.loads(cast(str, response_text))
+      return cast(dict[str, Any] | None, data.get('buildArtifactMetadata',
+                                                  data))
     except (requests.exceptions.RequestException,
             google.auth.exceptions.GoogleAuthError, ValueError) as e:
       logs.error(f'V4 get_artifact_metadata failed for artifact {name}: {e}')
@@ -251,7 +255,7 @@ class AndroidBuildV4Api:
           headers=self._get_headers(),
           request_timeout=HTTP_TIMEOUT,
           raise_for_not_found=True)
-      signed_url = json.loads(response_text).get('signedUrl')
+      signed_url = json.loads(cast(str, response_text)).get('signedUrl')
     except (requests.exceptions.RequestException,
             google.auth.exceptions.GoogleAuthError, ValueError) as e:
       logs.error(f'Error getting V4 download url for artifact {name}: {e}')

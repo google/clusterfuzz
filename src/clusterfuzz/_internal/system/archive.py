@@ -14,46 +14,55 @@
 """Functions for handling archives."""
 
 import abc
+from collections.abc import Callable
 import dataclasses
+import enum
 import io
 import os
 import tarfile
-from typing import BinaryIO
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Union
+import types
+from typing import Any
+from typing import IO
+from typing import Self
 import zipfile
 
 import requests
 
 from clusterfuzz._internal.metrics import logs
 
-FILE_ATTRIBUTE = '0o10'
-SYMLINK_ATTRIBUTE = '0o12'
+FILE_ATTRIBUTE: str = '0o10'
+SYMLINK_ATTRIBUTE: str = '0o12'
 
 # File extensions for archive files.
-ZIP_FILE_EXTENSIONS = ['.zip']
-TAR_FILE_EXTENSIONS = [
+ZIP_FILE_EXTENSIONS: list[str] = ['.zip']
+TAR_FILE_EXTENSIONS: list[str] = [
     '.tar', '.tar.bz2', '.tar.gz', '.tb2', '.tbz', '.tbz2', '.tgz'
 ]
-LZMA_FILE_EXTENSIONS = ['.tar.lzma', '.tar.xz']
+LZMA_FILE_EXTENSIONS: list[str] = ['.tar.lzma', '.tar.xz']
 
-ARCHIVE_FILE_EXTENSIONS = (
+ARCHIVE_FILE_EXTENSIONS: list[str] = (
     ZIP_FILE_EXTENSIONS + TAR_FILE_EXTENSIONS + LZMA_FILE_EXTENSIONS)
 
 # This is the size of the internal buffer that we're using to cache HTTP
 # range bytes.
-HTTP_BUFFER_SIZE = 50 * 1024 * 1024  # 50 MB
-HTTP_REQUEST_TIMEOUT = 5  # 5 seconds
+HTTP_BUFFER_SIZE: int = 50 * 1024 * 1024  # 50 MB
+HTTP_REQUEST_TIMEOUT: int = 5  # 5 seconds
 
-StrBytesPathLike = Union[str, bytes, os.PathLike]
+StrBytesPathLike = str | bytes | os.PathLike[Any]
 MatchCallback = Callable[[str], bool]
 
 
-def _is_attempting_path_traversal(archive_name: StrBytesPathLike,
-                                  output_dir: StrBytesPathLike,
-                                  filename: StrBytesPathLike) -> bool:
+class ArchiveType(enum.IntEnum):
+  """Type of the archive."""
+  UNKNOWN = 0
+  ZIP = 1
+  TAR = 2
+  TAR_LZMA = 3
+
+
+def _is_attempting_path_traversal(archive_name: str | os.PathLike[str] | None,
+                                  output_dir: str | os.PathLike[str],
+                                  filename: str) -> bool:
   """Detects whether there is a path traversal attempt.
 
   Args:
@@ -64,19 +73,19 @@ def _is_attempting_path_traversal(archive_name: StrBytesPathLike,
   Returns:
       Whether there is a path traversal attempt
   """
-  output_dir = os.path.realpath(output_dir)
+  output_dir_path = os.path.realpath(output_dir)
   if os.path.isabs(filename):
     logs.error('Directory traversal attempted while unpacking archive %s '
                '(absolute file path=%s). Aborting.' % (archive_name, filename))
     return True
 
-  real_file_path = os.path.realpath(os.path.join(output_dir, filename))
-  if (not real_file_path.startswith(output_dir + os.sep) and
-      real_file_path != output_dir):
+  real_file_path = os.path.realpath(os.path.join(output_dir_path, filename))
+  if (not real_file_path.startswith(output_dir_path + os.sep) and
+      real_file_path != output_dir_path):
     logs.error(
         'Directory traversal attempted while unpacking archive %s '
         '(file path=%s, real file path=%s). Aborting.' %
-        (archive_name, os.path.join(output_dir, filename), real_file_path))
+        (archive_name, os.path.join(output_dir_path, filename), real_file_path))
     return True
 
   return False
@@ -102,14 +111,16 @@ class ArchiveReader(abc.ABC):
   """Abstract class for representing an archive reader.
   """
 
-  def __enter__(self):
+  def __enter__(self) -> Self:
     return self
 
-  def __exit__(self, *args):
+  def __exit__(self, exc_type: type[BaseException] | None,
+               exc_val: BaseException | None,
+               exc_tb: types.TracebackType | None) -> None:
     self.close()
 
   @abc.abstractmethod
-  def list_members(self) -> List[ArchiveMemberInfo]:
+  def list_members(self) -> list[ArchiveMemberInfo]:
     """Lists all members contained in the archives.
 
     Returns:
@@ -120,8 +131,8 @@ class ArchiveReader(abc.ABC):
   @abc.abstractmethod
   def extract(self,
               member: str,
-              path: Union[str, os.PathLike],
-              trusted: bool = False) -> str:
+              path: str | os.PathLike[str],
+              trusted: bool = False) -> str | None:
     """Extracts `member` out of the archive to the provided path.
     If `member` is a directory in the archive, only the directory itself will
     be extracted, not its content.
@@ -137,7 +148,7 @@ class ArchiveReader(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def open(self, member: str) -> BinaryIO:
+  def open(self, member: str) -> IO[bytes] | None:
     """Opens `member`.
 
     Args:
@@ -155,8 +166,8 @@ class ArchiveReader(abc.ABC):
     raise NotImplementedError
 
   def extract_all(self,
-                  path: Union[str, os.PathLike],
-                  members: Optional[List[str]] = None,
+                  path: str | os.PathLike[str],
+                  members: list[str] | None = None,
                   trusted: bool = False) -> bool:
     """Extract the whole archive content or the members listed in `members`.
 
@@ -187,7 +198,7 @@ class ArchiveReader(abc.ABC):
 
     return not error_occurred
 
-  def try_open(self, member: str) -> Optional[BinaryIO]:
+  def try_open(self, member: str) -> IO[bytes] | None:
     """Tries to open the archive. Does not throw.
 
     Args:
@@ -198,10 +209,10 @@ class ArchiveReader(abc.ABC):
     """
     try:
       return self.open(member)
-    except:
+    except Exception:
       return None
 
-  def get_first_file_matching(self, search_string: str) -> str:
+  def get_first_file_matching(self, search_string: str) -> str | None:
     """Gets the name of the first matching member.
 
     Args:
@@ -219,7 +230,8 @@ class ArchiveReader(abc.ABC):
         return file.name
     return None
 
-  def extracted_size(self, file_match_callback: MatchCallback = None) -> int:
+  def extracted_size(self,
+                     file_match_callback: MatchCallback | None = None) -> int:
     """Gets the total extracted size of the files matched by
     file_match_callback. If file_match_callback is None, gets the extracted
     size of the whole archive.
@@ -261,10 +273,12 @@ class ArchiveReader(abc.ABC):
 class TarArchiveReader(ArchiveReader):
   """A tar archive reader. Currently supports TAR and TAR_LZMA archives.
   """
+  _archive: tarfile.TarFile
+  _archive_path: str | os.PathLike[str]
 
   def __init__(self,
-               archive_path: Union[str, os.PathLike],
-               file_obj: BinaryIO = None) -> None:
+               archive_path: str | os.PathLike[str],
+               file_obj: IO[bytes] | None = None) -> None:
     if file_obj:
       self._archive = tarfile.open(fileobj=file_obj)
     else:
@@ -273,14 +287,14 @@ class TarArchiveReader(ArchiveReader):
       self._archive = tarfile.open(archive_path, mode=mode)
     self._archive_path = archive_path
 
-  def list_members(self) -> List[ArchiveMemberInfo]:
+  def list_members(self) -> list[ArchiveMemberInfo]:
     return [
         ArchiveMemberInfo(
             name=f.name, is_dir=f.isdir(), size_bytes=f.size, mode=f.mode)
         for f in self._archive.getmembers()
     ]
 
-  def open(self, member: str):
+  def open(self, member: str) -> IO[bytes] | None:
     return self._archive.extractfile(member)
 
   def close(self) -> None:
@@ -288,8 +302,8 @@ class TarArchiveReader(ArchiveReader):
 
   def extract(self,
               member: str,
-              path: Union[str, os.PathLike],
-              trusted: bool = False):
+              path: str | os.PathLike[str],
+              trusted: bool = False) -> str | None:
     # If the output directory is a symlink, get its actual path since we will be
     # doing directory traversal checks later when unpacking the archive.
     output_directory = os.path.realpath(path)
@@ -306,11 +320,12 @@ class TarArchiveReader(ArchiveReader):
 class ZipArchiveReader(ArchiveReader):
   """A zip archive reader.
   """
+  _zip_archive: zipfile.ZipFile
 
-  def __init__(self, file) -> None:
+  def __init__(self, file: str | os.PathLike[str] | IO[bytes]) -> None:
     self._zip_archive = zipfile.ZipFile(file, mode='r')
 
-  def list_members(self) -> List[ArchiveMemberInfo]:
+  def list_members(self) -> list[ArchiveMemberInfo]:
     return [
         ArchiveMemberInfo(
             name=f.filename,
@@ -320,7 +335,7 @@ class ZipArchiveReader(ArchiveReader):
         for f in self._zip_archive.infolist()
     ]
 
-  def open(self, member):
+  def open(self, member: str) -> IO[bytes]:
     return self._zip_archive.open(name=member)
 
   def close(self) -> None:
@@ -328,8 +343,8 @@ class ZipArchiveReader(ArchiveReader):
 
   def extract(self,
               member: str,
-              path: Union[str, os.PathLike],
-              trusted: bool = False):
+              path: str | os.PathLike[str],
+              trusted: bool = False) -> str | None:
     # If the output directory is a symlink, get its actual path since we will be
     # doing directory traversal checks later when unpacking the archive.
     output_directory = os.path.realpath(path)
@@ -385,8 +400,8 @@ class ArchiveError(Exception):
 
 
 def open(  # pylint: disable=redefined-builtin
-    archive_path: str,
-    file_obj: Optional[BinaryIO] = None) -> ArchiveReader:
+    archive_path: str | os.PathLike[str],
+    file_obj: IO[bytes] | None = None) -> ArchiveReader:
   """Opens the archive and gets the appropriate archive reader based on the
   `archive_path`. If `file_obj` is not none, the binary file-like object will be
   used to read the archive instead of opening `archive_path`.
@@ -410,14 +425,6 @@ def open(  # pylint: disable=redefined-builtin
   raise ArchiveError('Unhandled archive type.')
 
 
-class ArchiveType:
-  """Type of the archive."""
-  UNKNOWN = 0
-  ZIP = 1
-  TAR = 2
-  TAR_LZMA = 3
-
-
 @dataclasses.dataclass
 class CacheBlock:
   """Represents a cache entry for the HttpZipFile.
@@ -439,6 +446,12 @@ class HttpZipFile(io.IOBase):
   See https://docs.python.org/3/glossary.html#term-file-like-object for the
   definition of a file-like object.
   """
+  uri: str
+  session: requests.Session
+  file_size: int
+  _current_block: CacheBlock
+  _pos: int
+  _read_bytes: int
 
   @staticmethod
   def is_uri_compatible(uri: str) -> bool:
@@ -449,7 +462,7 @@ class HttpZipFile(io.IOBase):
       logs.warning(f'Request to {uri} failed: {e}')
       return False
 
-  def __init__(self, uri: str):
+  def __init__(self, uri: str) -> None:
     self.uri = uri
     self.session = requests.Session()
     # This slows down the overall performances, because compressing something
@@ -457,13 +470,13 @@ class HttpZipFile(io.IOBase):
     # waste time decoding the data twice.
     self.session.headers.pop('Accept-Encoding')
     resp = self.session.head(self.uri)
-    self.file_size = int(resp.headers.get('Content-Length', default=0))
+    self.file_size = int(resp.headers.get('Content-Length', 0))
     self._current_block = CacheBlock(0, 0, b'')
     self._pos = 0
     self._read_bytes = 0
     assert resp.headers.get('Accept-Ranges') is not None
 
-  def close(self):
+  def close(self) -> None:
     logs.info('HttpZipFile: read %d / %d (bytes) from %s' %
               (self._read_bytes, self.file_size, self.uri))
     super().close()
@@ -534,7 +547,7 @@ class HttpZipFile(io.IOBase):
     inner_end = end - self._current_block.start
     return self._current_block.content[inner_start:inner_end + 1]
 
-  def read(self, size: Optional[int] = -1) -> bytes:
+  def read(self, size: int | None = -1) -> bytes:
     """Read into this file-object.
 
     Args:
@@ -560,7 +573,7 @@ class HttpZipFile(io.IOBase):
     self._pos += read_size
     return content
 
-  def read1(self, size: Optional[int] = -1) -> bytes:
+  def read1(self, size: int | None = -1) -> bytes:
     """Read into the file-object in at most on system call.
     This is exactly similar to the read implementation in our case.
 
@@ -573,7 +586,7 @@ class HttpZipFile(io.IOBase):
     return self.read(size)
 
 
-def get_archive_type(archive_path: str) -> ArchiveType:
+def get_archive_type(archive_path: str | os.PathLike[str]) -> ArchiveType:
   """Get the type of the archive.
 
   Args:
@@ -582,11 +595,13 @@ def get_archive_type(archive_path: str) -> ArchiveType:
   Returns:
       the type of the archive, or ArchiveType.UNKNOWN if unknown.
   """
+  path_str = os.fspath(archive_path) if isinstance(
+      archive_path, os.PathLike) else archive_path
 
-  def has_extension(extensions):
+  def has_extension(extensions: list[str]) -> bool:
     """Returns True if |archive_path| endswith an extension in |extensions|."""
     for extension in extensions:
-      if archive_path.endswith(extension):
+      if path_str.endswith(extension):
         return True
     return False
 
@@ -602,7 +617,7 @@ def get_archive_type(archive_path: str) -> ArchiveType:
   return ArchiveType.UNKNOWN
 
 
-def is_archive(filename: str) -> bool:
+def is_archive(filename: str | os.PathLike[str]) -> bool:
   """Return true if the file is an archive.
 
   Args:

@@ -15,6 +15,8 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 
+from typing import Any
+
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
@@ -31,14 +33,15 @@ class BaseTask:
   """Base module for tasks."""
 
   @staticmethod
-  def is_execution_remote(command=None):
+  def is_execution_remote(command: str | None = None) -> bool:
     del command
     return False
 
-  def __init__(self, module):
+  def __init__(self, module: Any) -> None:
     self.module = module
 
-  def execute(self, task_argument, job_type, uworker_env):
+  def execute(self, task_argument: str, job_type: str,
+              uworker_env: dict[str, Any] | None) -> None:
     """Executes a task."""
     raise NotImplementedError('Child class must implement.')
 
@@ -48,7 +51,8 @@ class TrustedTask(BaseTask):
   the original ones in ClusterFuzz."""
 
   @logs.task_stage_context(logs.Stage.NA)
-  def execute(self, task_argument, job_type, uworker_env):
+  def execute(self, task_argument: str, job_type: str,
+              uworker_env: dict[str, Any] | None) -> None:
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
     assert not environment.is_tworker()
@@ -76,11 +80,13 @@ class BaseUTask(BaseTask):
   """Base class representing an untrusted task. Children must decide to execute
   locally or remotely."""
 
-  def execute(self, task_argument, job_type, uworker_env):
+  def execute(self, task_argument: str, job_type: str,
+              uworker_env: dict[str, Any] | None) -> None:
     """Executes a task."""
     raise NotImplementedError('Child class must implement.')
 
-  def execute_locally(self, task_argument, job_type, uworker_env):
+  def execute_locally(self, task_argument: str, job_type: str,
+                      uworker_env: dict[str, Any] | None) -> None:
     """Executes the utask locally (on this machine, not on batch)."""
     assert not environment.is_tworker()
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
@@ -93,18 +99,19 @@ class BaseUTask(BaseTask):
     utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
     logs.info('Utask local: done.')
 
-  def preprocess(self, task_argument, job_type, uworker_env):
+  def preprocess(self, task_argument: str, job_type: str,
+                 uworker_env: dict[str, Any] | None) -> str | None:
     """Executes preprocessing."""
     raise NotImplementedError('Child class must implement.')
 
 
-def is_no_privilege_workload(command, job):
+def is_no_privilege_workload(command: str, job: str) -> bool:
   if not COMMAND_TYPES[command].is_execution_remote(command):
     return False
   return batch_service.is_remote_task(command, job)
 
 
-def is_remote_utask(command, job):
+def is_remote_utask(command: str, job: str) -> bool:
   if not COMMAND_TYPES[command].is_execution_remote(command):
     return False
 
@@ -116,7 +123,7 @@ def is_remote_utask(command, job):
                                       job) or swarming.is_swarming_task(job)
 
 
-def task_main_runs_on_uworker():
+def task_main_runs_on_uworker() -> bool:
   """This returns True if the uworker_main portion of this task is
   unprivileged."""
   command = environment.get_value('TASK_NAME')
@@ -128,11 +135,13 @@ class UTaskLocalExecutor(BaseUTask):
   """Represents an untrusted task. Executes it entirely locally and in
   memory."""
 
-  def execute(self, task_argument, job_type, uworker_env):
+  def execute(self, task_argument: str, job_type: str,
+              uworker_env: dict[str, Any] | None) -> None:
     """Executes a utask locally in-memory."""
     self.execute_locally(task_argument, job_type, uworker_env)
 
-  def preprocess(self, task_argument, job_type, uworker_env):
+  def preprocess(self, task_argument: str, job_type: str,
+                 uworker_env: dict[str, Any] | None) -> str | None:
     """Executes preprocessing."""
     raise NotImplementedError('Only needed for utasks.')
 
@@ -143,10 +152,12 @@ class UTask(BaseUTask):
   opted-in. Otherwise executes locally."""
 
   @staticmethod
-  def is_execution_remote(command=None):
+  def is_execution_remote(command: str | None = None) -> bool:
+    del command
     return task_utils.is_remotely_executing_utasks()
 
-  def execute(self, task_argument, job_type, uworker_env):
+  def execute(self, task_argument: str, job_type: str,
+              uworker_env: dict[str, Any] | None) -> None:
     """Executes a utask."""
     logs.info('Executing utask.')
     command = task_utils.get_command_from_module(self.module.__name__)
@@ -187,7 +198,8 @@ class UTask(BaseUTask):
     tasks.add_utask_main(command, download_url, job_type, None, queue.name)
 
   @logs.task_stage_context(logs.Stage.PREPROCESS)
-  def preprocess(self, task_argument, job_type, uworker_env):
+  def preprocess(self, task_argument: str, job_type: str,
+                 uworker_env: dict[str, Any] | None) -> str | None:
     result = utasks.tworker_preprocess(self.module, task_argument, job_type,
                                        uworker_env)
     if not result:
@@ -204,14 +216,15 @@ class UTask(BaseUTask):
 class PostprocessTask(BaseTask):
   """Represents postprocessing of an untrusted task."""
 
-  def __init__(self, module):
+  def __init__(self, module: Any) -> None:
     del module
     # We don't need a module, postprocess isn't a real task, it's one part of
     # many different tasks.
     super().__init__('none')
 
   @logs.task_stage_context(logs.Stage.POSTPROCESS)
-  def execute(self, task_argument, job_type, uworker_env):
+  def execute(self, task_argument: str, job_type: str,
+              uworker_env: dict[str, Any] | None) -> None:
     """Executes postprocessing of a utask."""
     # These values are None for now.
     del job_type
@@ -225,14 +238,15 @@ class UworkerMainTask(BaseTask):
   tasks that cannot use Google Cloud batch (e.g. Mac)."""
 
   # TODO(metzman): Merge with PostprocessTask.
-  def __init__(self, module):
+  def __init__(self, module: Any) -> None:
     # We don't need a module, uworker_main isn't a real task, it's one part of
     # many different tasks.
     del module
     super().__init__('none')
 
   @logs.task_stage_context(logs.Stage.MAIN)
-  def execute(self, task_argument, job_type, uworker_env):
+  def execute(self, task_argument: str, job_type: str,
+              uworker_env: dict[str, Any] | None) -> None:
     """Executes uworker_main of a utask."""
     # These values are None for now.
     del job_type
@@ -241,7 +255,7 @@ class UworkerMainTask(BaseTask):
     utasks.uworker_main(input_path)
 
 
-COMMAND_TYPES = {
+COMMAND_TYPES: dict[str, type[BaseTask]] = {
     'analyze': UTask,
     'blame': TrustedTask,
     'corpus_pruning': UTask,

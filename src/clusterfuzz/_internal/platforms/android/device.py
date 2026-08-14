@@ -17,6 +17,7 @@ import copy
 import datetime
 import os
 import time
+from typing import cast
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
@@ -34,16 +35,16 @@ from . import ui
 from . import wifi
 
 # Variables related to adding test account on device.
-ADD_TEST_ACCOUNT_APK_NAME = 'user_account_setup.apk'
-ADD_TEST_ACCOUNT_CHECK_INTERVAL = 1 * 24 * 60 * 60
-ADD_TEST_ACCOUNT_PKG_NAME = 'com.google.android.tests.utilities'
-ADD_TEST_ACCOUNT_CALL_PATH = '%s/.AddAccount' % ADD_TEST_ACCOUNT_PKG_NAME
-ADD_TEST_ACCOUNT_TIMEOUT = 20
+ADD_TEST_ACCOUNT_APK_NAME: str = 'user_account_setup.apk'
+ADD_TEST_ACCOUNT_CHECK_INTERVAL: int = 1 * 24 * 60 * 60
+ADD_TEST_ACCOUNT_PKG_NAME: str = 'com.google.android.tests.utilities'
+ADD_TEST_ACCOUNT_CALL_PATH: str = '%s/.AddAccount' % ADD_TEST_ACCOUNT_PKG_NAME
+ADD_TEST_ACCOUNT_TIMEOUT: int = 20
 
 # System build properties related vars.
-BUILD_PROP_PATH = '/system/build.prop'
-BUILD_PROP_BACKUP_PATH = BUILD_PROP_PATH + '.bak'
-BUILD_PROPERTIES = {
+BUILD_PROP_PATH: str = '/system/build.prop'
+BUILD_PROP_BACKUP_PATH: str = BUILD_PROP_PATH + '.bak'
+BUILD_PROPERTIES: dict[str, str] = {
     # Disable boot animation.
     'debug.sf.nobootanimation': '1',
     # Disable privileged app permissions enforcement.
@@ -53,8 +54,8 @@ BUILD_PROPERTIES = {
 }
 
 # Local development settings related vars.
-LOCAL_PROP_PATH = '/data/local.prop'
-LOCAL_PROP_SETTINGS = [
+LOCAL_PROP_PATH: str = '/data/local.prop'
+LOCAL_PROP_SETTINGS: list[str] = [
     'ro.audio.silent=1',
     'ro.monkey=1',
     'ro.setupwizard.mode=DISABLED',
@@ -63,11 +64,11 @@ LOCAL_PROP_SETTINGS = [
 ]
 
 # Lockscreen database settings related vars.
-LOCKSCREEN_DB = '/data/system/locksettings.db'
-LOCKSCREEN_TABLE_NAME = 'locksettings'
+LOCKSCREEN_DB: str = '/data/system/locksettings.db'
+LOCKSCREEN_TABLE_NAME: str = 'locksettings'
 
 
-def add_test_accounts_if_needed():
+def add_test_accounts_if_needed() -> None:
   """Add test account to work with GmsCore, etc."""
   # Short-circuit: UWORKERs do not have Datastore access to retrieve
   # credentials.
@@ -116,19 +117,19 @@ def add_test_accounts_if_needed():
   persistent_cache.set_value(constants.LAST_TEST_ACCOUNT_CHECK_KEY, time.time())
 
 
-def clear_temp_directories():
+def clear_temp_directories() -> None:
   """Clear temp directories."""
   adb.remove_directory(constants.DEVICE_DOWNLOAD_DIR, recreate=True)
   adb.remove_directory(constants.DEVICE_TMP_DIR, recreate=True)
   adb.remove_directory(constants.DEVICE_FUZZING_DIR, recreate=True)
 
 
-def clear_testcase_directory():
+def clear_testcase_directory() -> None:
   """Clears testcase directory."""
   adb.remove_directory(constants.DEVICE_TESTCASES_DIR, recreate=True)
 
 
-def configure_device_settings():
+def configure_device_settings() -> None:
   """Configures device settings for test environment."""
   adb.run_as_root()
 
@@ -188,7 +189,7 @@ def configure_device_settings():
   adb.write_data_to_file(local_properties_file_contents, LOCAL_PROP_PATH)
 
 
-def configure_system_build_properties():
+def configure_system_build_properties() -> None:
   """Modifies system build properties in /system/build.prop for better boot
   speed and power use."""
   adb.run_as_root()
@@ -205,7 +206,7 @@ def configure_system_build_properties():
     return
 
   # Pull to tmp file.
-  bot_tmp_directory = environment.get_value('BOT_TMPDIR')
+  bot_tmp_directory = cast(str, environment.get_value('BOT_TMPDIR'))
   old_build_prop_path = os.path.join(bot_tmp_directory, 'old.prop')
   adb.run_command(['pull', BUILD_PROP_PATH, old_build_prop_path])
   if not os.path.exists(old_build_prop_path):
@@ -243,8 +244,10 @@ def configure_system_build_properties():
 
   # Remove seccomp policies (on N and higher) as ASan requires extra syscalls.
   if is_build_at_least(build_version, 'N'):
-    policy_files = adb.run_shell_command(
-        ['find', '/system/etc/seccomp_policy/', '-type', 'f'])
+    policy_files = cast(
+        str,
+        adb.run_shell_command(
+            ['find', '/system/etc/seccomp_policy/', '-type', 'f']))
     for policy_file in policy_files.splitlines():
       adb.run_shell_command(['rm', policy_file.strip()])
 
@@ -259,7 +262,7 @@ def configure_system_build_properties():
   persistent_cache.set_value(constants.BUILD_PROP_MD5_KEY, current_md5)
 
 
-def get_debug_props_and_values():
+def get_debug_props_and_values() -> list[str]:
   """Return debug property names and values based on |ENABLE_DEBUG_CHECKS|
   flag."""
   debug_props_and_values_list = []
@@ -299,7 +302,7 @@ def get_debug_props_and_values():
   return debug_props_and_values_list
 
 
-def initialize_device():
+def initialize_device() -> None:
   """Prepares android device for app install."""
   if environment.is_engine_fuzzer_job():
     # These steps are not applicable to libFuzzer and syzkaller jobs and can
@@ -335,7 +338,7 @@ def initialize_device():
   # FIXME: Should we should revert back to regular user permission ?
 
 
-def initialize_environment():
+def initialize_environment() -> None:
   """Set common environment variables for easy access."""
   environment.set_value('BUILD_FINGERPRINT', settings.get_build_fingerprint())
   environment.set_value('BUILD_VERSION', settings.get_build_version())
@@ -373,7 +376,8 @@ def _needs_no_streaming_for_asan() -> bool:
   return is_asan_job or is_asan_device
 
 
-def install_application_if_needed(apk_path, force_update):
+def install_application_if_needed(apk_path: str | None,
+                                  force_update: bool) -> None:
   """Install application package if it does not exist on device
   or if force_update is set."""
   # Make sure that apk exists and has non-zero size. Otherwise, it means we
@@ -410,7 +414,7 @@ def install_application_if_needed(apk_path, force_update):
   app.reset()
 
 
-def is_build_at_least(current_version, other_version):
+def is_build_at_least(current_version: str | None, other_version: str) -> bool:
   """Returns whether or not |current_version| is at least as new as
   |other_version|."""
   if current_version is None:
@@ -429,13 +433,13 @@ def is_build_at_least(current_version, other_version):
   return current_version >= other_version
 
 
-def push_testcases_to_device():
+def push_testcases_to_device() -> None:
   """Pushes testcases from local fuzz directory onto device."""
   # Attempt to ensure that the local state is the same as the state on the
   # device by clearing existing files on device before pushing.
   clear_testcase_directory()
 
-  local_testcases_directory = environment.get_value('FUZZ_INPUTS')
+  local_testcases_directory = cast(str, environment.get_value('FUZZ_INPUTS'))
   if not os.listdir(local_testcases_directory):
     # Directory is empty, nothing to push.
     logs.info('No testcases to copy to device, skipping.')
@@ -445,7 +449,7 @@ def push_testcases_to_device():
                                      constants.DEVICE_TESTCASES_DIR)
 
 
-def reboot():
+def reboot() -> None:
   """Reboots device and clear config state."""
   # Make sure to clear logcat before reboot occurs. In case of kernel crashes,
   # we use the log before reboot, so it is good to clear it when we are doing
@@ -460,7 +464,7 @@ def reboot():
   adb.wait_until_fully_booted()
 
 
-def setup_host_and_device_forwarder_if_needed():
+def setup_host_and_device_forwarder_if_needed() -> None:
   """Sets up http(s) forwarding between device and host."""
   # Get list of ports to map.
   http_port_1 = environment.get_value('HTTP_PORT_1', 8000)
@@ -473,7 +477,9 @@ def setup_host_and_device_forwarder_if_needed():
     adb.run_command(['reverse', port_string, port_string])
 
 
-def update_build(apk_path, force_update=True, should_initialize_device=True):
+def update_build(apk_path: str | None,
+                 force_update: bool = True,
+                 should_initialize_device: bool = True) -> None:
   """Prepares the device and updates the build if necessary."""
   # Prepare device for app install.
   if should_initialize_device:

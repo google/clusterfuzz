@@ -17,6 +17,7 @@
   send them to the backup URL."""
 
 import datetime
+from typing import Any
 
 from google.cloud import ndb
 from googleapiclient import discovery
@@ -31,15 +32,15 @@ from clusterfuzz._internal.metrics import logs
 
 # CrashStatistic is excluded because the number of records is too high and
 # can be rebuilt from BigQuery dataset.
-EXCLUDED_MODELS = {'CrashStatistic', 'CrashStatisticJobHistory'}
+EXCLUDED_MODELS: set[str] = {'CrashStatistic', 'CrashStatisticJobHistory'}
 
 
-def _datastore_client():
+def _datastore_client() -> Any:
   """Returns an api client for datastore."""
   return discovery.build('datastore', 'v1')
 
 
-def main():
+def main() -> bool:
   """Backups all entities in a datastore bucket."""
   backup_bucket = local_config.Config(
       local_config.PROJECT_PATH).get('backup.bucket')

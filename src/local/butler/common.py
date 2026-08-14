@@ -242,48 +242,20 @@ def _pip():
   return 'pip3'
 
 
-def _pipfile_to_requirements(pipfile_dir, requirements_path, dev=False):
-  """Output a requirements.txt given a locked Pipfile."""
-  dev_arg = ''
-  if dev:
-    dev_arg = '--dev'
-
-  return_code, output = execute(
-      f'python3.11 -m pipenv requirements {dev_arg}',
-      exit_on_error=False,
-      cwd=pipfile_dir,
-      extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
-      stderr=subprocess.DEVNULL)
-  if return_code != 0:
-    # Older pipenv version.
-    return_code, output = execute(
-        f'python3.11 -m pipenv lock -r --no-header {dev_arg}',
-        exit_on_error=False,
-        cwd=pipfile_dir,
-        extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
-        stderr=subprocess.DEVNULL)
-
-  if return_code != 0:
-    raise RuntimeError('Failed to generate requirements from Pipfile.')
-
-  with open(requirements_path, 'wb') as f:
-    f.write(output)
-
-
-def _install_pip(requirements_path, target_path):
-  """Perform pip install using requirements_path onto target_path."""
+def _install_third_party(target_path, extra):
+  """Directly install packages for an extra into target_path."""
   if os.path.exists(target_path):
     shutil.rmtree(target_path)
 
+  root_dir = os.environ.get('ROOT_DIR', '.')
   execute(
-      '{pip} install -r {requirements_path} --upgrade --target {target_path}'.
-      format(
-          pip=_pip(),
-          requirements_path=requirements_path,
-          target_path=target_path))
+      f'uv export --extra {extra} --no-dev --no-hashes | '
+      f'uv pip install --target {target_path} -r /dev/stdin '
+      '--python 3.11 --upgrade',
+      cwd=root_dir)
 
 
-def _install_platform_pip(requirements_path, target_path, platform_name):
+def _install_platform_pip(target_path, platform_name):
   """Install platform specific pip packages."""
   pip_platform = constants.PLATFORMS.get(platform_name)
   if not pip_platform:
@@ -298,13 +270,17 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
     pip_platforms = pip_platform
 
   pip_abi = constants.ABIS[platform_name]
+  root_dir = os.environ.get('ROOT_DIR', '.')
 
   for pip_platform in pip_platforms:
     temp_dir = tempfile.mkdtemp()
     return_code, _ = execute(
+        'uv export --extra platform-specific --no-dev --no-hashes '
+        '--no-header | '
         f'{_pip()} download --no-deps --only-binary=:all: '
-        f'--platform={pip_platform} --abi={pip_abi} -r {requirements_path} -d '
-        f'{temp_dir}',
+        f'--platform={pip_platform} --abi={pip_abi} -r /dev/stdin '
+        f'-d {temp_dir}',
+        cwd=root_dir,
         exit_on_error=False)
 
     if return_code != 0:
@@ -329,18 +305,13 @@ def _remove_invalid_files():
 
 def install_dependencies(platform_name=None):
   """Install dependencies for bots."""
-  _pipfile_to_requirements('src', 'src/requirements.txt')
-  # Hack: Use "dev-packages" to specify App Engine only packages.
-  _pipfile_to_requirements('src', 'src/appengine/requirements.txt', dev=True)
-
-  _install_pip('src/requirements.txt', 'src/third_party')
+  _install_third_party(target_path='src/third_party', extra='core')
   if platform_name:
     _install_platform_pip(
-        'src/platform_requirements.txt',
-        'src/third_party',
-        platform_name=platform_name)
+        target_path='src/third_party', platform_name=platform_name)
 
-  _install_pip('src/appengine/requirements.txt', 'src/appengine/third_party')
+  _install_third_party(
+      target_path='src/appengine/third_party', extra='appengine')
 
   _remove_invalid_files()
   execute('bower install --allow-root')

@@ -32,7 +32,11 @@ trap cleanup EXIT
 git clone "$REPO_DIR" "$TEMP_DIR/clusterfuzz"
 cd "$TEMP_DIR/clusterfuzz"
 
-# Verify initial clean state (no vendored directories).
+# Verify initial clean state (no venv or vendored directories).
+if [ -d .venv ]; then
+  echo "ERROR: .venv should not exist in fresh checkout."
+  exit 1
+fi
 if [ -d src/third_party ]; then
   echo "ERROR: src/third_party should not exist in fresh checkout."
   exit 1
@@ -46,9 +50,8 @@ fi
 ./local/install_deps.bash
 
 # Verify virtual environment and python installation.
-VENV_DIR=$(python3 -m pipenv --venv)
-if [ ! -f "$VENV_DIR/bin/python" ]; then
-  echo "ERROR: Pipenv virtual environment python was not created."
+if [ ! -f .venv/bin/python ]; then
+  echo "ERROR: .venv/bin/python was not created."
   exit 1
 fi
 
@@ -71,10 +74,10 @@ if [ ! -d src/appengine/private/bower_components ]; then
 fi
 
 # Verify linting passes in fresh environment.
-pipenv run python butler.py lint
+uv run butler.py lint
 
 # Verify running core and appengine unit tests passes in fresh environment.
-pipenv run python butler.py py_unittest -t core -p deploy_test.py
-pipenv run python butler.py py_unittest -t appengine -p home_test.py
+uv run butler.py py_unittest -t core -p deploy_test.py
+uv run butler.py py_unittest -t appengine -p home_test.py
 
 echo "SUCCESS: Fresh checkout setup using local/install_deps.bash verified!"

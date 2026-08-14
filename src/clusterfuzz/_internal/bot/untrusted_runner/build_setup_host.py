@@ -13,14 +13,20 @@
 # limitations under the License.
 """Build setup host (client)."""
 
+from typing import Any
+from typing import cast
+
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.protos import untrusted_runner_pb2
+from clusterfuzz._internal.protos import untrusted_runner_pb2_grpc
 from clusterfuzz._internal.system import environment
 
 from . import host
 
+# pylint: disable=no-member
 
-def _clear_env():
+
+def _clear_env() -> None:
   """Clear build env vars."""
   environment.remove_key('APP_PATH')
   environment.remove_key('APP_REVISION')
@@ -31,7 +37,8 @@ def _clear_env():
   environment.remove_key('FUZZ_TARGET')
 
 
-def _update_env_from_response(response):
+def _update_env_from_response(
+    response: untrusted_runner_pb2.SetupBuildResponse) -> None:
   """Update environment variables from response."""
   environment.set_value('APP_PATH', response.app_path)
   environment.set_value('APP_PATH_DEBUG', response.app_path_debug)
@@ -45,11 +52,12 @@ def _update_env_from_response(response):
 class RemoteRegularBuild(build_manager.RegularBuild):
   """Remote regular build."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any) -> None:
     super().__init__(*args, **kwargs)
-    self._fuzz_targets = []
+    self._fuzz_targets: list[str] = []
 
-  def _handle_response(self, response):
+  def _handle_response(
+      self, response: untrusted_runner_pb2.SetupBuildResponse) -> bool:
     """Handle build setup response."""
     if not response.result:
       _clear_env()
@@ -67,15 +75,16 @@ class RemoteRegularBuild(build_manager.RegularBuild):
 
     return True
 
-  def setup(self):
-    request = untrusted_runner_pb2.SetupRegularBuildRequest(  # pylint: disable=no-member
+  def setup(self) -> bool:
+    request = untrusted_runner_pb2.SetupRegularBuildRequest(
         base_build_dir=self.base_build_dir,
         revision=self.revision,
         build_url=self.build_url,
         fuzz_target=self.fuzz_target,
         build_prefix=self.build_prefix)
-    return self._handle_response(host.stub().SetupRegularBuild(request))
+    stub = cast(untrusted_runner_pb2_grpc.UntrustedRunnerStub, host.stub())
+    return self._handle_response(stub.SetupRegularBuild(request))
 
   @property
-  def fuzz_targets(self):
+  def fuzz_targets(self) -> list[str]:
     return self._fuzz_targets

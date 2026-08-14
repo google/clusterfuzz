@@ -15,6 +15,7 @@
 
 import datetime
 import os
+from typing import cast
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
@@ -25,7 +26,7 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 
 
-def _set_public_acl_if_needed(url):
+def _set_public_acl_if_needed(url: str) -> bool:
   """Sets public ACL on the object with given URL, if it's not public yet."""
   if storage.get_acl(url, 'allUsers'):
     logs.info('%s is already marked public, skipping.' % url)
@@ -38,8 +39,9 @@ def _set_public_acl_if_needed(url):
   return True
 
 
-def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
-                               corpus_backup_bucket_name):
+def _make_corpus_backup_public(target: data_types.FuzzTarget,
+                               corpus_fuzzer_name_override: str | None,
+                               corpus_backup_bucket_name: str) -> None:
   """Identifies old corpus backups and makes them public."""
   corpus_backup_date = utils.utcnow().date() - datetime.timedelta(
       days=data_types.CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS)
@@ -47,6 +49,7 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
   corpus_backup_url = corpus_manager.gcs_url_for_backup_file(
       corpus_backup_bucket_name, corpus_fuzzer_name_override or target.engine,
       target.project_qualified_name(), corpus_backup_date)
+  corpus_backup_url = cast(str, corpus_backup_url)
 
   if not storage.get(corpus_backup_url):
     logs.warning('Failed to find corpus backup %s.' % corpus_backup_url)
@@ -71,7 +74,7 @@ def _make_corpus_backup_public(target, corpus_fuzzer_name_override,
   logs.info('Corpus backup %s is now marked public.' % corpus_backup_url)
 
 
-def main():
+def main() -> bool:
   """Makes corpuses older than 90 days public."""
   jobs = ndb_utils.get_all_from_model(data_types.Job)
   default_backup_bucket = utils.default_backup_bucket()

@@ -13,14 +13,33 @@
 # limitations under the License.
 """Protobuf helpers."""
 
+from typing import Any
+from typing import overload
+from typing import TypeVar
 
-def get_protobuf_field(result, buf, field_name):
+from google.protobuf import message
+
+_T = TypeVar('_T')
+
+
+def get_protobuf_field(result: dict[str, Any], buf: message.Message,
+                       field_name: str) -> None:
   """Add protobuf field to dict, if the field exists."""
   if buf.HasField(field_name):
     result[field_name] = getattr(buf, field_name)
 
 
-def encode_utf8_if_unicode(data):
+@overload
+def encode_utf8_if_unicode(data: str) -> bytes:
+  ...
+
+
+@overload
+def encode_utf8_if_unicode(data: _T) -> _T:
+  ...
+
+
+def encode_utf8_if_unicode(data: Any) -> Any:
   """Encode string as utf-8 if it's unicode."""
   if isinstance(data, str):
     return data.encode('utf-8')

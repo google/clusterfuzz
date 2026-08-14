@@ -13,6 +13,8 @@
 # limitations under the License.
 """Logging functions."""
 
+from collections.abc import Callable
+from collections.abc import Generator
 import contextlib
 import dataclasses
 import datetime
@@ -29,8 +31,10 @@ import threading
 import time
 import traceback
 from typing import Any
+from typing import cast
 from typing import NamedTuple
 from typing import TYPE_CHECKING
+from typing import TypeVar
 
 from clusterfuzz._internal.system import environment
 
@@ -45,16 +49,16 @@ if TYPE_CHECKING:
 # accommodate both the primary log message and potential traceback exceptions.
 # This reserves roughly up to 200 KB for message content, leaving sufficient
 # space for structured logging metadata within the 256 KB total limit.
-STACKDRIVER_LOG_MESSAGE_LIMIT = 80000
-NON_TRUNCATABLE_TYPES = (int, float, bool, type(None))
-LOCAL_LOG_MESSAGE_LIMIT = 100000
-LOCAL_LOG_LIMIT = 500000
-_logger = None
-_is_already_handling_uncaught = False
-_default_extras = {}
+STACKDRIVER_LOG_MESSAGE_LIMIT: int = 80000
+NON_TRUNCATABLE_TYPES: tuple[type, ...] = (int, float, bool, type(None))
+LOCAL_LOG_MESSAGE_LIMIT: int = 100000
+LOCAL_LOG_LIMIT: int = 500000
+_logger: logging.Logger | None = None
+_is_already_handling_uncaught: bool = False
+_default_extras: dict[str, Any] = {}
 
 
-def _increment_error_count():
+def _increment_error_count() -> None:
   """"Increment the error count metric."""
   if environment.is_running_on_swarming():
     task_name = 'swarming'
@@ -69,13 +73,13 @@ def _increment_error_count():
   monitoring_metrics.LOG_ERROR_COUNT.increment({'task_name': task_name})
 
 
-def _is_local():
+def _is_local() -> bool:
   """Return whether or not in a local development environment."""
   return (bool(os.getenv('LOCAL_DEVELOPMENT')) or
           os.getenv('SERVER_SOFTWARE', '').startswith('Development/'))
 
 
-def _console_logging_enabled():
+def _console_logging_enabled() -> bool:
   """Return bool on where console logging is enabled, usually for tests."""
   return bool(os.getenv('LOG_TO_CONSOLE'))
 
@@ -95,21 +99,21 @@ def _cloud_logging_enabled() -> bool:
           not environment.is_running_unit_tests() and not _is_local())
 
 
-def suppress_unwanted_warnings():
+def suppress_unwanted_warnings() -> None:
   """Suppress unwanted warnings."""
   # See https://github.com/googleapis/google-api-python-client/issues/299
   logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
 
 
-def set_logger(logger):
+def set_logger(logger: logging.Logger | None) -> None:
   """Set the logger."""
   global _logger
   _logger = logger
 
 
-def get_handler_config(filename, backup_count):
+def get_handler_config(filename: str, backup_count: int) -> dict[str, Any]:
   """Get handler config."""
-  root_directory = os.getenv('ROOT_DIR')
+  root_directory = cast(str, os.getenv('ROOT_DIR'))
   file_path = os.path.join(root_directory, filename)
   max_bytes = 0 if _is_local() else LOCAL_LOG_LIMIT
 
@@ -124,7 +128,7 @@ def get_handler_config(filename, backup_count):
   }
 
 
-def get_logging_config_dict(name):
+def get_logging_config_dict(name: str) -> dict[str, Any]:
   """Get config dict for the logger `name`."""
   logging_handler = {
       'run_bot':
@@ -205,7 +209,7 @@ def truncate(
 
     # Check if it's a NamedTuple
     if isinstance(msg, tuple) and hasattr(msg, '_fields'):
-      msg = msg._asdict()  # type: ignore
+      msg = cast(Any, msg)._asdict()
 
     if isinstance(msg, dict):
       return {k: truncate(v, limit) for k, v in msg.items()}
@@ -311,7 +315,7 @@ def _is_json_serializable(obj: Any) -> bool:
     return False
 
 
-def update_entry_with_exc(entry, exc_info):
+def update_entry_with_exc(entry: dict[str, Any], exc_info: Any) -> None:
   """Update the dict `entry` with exc_info."""
   if not exc_info:
     return
@@ -351,8 +355,11 @@ def update_entry_with_exc(entry, exc_info):
     }
 
 
-def uncaught_exception_handler(exception_type, exception_value,
-                               exception_traceback):
+def uncaught_exception_handler(
+    exception_type: type[BaseException] | None,
+    exception_value: BaseException | None,
+    exception_traceback: Any,
+) -> None:
   """Handles any exception that are uncaught by logging an error and calling
   the sys.__excepthook__."""
   # Ensure that we are not calling ourself. This shouldn't be needed since we
@@ -373,10 +380,12 @@ def uncaught_exception_handler(exception_type, exception_value,
       'Uncaught exception',
       exc_info=(exception_type, exception_value, exception_traceback))
 
-  sys.__excepthook__(exception_type, exception_value, exception_traceback)
+  sys.__excepthook__(
+      cast(type[BaseException], exception_type),
+      cast(BaseException, exception_value), exception_traceback)
 
 
-def json_fields_filter(record):
+def json_fields_filter(record: logging.LogRecord) -> bool:
   """Add logs `extras` argument to `json_fields` metadata for cloud logging."""
   # TODO(vtcosta): This is a workaround to allow structured logs for
   # cleanup/triage cronjobs in GKE/GAE. We should try to refactor and
@@ -390,11 +399,11 @@ def json_fields_filter(record):
         val if _is_json_serializable(val) else _handle_unserializable(val))
     json_extras[key] = truncate(valid_value, STACKDRIVER_LOG_MESSAGE_LIMIT)
 
-  record.json_fields.update({'extras': json_extras})
+  record.json_fields.update({'extras': json_extras})  # type: ignore
   return True
 
 
-def configure_appengine():
+def configure_appengine() -> None:
   """Configure logging for App Engine."""
   logging.getLogger().setLevel(logging.INFO)
 
@@ -408,7 +417,7 @@ def configure_appengine():
   logging.getLogger().addHandler(handler)
 
 
-def configure_k8s():
+def configure_k8s() -> None:
   """Configure logging for K8S."""
   import google.cloud.logging
   from google.cloud.logging.handlers import CloudLoggingHandler
@@ -422,7 +431,7 @@ def configure_k8s():
 
   class FlushIntervalTransport(BackgroundThreadTransport):
 
-    def __init__(self, client, name, **kwargs):
+    def __init__(self, client: Any, name: str, **kwargs: Any) -> None:
       super().__init__(
           client,
           name,
@@ -436,8 +445,8 @@ def configure_k8s():
       labels=labels,
       transport=FlushIntervalTransport)
 
-  def k8s_label_filter(record):
-    handler.labels.update({
+  def k8s_label_filter(record: logging.LogRecord) -> bool:
+    cast(dict[str, Any], handler.labels).update({
         'task_payload':
             os.getenv('TASK_PAYLOAD', 'null'),
         'fuzz_target':
@@ -466,7 +475,7 @@ def configure_k8s():
   logging.getLogger().setLevel(logging.INFO)
 
 
-def configure_cloud_logging():
+def configure_cloud_logging() -> None:
   """ Configure Google cloud logging, for bots not running on appengine nor k8s.
   """
   import google.cloud.logging
@@ -499,14 +508,14 @@ def configure_cloud_logging():
   handler = CloudLoggingHandler(
       client=client, labels=labels, transport=FlushIntervalTransport)
 
-  def cloud_label_filter(record):
+  def cloud_label_filter(record: logging.LogRecord) -> bool:
     # Update the labels with additional information.
     # Ideally we would use json_fields as done in configure_k8s(), but since
     # src/Pipfile forces google-cloud-logging = "==1.15.0", we have fairly
     # limited options to format the output, see:
     #   https://github.com/googleapis/python-logging/blob/6236537b197422d3dcfff38fe7729dee7f361ca9/google/cloud/logging/handlers/handlers.py#L98 # pylint: disable=line-too-long
     #   https://github.com/googleapis/python-logging/blob/6236537b197422d3dcfff38fe7729dee7f361ca9/google/cloud/logging/handlers/transports/background_thread.py#L233 # pylint: disable=line-too-long
-    handler.labels.update({
+    cast(dict[str, Any], handler.labels).update({
         'task_payload':
             os.getenv('TASK_PAYLOAD', 'null'),
         'fuzz_target':
@@ -534,7 +543,7 @@ def configure_cloud_logging():
   logging.getLogger().addHandler(handler)
 
 
-def configure_swarming(name: str, extras: dict[str, str] | None = None) -> None:
+def configure_swarming(name: str, extras: dict[str, Any] | None = None) -> None:
   """Configure logging for swarming bots."""
   if extras is None:
     extras = {}
@@ -555,7 +564,7 @@ def configure_swarming(name: str, extras: dict[str, str] | None = None) -> None:
   sys.excepthook = uncaught_exception_handler
 
 
-def configure(name, extras=None):
+def configure(name: str, extras: dict[str, Any] | None = None) -> None:
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
   |extras| will be included by emit() in log messages."""
@@ -594,7 +603,7 @@ def configure(name, extras=None):
   sys.excepthook = uncaught_exception_handler
 
 
-def get_logger():
+def get_logger() -> logging.Logger | None:
   """Return logger. We need this method because we need to mock logger."""
   if _logger:
     return _logger
@@ -610,7 +619,7 @@ def get_logger():
   return _logger
 
 
-def get_source_location():
+def get_source_location() -> tuple[str, str | int, str]:
   """Return the caller file, lineno, and funcName."""
   try:
     raise RuntimeError()
@@ -619,7 +628,7 @@ def get_source_location():
     # to leave emit(..).
     # The code is adapted from:
     # https://github.com/python/cpython/blob/2.7/Lib/logging/__init__.py#L1244
-    frame = sys.exc_info()[2].tb_frame.f_back
+    frame = cast(Any, sys.exc_info()[2]).tb_frame.f_back
 
     while frame and hasattr(frame, 'f_code'):
       if not frame.f_code.co_filename.endswith('logs.py'):
@@ -629,7 +638,7 @@ def get_source_location():
   return 'Unknown', '-1', 'Unknown'
 
 
-def _add_appengine_trace(extras):
+def _add_appengine_trace(extras: dict[str, Any]) -> None:
   """Add App Engine tracing information."""
   if not environment.is_running_on_app_engine():
     return
@@ -637,7 +646,7 @@ def _add_appengine_trace(extras):
   from libs import auth
 
   try:
-    request = auth.get_current_request()
+    request = auth.get_current_request()  # type: ignore
     if not request:
       return
   except Exception:
@@ -656,13 +665,16 @@ def _add_appengine_trace(extras):
           project_id=project_id, trace_id=trace_id)
 
 
-def intercept_log_context(func):
+F = TypeVar('F', bound=Callable[..., Any])
+
+
+def intercept_log_context(func: F) -> F:
   """Intercepts the wrapped function and injects metadata
      into the kwargs for a given log context
   """
 
   @functools.wraps(func)
-  def wrapper(*args, **kwargs):
+  def wrapper(*args: Any, **kwargs: Any) -> Any:
     if not kwargs.get('ignore_context'):
       for context in log_contexts.contexts:
         context.setup()
@@ -672,10 +684,11 @@ def intercept_log_context(func):
       del kwargs["ignore_context"]
     return func(*args, **kwargs)
 
-  return wrapper
+  return cast(F, wrapper)
 
 
-def _parse_symmetric_logs(extras):
+def _parse_symmetric_logs(
+    extras: dict[str, Any]) -> list[dict[str, Any]] | None:
   """Return a list containing the fields of each symmetrics log entry.
 
   Checks if the symmetric logs label was passed and formatted as expected,
@@ -698,7 +711,7 @@ def _parse_symmetric_logs(extras):
 
 
 @intercept_log_context
-def emit(level, message, exc_info=None, **extras):
+def emit(level: int, message: str, exc_info: Any = None, **extras: Any) -> None:
   """Log in JSON."""
   logger = get_logger()
   if not logger:
@@ -759,17 +772,17 @@ def emit(level, message, exc_info=None, **extras):
         })
 
 
-def info(message, **extras):
+def info(message: str, **extras: Any) -> None:
   """Logs the message to a given log file."""
   emit(logging.INFO, message, **extras)
 
 
-def warning(message, **extras):
+def warning(message: str, **extras: Any) -> None:
   """Logs the warning message."""
   emit(logging.WARN, message, exc_info=sys.exc_info(), **extras)
 
 
-def error(message, **extras):
+def error(message: str, **extras: Any) -> None:
   """Logs the error in the error log file."""
   exception = extras.pop('exception', None)
   if exception:
@@ -782,7 +795,7 @@ def error(message, **extras):
   _increment_error_count()
 
 
-def log_fatal_and_exit(message, **extras):
+def log_fatal_and_exit(message: str, **extras: Any) -> None:
   """Logs a fatal error and exits."""
   wait_before_exit = extras.pop('wait_before_exit', None)
   emit(logging.CRITICAL, message, exc_info=sys.exc_info(), **extras)
@@ -834,7 +847,7 @@ def get_testcase_id(
   from google.cloud import ndb
 
   if isinstance(testcase, ndb.Model):
-    return testcase.key.id()  # type: ignore
+    return testcase.key.id()
   return getattr(testcase, 'id', None)
 
 
@@ -880,7 +893,7 @@ class TestcaseLogStruct(NamedTuple):
 
 class GrouperStruct(NamedTuple):
   # Represents the TestcaseLogStruct for each testcase being grouped.
-  symmetric_logs: list[dict]
+  symmetric_logs: list[dict[str, Any]]
 
 
 class LogContextType(enum.Enum):
@@ -1022,10 +1035,10 @@ class Stage(enum.Enum):
 
 
 class Singleton(type):
-  _instances = {}
-  _lock = threading.Lock()
+  _instances: dict[type, Any] = {}
+  _lock: threading.Lock = threading.Lock()
 
-  def __call__(cls, *args, **kwargs):
+  def __call__(cls, *args: Any, **kwargs: Any) -> Any:
     with cls._lock:
       if cls not in cls._instances:
         cls._instances[cls] = super().__call__(*args, **kwargs)
@@ -1035,39 +1048,44 @@ class Singleton(type):
 class LogContexts(metaclass=Singleton):
   """Class to keep the log contexts and metadata."""
 
-  def __init__(self):
+  contexts: list[LogContextType]
+  meta: dict[Any, Any]
+  _data_lock: threading.Lock
+
+  def __init__(self) -> None:
     self.contexts: list[LogContextType] = [LogContextType.COMMON]
     self.meta: dict[Any, Any] = {}
     self._data_lock = threading.Lock()
 
-  def add(self, new_contexts: list[LogContextType]):
+  def add(self, new_contexts: list[LogContextType]) -> None:
     with self._data_lock:
       self.contexts += new_contexts
 
-  def add_metadata(self, key: Any, value: Any):
+  def add_metadata(self, key: Any, value: Any) -> None:
     with self._data_lock:
       self.meta[key] = value
 
-  def delete(self, contexts: list[LogContextType]):
+  def delete(self, contexts: list[LogContextType]) -> None:
     with self._data_lock:
       for ctx in contexts:
         self.contexts.remove(ctx)
 
-  def delete_metadata(self, key: Any):
+  def delete_metadata(self, key: Any) -> None:
     with self._data_lock:
       if key in self.meta:
         del self.meta[key]
 
-  def clear(self):
+  def clear(self) -> None:
     with self._data_lock:
       self.contexts = [LogContextType.COMMON]
 
 
-log_contexts = LogContexts()
+log_contexts: LogContexts = LogContexts()
 
 
 @contextlib.contextmanager
-def wrap_log_context(contexts: list[LogContextType]):
+def wrap_log_context(
+    contexts: list[LogContextType]) -> Generator[None, None, None]:
   try:
     log_contexts.add(contexts)
     yield
@@ -1076,7 +1094,7 @@ def wrap_log_context(contexts: list[LogContextType]):
 
 
 @contextlib.contextmanager
-def task_stage_context(stage: Stage):
+def task_stage_context(stage: Stage) -> Generator[None, None, None]:
   """Creates a task context for a given stage."""
   with wrap_log_context(contexts=[LogContextType.TASK]):
     try:
@@ -1093,8 +1111,9 @@ def task_stage_context(stage: Stage):
 
 
 @contextlib.contextmanager
-def fuzzer_log_context(fuzzer_name: str, job_type: str,
-                       fuzz_target: 'FuzzTarget | None'):
+def fuzzer_log_context(
+    fuzzer_name: str, job_type: str,
+    fuzz_target: 'FuzzTarget | None') -> Generator[None, None, None]:
   """Creates a fuzzer context for a given fuzzer, job, and target (optional)."""
   with wrap_log_context(contexts=[LogContextType.FUZZER]):
     try:
@@ -1116,8 +1135,9 @@ def fuzzer_log_context(fuzzer_name: str, job_type: str,
 
 
 @contextlib.contextmanager
-def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
-                         fuzz_target: 'FuzzTarget | None'):
+def testcase_log_context(
+    testcase: 'Testcase | TestcaseAttributes',
+    fuzz_target: 'FuzzTarget | None') -> Generator[None, None, None]:
   """Creates a testcase-based context for a given testcase.
 
   Fuzz target as an argument is needed since retrieving this entity depends on
@@ -1158,7 +1178,7 @@ def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
 
 
 @contextlib.contextmanager
-def cron_log_context():
+def cron_log_context() -> Generator[None, None, None]:
   """Creates a cronjob log context, mainly for triage/cleanup tasks."""
   with wrap_log_context(contexts=[LogContextType.CRON]):
     try:
@@ -1169,8 +1189,9 @@ def cron_log_context():
 
 
 @contextlib.contextmanager
-def grouper_log_context(testcase_1: 'Testcase | TestcaseAttributes',
-                        testcase_2: 'Testcase | TestcaseAttributes'):
+def grouper_log_context(
+    testcase_1: 'Testcase | TestcaseAttributes',
+    testcase_2: 'Testcase | TestcaseAttributes') -> Generator[None, None, None]:
   """Creates a grouper context for a given pair of testcases."""
   with wrap_log_context(contexts=[LogContextType.GROUPER]):
     try:

@@ -15,21 +15,29 @@
 
 import json
 import os
+from typing import Any
+from typing import Dict
+from typing import Optional
 
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.system import environment
 
-PLATFORM_ID_URLS_FILENAME = 'config.json'
-PLATFORM_ID_TO_BUILD_PATH_KEY = 'build_paths'
-PLATFORM_ID_TO_REV_PATH_KEY = 'revisions_paths'
+PLATFORM_ID_URLS_FILENAME: str = 'config.json'
+PLATFORM_ID_TO_BUILD_PATH_KEY: str = 'build_paths'
+PLATFORM_ID_TO_REV_PATH_KEY: str = 'revisions_paths'
 
-OVERRIDE_PATH_NOT_FOUND_ERROR = ('Could not find override path from config, '
-                                 'config_key: {}, config_url: {}, '
-                                 'platform_id = {}.')
-OVERRIDE_CONFIG_NOT_READ_ERROR = 'Could not import config file. config_url: {}'
+OVERRIDE_PATH_NOT_FOUND_ERROR: str = (
+    'Could not find override path from config, '
+    'config_key: {}, config_url: {}, '
+    'platform_id = {}.')
+OVERRIDE_CONFIG_NOT_READ_ERROR: str = (
+    'Could not import config file. config_url: {}')
 
 
-def check_and_apply_overrides(curr_path, config_key, platform_id=None):
+def check_and_apply_overrides(
+    curr_path: Optional[str],
+    config_key: str,
+    platform_id: Optional[str] = None) -> Optional[str]:
   """Check if the given file points to a config, if so, use that to override
   any given paths"""
   if not curr_path:
@@ -43,7 +51,8 @@ def check_and_apply_overrides(curr_path, config_key, platform_id=None):
   return curr_path
 
 
-def _apply_platform_id_overrides(platform_id, config_url, config_key):
+def _apply_platform_id_overrides(platform_id: str, config_url: str,
+                                 config_key: str) -> str:
   """read the `bucket_path`, parse as JSON, and map based on platform_id."""
   config_dict = _get_config_dict(config_url)
   path = _get_path_from_config(config_dict, config_key, platform_id)
@@ -54,7 +63,7 @@ def _apply_platform_id_overrides(platform_id, config_url, config_key):
   return path
 
 
-def _get_config_dict(url):
+def _get_config_dict(url: str) -> Dict[str, Any]:
   """Read configs from a json and return them as a dict"""
   url_data = storage.read_data(url)
   if not url_data:
@@ -62,7 +71,8 @@ def _get_config_dict(url):
   return json.loads(url_data)
 
 
-def _get_path_from_config(config_dict, config_key, platform_id):
+def _get_path_from_config(config_dict: Dict[str, Any], config_key: str,
+                          platform_id: str) -> Optional[str]:
   """Return True if a path override is present and return the override."""
   if config_key not in config_dict:
     return None

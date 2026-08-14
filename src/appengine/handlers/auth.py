@@ -29,7 +29,7 @@ class Handler(base_handler.Handler):
   """Auth page."""
 
   @handler.get(handler.HTML)
-  def get(self, extra=None):
+  def get(self, extra: str | None = None) -> Response:
     """Handle a get request."""
     # We use `request.url` which is already the full URL.
     del extra

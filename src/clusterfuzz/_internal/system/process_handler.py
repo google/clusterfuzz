@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for process management."""
 
+from collections.abc import Sequence
 import copy
 import datetime
 import os
@@ -21,6 +22,8 @@ import subprocess
 import sys
 import threading
 import time
+from typing import Any
+from typing import TYPE_CHECKING
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -31,15 +34,21 @@ from clusterfuzz._internal.platforms import windows
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
-# FIXME: Find a better way to handle this case. These imports
-# will fail and are not needed from App Engine.
-try:
+if TYPE_CHECKING:
   import multiprocessing
 
   import mozprocess
   import psutil
-except ImportError:
-  pass
+else:
+  # FIXME: Find a better way to handle this case. These imports
+  # will fail and are not needed from App Engine.
+  try:
+    import multiprocessing
+
+    import mozprocess
+    import psutil
+  except ImportError:
+    pass
 
 # On Android, we need to wait a little after a crash occurred to get the full
 # logcat output. This makes sure we get all the stack frames since there is no
@@ -51,7 +60,7 @@ ANDROID_CRASH_LOGCAT_WAIT_TIME = 0.3
 CRASH_ANALYSIS_TIME = 1.5
 
 # Test timeout if not specified.
-DEFAULT_TEST_TIMEOUT = 10
+DEFAULT_TEST_TIMEOUT: float = 10
 
 # Time to wait for cleanup after process if finished.
 PROCESS_CLEANUP_WAIT_TIME = 5
@@ -67,14 +76,14 @@ THREAD_FINISH_WAIT_TIME = 5
 class ProcessStatus:
   """Process exited notification."""
 
-  def __init__(self):
-    self.finished = False
+  def __init__(self) -> None:
+    self.finished: bool = False
 
-  def __call__(self):
+  def __call__(self) -> None:
     self.finished = True
 
 
-def start_process(process_handle):
+def start_process(process_handle: Any) -> None:
   """Start the process using process handle and override list2cmdline for
   Windows."""
   is_win = environment.platform() == 'WINDOWS'
@@ -82,16 +91,17 @@ def start_process(process_handle):
     # Override list2cmdline on Windows to return first index of list as string.
     # This is to workaround a mozprocess bug since it passes command as list
     # and not as string.
-    subprocess.list2cmdline_orig = subprocess.list2cmdline
-    subprocess.list2cmdline = lambda s: s[0]
+    setattr(subprocess, 'list2cmdline_orig', subprocess.list2cmdline)
+    setattr(subprocess, 'list2cmdline', lambda s: s[0])
   try:
     process_handle.run()
   finally:
     if is_win:
-      subprocess.list2cmdline = subprocess.list2cmdline_orig
+      setattr(subprocess, 'list2cmdline',
+              getattr(subprocess, 'list2cmdline_orig'))
 
 
-def cleanup_defunct_processes():
+def cleanup_defunct_processes() -> None:
   """Cleans up defunct processes."""
   # Defunct processes happen only on unix platforms.
   if environment.platform() != 'WINDOWS':
@@ -110,14 +120,15 @@ def cleanup_defunct_processes():
 # Note: changes to this function may require changes to untrusted_runner.proto.
 # This should only be used for running target black box applications which
 # return text output.
-def run_process(cmdline,
-                current_working_directory=None,
-                timeout=DEFAULT_TEST_TIMEOUT,
-                need_shell=False,
-                gestures=None,
-                env_copy=None,
-                testcase_run=True,
-                ignore_children=True):
+def run_process(
+    cmdline: str,
+    current_working_directory: str | None = None,
+    timeout: float = DEFAULT_TEST_TIMEOUT,
+    need_shell: bool = False,
+    gestures: list[str] | None = None,
+    env_copy: dict[str, str] | None = None,
+    testcase_run: bool = True,
+    ignore_children: bool = True) -> tuple[int | None, float | None, str]:
   """Executes a process with a given command line and other parameters."""
   if environment.is_trusted_host() and testcase_run:
     from clusterfuzz._internal.bot.untrusted_runner import remote_process_host
@@ -154,14 +165,15 @@ def run_process(cmdline,
 
   # Initialize variables.
   adb_output = None
-  process_output = ''
+  process_output: Any = ''
   process_status = None
-  return_code = 0
+  process_handle = None
+  return_code: int | None = 0
   process_poll_interval = environment.get_value('PROCESS_POLL_INTERVAL', 0.5)
   start_time = time.time()
   watch_for_process_exit = (
       environment.get_value('WATCH_FOR_PROCESS_EXIT') if is_android else True)
-  window_list = []
+  window_list: list[str] = []
 
   # Get gesture start time from last element in gesture list.
   gestures = copy.deepcopy(gestures)
@@ -209,13 +221,21 @@ def run_process(cmdline,
       gesture_start_time += 1
 
       if plt == 'LINUX':
-        linux.gestures.run_gestures(gestures, process_handle.pid,
-                                    process_status, start_time, timeout,
-                                    window_list)
+        linux.gestures.run_gestures(
+            gestures,
+            process_handle.pid,  # type: ignore
+            process_status,
+            start_time,
+            timeout,
+            window_list)
       elif plt == 'WINDOWS':
-        windows.gestures.run_gestures(gestures, process_handle.pid,
-                                      process_status, start_time, timeout,
-                                      window_list)
+        windows.gestures.run_gestures(
+            gestures,
+            process_handle.pid,  # type: ignore
+            process_status,
+            start_time,
+            timeout,
+            window_list)
       elif is_android:
         android.gestures.run_gestures(gestures, start_time, timeout)
 
@@ -244,7 +264,7 @@ def run_process(cmdline,
       # On desktop, we bail out as soon as the process finishes.
       if process_status and process_status.finished:
         # Wait for process shutdown and set return code.
-        process_handle.wait(timeout=PROCESS_CLEANUP_WAIT_TIME)
+        process_handle.wait(timeout=PROCESS_CLEANUP_WAIT_TIME)  # type: ignore
         break
 
   # Process output based on platform.
@@ -298,10 +318,10 @@ def run_process(cmdline,
     # Get the return code in case the process has finished already.
     # If the process hasn't finished, return_code will be None which is what
     # callers expect unless the output indicates a crash.
-    return_code = process_handle.poll()
+    return_code = process_handle.poll()  # type: ignore
 
     # If the process is still running, then terminate it.
-    if not process_status.finished:
+    if not process_status.finished:  # type: ignore
       launcher_with_interpreter = shell.get_execute_command(
           launcher) if launcher else None
       if (launcher_with_interpreter and
@@ -310,11 +330,11 @@ def run_process(cmdline,
         # except for APP_NAME.
         # It is expected that, if the launcher script terminated normally, it
         # cleans up all the child processes it created itself.
-        terminate_root_and_child_processes(process_handle.pid)
+        terminate_root_and_child_processes(process_handle.pid)  # type: ignore
       else:
         try:
           # kill() here actually sends SIGTERM on posix.
-          process_handle.kill()
+          process_handle.kill()  # type: ignore
         except:
           pass
 
@@ -351,14 +371,14 @@ def run_process(cmdline,
   return return_code, round(time.time() - start_time, 1), output
 
 
-def cleanup_stale_processes():
+def cleanup_stale_processes() -> None:
   """Kill stale processes left behind by a job."""
   terminate_multiprocessing_children()
   terminate_stale_application_instances()
   cleanup_defunct_processes()
 
 
-def close_queue(queue_to_close):
+def close_queue(queue_to_close: Any) -> None:
   """Close the queue."""
   if environment.is_trusted_host():
     # We don't use multiprocessing.Queue on trusted hosts.
@@ -370,7 +390,7 @@ def close_queue(queue_to_close):
     logs.error('Unable to close queue.')
 
 
-def get_process():
+def get_process() -> Any:
   """Return a multiprocessing process object (with bug fixes)."""
   if environment.is_trusted_host():
     # forking/multiprocessing is unsupported because of the RPC connection.
@@ -383,7 +403,7 @@ def get_process():
   return multiprocessing.Process
 
 
-def get_runtime_snapshot():
+def get_runtime_snapshot() -> str:
   """Return a list of current processes and their command lines as string."""
   process_strings = []
   for process in psutil.process_iter():
@@ -404,7 +424,7 @@ def get_runtime_snapshot():
   return '\n'.join(sorted(process_strings))
 
 
-def get_queue():
+def get_queue() -> Any:
   """Return a multiprocessing queue object."""
   if environment.is_trusted_host():
     # We don't use multiprocessing.Process on trusted hosts. No need to use
@@ -422,7 +442,7 @@ def get_queue():
   return result_queue
 
 
-def terminate_hung_threads(threads):
+def terminate_hung_threads(threads: Sequence[Any]) -> None:
   """Terminate hung threads."""
   start_time = time.time()
   while time.time() - start_time < THREAD_FINISH_WAIT_TIME:
@@ -446,7 +466,7 @@ def terminate_hung_threads(threads):
     pass
 
 
-def terminate_root_and_child_processes(root_pid):
+def terminate_root_and_child_processes(root_pid: int) -> None:
   """Terminate the root process along with any children it spawned."""
   app_name = environment.get_value('APP_NAME')
   direct_children = utils.get_process_ids(root_pid, recursive=False)
@@ -479,7 +499,7 @@ def terminate_root_and_child_processes(root_pid):
   terminate_process(root_pid, kill=True)
 
 
-def terminate_multiprocessing_children():
+def terminate_multiprocessing_children() -> None:
   """Terminate all children created with multiprocessing module."""
   child_list = multiprocessing.active_children()
   for child in child_list:
@@ -490,7 +510,7 @@ def terminate_multiprocessing_children():
       pass
 
 
-def terminate_stale_application_instances():
+def terminate_stale_application_instances() -> None:
   """Kill stale instances of the application running for this command."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import remote_process_host
@@ -589,7 +609,7 @@ def terminate_stale_application_instances():
         datetime.timedelta(seconds=duration)))
 
 
-def terminate_process(process_id, kill=False):
+def terminate_process(process_id: int, kill: bool = False) -> None:
   """Terminates a process by its process id."""
   try:
     process = psutil.Process(process_id)
@@ -603,7 +623,8 @@ def terminate_process(process_id, kill=False):
     logs.warning('Failed to terminate process.')
 
 
-def terminate_processes_matching_names(match_strings, kill=False):
+def terminate_processes_matching_names(match_strings: str | Sequence[str],
+                                       kill: bool = False) -> None:
   """Terminates processes matching particular names (case sensitive)."""
   if isinstance(match_strings, str):
     match_strings = [match_strings]
@@ -619,9 +640,10 @@ def terminate_processes_matching_names(match_strings, kill=False):
       terminate_process(process_info['pid'], kill)
 
 
-def terminate_processes_matching_cmd_line(match_strings,
-                                          kill=False,
-                                          exclude_strings=None):
+def terminate_processes_matching_cmd_line(
+    match_strings: str | Sequence[str | None] | None,
+    kill: bool = False,
+    exclude_strings: Sequence[str] | None = None) -> None:
   """Terminates processes matching particular command line (case sensitive)."""
   if exclude_strings is None:
     exclude_strings = []
@@ -639,12 +661,12 @@ def terminate_processes_matching_cmd_line(match_strings,
     except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
       continue
 
-    if any(x in process_path for x in match_strings if x):
+    if any(x in process_path for x in match_strings if x):  # type: ignore
       if not any(x in process_path for x in exclude_strings):
         terminate_process(process_info['pid'], kill)
 
 
-def scripts_are_running(expected_scripts):
+def scripts_are_running(expected_scripts: list[str] | set[str]) -> bool:
   """Check if all target scripts are running as expected."""
   scripts_left = expected_scripts.copy()
   for process in psutil.process_iter():

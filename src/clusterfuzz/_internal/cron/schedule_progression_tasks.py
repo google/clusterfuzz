@@ -17,7 +17,7 @@ from clusterfuzz._internal.cron.helpers import tasks_scheduler
 from clusterfuzz._internal.system import environment
 
 
-def main():
+def main() -> bool:
   """Creates progression tasks."""
   environment.set_bot_environment()
   task = 'progression'

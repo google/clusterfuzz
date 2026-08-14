@@ -22,7 +22,6 @@ except ImportError:
   pass
 
 import atexit
-import collections
 import enum
 import os
 import re
@@ -31,6 +30,10 @@ import signal
 import stat
 import subprocess
 import sys
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import NamedTuple
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
@@ -50,20 +53,20 @@ from clusterfuzz._internal.system import shell
 
 # Allow 30 minutes to merge the testcases back into the corpus. This matches
 # libFuzzer's merge timeout.
-DEFAULT_MERGE_TIMEOUT = 30 * 60
+DEFAULT_MERGE_TIMEOUT: int = 30 * 60
 
-BOT_NAME = environment.get_value('BOT_NAME', '')
+BOT_NAME: str = environment.get_value('BOT_NAME', '')
 
-STDERR_FILENAME = 'stderr.out'
+STDERR_FILENAME: str = 'stderr.out'
 
-MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
+MAX_OUTPUT_LEN: int = 1 * 1024 * 1024  # 1 MB
 
 # .options file option for the number of persistent executions.
-PERSISTENT_EXECUTIONS_OPTION = 'n'
+PERSISTENT_EXECUTIONS_OPTION: str = 'n'
 
 # Grace period for the launcher to complete any processing before it's killed.
 # This will no longer be needed when we migrate to the engine interface.
-POSTPROCESSING_TIMEOUT = 30
+POSTPROCESSING_TIMEOUT: int = 30
 
 
 class AflOptionType(enum.Enum):
@@ -73,7 +76,9 @@ class AflOptionType(enum.Enum):
 
 # Afl options have names and can either be commandline arguments or environment
 # variables.
-AflOption = collections.namedtuple('AflOption', ['name', 'type'])
+class AflOption(NamedTuple):
+  name: str
+  type: AflOptionType
 
 
 class AflConfig:
@@ -83,24 +88,25 @@ class AflConfig:
   Determines these mainly by parsing the .options file for the target."""
 
   # Mapping of libfuzzer option names to AflOption objects.
-  LIBFUZZER_TO_AFL_OPTIONS = {
+  LIBFUZZER_TO_AFL_OPTIONS: dict[str, AflOption] = {
       'dict':
           AflOption(constants.DICT_FLAG, AflOptionType.ARG),
       'close_fd_mask':
           AflOption(constants.CLOSE_FD_MASK_ENV_VAR, AflOptionType.ENV_VAR),
   }
 
-  def __init__(self):
+  def __init__(self) -> None:
     """Sets the configs to sane defaults. Use from_target_path if you want to
     use the .options file and possibly .dict to set the configs."""
-    self.additional_afl_arguments = []
-    self.additional_env_vars = {}
-    self.num_persistent_executions = constants.MAX_PERSISTENT_EXECUTIONS
-    self.dict_path = None
-    self._executable_path = None
+    self.additional_afl_arguments: list[str] = []
+    self.additional_env_vars: dict[str, str] = {}
+    self.num_persistent_executions: str | int = (
+        constants.MAX_PERSISTENT_EXECUTIONS)
+    self.dict_path: str | None = None
+    self._executable_path: str | None = None
 
   @classmethod
-  def from_target_path(cls, target_path):
+  def from_target_path(cls, target_path: str) -> 'AflConfig':
     """Instantiates and returns an AFLConfig object. The object is configured
     based on |target_path|."""
     config = cls()
@@ -113,7 +119,7 @@ class AflConfig:
 
     return config
 
-  def parse_options(self, target_path):
+  def parse_options(self, target_path: str) -> None:
     """Parses a target's .options file (determined using |target_path|) if it
     exists and sets configs based on it."""
     fuzzer_options = options.get_fuzz_target_options(target_path)
@@ -140,7 +146,7 @@ class AflConfig:
     self.num_persistent_executions = afl_options.get(
         PERSISTENT_EXECUTIONS_OPTION, constants.MAX_PERSISTENT_EXECUTIONS)
 
-  def use_default_dict(self, target_path):
+  def use_default_dict(self, target_path: str) -> None:
     """Set the dictionary argument in |self.additional_afl_arguments| to
     %target_binary_name%.dict if no dictionary argument is already specified.
     Also update |self.dict_path|."""
@@ -167,39 +173,39 @@ class AflFuzzOutputDirectory:
   # AFL usually copies over old units from the corpus to the queue and adds the
   # string 'orig' to the new filename. Therefore we know that testcases
   # containing 'orig' are copied.
-  COPIED_FILE_STRING = 'orig'
+  COPIED_FILE_STRING: str = 'orig'
 
-  TESTCASE_REGEX = re.compile(r'id:\d{6},.+')
+  TESTCASE_REGEX: re.Pattern[str] = re.compile(r'id:\d{6},.+')
 
-  def __init__(self):
-    self.output_directory = os.path.join(fuzzer_utils.get_temp_dir(),
-                                         'afl_output_dir')
+  def __init__(self) -> None:
+    self.output_directory: str = os.path.join(fuzzer_utils.get_temp_dir(),
+                                              'afl_output_dir')
 
     engine_common.recreate_directory(self.output_directory)
 
   @classmethod
-  def is_testcase(cls, path):
+  def is_testcase(cls, path: str) -> bool:
     """Is the path an AFL testcase file or something else."""
     return (os.path.isfile(path) and
             bool(re.match(cls.TESTCASE_REGEX, os.path.basename(path))))
 
   @property
-  def instance_directory(self):
+  def instance_directory(self) -> str:
     """Returns afl-fuzz's instance directory."""
     return os.path.join(self.output_directory, constants.DEFAULT_INSTANCE_ID)
 
   @property
-  def queue(self):
+  def queue(self) -> str:
     """Returns afl-fuzz's queue directory."""
     return os.path.join(self.instance_directory, 'queue')
 
-  def is_new_testcase(self, path):
+  def is_new_testcase(self, path: str) -> bool:
     """Determine if |path| is a new unit."""
     # Clearly non-testcases can't be new testcases.
     return (self.is_testcase(path) and
             self.COPIED_FILE_STRING not in os.path.basename(path))
 
-  def count_new_units(self, corpus_path):
+  def count_new_units(self, corpus_path: str) -> int:
     """Count the number of new units (testcases) in |corpus_path|."""
     corpus_files = os.listdir(corpus_path)
     num_new_units = 0
@@ -210,7 +216,7 @@ class AflFuzzOutputDirectory:
 
     return num_new_units
 
-  def copy_crash_if_needed(self, testcase_path):
+  def copy_crash_if_needed(self, testcase_path: str) -> None:
     """Copy the first crash found by AFL to |testcase_path| (the input file
     created by run.py).
     """
@@ -223,7 +229,7 @@ class AflFuzzOutputDirectory:
         shutil.copyfile(crash_path, testcase_path)
         break
 
-  def remove_hang_in_queue(self, hang_filename):
+  def remove_hang_in_queue(self, hang_filename: str) -> None:
     """Removes the hanging testcase from queue."""
     # AFL copies all inputs to the queue and renames them in the format
     # "id:NUMBER,orig:$hang_filename". So remove that file from the queue.
@@ -238,7 +244,7 @@ class AflFuzzOutputDirectory:
     remove_path(hang_queue_path)
 
   @property
-  def stats_path(self):
+  def stats_path(self) -> str:
     """Returns the path of AFL's stats file: "fuzzer_stats"."""
     return os.path.join(self.instance_directory, 'fuzzer_stats')
 
@@ -248,7 +254,7 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
   and help copy contents from device to local.
   """
 
-  def remove_hang_in_queue(self, hang_filename):
+  def remove_hang_in_queue(self, hang_filename: str) -> None:
     """Removes the hanging testcase from queue."""
     queue_paths = list_full_file_paths_device(self.queue)
 
@@ -260,7 +266,7 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
 
     android.adb.remove_file(hang_queue_path_device)
 
-  def copy_crash_if_needed(self, testcase_path):
+  def copy_crash_if_needed(self, testcase_path: str) -> None:
     """Copy the first crash found by AFL. Before calling super method
     copy the crashes directory from device to local.
     """
@@ -282,55 +288,55 @@ class FuzzingStrategies:
   and to record the decision for StatsGetter to use later."""
 
   # Probability for the level of CMPLOG to set. (-l X)
-  CMPLOG_LEVEL_PROBS = [
+  CMPLOG_LEVEL_PROBS: list[tuple[str, float]] = [
       ('1', 0.7),  # Level 1
       ('2', 0.25),  # Level 2
       ('3', 0.05),  # Level 3
   ]
 
   # Probabilty for arithmetic CMPLOG calculations.
-  CMPLOG_ARITH_PROB = 0.4
+  CMPLOG_ARITH_PROB: float = 0.4
 
   # Probability for transforming CMPLOG solving.
-  CMPLOG_TRANS_PROB = 0.1
+  CMPLOG_TRANS_PROB: float = 0.1
 
   # Probability for extreme CMPLOG solving.
-  CMPLOG_XTREME_PROB = 0.05
+  CMPLOG_XTREME_PROB: float = 0.05
 
   # Probability for randomized coloring.
-  CMPLOG_RAND_PROB = 0.1
+  CMPLOG_RAND_PROB: float = 0.1
 
   # Probability to disable trimming. (AFL_DISABLE_TRIM=1)
-  DISABLE_TRIM_PROB = 0.70
+  DISABLE_TRIM_PROB: float = 0.70
 
   # Probability to keep long running finds. (AFL_KEEP_TIMEOUTS=1)
-  KEEP_TIMEOUTS_PROB = 0.7
+  KEEP_TIMEOUTS_PROB: float = 0.7
 
   # Probability for increased havoc intensity. (AFL_EXPAND_HAVOC_NOW=1)
-  EXPAND_HAVOC_PROB = 0.5
+  EXPAND_HAVOC_PROB: float = 0.5
 
   # Probability for a fixed mutation type. (-P)
-  MUTATION_PROB = 0.5
-  MUTATION_EXPLORE_PROB = 0.75
+  MUTATION_PROB: float = 0.5
+  MUTATION_EXPLORE_PROB: float = 0.75
 
   # PROBABILITY for input type. (-a)
-  INPUT_PROB = 0.4
-  INPUT_ASCII_PROB = 0.3
+  INPUT_PROB: float = 0.4
+  INPUT_ASCII_PROB: float = 0.3
 
   # Probability to use the MOpt mutator. (-L0)
-  MOPT_PROB = 0.4
+  MOPT_PROB: float = 0.4
 
   # Probability to use the original afl queue walking mechanism. (-Z)
-  QUEUE_OLD_STRATEGY_PROB = 0.2
+  QUEUE_OLD_STRATEGY_PROB: float = 0.2
 
   # Probability to ignore long running inputs. (AFL_IGNORE_TIMEOUTS=1)
-  IGNORE_TIMEOUTS_PROB = 0.7
+  IGNORE_TIMEOUTS_PROB: float = 0.7
 
   # Probability to enable the schedule cycler. (AFL_CYCLE_SCHEDULES=1)
-  SCHEDULER_CYCLE_PROB = 0.1
+  SCHEDULER_CYCLE_PROB: float = 0.1
 
   # Propability which scheduler to select. (-p SCHEDULER)
-  SCHEDULER_PROBS = [
+  SCHEDULER_PROBS: list[tuple[str, float]] = [
       ('fast', .3),
       ('explore', .3),
       ('exploit', .2),
@@ -342,9 +348,11 @@ class FuzzingStrategies:
   # to_strategy_dict function should be removed when everything is fully
   # converted to the engine pipeline. For now this allows the code to be shared
   # between both cases while still adhering to the new pipeline's API.
-  def __init__(self, target_path, strategy_dict=None):
-    self.corpus_subset_size = None
-    self.candidate_generator = engine_common.Generator.NONE
+  def __init__(self,
+               target_path: str | None,
+               strategy_dict: dict[str, Any] | None = None) -> None:
+    self.corpus_subset_size: int | None = None
+    self.candidate_generator: int = engine_common.Generator.NONE
 
     # If we have already generated a strategy dict, use that in favor of
     # creating a new pool and picking randomly.
@@ -363,7 +371,7 @@ class FuzzingStrategies:
 
       # Select a generator to attempt to use for existing testcase mutations.
       self.candidate_generator = engine_common.select_generator(
-          strategy_pool, target_path)
+          strategy_pool, cast(str, target_path))
 
       self.use_corpus_subset = strategy_pool.do_strategy(
           strategy.CORPUS_SUBSET_STRATEGY)
@@ -372,18 +380,18 @@ class FuzzingStrategies:
         self.corpus_subset_size = engine_common.random_choice(
             engine_common.CORPUS_SUBSET_NUM_TESTCASES)
 
-    self.is_mutations_run = (
+    self.is_mutations_run: bool = (
         self.candidate_generator != engine_common.Generator.NONE)
 
     # Generator that is actually used. Initialize to none, change if new
     # testcase mutations are properly generated by the candidate generator.
-    self.generator_strategy = engine_common.Generator.NONE
+    self.generator_strategy: int = engine_common.Generator.NONE
 
-  def to_strategy_dict(self):
+  def to_strategy_dict(self) -> dict[str, Any]:
     """Convert to a strategy dict in the format used by the engine pipeline."""
     # The decision on whether or not fast cal should be used is made during
     # fuzzing. This function is expected to be called whe preparing for fuzzing.
-    strategies_dict = {}
+    strategies_dict: dict[str, Any] = {}
 
     if self.generator_strategy == engine_common.Generator.RADAMSA:
       strategies_dict[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = 1
@@ -399,7 +407,8 @@ class AflFuzzInputDirectory:
   afl-fuzz as the -i argument.
   """
 
-  def __init__(self, input_directory, target_path, fuzzing_strategies):
+  def __init__(self, input_directory: str, target_path: str,
+               fuzzing_strategies: FuzzingStrategies) -> None:
     """Inits AflFuzzInputDirectory.
 
     Args:
@@ -408,12 +417,12 @@ class AflFuzzInputDirectory:
       fuzzing_strategies: fuzzing strategies to use.
     """
 
-    self.input_directory = input_directory
-    self.strategies = fuzzing_strategies
+    self.input_directory: str = input_directory
+    self.strategies: FuzzingStrategies = fuzzing_strategies
 
     # We only need to use this when a temporary input directory is made.
     # (ie: when there is an oversized testcase in the input).
-    self.original_input_directory = None
+    self.original_input_directory: str | None = None
 
     engine_common.unpack_seed_corpus_if_needed(
         target_path, self.input_directory, max_bytes=constants.MAX_FILE_BYTES)
@@ -424,7 +433,7 @@ class AflFuzzInputDirectory:
     if not list_full_file_paths(self.input_directory):
       write_dummy_file(self.input_directory)
 
-  def restore_if_needed(self):
+  def restore_if_needed(self) -> None:
     """Restore the original input directory if self.original_input_directory is
     set. Used to by merge() to get rid of the temporary input directory if it
     exists and merge new units into the original input directory.
@@ -445,55 +454,62 @@ class AflRunnerCommon:
   """Afl runner common routines."""
 
   # Window of time for afl to exit gracefully before we kill it.
-  AFL_CLEAN_EXIT_TIME = 10.0
+  AFL_CLEAN_EXIT_TIME: float = 10.0
 
   # Time to wait for SIGTERM handler.
-  SIGTERM_WAIT_TIME = 10.0
+  SIGTERM_WAIT_TIME: float = 10.0
 
   # Maximum number of times we will retry fuzzing after fixing an issue.
-  MAX_FUZZ_RETRIES = 40
+  MAX_FUZZ_RETRIES: int = 40
 
   # Maximum number of times we will retry fuzzing with a strict autocalibrated
   # timeout. After this number of fuzzing retries, if we see a hang we will set
   # the timeout to to '-t' + str(self.MANUAL_TIMEOUT_MILLISECONDS) + '+' to tell
   # AFL to skip testcases that take longer.
-  MAX_FUZZ_RETRIES_WITH_STRICT_TIMEOUT = 20
+  MAX_FUZZ_RETRIES_WITH_STRICT_TIMEOUT: int = 20
 
   # The number of times we will retry fuzzing with the deferred fork server
   # after the first testcase hangs. Afterwards we will use
   # AFL_DRIVER_DONT_DEFER, since this is a common symptom of fuzzers that
   # cant use the deferred forkserver.
-  MAX_FIRST_HANGS_WITH_DEFERRED_FORKSERVER = 5
+  MAX_FIRST_HANGS_WITH_DEFERRED_FORKSERVER: int = 5
 
   # The timeout we will use if autocalibrating results in too many hangs. This
   # is the maximum autocalibrated timeout afl-fuzz can set.
-  MANUAL_TIMEOUT_MILLISECONDS = 5000
+  MANUAL_TIMEOUT_MILLISECONDS: int = 5000
 
   # Regexes used to determine which file caused AFL to quit.
-  CRASH_REGEX = re.compile(
+  CRASH_REGEX: re.Pattern[str] = re.compile(
       r'Test case \'id\:\d+,orig:(?P<orig_testcase_filename>.*)\' results in a'
       ' crash')
 
-  HANG_REGEX = re.compile(
+  HANG_REGEX: re.Pattern[str] = re.compile(
       r'Test case \'(?P<testcase_filename>.*)\' results in a (hang|timeout)')
 
-  CPU_BIND_ERROR_REGEX = re.compile('PROGRAM ABORT :.*No more free CPU cores')
+  CPU_BIND_ERROR_REGEX: re.Pattern[str] = re.compile(
+      'PROGRAM ABORT :.*No more free CPU cores')
 
   # Log messages we format and log as error when afl-fuzz stops running.
-  CRASH_LOG_MESSAGE = 'Testcase {0} in corpus causes a crash'
-  HANG_LOG_MESSAGE = 'Testcase {0} in corpus causes a hang, retrying without it'
+  CRASH_LOG_MESSAGE: str = 'Testcase {0} in corpus causes a crash'
+  HANG_LOG_MESSAGE: str = (
+      'Testcase {0} in corpus causes a hang, retrying without it')
 
-  SHOWMAP_FILENAME = 'afl_showmap_output'
-  SHOWMAP_REGEX = re.compile(br'(?P<guard>\d{6}):(?P<hit_count>\d+)\n')
+  SHOWMAP_FILENAME: str = 'afl_showmap_output'
+  SHOWMAP_REGEX: re.Pattern[bytes] = re.compile(
+      br'(?P<guard>\d{6}):(?P<hit_count>\d+)\n')
+
+  _default_args: list[str]
+  _executable_path: str
+  run_and_wait: Callable[..., new_process.ProcessResult]
 
   def __init__(self,
-               target_path,
-               config,
-               testcase_file_path,
-               input_directory,
-               timeout=None,
-               afl_tools_path=None,
-               strategy_dict=None):
+               target_path: str,
+               config: AflConfig,
+               testcase_file_path: str,
+               input_directory: str | None = None,
+               timeout: float | int | None = None,
+               afl_tools_path: str | None = None,
+               strategy_dict: dict[str, Any] | None = None) -> None:
     """Inits the AflRunner.
 
     Args:
@@ -504,48 +520,54 @@ class AflRunnerCommon:
       afl_tools_path: Path that is used to locate afl-* tools.
     """
 
-    self.target_path = target_path
-    self.config = config
-    self.testcase_file_path = testcase_file_path
-    self._input_directory = input_directory
-    self.timeout = timeout
+    self.target_path: str = target_path
+    self.config: AflConfig = config
+    self.testcase_file_path: str = testcase_file_path
+    self._input_directory: str | None = input_directory
+    self.timeout: float | int | None = timeout
 
     if afl_tools_path is None:
       afl_tools_path = os.path.dirname(target_path)
 
     # Set paths to afl tools.
-    self.afl_fuzz_path = os.path.join(afl_tools_path, 'afl-fuzz')
-    self.afl_showmap_path = os.path.join(afl_tools_path, 'afl-showmap')
+    self.afl_fuzz_path: str = os.path.join(afl_tools_path, 'afl-fuzz')
+    self.afl_showmap_path: str = os.path.join(afl_tools_path, 'afl-showmap')
 
-    self._afl_input = None
-    self._afl_output = None
+    self._afl_input: AflFuzzInputDirectory | None = None
+    self._afl_output: AflFuzzOutputDirectory | None = None
 
-    self.strategies = FuzzingStrategies(
+    self.strategies: FuzzingStrategies = FuzzingStrategies(
         target_path, strategy_dict=strategy_dict)
 
     # Set this to None so we can tell if it has never been set or if it's just
     # empty.
-    self._fuzzer_stderr = None
+    self._fuzzer_stderr: str | None = None
 
-    self.initial_max_total_time = 0
+    self.initial_max_total_time: float = 0
 
     for env_var, value in config.additional_env_vars.items():
       environment.set_value(env_var, value)
 
-    self.showmap_output_path = os.path.join(fuzzer_utils.get_temp_dir(),
-                                            self.SHOWMAP_FILENAME)
-    self.merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
-    self.showmap_no_output_logged = False
-    self._fuzz_args = []
-    self._executable_path = None
+    self.showmap_output_path: str = os.path.join(fuzzer_utils.get_temp_dir(),
+                                                 self.SHOWMAP_FILENAME)
+    self.merge_timeout: float = float(
+        engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT))
+    self.showmap_no_output_logged: bool = False
+    self._fuzz_args: list[str] = []
+    self._executable_path: str = ''
 
   @property
-  def stderr_file_path(self):
+  def executable_path(self) -> str:
+    """Returns the executable path."""
+    return self._executable_path
+
+  @property
+  def stderr_file_path(self) -> str:
     """Returns the file for afl to output stack traces."""
     return os.path.join(fuzzer_utils.get_temp_dir(), STDERR_FILENAME)
 
   @property
-  def fuzzer_stderr(self):
+  def fuzzer_stderr(self) -> str:
     """Returns the stderr of the fuzzer. Reads it first if it wasn't already
     read. Because ClusterFuzz terminates this process after seeing a stacktrace
     printed, make sure that printing this property is the last code a program
@@ -564,7 +586,7 @@ class AflRunnerCommon:
       self._fuzzer_stderr = ''
     return self._fuzzer_stderr
 
-  def set_environment_variables(self):
+  def set_environment_variables(self) -> None:
     """Sets environment variables needed by afl."""
     # Tell afl_driver to duplicate stderr to STDERR_FILENAME.
     # Environment variable names and values that must be set before running afl.
@@ -583,8 +605,9 @@ class AflRunnerCommon:
       stderr_file_path = android.util.get_device_path(self.stderr_file_path)
     environment.set_value(constants.STDERR_FILENAME_ENV_VAR, stderr_file_path)
 
-  def get_afl_environment_variables(self):
-    afl_environment_vars = []
+  def get_afl_environment_variables(self) -> list[str]:
+    """Returns list of AFL environment variables."""
+    afl_environment_vars: list[str] = []
     for env_var in os.environ:
       if env_var and env_var.startswith('AFL_'):
         afl_environment_vars.append(env_var + '=' +
@@ -592,7 +615,11 @@ class AflRunnerCommon:
 
     return afl_environment_vars
 
-  def check_return_code(self, result, additional_return_codes=None):
+  def check_return_code(
+      self,
+      result: new_process.ProcessResult,
+      additional_return_codes: list[int] | None = None) -> None:
+    """Checks the return code of the target execution."""
     expected_return_codes = [0, 1, -6]
     if additional_return_codes:
       expected_return_codes += additional_return_codes
@@ -602,7 +629,8 @@ class AflRunnerCommon:
           f'AFL target exited with abnormal exit code: {result.return_code}.',
           output=result.output)
 
-  def run_single_testcase(self, testcase_path):
+  def run_single_testcase(self,
+                          testcase_path: str) -> new_process.ProcessResult:
     """Runs a single testcase.
 
     Args:
@@ -618,12 +646,13 @@ class AflRunnerCommon:
 
     self.afl_setup()
     result = self.run_and_wait(additional_args=[testcase_path])
+    assert result.command is not None
     print('Running command:', engine_common.get_command_quoted(result.command))
     self.check_return_code(result)
 
     return result
 
-  def afl_setup(self):
+  def afl_setup(self) -> None:
     """Make sure we can run afl. Delete any files that afl_driver needs to
     create and set any environmnet variables it needs.
     """
@@ -631,13 +660,14 @@ class AflRunnerCommon:
     remove_path(self.stderr_file_path)
 
   @staticmethod
-  def set_resume(afl_args):
+  def set_resume(afl_args: list[str]) -> list[str]:
     """Changes afl_args so afl-fuzz will resume fuzzing rather than restarting.
     """
     return AflRunner.set_input_arg(afl_args, constants.RESUME_INPUT)
 
   @staticmethod
-  def get_arg_index(afl_args, flag):
+  def get_arg_index(afl_args: list[str], flag: str) -> int:
+    """Gets the index of the flag in afl_args."""
     for idx, arg in enumerate(afl_args):
       if arg.startswith(flag):
         return idx
@@ -645,7 +675,7 @@ class AflRunnerCommon:
     return -1
 
   @classmethod
-  def set_arg(cls, afl_args, flag, value):
+  def set_arg(cls, afl_args: list[str], flag: str, value: Any) -> list[str]:
     """Sets the afl |flag| to |value| in |afl_args|. If |flag| is already
     in |afl_args|, then the old value is replaced by |value|, otherwise |flag|
     and |value| are added.
@@ -665,20 +695,25 @@ class AflRunnerCommon:
     return afl_args
 
   @classmethod
-  def set_input_arg(cls, afl_args, new_input_value):
+  def set_input_arg(cls, afl_args: list[str],
+                    new_input_value: str) -> list[str]:
     """Changes the input argument (-i) in |afl_args| to |new_input_value|."""
     return cls.set_arg(afl_args, constants.INPUT_FLAG, new_input_value)
 
   @classmethod
-  def set_timeout_arg(cls, afl_args, timeout_value, skip_hangs=False):
-    timeout_value = str(int(timeout_value))
+  def set_timeout_arg(cls,
+                      afl_args: list[str],
+                      timeout_value: int | float | str,
+                      skip_hangs: bool = False) -> list[str]:
+    """Sets the timeout argument in afl_args."""
+    timeout_str = str(int(timeout_value))
     if skip_hangs:
-      timeout_value += '+'
+      timeout_str += '+'
 
-    cls.set_arg(afl_args, constants.TIMEOUT_FLAG, timeout_value)
+    cls.set_arg(afl_args, constants.TIMEOUT_FLAG, timeout_str)
     return afl_args
 
-  def do_offline_mutations(self):
+  def do_offline_mutations(self) -> None:
     """Mutate the corpus offline using Radamsa."""
     if not self.strategies.is_mutations_run:
       return
@@ -698,12 +733,13 @@ class AflRunnerCommon:
       if os.path.getsize(input_path) >= constants.MAX_FILE_BYTES:
         remove_path(input_path)
 
-  def generate_afl_args(self,
-                        afl_input=None,
-                        afl_output=None,
-                        target_path=None,
-                        additional_args=None,
-                        mem_limit=constants.MAX_MEMORY_LIMIT):
+  def generate_afl_args(
+      self,
+      afl_input: str | None = None,
+      afl_output: str | None = None,
+      target_path: str | None = None,
+      additional_args: list[str] | None = None,
+      mem_limit: int | str = constants.MAX_MEMORY_LIMIT) -> list[str]:
     """Generate arguments to pass to Process.run_and_wait.
 
     Args:
@@ -750,7 +786,7 @@ class AflRunnerCommon:
 
     return afl_args
 
-  def should_try_fuzzing(self, max_total_time, num_retries):
+  def should_try_fuzzing(self, max_total_time: float, num_retries: int) -> bool:
     """Returns True if we should try fuzzing, based on the number of times we've
     already tried, |num_retries|, and the amount of time we have left
     (calculated using |max_total_time|).
@@ -770,7 +806,7 @@ class AflRunnerCommon:
 
     return True
 
-  def run_afl_fuzz(self, fuzz_args):
+  def run_afl_fuzz(self, fuzz_args: list[str]) -> new_process.ProcessResult:
     """Run afl-fuzz and if there is an input that causes afl-fuzz to hang
     or if it can't bind to a cpu, try fixing the issue and running afl-fuzz
     again. If there is a crash in the starting corpus then report it.
@@ -782,17 +818,19 @@ class AflRunnerCommon:
     """
     # Define here to capture in closures.
     max_total_time = self.initial_max_total_time
-    fuzz_result = None
+    fuzz_result: new_process.ProcessResult | None = None
 
-    def get_time_spent_fuzzing():
+    def get_time_spent_fuzzing() -> float:
       """Gets the amount of time spent running afl-fuzz so far."""
       return self.initial_max_total_time - max_total_time
 
-    def check_error_and_log(error_regex, log_message_format):
+    def check_error_and_log(error_regex: re.Pattern[str],
+                            log_message_format: str) -> str | None:
       """See if error_regex can match in fuzz_result.output. If it can, then it
       uses the match to format and print log_message and return the match.
       Otherwise returns None.
       """
+      assert fuzz_result is not None
       matches = re.search(error_regex, fuzz_result.output)
       if matches:
         erroring_filename = matches.groups()[0]
@@ -816,6 +854,7 @@ class AflRunnerCommon:
 
       # If the target was compiled for CMPLOG we need to set this.
       build_directory = environment.get_value('BUILD_DIR')
+      assert build_directory is not None
       cmplog_build_file = os.path.join(build_directory, 'afl_cmplog.txt')
       if os.path.exists(cmplog_build_file):
         self.set_arg(fuzz_args, constants.CMPLOG_FLAG, self.target_path)
@@ -898,7 +937,7 @@ class AflRunnerCommon:
             terminate_wait_time=self.SIGTERM_WAIT_TIME,
         )
       else:
-        android_params = []
+        android_params: list[str] = []
         android_params = self.get_afl_environment_variables()
         android_params.append(android.util.get_device_path(self.afl_fuzz_path))
 
@@ -911,6 +950,7 @@ class AflRunnerCommon:
         )
 
       # Reduce max_total_time by the amount of time the last attempt took.
+      assert fuzz_result.time_executed is not None
       max_total_time -= fuzz_result.time_executed
 
       # Break now only if everything went well. Note that if afl finds a crash
@@ -984,9 +1024,11 @@ class AflRunnerCommon:
 
       break
 
+    assert fuzz_result is not None
     return fuzz_result
 
-  def prepare_retry_if_cpu_error(self, fuzz_result):
+  def prepare_retry_if_cpu_error(
+      self, fuzz_result: new_process.ProcessResult) -> bool:
     """AFL will try to bind targets to a particular core for a speed
     improvement. If this isn't possible, then AFL won't run unless
     AFL_NO_AFFINITY=1. One way this can happen is if afl-fuzz leaves zombies
@@ -1020,17 +1062,18 @@ class AflRunnerCommon:
     return True
 
   @property
-  def afl_input(self):
+  def afl_input(self) -> AflFuzzInputDirectory:
     """Don't create the object until we need it, since it isn't used for
     reproducing testcases."""
     if self._afl_input is None:
+      assert self._input_directory is not None
       self._afl_input = AflFuzzInputDirectory(self._input_directory,
                                               self.target_path, self.strategies)
 
     return self._afl_input
 
   @property
-  def afl_output(self):
+  def afl_output(self) -> AflFuzzOutputDirectory:
     """Don't create the object until we need it, since it isn't used for
     reproducing testcases."""
 
@@ -1042,7 +1085,7 @@ class AflRunnerCommon:
 
     return self._afl_output
 
-  def fuzz(self):
+  def fuzz(self) -> new_process.ProcessResult:
     """Running fuzzing command. Wrapper around run_afl_fuzz that performs one
     time setup.
 
@@ -1065,15 +1108,18 @@ class AflRunnerCommon:
 
     return self.run_afl_fuzz(self._fuzz_args)
 
-  def get_feature_tuple(self, showmap_output):
-    features = set()
+  def get_feature_tuple(self,
+                        showmap_output: bytes) -> frozenset[tuple[int, int]]:
+    """Parses showmap output into a set of (guard, hit_count) tuples."""
+    features: set[tuple[int, int]] = set()
     for match in re.finditer(self.SHOWMAP_REGEX, showmap_output):
       d = match.groupdict()
       features.add((int(d['guard']), int(d['hit_count'])))
 
     return frozenset(features)
 
-  def get_file_features(self, input_file_path, showmap_args):
+  def get_file_features(self, input_file_path: str, showmap_args: list[str]
+                       ) -> tuple[frozenset[tuple[int, int]] | None, bool]:
     """Get the features (edge hit counts) of |input_file_path| using
     afl-showmap."""
     # TODO(metzman): Figure out if we should worry about CPU affinity errors
@@ -1086,6 +1132,7 @@ class AflRunnerCommon:
         timeout=self.merge_timeout,
         extra_env={constants.DEBUG_VAR: '1'})
 
+    assert showmap_result.time_executed is not None
     self.merge_timeout -= showmap_result.time_executed
 
     # TODO(metzman): Figure out why negative values are accepted by
@@ -1114,7 +1161,7 @@ class AflRunnerCommon:
     showmap_output = engine_common.read_data_from_file(self.showmap_output_path)
     return self.get_feature_tuple(showmap_output), False
 
-  def merge_corpus(self):
+  def merge_corpus(self) -> int:
     """Merge new testcases into the input corpus."""
     logs.info('Merging corpus.')
     # Don't tell the fuzz target to write its stderr to the same file written
@@ -1131,8 +1178,8 @@ class AflRunnerCommon:
     ]
     input_dir = self.afl_input.input_directory
     corpus = Corpus()
-    input_inodes = set()
-    input_filenames = set()
+    input_inodes: set[int] = set()
+    input_filenames: set[str] = set()
     for file_path in shell.get_files_list(input_dir):
       file_features, timed_out = self.get_file_features(file_path, showmap_args)
       if timed_out:
@@ -1184,7 +1231,7 @@ class AflRunnerCommon:
 
     return new_units_added
 
-  def libfuzzerize_corpus(self):
+  def libfuzzerize_corpus(self) -> tuple[int, int, int]:
     """Make corpus directories libFuzzer compatible, merge new testcases
     if needed and return the number of new testcases added to corpus.
     """
@@ -1210,13 +1257,13 @@ class AflRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
   """Afl runner."""
 
   def __init__(self,
-               target_path,
-               config,
-               testcase_file_path,
-               input_directory,
-               timeout=None,
-               afl_tools_path=None,
-               strategy_dict=None):
+               target_path: str,
+               config: AflConfig,
+               testcase_file_path: str,
+               input_directory: str | None = None,
+               timeout: float | int | None = None,
+               afl_tools_path: str | None = None,
+               strategy_dict: dict[str, Any] | None = None) -> None:
     super().__init__(target_path, config, testcase_file_path, input_directory,
                      timeout, afl_tools_path, strategy_dict)
 
@@ -1230,39 +1277,40 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
   # while fuzzing on device
   # NOTE: if run_and_wait times out before afl on device process it will return
   # an error, and clusterfuzz will think there was an error with the fuzzing
-  DEVICE_FUZZING_CLEAN_EXIT_TIME = 10.0
+  DEVICE_FUZZING_CLEAN_EXIT_TIME: float = 10.0
 
   def __init__(self,
-               target_path,
-               config,
-               testcase_file_path,
-               input_directory,
-               timeout=None,
-               afl_tools_path=None,
-               strategy_dict=None):
+               target_path: str,
+               config: AflConfig,
+               testcase_file_path: str,
+               input_directory: str | None = None,
+               timeout: float | int | None = None,
+               afl_tools_path: str | None = None,
+               strategy_dict: dict[str, Any] | None = None) -> None:
     super().__init__(target_path, config, testcase_file_path, input_directory,
                      timeout, afl_tools_path, strategy_dict)
 
     new_process.ProcessRunner.__init__(
         self, executable_path=android.adb.get_adb_path())
-    self.showmap_output_path = os.path.join(
+    self.showmap_output_path: str = os.path.join(
         android.constants.DEVICE_FUZZING_DIR, self.SHOWMAP_FILENAME)
-    self._showmap_results_dir = os.path.join(environment.get_root_directory(),
-                                             "tmp/showmap_results")
+    self._showmap_results_dir: str = os.path.join(
+        environment.get_root_directory(), "tmp/showmap_results")
 
-  def _copy_local_directories_to_device(self, local_directories):
+  def _copy_local_directories_to_device(self,
+                                        local_directories: list[str]) -> None:
     """Copies local directories to device."""
     for local_directory in sorted(set(local_directories)):
       self._copy_local_directory_to_device(local_directory)
 
-  def _copy_local_directory_to_device(self, local_directory):
+  def _copy_local_directory_to_device(self, local_directory: str) -> None:
     """Copies single local directory to device."""
     device_directory = android.util.get_device_path(local_directory)
     android.adb.remove_directory(device_directory, recreate=True)
     android.adb.copy_local_directory_to_remote(local_directory,
                                                device_directory)
 
-  def _copy_directories_from_device(self, local_directories):
+  def _copy_directories_from_device(self, local_directories: list[str]) -> None:
     """Copies directories from device to local."""
     for local_directory in sorted(set(local_directories)):
       device_directory = android.util.get_device_path(local_directory)
@@ -1271,11 +1319,12 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
-  def afl_setup(self):
+  def afl_setup(self) -> None:
     android.adb.remove_file(android.util.get_device_path(self.stderr_file_path))
     super().afl_setup()
 
-  def run_single_testcase(self, testcase_path):
+  def run_single_testcase(self,
+                          testcase_path: str) -> new_process.ProcessResult:
     """Runs a single testcase.
     Args:
       testcase_path: Path to testcase to be run.
@@ -1303,7 +1352,8 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     self.check_return_code(result, [134])
     return result
 
-  def get_file_features(self, input_file_path, showmap_args):
+  def get_file_features(self, input_file_path: str, showmap_args: list[str]
+                       ) -> tuple[frozenset[tuple[int, int]] | None, bool]:
     """Get the features (edge hit counts) of |input_file_path| using
     afl-showmap."""
     # TODO(metzman): Figure out if we should worry about CPU affinity errors
@@ -1322,7 +1372,7 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
         intput_file_showmap_results_file)
     return self.get_feature_tuple(showmap_output), False
 
-  def fuzz(self):
+  def fuzz(self) -> new_process.ProcessResult:
     self._executable_path = android.adb.get_adb_path()
     self._default_args = ['shell']
 
@@ -1331,6 +1381,7 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
             self.strategies.is_mutations_run, full_timeout=self.timeout) -
         self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
 
+    assert self.timeout is not None
     on_device_fuzzing_timeout = self.timeout - int(
         self.AFL_CLEAN_EXIT_TIME + self.SIGTERM_WAIT_TIME +
         self.DEVICE_FUZZING_CLEAN_EXIT_TIME)
@@ -1393,23 +1444,24 @@ class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
 class CorpusElement:
   """An element (file) in a corpus."""
 
-  def __init__(self, path):
-    self.path = path
-    self.size = os.path.getsize(self.path)
+  def __init__(self, path: str) -> None:
+    self.path: str = path
+    self.size: int = os.path.getsize(self.path)
 
 
 class Corpus:
   """A minimal set of input files (elements) for a fuzz target."""
 
-  def __init__(self):
-    self.features_and_elements = {}
+  def __init__(self) -> None:
+    self.features_and_elements: dict[tuple[int, int], CorpusElement] = {}
 
   @property
-  def element_paths(self):
+  def element_paths(self) -> set[str]:
     """Returns the filepaths of all elements in the corpus."""
     return {element.path for element in self.features_and_elements.values()}
 
-  def _associate_feature_with_element(self, feature, element):
+  def _associate_feature_with_element(self, feature: tuple[int, int],
+                                      element: CorpusElement) -> None:
     """Associate a feature with an element if the element is the smallest for
     the feature."""
     if feature not in self.features_and_elements:
@@ -1421,7 +1473,9 @@ class Corpus:
     if incumbent_element.size > element.size:
       self.features_and_elements[feature] = element
 
-  def associate_features_with_file(self, features, path):
+  def associate_features_with_file(
+      self, features: frozenset[tuple[int, int]] | set[tuple[int, int]],
+      path: str) -> None:
     """Associate features with a file when the file is the smallest for the
     features."""
     element = CorpusElement(path)
@@ -1429,10 +1483,10 @@ class Corpus:
       self._associate_feature_with_element(feature, element)
 
 
-def _verify_system_config():
+def _verify_system_config() -> None:
   """Verifies system settings required for AFL."""
 
-  def _check_core_pattern_file():
+  def _check_core_pattern_file() -> bool:
     """Verifies that core pattern file content is set to 'core'."""
     if not os.path.exists(constants.CORE_PATTERN_FILE_PATH):
       return False
@@ -1453,7 +1507,8 @@ def _verify_system_config():
             path=constants.CORE_PATTERN_FILE_PATH))
 
 
-def load_testcase_if_exists(fuzzer_runner, testcase_file_path):
+def load_testcase_if_exists(fuzzer_runner: AflRunnerCommon,
+                            testcase_file_path: str) -> bool:
   """Loads a crash testcase if it exists."""
   # To ensure that we can run the fuzzer.
   os.chmod(fuzzer_runner.executable_path, stat.S_IRWXU | stat.S_IRGRP
@@ -1464,7 +1519,7 @@ def load_testcase_if_exists(fuzzer_runner, testcase_file_path):
   return True
 
 
-def set_additional_sanitizer_options_for_afl_fuzz():
+def set_additional_sanitizer_options_for_afl_fuzz() -> None:
   """Set *SAN_OPTIONS to afl's liking.
 
   If ASAN_OPTIONS or MSAN_OPTION is set, they must contain certain options or
@@ -1495,11 +1550,12 @@ def set_additional_sanitizer_options_for_afl_fuzz():
       continue
 
     options_env_value = environment.get_memory_tool_options(options_env_var)
+    assert options_env_value is not None
     options_env_value.update(option_values)
     environment.set_memory_tool_options(options_env_var, options_env_value)
 
 
-def remove_path(path):
+def remove_path(path: str) -> None:
   """Remove |path| if it exists. Similar to running rm -rf |path|."""
   # Remove links to files and files.
   if os.path.isfile(path):
@@ -1509,7 +1565,7 @@ def remove_path(path):
   # Else path doesn't exist. Do nothing.
 
 
-def list_full_file_paths_device(directory):
+def list_full_file_paths_device(directory: str) -> list[str]:
   """List the absolute paths of files in |directory| on Android device."""
   directory_absolute_path = os.path.abspath(directory)
   directory_absolute_path = android.util.get_device_path(
@@ -1518,7 +1574,8 @@ def list_full_file_paths_device(directory):
   dir_contents = android.adb.run_command(
       ['shell', 'ls', directory_absolute_path])
 
-  paths = []
+  assert dir_contents is not None
+  paths: list[str] = []
   for rel_path in dir_contents.split():
     full_path = os.path.join(directory_absolute_path, rel_path)
     if android.adb.file_exists(full_path):
@@ -1527,10 +1584,10 @@ def list_full_file_paths_device(directory):
   return paths
 
 
-def list_full_file_paths(directory):
+def list_full_file_paths(directory: str) -> list[str]:
   """List the absolute paths of files in |directory|."""
   directory_absolute_path = os.path.abspath(directory)
-  paths = []
+  paths: list[str] = []
   for relative_path in os.listdir(directory):
     absolute_path = os.path.join(directory_absolute_path, relative_path)
     if os.path.isfile(absolute_path):  # Only return paths to files.
@@ -1538,7 +1595,7 @@ def list_full_file_paths(directory):
   return paths
 
 
-def get_first_stacktrace(stderr_data):
+def get_first_stacktrace(stderr_data: str) -> str:
   """If |stderr_data| contains stack traces, only returns the first one.
   Otherwise returns the entire string."""
 
@@ -1558,9 +1615,10 @@ def get_first_stacktrace(stderr_data):
 # TODO(mbarbella): After deleting the non-engine AFL code, remove this
 # function and replace it with a simple check based on the timeout set in
 # Engine.fuzz. Mutations should also be moved to fuzz.
-def get_fuzz_timeout(is_mutations_run, full_timeout=None):
+def get_fuzz_timeout(is_mutations_run: bool,
+                     full_timeout: float | int | None = None) -> float:
   """Get the maximum amount of time that should be spent fuzzing."""
-  fuzz_timeout = full_timeout
+  fuzz_timeout: float | int | None = full_timeout
 
   # TODO(mbarbella): Delete this check once non-engine support is removed. The
   # engine pipeline always specifies a timeout.
@@ -1576,18 +1634,20 @@ def get_fuzz_timeout(is_mutations_run, full_timeout=None):
     fuzz_timeout -= engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
 
   assert fuzz_timeout > 0
-  return fuzz_timeout
+  return float(fuzz_timeout)
 
 
-def prepare_runner(fuzzer_path,
-                   config,
-                   testcase_file_path,
-                   input_directory,
-                   timeout=None,
-                   strategy_dict=None):
+def prepare_runner(fuzzer_path: str,
+                   config: AflConfig,
+                   testcase_file_path: str,
+                   input_directory: str | None = None,
+                   timeout: float | int | None = None,
+                   strategy_dict: dict[str, Any] | None = None
+                  ) -> AflRunner | AflAndroidRunner:
   """Common initialization code shared by the new pipeline and main."""
   # Set up temp dir.
   engine_common.recreate_directory(fuzzer_utils.get_temp_dir())
+  runner_class: type[AflRunner | AflAndroidRunner]
   if environment.get_value('USE_UNSHARE'):
     runner_class = UnshareAflRunner
   elif environment.is_android():
@@ -1617,7 +1677,7 @@ def prepare_runner(fuzzer_path,
   return runner
 
 
-def rand_schedule(scheduler_probs):
+def rand_schedule(scheduler_probs: list[tuple[str, float]]) -> str:
   """Returns a random queue scheduler."""
   schedule = 'fast'
   rnd = engine_common.get_probability()
@@ -1630,7 +1690,7 @@ def rand_schedule(scheduler_probs):
   return schedule
 
 
-def rand_cmplog_level(strategies):
+def rand_cmplog_level(strategies: FuzzingStrategies) -> str:
   """Returns a random CMPLOG intensity level."""
   cmplog_level = '2'
   rnd = engine_common.get_probability()
@@ -1652,7 +1712,7 @@ def rand_cmplog_level(strategies):
 
 
 # pylint: disable=too-many-function-args
-def main(argv):
+def main(argv: list[str]) -> None:
   """Run afl as specified by argv."""
   atexit.register(fuzzer_utils.cleanup)
 
@@ -1687,6 +1747,8 @@ def main(argv):
   fuzz_result = runner.fuzz()
 
   # Print info for the fuzzer logs.
+  assert fuzz_result.command is not None
+  assert fuzz_result.time_executed is not None
   print(
       engine_common.get_log_header(fuzz_result.command,
                                    fuzz_result.time_executed))
@@ -1704,12 +1766,13 @@ def main(argv):
   try:
     new_units_generated, new_units_added, corpus_size = (
         runner.libfuzzerize_corpus())
+    assert fuzz_result.time_executed is not None
     stats_getter.set_stats(fuzz_result.time_executed, new_units_generated,
                            new_units_added, corpus_size, runner.strategies,
                            runner.fuzzer_stderr, fuzz_result.output)
 
     engine_common.dump_big_query_data(stats_getter.stats, testcase_file_path,
-                                      fuzz_result.command)
+                                      cast(str, fuzz_result.command))
 
   finally:
     print(runner.fuzzer_stderr)

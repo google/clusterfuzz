@@ -13,15 +13,21 @@
 # limitations under the License.
 """Handler for showing crash stats inside the testcase detail page."""
 
-from flask import request
+from typing import Any
+from typing import cast
 
+from flask import request
+from flask import Response
+
+from clusterfuzz._internal.datastore import data_types
 from handlers import base_handler
 from libs import crash_stats
 from libs import handler
 from libs import helpers
 
 
-def get_result(testcase, end, block, days, group_by):
+def get_result(testcase: data_types.Testcase, end: int, block: str, days: int,
+               group_by: str) -> dict[str, Any]:
   """Get slots for crash stats."""
   query = crash_stats.Query()
   query.group_by = group_by
@@ -45,11 +51,13 @@ class Handler(base_handler.Handler):
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_testcase_access
-  def post(self, testcase):
+  def post(self, testcase: data_types.Testcase) -> Response:
     """Server crash stats."""
-    end = helpers.cast(request.get('end'), int, "'end' is not an int.")
-    days = helpers.cast(request.get('days'), int, "'days' is not an int.")
+    request_any = cast(Any, request)
+    end = helpers.cast(request_any.get('end'), int, "'end' is not an int.")
+    days = helpers.cast(request_any.get('days'), int, "'days' is not an int.")
     group_by = helpers.cast(
-        request.get('groupBy'), str, "'groupBy' is not a string.")
-    block = helpers.cast(request.get('block'), str, "'block' is not a string.")
+        request_any.get('groupBy'), str, "'groupBy' is not a string.")
+    block = helpers.cast(
+        request_any.get('block'), str, "'block' is not a string.")
     return self.render_json(get_result(testcase, end, block, days, group_by))

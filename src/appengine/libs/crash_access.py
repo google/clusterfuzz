@@ -19,20 +19,25 @@
   Crash access control is used by the testcase list page and the crash stats
   page."""
 
-import collections
+from typing import Any
+from typing import NamedTuple
 
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.datastore import data_types
 from libs import access
 from libs import helpers
-
-Scope = collections.namedtuple('Scope', [
-    'everything', 'is_privileged', 'job_types', 'fuzzer_names',
-    'allowed_job_type'
-])
+from libs.query import base
 
 
-def get_permission_names(entity_kind):
+class Scope(NamedTuple):
+  everything: bool
+  is_privileged: bool
+  job_types: list[str]
+  fuzzer_names: list[str]
+  allowed_job_type: str | None
+
+
+def get_permission_names(entity_kind: int) -> list[str]:
   """Get scoped fuzzer names."""
   # pylint: disable=protected-access
   permissions = external_users._get_permissions_query_for_user(
@@ -45,7 +50,7 @@ def get_permission_names(entity_kind):
   return names
 
 
-def get_scope():
+def get_scope() -> Scope:
   """Get the scope object for the user."""
   user_email = helpers.get_user_email()
   is_privileged = access.has_access(need_privileged_access=True)
@@ -67,7 +72,7 @@ def get_scope():
                allowed_job_type)
 
 
-def add_permissions_to_params(scope, params):
+def add_permissions_to_params(scope: Scope, params: dict[str, Any]) -> None:
   """Add permissions to params."""
   params['permissions'] = {
       'everything': scope.everything,
@@ -80,7 +85,8 @@ def add_permissions_to_params(scope, params):
     params['permissions']['jobs'].append(scope.allowed_job_type)
 
 
-def add_scope(query, params, security_field, job_type_field, fuzzer_name_field):
+def add_scope(query: base.Query, params: dict[str, Any], security_field: str,
+              job_type_field: str, fuzzer_name_field: str) -> None:
   """Add scope to the query according to permissions and modify params."""
   scope = get_scope()
   add_permissions_to_params(scope, params)
