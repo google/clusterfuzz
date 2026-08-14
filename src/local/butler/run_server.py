@@ -181,7 +181,7 @@ def execute(args):
   try:
 
     common.execute(
-        f'gunicorn -b 127.0.0.1:{constants.DEV_APPSERVER_PORT} main:app',
+        f'gunicorn -b {constants.DEV_APPSERVER_HOST} main:app',
         cwd=os.path.join('src', 'appengine'))
   except KeyboardInterrupt:
     print('Server has been stopped. Exit.')
