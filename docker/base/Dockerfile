@@ -124,7 +124,11 @@ RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C
     cd /tmp/Python-3.11.4 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
-RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
+# Symlink uv binary installed by pipx to /usr/local/bin so it is on system PATH,
+# and symlink python3.11 to /usr/bin/python3.11 for system tools expecting it in /usr/bin.
+RUN pip3.11 --no-cache-dir install pipx==1.10.0
+RUN pipx install uv==0.12.3
+RUN ln -s $(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "/root/.local/bin")/uv /usr/local/bin/uv
 RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11
 
 # Install Node.js
@@ -169,10 +173,10 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
-COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh Pipfile Pipfile.lock start.sh /data/
+COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh pyproject.toml uv.lock start.sh /data/
 RUN cd /data && \
-    # Make pip3.11 the default so that pipenv install --system works.
+    # Make pip3.11 the default so that pip install works.
     mv /usr/local/bin/pip3.11 /usr/local/bin/pip && \
-    python3.11 -m pipenv install --deploy --system
+    uv pip install --system -e /data
 
 CMD ["bash", "-ex", "/data/start.sh"]
