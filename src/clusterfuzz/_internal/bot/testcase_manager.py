@@ -1278,6 +1278,11 @@ def check_for_bad_build(job_type: str,
       timeout=fast_warmup_timeout,
       current_working_directory=app_directory)
   crash_result = CrashResult(return_code, crash_time, output)
+  logs.info(
+      f'Bad build check run output for {job_type} at r{crash_revision}: '
+      f'return_code={return_code}, '
+      f'is_crash={crash_result.is_crash(ignore_state=True)}',
+      output=output)
 
   # 1. Need to account for startup crashes with no crash state. E.g. failed to
   #    load shared library. So, ignore state for comparison.
