@@ -387,3 +387,32 @@ class ComplexFieldsTest(unittest.TestCase):
     wire_format = uworker_io.serialize_uworker_input(output)
     deserialized = uworker_io.deserialize_uworker_output(wire_format)
     self.assertEqual(json.loads(deserialized.issue_metadata), metadata)
+
+
+class TestCheckRunningFuzzerSafe(unittest.TestCase):
+  """Tests check_running_fuzzer_safe."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+    ])
+    self.fuzzer = mock.MagicMock(spec=data_types.Fuzzer)
+    self.fuzzer.name = 'test_fuzzer'
+
+  def test_trusted_fuzzer(self):
+    """Test that trusted fuzzer passes without checks."""
+    self.fuzzer.trusted = True
+    self.assertTrue(uworker_io.check_running_fuzzer_safe(self.fuzzer))
+
+  def test_untrusted_fuzzer_uworker(self):
+    """Test that untrusted fuzzer on uworker passes."""
+    self.fuzzer.trusted = False
+    self.mock.is_uworker.return_value = True
+    self.assertTrue(uworker_io.check_running_fuzzer_safe(self.fuzzer))
+
+  def test_untrusted_fuzzer_not_uworker_raises(self):
+    """Test that untrusted fuzzer not on uworker raises SystemExit."""
+    self.fuzzer.trusted = False
+    self.mock.is_uworker.return_value = False
+    with self.assertRaises(SystemExit):
+      uworker_io.check_running_fuzzer_safe(self.fuzzer)

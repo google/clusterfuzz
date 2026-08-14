@@ -163,8 +163,8 @@ class SwarmingApi:
     try:
       return json_format.Parse(
           raw_response,
-          swarming_pb2.TaskRequestResponse()  # pylint: disable=no-member
-      )
+          swarming_pb2.TaskRequestMetadataResponse()  # pylint: disable=no-member
+      ).request
     except (json_format.ParseError, AttributeError) as e:
       raise SwarmingApiError(
           f'RPC Contract failure, failed to parse response: {e}') from e

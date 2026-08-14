@@ -266,6 +266,9 @@ def create_tasks(testcase):
 
 def create_postminimize_tasks(testcase):
   """Create assorted tasks needed after minimize task completes."""
+  if testcase.status == 'Duplicate' or testcase.duplicate_of:
+    return
+
   create_impact_task_if_needed(testcase)
   create_regression_task_if_needed(testcase)
   create_symbolize_task_if_needed(testcase)

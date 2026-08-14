@@ -372,7 +372,11 @@ def _get_minimize_task_input(testcase):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Preprocess in a trusted bot."""
   # Locate the testcase associated with the id.
-  testcase = data_handler.get_testcase_by_id(testcase_id)
+  try:
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+  except errors.InvalidTestcaseError:
+    logs.warning(f'Testcase {testcase_id} no longer exists.')
+    return None
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     # Allow setting up a different fuzzer.
     minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
@@ -879,7 +883,12 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
   # Retrive the testcase early for logs context.
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  try:
+    testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  except errors.InvalidTestcaseError:
+    logs.warning(
+        f'Testcase {output.uworker_input.testcase_id} no longer exists.')
+    return
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     testcase_utils.emit_testcase_triage_duration_metric(
         int(output.uworker_input.testcase_id),
