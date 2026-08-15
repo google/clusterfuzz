@@ -20,6 +20,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import fuzzer_stats
 from handlers import base_handler
+from libs import access
 from libs import handler
 from libs import helpers
 
@@ -59,6 +60,13 @@ def get_report_url(report_type, argument, date):
 
   if not data_types.Job.VALID_NAME_REGEX.match(job):
     raise helpers.EarlyExitError('Invalid job name.', 400)
+
+  # Coverage reports are per-job data; gate on job access like the other
+  # job-scoped handlers (e.g. fuzzer_stats). @handler.oauth does not require
+  # authentication, so without this any caller could resolve the report URL
+  # for an arbitrary job.
+  if not access.has_access(job_type=job):
+    raise helpers.AccessDeniedError()
 
   if not date or not VALID_DATE_REGEX.match(date):
     raise helpers.EarlyExitError('Invalid date.', 400)
