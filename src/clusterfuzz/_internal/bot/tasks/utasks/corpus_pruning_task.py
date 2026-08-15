@@ -1155,6 +1155,35 @@ def _create_backup_urls(fuzz_target: data_types.FuzzTarget,
   corpus_pruning_task_input.dated_backup_signed_url = dated_backup_signed_url
 
 
+def _should_use_threaded_ops(fuzzer_name: str) -> bool:
+  """Returns True if threaded storage ops should be used."""
+  threaded_ops_flag = (
+      feature_flags.FeatureFlags.STORAGE_THREADED_OPS_FUZZ_TARGETS)
+  if not threaded_ops_flag.enabled:
+    return False
+
+  threaded_ops_targets = threaded_ops_flag.string_value.strip()
+  if not threaded_ops_targets:
+    return False
+
+  allowed_targets = [
+      t.strip().lower() for t in threaded_ops_targets.split(',') if t.strip()
+  ]
+
+  if '*' in allowed_targets:
+    # TODO(paulovlb): Remove this once fixed.
+    logs.info('[Corpus Fix] Enabled threaded storage ops for ALL targets.')
+    return True
+
+  if fuzzer_name.lower() in allowed_targets:
+    # TODO(paulovlb): Remove this once fixed.
+    logs.info(f'[Corpus Fix] Enabled threaded storage ops for target: '
+              f'{fuzzer_name}')
+    return True
+
+  return False
+
+
 def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Runs preprocessing for corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
@@ -1217,19 +1246,8 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   if uworker_env is None:
     uworker_env = {}
 
-  threaded_ops_flag = (
-      feature_flags.FeatureFlags.STORAGE_THREADED_OPS_FUZZ_TARGETS)
-  if threaded_ops_flag.enabled:
-    threaded_ops_targets = threaded_ops_flag.string_value
-    if threaded_ops_targets:
-      allowed_targets = [
-          t.strip() for t in threaded_ops_targets.split(',') if t.strip()
-      ]
-      if fuzzer_name in allowed_targets:
-        uworker_env['USE_THREADED_STORAGE_OPS'] = 'True'
-        # TODO(paulovlb): Remove this once fixed.
-        logs.info(f'[Corpus Fix] Enabled threaded storage ops for target: '
-                  f'{fuzzer_name}')
+  if _should_use_threaded_ops(fuzzer_name):
+    uworker_env['USE_THREADED_STORAGE_OPS'] = 'True'
 
   logs.info('done preprocess')
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
