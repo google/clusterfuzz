@@ -17,6 +17,7 @@ from flask import request
 
 from clusterfuzz._internal.build_management import revisions
 from handlers import base_handler
+from libs import access
 from libs import handler
 from libs import helpers
 
@@ -29,6 +30,8 @@ class Handler(base_handler.Handler):
   def get(self):
     """GET handler."""
     job_type = request.get('job')
+    if job_type and not access.has_access(job_type=job_type):
+      raise helpers.AccessDeniedError()
     revision = request.get('revision')
     revision_range = request.get('range')
 
