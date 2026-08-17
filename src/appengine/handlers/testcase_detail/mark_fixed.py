@@ -13,15 +13,19 @@
 # limitations under the License.
 """Handler for marking a testcase as fixed."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
+from clusterfuzz._internal.datastore import data_types
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
 from libs import helpers
 
 
-def mark(testcase):
+def mark(testcase: data_types.Testcase) -> data_types.Testcase:
   """Mark the testcase as fixed."""
   testcase.fixed = 'Yes'
   testcase.open = False
@@ -38,9 +42,9 @@ class Handler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
   @handler.check_admin_access
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Mark the testcase as fixed."""
-    testcase_id = request.get('testcaseId')
+    testcase_id = cast(Any, request).get('testcaseId')
     testcase = helpers.get_testcase(testcase_id)
     mark(testcase)
     return self.render_json(show.get_testcase_detail(testcase))

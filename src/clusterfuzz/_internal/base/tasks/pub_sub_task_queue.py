@@ -44,16 +44,16 @@ class PubSubTaskQueue:
 
 
 # Default target size for the preprocess queue.
-PREPROCESS_TARGET_SIZE_DEFAULT = 10000
+PREPROCESS_TARGET_SIZE_DEFAULT: int = 10000
 
 # Default limit for the utask main queue.
-UTASK_MAIN_QUEUE_LIMIT_DEFAULT = 10000
+UTASK_MAIN_QUEUE_LIMIT_DEFAULT: int = 10000
 
 # Default target size for the swarming preprocess queue.
-SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT = 10
+SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT: int = 10
 
 # Default limit for the swarming utask main queue.
-SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT = 25
+SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT: int = 25
 
 PREPROCESS_QUEUE = PubSubTaskQueue(
     name=tasks.PREPROCESS_QUEUE,

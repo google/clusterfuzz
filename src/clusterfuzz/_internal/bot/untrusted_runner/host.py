@@ -16,6 +16,11 @@
 import sys
 import threading
 import time
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import NoReturn
+from typing import TypeVar
 
 from google.cloud import ndb
 import grpc
@@ -33,28 +38,39 @@ from clusterfuzz._internal.system import environment
 
 from . import config
 
-WAIT_TLS_CERT_SECONDS = 60
-RPC_FAIL_WAIT_TIME = 10
+WAIT_TLS_CERT_SECONDS: int = 60
+RPC_FAIL_WAIT_TIME: int = 10
+
+_F = TypeVar('_F', bound=Callable[..., Any])
 
 
 class ChannelState:
   """The host's view of the channel state."""
   # Channel isn't ready for sending RPCs.
-  NOT_READY = 0
+  NOT_READY: int = 0
 
   # Channel is ready for RPCS.
-  READY = 1
+  READY: int = 1
 
   # The host found that the worker is in an inconsistent state. That is, we
   # detected that either the worker has a different source version, or if it
   # restarted without us knowing.
-  INCONSISTENT = 2
+  INCONSISTENT: int = 2
 
 
 class HostState:
   """The state of the host."""
 
-  def __init__(self):
+  channel: grpc.Channel | None
+  stub: 'UntrustedRunnerStub | None'
+  heartbeat_thread: threading.Thread | None
+  expect_shutdown: bool
+  worker_start_time: int | None
+  worker_bot_name: str | None
+  channel_condition: threading.Condition
+  channel_state: int
+
+  def __init__(self) -> None:
     self.channel = None
     self.stub = None
     self.heartbeat_thread = None
@@ -69,7 +85,7 @@ class HostState:
     self.channel_state = ChannelState.NOT_READY
 
 
-_host_state = HostState()
+_host_state: HostState = HostState()
 
 
 class UntrustedRunnerStub(untrusted_runner_pb2_grpc.UntrustedRunnerStub):
@@ -78,7 +94,7 @@ class UntrustedRunnerStub(untrusted_runner_pb2_grpc.UntrustedRunnerStub):
   We override the generated stub because we need to wrap these RPC calls to add
   error handling/retry logic."""
 
-  def __init__(self, channel):
+  def __init__(self, channel: grpc.Channel) -> None:
     super().__init__(channel)
 
     # Don't wrap GetStatus() because it's used during connection state changes.
@@ -107,7 +123,7 @@ class UntrustedRunnerStub(untrusted_runner_pb2_grpc.UntrustedRunnerStub):
     # pylint: enable=invalid-name
 
 
-def _check_channel_state(wait_time):
+def _check_channel_state(wait_time: float | int) -> int:
   """Check the channel's state."""
   with _host_state.channel_condition:
     if (_host_state.channel_state in (ChannelState.READY,
@@ -120,10 +136,10 @@ def _check_channel_state(wait_time):
     return _host_state.channel_state
 
 
-def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
+def _wrap_call(func: _F, num_retries: int = config.RPC_RETRY_ATTEMPTS) -> _F:
   """Wrapper for stub calls to add error handling and retry logic."""
 
-  def wrapped(*args, **kwargs):
+  def wrapped(*args: Any, **kwargs: Any) -> Any:
     """Wrapper for adding retry logic."""
     for retry_attempt in range(num_retries + 1):
       # Wait for channel to (re)connect if necessary.
@@ -166,12 +182,13 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
 
     return None
 
-  return wrapped
+  return cast(_F, wrapped)
 
 
-def _do_heartbeat():
+def _do_heartbeat() -> None:
   """Heartbeat thread."""
   # grpc stubs and channels should be thread-safe.
+  assert _host_state.channel is not None
   heartbeat_stub = heartbeat_pb2_grpc.HeartbeatStub(_host_state.channel)
   while True:
     try:
@@ -184,7 +201,7 @@ def _do_heartbeat():
     time.sleep(config.HEARTBEAT_INTERVAL_SECONDS)
 
 
-def _get_host_worker_assignment():
+def _get_host_worker_assignment() -> data_types.HostWorkerAssignment | None:
   """Get the host worker assignment for the current host."""
   # This only needs to be called once before the host connects to the worker.
   # This is because the host->worker assignment algorithm should ensure that a
@@ -199,7 +216,7 @@ def _get_host_worker_assignment():
   return key.get()
 
 
-def _get_root_cert(project_name):
+def _get_root_cert(project_name: str) -> bytes | None:
   """Get the root TLS cert for connecting to the worker."""
   key = ndb.Key(data_types.WorkerTlsCert, project_name)
   tls_cert = key.get()
@@ -210,7 +227,7 @@ def _get_root_cert(project_name):
   return tls_cert.cert_contents
 
 
-def _connect():
+def _connect() -> None:
   """Initial connect to the worker."""
   worker_assignment = _get_host_worker_assignment()
   assert worker_assignment is not None
@@ -260,7 +277,8 @@ def _connect():
   _host_state.heartbeat_thread.start()
 
 
-def _channel_connectivity_changed(connectivity):
+def _channel_connectivity_changed(
+    connectivity: grpc.ChannelConnectivity) -> None:
   """Callback for channel connectivity changes."""
   try:
     with _host_state.channel_condition:
@@ -295,10 +313,12 @@ def _channel_connectivity_changed(connectivity):
     logs.info('Reconnecting to worker.')
 
 
-def _check_state():
+def _check_state() -> bool:
   """Check that the worker's state is consistent with the host's knowledge."""
+  runner_stub = stub()
+  assert runner_stub is not None
   try:
-    status = stub().GetStatus(
+    status = runner_stub.GetStatus(
         untrusted_runner_pb2.GetStatusRequest(),  # pylint: disable=no-member
         timeout=config.GET_STATUS_TIMEOUT_SECONDS)
   except grpc.RpcError:
@@ -325,21 +345,23 @@ def _check_state():
   return True
 
 
-def init():
+def init() -> None:
   """Initialize channel to untrusted instance."""
   _connect()
 
 
-def stub():
+def stub() -> UntrustedRunnerStub | None:
   """Return the UntrustedRunnerStub."""
   return _host_state.stub
 
 
-def update_worker():
+def update_worker() -> None:
   """Update untrusted worker."""
   _host_state.expect_shutdown = True
+  runner_stub = stub()
+  assert runner_stub is not None
   try:
-    stub().UpdateSource(
+    runner_stub.UpdateSource(
         untrusted_runner_pb2.UpdateSourceRequest(),  # pylint: disable=no-member
         timeout=config.UPDATE_SOURCE_TIMEOUT_SECONDS)
   except grpc.RpcError:
@@ -347,7 +369,7 @@ def update_worker():
     pass
 
 
-def host_exit_no_return(return_code=1):
+def host_exit_no_return(return_code: int = 1) -> NoReturn:
   """Called when there is a host error."""
   if return_code:
     monitoring_metrics.HOST_ERROR_COUNT.increment({'return_code': return_code})
@@ -356,6 +378,7 @@ def host_exit_no_return(return_code=1):
   update_worker()
 
   # Prevent exceptions during shutdown.
+  assert _host_state.channel is not None
   _host_state.channel.unsubscribe(_channel_connectivity_changed)
 
   # This should bypass most exception handlers and avoid callers from catching
@@ -364,6 +387,6 @@ def host_exit_no_return(return_code=1):
   raise untrusted.HostError(return_code)
 
 
-def is_initialized():
+def is_initialized() -> bool:
   """Return whether or not the host is initialized."""
   return _host_state.stub is not None

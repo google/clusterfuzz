@@ -17,18 +17,19 @@ import os
 import shlex
 import subprocess
 
+from clusterfuzz._internal.base import utils as base_utils
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.HTMLLexer import HTMLLexer
 
 from . import errors
 
 # TODO(mbarbella): Improve configuration of the test function.
-attempts = 1
-test_command = None
+attempts: int = 1
+test_command: list[str] | None = None
 
 # This list of markers is a copy of code in ClusterFuzz.
 # This is kept here to keep the code standalone.
-STACKTRACE_TOOL_MARKERS = [
+STACKTRACE_TOOL_MARKERS: list[str] = [
     ' runtime error: ',
     'AddressSanitizer',
     'ASAN:',
@@ -41,7 +42,7 @@ STACKTRACE_TOOL_MARKERS = [
     'UndefinedBehaviorSanitizer',
     'UndefinedSanitizer',
 ]
-STACKTRACE_END_MARKERS = [
+STACKTRACE_END_MARKERS: list[str] = [
     'ABORTING',
     'END MEMORY TOOL REPORT',
     'End of process memory map.',
@@ -52,7 +53,7 @@ STACKTRACE_END_MARKERS = [
     '\nExiting',
     'minidump has been written',
 ]
-CHECK_FAILURE_MARKERS = [
+CHECK_FAILURE_MARKERS: list[str] = [
     'Check failed:',
     'Device rebooted',
     'Fatal error in',
@@ -62,7 +63,7 @@ CHECK_FAILURE_MARKERS = [
 ]
 
 
-def get_size_string(size):
+def get_size_string(size: int) -> str:
   """Return string representation for size."""
   if size < 1 << 10:
     return '%d B' % size
@@ -74,7 +75,7 @@ def get_size_string(size):
   return '%d GB' % (size >> 30)
 
 
-def has_marker(stacktrace, marker_list):
+def has_marker(stacktrace: str, marker_list: list[str]) -> bool:
   """Return true if the stacktrace has atleast one marker
   in the marker list."""
   for marker in marker_list:
@@ -84,19 +85,19 @@ def has_marker(stacktrace, marker_list):
   return False
 
 
-def set_test_command(new_test_command):
+def set_test_command(new_test_command: str) -> None:
   """Set the command used for testing."""
   global test_command
   test_command = shlex.split(new_test_command)
 
 
-def set_test_attempts(new_attempts):
+def set_test_attempts(new_attempts: int) -> None:
   """Set the number of times to attempt the test."""
   global attempts
   attempts = new_attempts
 
 
-def test(test_path):
+def test(test_path: str) -> bool:
   """Wrapper function to verify that a test does not fail for multiple runs."""
   for _ in range(attempts):
     if not single_test_run(test_path):
@@ -104,7 +105,7 @@ def test(test_path):
   return True
 
 
-def single_test_run(test_path):
+def single_test_run(test_path: str) -> bool:
   """Hacky test function that checks for certain common errors."""
   if not test_command:
     raise errors.NoCommandError
@@ -116,9 +117,11 @@ def single_test_run(test_path):
     console_output = error.output
 
   # If we meet one of these conditions, assume we crashed.
-  if ((has_marker(console_output, STACKTRACE_TOOL_MARKERS) and
-       has_marker(console_output, STACKTRACE_END_MARKERS)) or
-      has_marker(console_output, CHECK_FAILURE_MARKERS)):
+  stacktrace = base_utils.decode_to_unicode(
+      console_output) if console_output else ''
+  if ((has_marker(stacktrace, STACKTRACE_TOOL_MARKERS) and
+       has_marker(stacktrace, STACKTRACE_END_MARKERS)) or
+      has_marker(stacktrace, CHECK_FAILURE_MARKERS)):
     print('Crashed, current test size %s.' % (get_size_string(
         os.path.getsize(test_path))))
     return False
@@ -129,11 +132,11 @@ def single_test_run(test_path):
   return True
 
 
-def tokenize(data):
+def tokenize(data: bytes) -> list[str]:
   """HTML tokenizer."""
   return AntlrTokenizer(HTMLLexer).tokenize(data)
 
 
-def token_combiner(tokens):
+def token_combiner(tokens: list[str]) -> str:
   """Dummy token combiner."""
   return ''.join(tokens)

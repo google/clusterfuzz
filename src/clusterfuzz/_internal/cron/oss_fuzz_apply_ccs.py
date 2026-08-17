@@ -15,6 +15,8 @@
 
 import logging
 
+from google.cloud import ndb  # pylint: disable=no-name-in-module
+
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.datastore import data_types
@@ -22,7 +24,7 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 
 
-def get_open_testcases_with_bugs():
+def get_open_testcases_with_bugs() -> ndb.Query:
   """Return iterator to open testcases with bugs."""
   return data_types.Testcase.query(
       ndb_utils.is_true(data_types.Testcase.open),
@@ -32,13 +34,13 @@ def get_open_testcases_with_bugs():
 
 
 @memoize.wrap(memoize.FifoInMemory(256))
-def cc_users_for_job(job_type, security_flag):
+def cc_users_for_job(job_type: str | None, security_flag: bool) -> list[str]:
   """Return users to CC for a job."""
   # Memoized per cron run.
   return external_users.cc_users_for_job(job_type, security_flag)
 
 
-def main():
+def main() -> bool:
   """Cron handler for adding new CC's to oss-fuzz bugs."""
   some_issue_failed = False
   for testcase in get_open_testcases_with_bugs():

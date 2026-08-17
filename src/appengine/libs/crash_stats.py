@@ -15,26 +15,34 @@
   testcase detail page. This can't be with common.crash_stats because it imports
   specific libraries on appengine."""
 
+from typing import Any
+from typing import cast
+
 from clusterfuzz._internal.metrics import crash_stats
 from libs import helpers
 from libs.query import big_query_query
 
 # We don't allow showing more than 3 days when viewing by hours because it'd
 # break the UI.
-MAX_DAYS_FOR_BY_HOURS = 3
+MAX_DAYS_FOR_BY_HOURS: int = 3
 
 
 class Query(big_query_query.Query):
   """A query class for crash stats. It contains two additional fields."""
 
-  def __init__(self):
+  end: int | None
+  days: int | None
+  block: str | None
+  group_by: str | None
+
+  def __init__(self) -> None:
     self.end = None
     self.days = None
     self.block = None
     self.group_by = None
     super().__init__()
 
-  def set_time_params(self, end, days, block):
+  def set_time_params(self, end: int, days: int, block: str) -> None:
     """Set time-related params."""
     if block == 'hour' and days > MAX_DAYS_FOR_BY_HOURS:
       raise helpers.EarlyExitError(
@@ -48,15 +56,20 @@ class Query(big_query_query.Query):
     self.block = block
 
 
-def get(query, group_query, offset, limit):
+def get(
+    query: Query,
+    group_query: big_query_query.Query,
+    offset: int,
+    limit: int | None = None,
+) -> tuple[int, list[dict[str, Any]]]:
   """Query from BigQuery given the query object."""
   return crash_stats.get(
-      end=query.end,
-      days=query.days,
-      block=query.block,
-      group_by=query.group_by,
+      end=cast(int, query.end),
+      days=cast(int, query.days),
+      block=cast(str, query.block),
+      group_by=cast(str, query.group_by),
       where_clause=query.get_where_clause(),
       group_having_clause=group_query.get_where_clause(),
-      sort_by=query.sort_by,
+      sort_by=cast(str, query.sort_by),
       offset=offset,
       limit=limit)

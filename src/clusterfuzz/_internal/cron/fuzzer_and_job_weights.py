@@ -13,8 +13,15 @@
 # limitations under the License.
 """Manage automatic weight adjustments."""
 
-import collections
 import datetime
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Dict
+from typing import List
+from typing import NamedTuple
+from typing import Set
+from typing import Tuple
 
 from google.cloud import ndb
 
@@ -27,20 +34,27 @@ from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-QuerySpecification = collections.namedtuple(
-    'QuerySpecification', ['query_format', 'formatter', 'reason'])
 
-SpecificationMatch = collections.namedtuple('SpecificationMatch',
-                                            ['new_weight', 'reason'])
+class QuerySpecification(NamedTuple):
+  query_format: str
+  formatter: Callable[[str, str], str]
+  reason: str
 
-DEFAULT_MULTIPLIER = 30.0  # Used for blackbox and jobs that are not yet run.
-DEFAULT_SANITIZER_WEIGHT = 0.1
-DEFAULT_ENGINE_WEIGHT = 1.0
 
-SANITIZER_BASE_WEIGHT = 0.1
+class SpecificationMatch(NamedTuple):
+  new_weight: float
+  reason: str
+
+
+# Used for blackbox and jobs that are not yet run.
+DEFAULT_MULTIPLIER: float = 30.0
+DEFAULT_SANITIZER_WEIGHT: float = 0.1
+DEFAULT_ENGINE_WEIGHT: float = 1.0
+
+SANITIZER_BASE_WEIGHT: float = 0.1
 
 # TODO(ochang): architecture weights.
-SANITIZER_WEIGHTS = {
+SANITIZER_WEIGHTS: Dict[str, float] = {
     'ASAN': 5 * SANITIZER_BASE_WEIGHT,
     'CFI': 1 * SANITIZER_BASE_WEIGHT,
     'MSAN': 2 * SANITIZER_BASE_WEIGHT,
@@ -48,7 +62,7 @@ SANITIZER_WEIGHTS = {
     'UBSAN': 1 * SANITIZER_BASE_WEIGHT,
 }
 
-ENGINE_WEIGHTS = {
+ENGINE_WEIGHTS: Dict[str, float] = {
     'afl': 1.0,
     'centipede': 1.0,
     'googlefuzztest': 0.5,
@@ -58,7 +72,7 @@ ENGINE_WEIGHTS = {
 
 
 # Formatters for query specifications.
-def _past_day_formatter(query_format, dataset):
+def _past_day_formatter(query_format: str, dataset: str) -> str:
   """Simple formatter to get stats for the past day."""
   end_time = utils.utcnow().date()
   start_time = end_time - datetime.timedelta(days=1)
@@ -66,14 +80,14 @@ def _past_day_formatter(query_format, dataset):
       dataset=dataset, start_time=start_time, end_time=end_time)
 
 
-def _new_fuzzer_formatter(query_format, dataset):
+def _new_fuzzer_formatter(query_format: str, dataset: str) -> str:
   """Prepare a query to check for new fuzzers from the past week."""
   now = utils.utcnow().date()
   cutoff_time = now - datetime.timedelta(days=7)
   return query_format.format(dataset=dataset, cutoff_time=cutoff_time)
 
 
-def _coverage_formatter(query_format, dataset):
+def _coverage_formatter(query_format: str, dataset: str) -> str:
   """Prepare a query to check for changes in coverage week over week."""
   end_date = utils.utcnow().date() - datetime.timedelta(days=1)
   middle_date = end_date - datetime.timedelta(days=7)
@@ -87,7 +101,7 @@ def _coverage_formatter(query_format, dataset):
 
 # Most of our queries should simply average a field name to get a ratio showing
 # how often some behavior occurs.
-GENERIC_QUERY_FORMAT = """
+GENERIC_QUERY_FORMAT: str = """
 SELECT
   fuzzer,
   job,
@@ -150,7 +164,7 @@ CRASH_SPECIFICATION = QuerySpecification(
 # New fuzzers/jobs should run much more frequently than others. In this case, we
 # test the fraction of days for which we have no stats for this fuzzer/job pair
 # and increase if it's nonzero.
-NEW_FUZZER_FORMAT = """
+NEW_FUZZER_FORMAT: str = """
 SELECT
   fuzzer,
   job,
@@ -171,7 +185,7 @@ NEW_FUZZER_SPECIFICATION = QuerySpecification(
     reason='new fuzzer')
 
 # Format to query for fuzzers with minimal change in week to week coverage.
-COVERAGE_UNCHANGED_FORMAT = """
+COVERAGE_UNCHANGED_FORMAT: str = """
 SELECT
   recent.fuzzer AS fuzzer,
   recent.job AS job,
@@ -223,7 +237,7 @@ COVERAGE_UNCHANGED_SPECIFICATION = QuerySpecification(
     reason='coverage flat over past 2 weeks')
 
 # Mappings for which specifications to use for which
-LIBFUZZER_SPECIFICATIONS = [
+LIBFUZZER_SPECIFICATIONS: List[QuerySpecification] = [
     COVERAGE_UNCHANGED_SPECIFICATION,
     CRASH_SPECIFICATION,
     NEW_FUZZER_SPECIFICATION,
@@ -233,7 +247,7 @@ LIBFUZZER_SPECIFICATIONS = [
     TIMEOUT_SPECIFICATION,
 ]
 
-AFL_SPECIFICATIONS = [
+AFL_SPECIFICATIONS: List[QuerySpecification] = [
     CRASH_SPECIFICATION,
     NEW_FUZZER_SPECIFICATION,
     STARTUP_CRASH_SPECIFICATION,
@@ -243,12 +257,13 @@ RESTORE_DEFAULT_MATCH = SpecificationMatch(
     new_weight=1.0, reason='no longer matches any weight adjustment rules')
 
 
-def _query_helper(client, query):
+def _query_helper(client: big_query.Client, query: str) -> List[Dict[str, Any]]:
   """Helper function to get fuzzer stats."""
   return client.query(query=query).rows
 
 
-def _update_match(matches, fuzzer, job, match):
+def _update_match(matches: Dict[Tuple[str, str], SpecificationMatch],
+                  fuzzer: str, job: str, match: SpecificationMatch) -> None:
   """Update the weight for a fuzzer/job."""
   key = (fuzzer, job)
   old_match = matches.get(key, RESTORE_DEFAULT_MATCH)
@@ -269,7 +284,8 @@ def _update_match(matches, fuzzer, job, match):
     matches[key] = match
 
 
-def update_weight_for_target(fuzz_target_name, job, match):
+def update_weight_for_target(fuzz_target_name: str, job: str,
+                             match: SpecificationMatch) -> None:
   """Set the weight for a particular target."""
   target_job = data_handler.get_fuzz_target_job(fuzz_target_name, job)
 
@@ -285,8 +301,13 @@ def update_weight_for_target(fuzz_target_name, job, match):
   target_job.put()
 
 
-def update_matches_for_specification(specification, client, engine, matches,
-                                     run_set):
+def update_matches_for_specification(
+    specification: QuerySpecification,
+    client: big_query.Client,
+    engine: str,
+    matches: Dict[Tuple[str, str], SpecificationMatch],
+    run_set: Set[Tuple[str, str]],
+) -> None:
   """Run a query and adjust weights based on a given query specification."""
   query = specification.formatter(specification.query_format,
                                   fuzzer_stats.dataset_name(engine))
@@ -306,10 +327,14 @@ def update_matches_for_specification(specification, client, engine, matches,
       _update_match(matches, fuzzer, job, match)
 
 
-def update_target_weights_for_engine(client, engine, specifications):
+def update_target_weights_for_engine(
+    client: big_query.Client,
+    engine: str,
+    specifications: List[QuerySpecification],
+) -> None:
   """Update all fuzz target weights for the specified engine."""
-  matches = {}
-  run_set = set()
+  matches: Dict[Tuple[str, str], SpecificationMatch] = {}
+  run_set: Set[Tuple[str, str]] = set()
 
   # All fuzzers with non-default weights must be tracked with a special
   # specification. This ensures that they will be restored to normal weight
@@ -319,8 +344,8 @@ def update_target_weights_for_engine(client, engine, specifications):
           data_types.FuzzTargetJob.weight != 1.0)
 
   for target_job in target_jobs:
-    matches[(target_job.fuzz_target_name,
-             target_job.job)] = RESTORE_DEFAULT_MATCH
+    matches[(cast(str, target_job.fuzz_target_name),
+             cast(str, target_job.job))] = RESTORE_DEFAULT_MATCH
 
   for match in specifications:
     update_matches_for_specification(match, client, engine, matches, run_set)
@@ -336,9 +361,9 @@ def update_target_weights_for_engine(client, engine, specifications):
   logs.info('Weight adjustments complete for engine %s.' % engine)
 
 
-def store_current_weights_in_bigquery():
+def store_current_weights_in_bigquery() -> None:
   """Update a bigquery table containing the daily stats."""
-  rows = []
+  rows: List[big_query.Insert] = []
   target_jobs = ndb_utils.get_all_from_model(data_types.FuzzTargetJob)
   for target_job in target_jobs:
     row = {
@@ -352,16 +377,17 @@ def store_current_weights_in_bigquery():
   client.insert(rows)
 
 
-def update_job_weight(job_name, multiplier):
+def update_job_weight(job_name: str, multiplier: float) -> None:
   """Update a job weight."""
   tool_name = environment.get_memory_tool_name(job_name)
-  multiplier *= SANITIZER_WEIGHTS.get(tool_name, DEFAULT_SANITIZER_WEIGHT)
+  multiplier *= SANITIZER_WEIGHTS.get(
+      cast(Any, tool_name), DEFAULT_SANITIZER_WEIGHT)
 
   engine = environment.get_engine_for_job(job_name)
-  multiplier *= ENGINE_WEIGHTS.get(engine, DEFAULT_ENGINE_WEIGHT)
+  multiplier *= ENGINE_WEIGHTS.get(cast(Any, engine), DEFAULT_ENGINE_WEIGHT)
 
   query = data_types.FuzzerJob.query(data_types.FuzzerJob.job == job_name)
-  changed_weights = []
+  changed_weights: List[data_types.FuzzerJob] = []
   for fuzzer_job in query:
     if fuzzer_job.multiplier != multiplier:
       fuzzer_job.multiplier = multiplier
@@ -371,7 +397,7 @@ def update_job_weight(job_name, multiplier):
     ndb_utils.put_multi(changed_weights)
 
 
-def update_job_weights():
+def update_job_weights() -> None:
   """Update job weights."""
   for job in data_types.Job.query():
     multiplier = DEFAULT_MULTIPLIER
@@ -382,10 +408,10 @@ def update_job_weights():
       if targets_count and targets_count.count:
         multiplier = targets_count.count
 
-    update_job_weight(job.name, multiplier)
+    update_job_weight(cast(str, job.name), cast(float, multiplier))
 
 
-def main():
+def main() -> bool:
   """Periodically update fuzz target weights based on performance."""
   client = big_query.Client()
   update_target_weights_for_engine(client, 'libFuzzer',

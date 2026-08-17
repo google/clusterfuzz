@@ -18,14 +18,22 @@ import difflib
 import logging
 import sys
 import traceback
+import typing
+from typing import Any
+from typing import Callable
+from typing import TypeVar
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from libs import auth
 
-VIEW_OPERATION = 'View'
-MODIFY_OPERATION = 'Modify'
+VIEW_OPERATION: str = 'View'
+MODIFY_OPERATION: str = 'Modify'
+
+T = TypeVar('T')
 
 
 class _DoNotCatchException(Exception):
@@ -35,7 +43,11 @@ class _DoNotCatchException(Exception):
 class EarlyExitError(Exception):
   """Serve as an exception for exiting a handler's method early."""
 
-  def __init__(self, message, status, trace_dump=None):
+  status: int
+  trace_dump: str | None
+
+  def __init__(self, message: str, status: int,
+               trace_dump: str | None = None) -> None:
     super().__init__(message)
     self.status = status
     self.trace_dump = trace_dump
@@ -45,7 +57,7 @@ class EarlyExitError(Exception):
       else:
         self.trace_dump = ''.join(traceback.format_stack())
 
-  def to_dict(self):
+  def to_dict(self) -> dict[str, Any]:
     """Build dict that is used for JSON serialisation."""
     return {
         'traceDump': self.trace_dump,
@@ -59,18 +71,18 @@ class EarlyExitError(Exception):
 class AccessDeniedError(EarlyExitError):
   """Serve as an exception for exiting a handler's method with 403."""
 
-  def __init__(self, message=''):
+  def __init__(self, message: str = '') -> None:
     super().__init__(message, 403, '')
 
 
 class UnauthorizedError(EarlyExitError):
   """Serve as an exception for exiting a handler's method with 401."""
 
-  def __init__(self, message=''):
+  def __init__(self, message: str = '') -> None:
     super().__init__(message, 401, '')
 
 
-def get_testcase(testcase_id):
+def get_testcase(testcase_id: int | str) -> data_types.Testcase:
   """Get a valid testcase or raise EarlyExitError."""
   testcase = None
   try:
@@ -83,16 +95,17 @@ def get_testcase(testcase_id):
   return testcase
 
 
-def get_issue_tracker_for_testcase(testcase):
+def get_issue_tracker_for_testcase(
+    testcase: data_types.Testcase) -> issue_tracker.IssueTracker:
   """Get an IssueTracker or raise EarlyExitError."""
-  issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
-  if not issue_tracker:
+  tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+  if not tracker:
     raise EarlyExitError(
         "The testcase doesn't have a corresponding issue tracker", 404)
-  return issue_tracker
+  return tracker
 
 
-def cast(value, fn, error_message):
+def cast(value: Any, fn: Callable[[Any], T], error_message: str) -> T:
   """Return `fn(value)` or raise an EarlyExitError with 400."""
   try:
     return fn(value)
@@ -100,12 +113,12 @@ def cast(value, fn, error_message):
     raise EarlyExitError(error_message, 400)
 
 
-def should_render_json(accepts, content_type):
+def should_render_json(accepts: str, content_type: str) -> bool:
   """Check accepts and content_type to see if we should render JSON."""
   return 'application/json' in accepts or content_type == 'application/json'
 
 
-def _is_not_empty(value):
+def _is_not_empty(value: Any) -> bool:
   """Check if value is empty value or a tuple of empty values."""
   if isinstance(value, tuple):
     return any(bool(elem) for elem in value)
@@ -113,11 +126,12 @@ def _is_not_empty(value):
   return bool(value)
 
 
-def get_or_exit(fn,
-                not_found_message,
-                error_message,
-                not_found_exception=_DoNotCatchException,
-                non_empty_fn=_is_not_empty):
+def get_or_exit(fn: Callable[[], T | None],
+                not_found_message: str,
+                error_message: str,
+                not_found_exception: type[Exception]
+                | tuple[type[Exception], ...] = _DoNotCatchException,
+                non_empty_fn: Callable[[Any], bool] = _is_not_empty) -> T:
   """Get an entity using `fn`. If the returning entity is nothing (e.g. None or
     a tuple on Nones), it raises 404.
 
@@ -141,19 +155,20 @@ def get_or_exit(fn,
             sys.exc_info()[1])), 500)
 
   if non_empty_fn(result):
-    return result
+    return typing.cast(T, result)
   raise EarlyExitError(not_found_message, 404)
 
 
-def get_user_email():
+def get_user_email() -> str:
   """Returns currently logged-in user's email."""
   try:
-    return auth.get_current_user().email
+    user = auth.get_current_user()
+    return user.email if user else ''
   except Exception:
     return ''
 
 
-def get_integer_key(request):
+def get_integer_key(request: Any) -> int:
   """Convenience function for getting an integer datastore key ID."""
   key = request.get('key')
   try:
@@ -162,7 +177,7 @@ def get_integer_key(request):
     raise EarlyExitError('Invalid key format.', 400)
 
 
-def log(message, operation_type):
+def log(message: str, operation_type: Any) -> None:
   """Logs operation being carried by current logged-in user."""
   logging.info('ClusterFuzz: %s (%s): %s.', operation_type, get_user_email(),
                message)

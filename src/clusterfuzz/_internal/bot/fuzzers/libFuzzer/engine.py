@@ -13,9 +13,11 @@
 # limitations under the License.
 """libFuzzer engine interface."""
 
+from collections.abc import Sequence
 import os
 import re
 import tempfile
+from typing import Any
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
@@ -39,7 +41,7 @@ DICT_PARSING_FAILED_REGEX = re.compile(
 MULTISTEP_MERGE_SUPPORT_TOKEN = b'fuzz target overwrites its const input'
 
 
-def _is_multistep_merge_supported(target_path):
+def _is_multistep_merge_supported(target_path: str) -> bool:
   """Checks whether a particular binary support multistep merge."""
   # TODO(Dor1s): implementation below a temporary workaround, do not tell any
   # body that we are doing this. The real solution would be to execute a
@@ -63,8 +65,9 @@ class MergeError(engine.Error):
 class LibFuzzerOptions(engine.FuzzOptions):
   """LibFuzzer engine options."""
 
-  def __init__(self, corpus_dir, arguments, strategies, fuzz_corpus_dirs,
-               extra_env, is_mutations_run):
+  def __init__(self, corpus_dir: str, arguments: list[str],
+               strategies: dict[str, Any], fuzz_corpus_dirs: list[str],
+               extra_env: dict[str, str] | None, is_mutations_run: bool):
     super().__init__(corpus_dir, arguments, strategies)
     self.fuzz_corpus_dirs = fuzz_corpus_dirs
     self.extra_env = extra_env
@@ -75,15 +78,16 @@ class LibFuzzerOptions(engine.FuzzOptions):
 class Engine(engine.Engine):
   """LibFuzzer engine implementation."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any) -> None:
     super().__init__(*args, **kwargs)
-    self._merge_control_file = None
+    self._merge_control_file: str | None = None
 
   @property
-  def name(self):
+  def name(self) -> str:
     return 'libFuzzer'
 
-  def fuzz_additional_processing_timeout(self, options):
+  def fuzz_additional_processing_timeout(self,
+                                         options: LibFuzzerOptions) -> int:
     """Return the maximum additional timeout in seconds for additional
     operations in fuzz() (e.g. merging back new items).
 
@@ -96,9 +100,10 @@ class Engine(engine.Engine):
     fuzz_timeout = libfuzzer.get_fuzz_timeout(
         options.is_mutations_run, total_timeout=0)
     # get_fuzz_timeout returns a negative value.
-    return -fuzz_timeout
+    return -int(fuzz_timeout)
 
-  def prepare(self, corpus_dir, target_path, build_dir):
+  def prepare(self, corpus_dir: str, target_path: str,
+              build_dir: str) -> LibFuzzerOptions:
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
 
@@ -182,12 +187,12 @@ class Engine(engine.Engine):
                             strategy_info.extra_env,
                             strategy_info.is_mutations_run)
 
-  def _create_empty_testcase_file(self, reproducers_dir):
+  def _create_empty_testcase_file(self, reproducers_dir: str) -> str:
     """Create an empty testcase file in temporary directory."""
     _, path = tempfile.mkstemp(dir=reproducers_dir)
     return path
 
-  def _create_temp_dir(self, name):
+  def _create_temp_dir(self, name: str) -> str:
     """Create a temporary directory suitable for putting into the TMPDIR
     environment variable, which practically speaking sometimes needs to be
     shortish."""
@@ -196,12 +201,14 @@ class Engine(engine.Engine):
     engine_common.recreate_directory(new_temp_dir)
     return new_temp_dir
 
-  def _create_merge_corpus_dir(self):
+  def _create_merge_corpus_dir(self) -> str:
     """Create merge corpus directory."""
     return engine_common.create_temp_fuzzing_dir('merge-corpus')
 
-  def _merge_new_units(self, target_path, corpus_dir, new_corpus_dir,
-                       fuzz_corpus_dirs, arguments, stat_overrides):
+  def _merge_new_units(self, target_path: str, corpus_dir: str,
+                       new_corpus_dir: str, fuzz_corpus_dirs: list[str],
+                       arguments: list[str],
+                       stat_overrides: dict[str, Any]) -> None:
     """Merge new units."""
     # Make a decision on whether merge step is needed at all. If there are no
     # new units added by libFuzzer run, then no need to do merge at all.
@@ -254,13 +261,15 @@ class Engine(engine.Engine):
     else:
       logs.info('No new units found.')
 
-  def _fuzz_output_contains_trusty_kernel_panic(self, log_lines):
+  def _fuzz_output_contains_trusty_kernel_panic(
+      self, log_lines: Sequence[str]) -> bool:
     for line in log_lines:
       if 'panic notifier - trusty version' in line:
         return True
     return False
 
-  def fuzz(self, target_path, options, reproducers_dir, max_time):
+  def fuzz(self, target_path: str, options: LibFuzzerOptions,
+           reproducers_dir: str, max_time: int) -> engine.FuzzResult:
     """Run a fuzz session.
 
     Args:
@@ -277,6 +286,7 @@ class Engine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
 
     # Directory to place new units.
+    new_corpus_dir = None
     if options.merge_back_new_testcases:
       new_corpus_dir = engine_common.create_temp_fuzzing_dir('new')
       corpus_directories = [new_corpus_dir] + options.fuzz_corpus_dirs
@@ -327,7 +337,7 @@ class Engine(engine.Engine):
           reproducers_dir)
 
     # Parse stats information based on libFuzzer output.
-    parsed_stats = libfuzzer.parse_log_stats(log_lines)
+    parsed_stats: dict[str, Any] = libfuzzer.parse_log_stats(log_lines)
 
     # Extend parsed stats by additional performance features.
     parsed_stats.update(
@@ -335,10 +345,12 @@ class Engine(engine.Engine):
                                          options.arguments))
 
     args = fuzzer_options.FuzzerArguments.from_list(options.arguments)
+    assert args is not None
     # Set some initial stat overrides.
     timeout_limit = args.get(
         constants.TIMEOUT_FLAGNAME, default=None, constructor=int)
 
+    assert fuzz_result.time_executed is not None
     actual_duration = int(fuzz_result.time_executed)
     fuzzing_time_percent = 100 * actual_duration / float(max_time)
     parsed_stats.update({
@@ -353,6 +365,7 @@ class Engine(engine.Engine):
         args.list(), is_merge=True)
 
     if options.merge_back_new_testcases:
+      assert new_corpus_dir is not None
       self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
                             options.fuzz_corpus_dirs, non_fuzz_arguments,
                             parsed_stats)
@@ -372,11 +385,13 @@ class Engine(engine.Engine):
           engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
                        actual_duration))
 
+    assert fuzz_result.command is not None
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
                              parsed_stats, fuzz_result.time_executed,
                              fuzz_result.timed_out)
 
-  def reproduce(self, target_path, input_path, arguments, max_time):
+  def reproduce(self, target_path: str, input_path: str, arguments: list[str],
+                max_time: int) -> engine.ReproduceResult:
     """Reproduce a crash given an input.
 
     Args:
@@ -397,23 +412,29 @@ class Engine(engine.Engine):
     # Remove fuzzing specific arguments. This is only really needed for legacy
     # testcases, and can be removed in the distant future.
     arguments = libfuzzer.strip_fuzzing_arguments(arguments)
-    arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
+    args = fuzzer_options.FuzzerArguments.from_list(arguments)
+    assert args is not None
 
-    arguments[constants.RUNS_FLAGNAME] = int(constants.RUNS_TO_REPRODUCE)
+    args[constants.RUNS_FLAGNAME] = int(constants.RUNS_TO_REPRODUCE)
 
     result = runner.run_single_testcase(
-        input_path, timeout=max_time, additional_args=arguments.list())
+        input_path, timeout=max_time, additional_args=args.list())
 
     if result.timed_out:
       logs.warning('Reproducing timed out.', fuzzer_output=result.output)
       raise TimeoutError('Reproducing timed out.')
 
+    assert result.command is not None
+    assert result.return_code is not None
+    assert result.time_executed is not None
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def _minimize_corpus_two_step(self, target_path, arguments,
-                                existing_corpus_dirs, new_corpus_dir,
-                                output_corpus_dir, reproducers_dir, max_time):
+  def _minimize_corpus_two_step(self, target_path: str, arguments: list[str],
+                                existing_corpus_dirs: list[str],
+                                new_corpus_dir: str, output_corpus_dir: str,
+                                reproducers_dir: str | None,
+                                max_time: float | int) -> engine.FuzzResult:
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -446,7 +467,7 @@ class Engine(engine.Engine):
 
     # Two step merge process to obtain accurate stats for the new corpus units.
     # See https://reviews.llvm.org/D66107 for a more detailed description.
-    merge_stats = {}
+    merge_stats: dict[str, Any] = {}
 
     # Step 1. Use only existing corpus and collect "initial" stats.
     result_1 = self.minimize_corpus(target_path, arguments,
@@ -492,8 +513,10 @@ class Engine(engine.Engine):
     return engine.FuzzResult(output, result_2.command, [], merge_stats,
                              result_1.time_executed + result_2.time_executed)
 
-  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+  def minimize_corpus(self, target_path: str, arguments: list[str],
+                      input_dirs: list[str], output_dir: str,
+                      reproducers_dir: str | None,
+                      max_time: float | int) -> engine.FuzzResult:
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -544,11 +567,14 @@ class Engine(engine.Engine):
     merge_output = result.output
     merge_stats = stats.parse_stats_from_merge_log(merge_output.splitlines())
 
+    assert result.command is not None
+    assert result.time_executed is not None
     return engine.FuzzResult(merge_output, result.command, [], merge_stats,
                              result.time_executed)
 
-  def minimize_testcase(self, target_path, arguments, input_path, output_path,
-                        max_time):
+  def minimize_testcase(self, target_path: str, arguments: list[str],
+                        input_path: str, output_path: str,
+                        max_time: int) -> engine.ReproduceResult:
     """Optional (but recommended): Minimize a testcase.
 
     Args:
@@ -579,10 +605,14 @@ class Engine(engine.Engine):
       logs.error('Minimization timed out.', fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
 
+    assert result.command is not None
+    assert result.return_code is not None
+    assert result.time_executed is not None
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+  def cleanse(self, target_path: str, arguments: list[str], input_path: str,
+              output_path: str, max_time: int) -> engine.ReproduceResult:
     """Optional (but recommended): Cleanse a testcase.
 
     Args:
@@ -613,5 +643,8 @@ class Engine(engine.Engine):
       logs.error('Cleanse timed out.', fuzzer_output=result.output)
       raise TimeoutError('Cleanse timed out.')
 
+    assert result.command is not None
+    assert result.return_code is not None
+    assert result.time_executed is not None
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)

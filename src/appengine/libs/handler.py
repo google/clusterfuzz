@@ -13,15 +13,21 @@
 # limitations under the License.
 """handler.py provides decorators for POST and GET handlers."""
 
+from collections.abc import Callable
+from collections.abc import Iterator
+from collections.abc import Mapping
 import datetime
 import functools
 import json
 import re
+from typing import Any
+from typing import cast
 
 from flask import g
 from flask import make_response
 from flask import request
 import google.auth
+import google.auth.exceptions
 import requests
 
 from clusterfuzz._internal.base import utils
@@ -46,10 +52,10 @@ CLUSTERFUZZ_AUTHORIZATION_HEADER = 'x-clusterfuzz-authorization'
 CLUSTERFUZZ_AUTHORIZATION_IDENTITY = 'x-clusterfuzz-identity'
 BEARER_PREFIX = 'Bearer '
 
-_auth_config_obj = None
+_auth_config_obj: local_config.AuthConfig | None = None
 
 
-def _auth_config():
+def _auth_config() -> local_config.AuthConfig:
   """Return a config with auth root."""
   global _auth_config_obj
   if not _auth_config_obj:
@@ -58,13 +64,13 @@ def _auth_config():
   return _auth_config_obj
 
 
-def extend_request(req, params):
+def extend_request(req: Any, params: Mapping[Any, Any]) -> None:
   """Extends a request."""
 
-  def _iterparams():
+  def _iterparams() -> Iterator[tuple[Any, Any]]:
     yield from params.items()
 
-  def _get(key, default_value=None):
+  def _get(key: Any, default_value: Any = None) -> Any:
     """Return the value of the key or the default value."""
     return params.get(key, default_value)
 
@@ -72,7 +78,7 @@ def extend_request(req, params):
   req.iterparams = _iterparams
 
 
-def extend_json_request(req):
+def extend_json_request(req: Any) -> None:
   """Extends a request to support JSON."""
   try:
     params = json.loads(req.data)
@@ -83,14 +89,14 @@ def extend_json_request(req):
   extend_request(req, params)
 
 
-def cron():
+def cron() -> Callable[[Callable[..., Any]], Callable[..., Any]]:
   """Wrap a handler with cron."""
 
-  def decorator(func):
+  def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator."""
 
     @functools.wraps(func)
-    def wrapper(self):
+    def wrapper(self: Any) -> Any:
       """Wrapper."""
       if not self.is_cron():
         raise helpers.AccessDeniedError('You are not a cron.')
@@ -110,14 +116,14 @@ def cron():
   return decorator
 
 
-def check_admin_access(func):
+def check_admin_access(func: Callable[..., Any]) -> Callable[..., Any]:
   """Wrap a handler with admin checking.
 
   This decorator must be below post(..) and get(..) when used.
   """
 
   @functools.wraps(func)
-  def wrapper(self):
+  def wrapper(self: Any) -> Any:
     """Wrapper."""
     if not auth.is_current_user_admin():
       raise helpers.AccessDeniedError('Admin access is required.')
@@ -127,14 +133,15 @@ def check_admin_access(func):
   return wrapper
 
 
-def check_admin_access_if_oss_fuzz(func):
+def check_admin_access_if_oss_fuzz(
+    func: Callable[..., Any]) -> Callable[..., Any]:
   """Wrap a handler with an admin check if this is OSS-Fuzz.
 
   This decorator must be below post(..) and get(..) when used.
   """
 
   @functools.wraps(func)
-  def wrapper(self):
+  def wrapper(self: Any) -> Any:
     """Wrapper."""
     if utils.is_oss_fuzz():
       return check_admin_access(func)(self)
@@ -144,7 +151,7 @@ def check_admin_access_if_oss_fuzz(func):
   return wrapper
 
 
-def unsupported_on_local_server(func):
+def unsupported_on_local_server(func: Callable[..., Any]) -> Callable[..., Any]:
   """Wrap a handler to raise error when running in local App Engine
   development environment.
 
@@ -152,7 +159,7 @@ def unsupported_on_local_server(func):
   """
 
   @functools.wraps(func)
-  def wrapper(self, *args, **kwargs):
+  def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
     """Wrapper."""
     if environment.is_running_on_app_engine_development():
       raise helpers.EarlyExitError(
@@ -164,7 +171,7 @@ def unsupported_on_local_server(func):
   return wrapper
 
 
-def validate_id_token(access_token):
+def validate_id_token(access_token: str) -> requests.Response | None:
   """Validates a JWT as an id token."""
   response_id_token = requests.get(
       'https://www.googleapis.com/oauth2/v3/tokeninfo',
@@ -177,7 +184,7 @@ def validate_id_token(access_token):
   return None
 
 
-def validate_access_token(access_token):
+def validate_access_token(access_token: str) -> requests.Response | None:
   """Validates a JWT as an access token."""
   response_access_token = requests.get(
       'https://www.googleapis.com/oauth2/v3/tokeninfo',
@@ -190,7 +197,7 @@ def validate_access_token(access_token):
   return None
 
 
-def validate_token(authorization):
+def validate_token(authorization: str) -> requests.Response:
   """Validates a JWT as either an access or id token, or raises."""
   access_token = authorization.split(' ')[1]
   id_token_response = validate_id_token(access_token)
@@ -206,7 +213,7 @@ def validate_token(authorization):
       'is neither a valid id or access token.')
 
 
-def get_email_and_access_token(authorization):
+def get_email_and_access_token(authorization: str) -> tuple[str, str]:
   """Get user email from the request.
 
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
@@ -245,13 +252,13 @@ def get_email_and_access_token(authorization):
         'Parsing the JSON response body failed: %s' % response.text, 500) from e
 
 
-def oauth(func):
+def oauth(func: Callable[..., Any]) -> Callable[..., Any]:
   """Wrap a handler with OAuth authentication by reading the Authorization
     header and getting user email.
   """
 
   @functools.wraps(func)
-  def wrapper(self, *args, **kwargs):
+  def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
     """Wrapper."""
     auth_header = request.headers.get('Authorization')
     if auth_header:
@@ -269,11 +276,11 @@ def oauth(func):
   return wrapper
 
 
-def pubsub_push(func):
+def pubsub_push(func: Callable[..., Any]) -> Callable[..., Any]:
   """Wrap a handler with pubsub push authentication."""
 
   @functools.wraps(func)
-  def wrapper(self):
+  def wrapper(self: Any) -> Any:
     """Wrapper."""
     try:
       email = auth.get_email_from_bearer_token(request)
@@ -289,17 +296,18 @@ def pubsub_push(func):
   return wrapper
 
 
-def check_user_access(need_privileged_access):
+def check_user_access(need_privileged_access: bool
+                     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
   """Wrap a handler with check_user_access.
 
   This decorator must be below post(..) and get(..) when used.
   """
 
-  def decorator(func):
+  def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator."""
 
     @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
       """Wrapper."""
       if not access.has_access(need_privileged_access=need_privileged_access):
         raise helpers.AccessDeniedError()
@@ -311,7 +319,7 @@ def check_user_access(need_privileged_access):
   return decorator
 
 
-def check_testcase_access(func):
+def check_testcase_access(func: Callable[..., Any]) -> Callable[..., Any]:
   """Wrap a handler with check_testcase_access.
 
   It expects the param
@@ -321,10 +329,10 @@ def check_testcase_access(func):
   """
 
   @functools.wraps(func)
-  def wrapper(self):
+  def wrapper(self: Any) -> Any:
     """Wrapper."""
     testcase_id = helpers.cast(
-        request.get('testcaseId'), int,
+        cast(Any, request).get('testcaseId'), int,
         "The param 'testcaseId' is not a number.")
 
     testcase = access.check_access_and_get_testcase(testcase_id)
@@ -333,12 +341,12 @@ def check_testcase_access(func):
   return wrapper
 
 
-def allowed_cors(func):
+def allowed_cors(func: Callable[..., Any]) -> Callable[..., Any]:
   """Wrap a handler with 'Access-Control-Allow-Origin to allow cross-domain
   AJAX calls."""
 
   @functools.wraps(func)
-  def wrapper(self):
+  def wrapper(self: Any) -> Any:
     """Wrapper."""
     origin = request.headers.get('Origin')
     whitelisted_cors_urls = _auth_config().get('whitelisted_cors_urls')
@@ -362,14 +370,15 @@ def allowed_cors(func):
   return wrapper
 
 
-def post(request_content_type, response_content_type):
+def post(request_content_type: str, response_content_type: str
+        ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
   """Wrap a POST handler, parse request, and set response's content type."""
 
-  def decorator(func):
+  def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator."""
 
     @functools.wraps(func)
-    def wrapper(self):
+    def wrapper(self: Any) -> Any:
       """Wrapper."""
       if response_content_type == JSON:
         self.is_json = True
@@ -398,14 +407,15 @@ def post(request_content_type, response_content_type):
   return decorator
 
 
-def get(response_content_type):
+def get(response_content_type: str
+       ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
   """Wrap a GET handler and set response's content type."""
 
-  def decorator(func):
+  def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
     """Decorator."""
 
     @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
       """Wrapper."""
       if response_content_type == JSON:
         self.is_json = True
@@ -428,12 +438,12 @@ def get(response_content_type):
   return decorator
 
 
-def require_csrf_token(func):
+def require_csrf_token(func: Callable[..., Any]) -> Callable[..., Any]:
   """Wrap a handler to require a valid CSRF token."""
 
-  def wrapper(self, *args, **kwargs):
+  def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
     """Check to see if this handler has a valid CSRF token provided to it."""
-    token_value = request.get('csrf_token')
+    token_value = cast(Any, request).get('csrf_token')
     user = auth.get_current_user()
     if not user:
       raise helpers.AccessDeniedError('Not logged in.')
@@ -446,7 +456,8 @@ def require_csrf_token(func):
       raise helpers.AccessDeniedError('Invalid CSRF token.')
 
     # Make sure that the token is not expired.
-    if token.expiration_time < datetime.datetime.utcnow():
+    if cast(datetime.datetime,
+            token.expiration_time) < datetime.datetime.utcnow():
       token.key.delete()
       raise helpers.AccessDeniedError('Expired CSRF token.')
 

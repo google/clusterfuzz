@@ -15,17 +15,18 @@
 
 import re
 
-LINUX_KERNEL_MODULE_STACK_TRACE = 'Linux Kernel Library Stack Trace:'
+LINUX_KERNEL_MODULE_STACK_TRACE: str = 'Linux Kernel Library Stack Trace:'
 
 #hid-fuzzer: lib/posix-host.c:401: void panic(void): Assertion `0' failed.
-LINUX_KERNEL_LIBRARY_ASSERT_REGEX = re.compile(
+LINUX_KERNEL_LIBRARY_ASSERT_REGEX: re.Pattern[str] = re.compile(
     r'([^:]+): lib/posix-host\.c:\d+: void panic\(void\): Assertion .*')
 
 # Linux version 5.4.58+-ab6926695 where 6926695 is the build id.
 # Unlike in a normal linux version string, we do not know the build hash.
-LINUX_VERSION_REGEX_LKL = re.compile(r'Linux version .+-(ab([0-9a-f]+)\s)')
+LINUX_VERSION_REGEX_LKL: re.Pattern[str] = re.compile(
+    r'Linux version .+-(ab([0-9a-f]+)\s)')
 
 # This is the prefix in the repo.prop for the kernel for all
 # lkl fuzzers.
-LKL_REPO_KERNEL_PREFIX = 'kernel/private/lkl'
-LKL_BUILD_TARGET = 'kernel_kasan.lkl_fuzzers'
+LKL_REPO_KERNEL_PREFIX: str = 'kernel/private/lkl'
+LKL_BUILD_TARGET: str = 'kernel_kasan.lkl_fuzzers'

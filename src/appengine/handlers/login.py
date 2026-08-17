@@ -14,8 +14,11 @@
 """Login page."""
 
 import datetime
+from typing import Any
+from typing import cast
 
 from flask import request
+from flask import Response
 
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
@@ -24,8 +27,8 @@ from libs import auth
 from libs import handler
 from libs import helpers
 
-DEFAULT_REDIRECT = '/'
-SESSION_EXPIRY_DAYS = 14
+DEFAULT_REDIRECT: str = '/'
+SESSION_EXPIRY_DAYS: int = 14
 
 
 class Handler(base_handler.Handler):
@@ -33,9 +36,9 @@ class Handler(base_handler.Handler):
 
   @handler.get(handler.HTML)
   @handler.unsupported_on_local_server
-  def get(self):
+  def get(self) -> Response:
     """Handle a get request."""
-    dest = request.get('dest', DEFAULT_REDIRECT)
+    dest = cast(str, cast(Any, request).get('dest', DEFAULT_REDIRECT))
     base_handler.check_redirect_url(dest)
 
     return self.render(
@@ -50,9 +53,9 @@ class SessionLoginHandler(base_handler.Handler):
   """Session login handler."""
 
   @handler.post(handler.JSON, handler.JSON)
-  def post(self):
+  def post(self) -> Response:
     """Handle a post request."""
-    id_token = request.get('idToken')
+    id_token = cast(str, cast(Any, request).get('idToken'))
     expires_in = datetime.timedelta(days=SESSION_EXPIRY_DAYS)
     try:
       session_cookie = auth.create_session_cookie(id_token, expires_in)
@@ -72,14 +75,16 @@ class LogoutHandler(base_handler.Handler):
   @handler.get(handler.HTML)
   @handler.unsupported_on_local_server
   @handler.require_csrf_token
-  def get(self):
+  def get(self) -> Response:
     """Handle a get request."""
     try:
-      auth.revoke_session_cookie(auth.get_session_cookie())
+      auth.revoke_session_cookie(cast(str, auth.get_session_cookie()))
     except auth.AuthError:
       # Even if the revoke failed, remove the cookie.
       logs.error('Failed to revoke session cookie.')
 
-    response = self.redirect(request.get('dest', DEFAULT_REDIRECT))
+    response = self.redirect(
+        cast(str,
+             cast(Any, request).get('dest', DEFAULT_REDIRECT)))
     response.delete_cookie('session')
     return response

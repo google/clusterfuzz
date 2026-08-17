@@ -13,9 +13,14 @@
 # limitations under the License.
 """Handler for updating issue."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
+from flask import Response
 
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from handlers import base_handler
@@ -28,7 +33,8 @@ class Handler(base_handler.Handler):
   """Handler that updates an issue."""
 
   @staticmethod
-  def update_issue(testcase, issue_id, needs_summary_update):
+  def update_issue(testcase: data_types.Testcase, issue_id: Any,
+                   needs_summary_update: Any) -> None:
     """Associate (or update) an existing issue with the testcase."""
     issue_id = helpers.cast(issue_id, int,
                             'Issue ID (%s) is not a number!' % issue_id)
@@ -73,10 +79,11 @@ class Handler(base_handler.Handler):
   @handler.require_csrf_token
   @handler.check_admin_access_if_oss_fuzz
   @handler.check_testcase_access
-  def post(self, testcase):
+  def post(self, testcase: data_types.Testcase) -> Response:
     """Update an issue."""
-    issue_id = request.get('issueId')
-    needs_summary_update = request.get('needsSummaryUpdate')
+    request_any = cast(Any, request)
+    issue_id = request_any.get('issueId')
+    needs_summary_update = request_any.get('needsSummaryUpdate')
 
     self.update_issue(testcase, issue_id, needs_summary_update)
     return self.render_json(show.get_testcase_detail(testcase))

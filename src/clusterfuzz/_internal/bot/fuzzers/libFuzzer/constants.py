@@ -20,67 +20,67 @@ defined in this function that end with the suffix "_FLAG" should contain
 """
 
 # libFuzzer flags.
-ARTIFACT_PREFIX_FLAG = '-artifact_prefix='
-ARTIFACT_PREFIX_FLAGNAME = 'artifact_prefix'
+ARTIFACT_PREFIX_FLAG: str = '-artifact_prefix='
+ARTIFACT_PREFIX_FLAGNAME: str = 'artifact_prefix'
 
-DATA_FLOW_TRACE_FLAGNAME = 'data_flow_trace'
+DATA_FLOW_TRACE_FLAGNAME: str = 'data_flow_trace'
 
-DICT_FLAGNAME = 'dict'
+DICT_FLAGNAME: str = 'dict'
 
-FOCUS_FUNCTION_FLAGNAME = 'focus_function'
+FOCUS_FUNCTION_FLAGNAME: str = 'focus_function'
 
-FORK_FLAGNAME = 'fork'
+FORK_FLAGNAME: str = 'fork'
 
-MAX_LEN_FLAGNAME = 'max_len'
+MAX_LEN_FLAGNAME: str = 'max_len'
 
-MAX_TOTAL_TIME_FLAGNAME = 'max_total_time'
+MAX_TOTAL_TIME_FLAGNAME: str = 'max_total_time'
 
-RSS_LIMIT_FLAGNAME = 'rss_limit_mb'
+RSS_LIMIT_FLAGNAME: str = 'rss_limit_mb'
 
-RUNS_FLAGNAME = 'runs'
+RUNS_FLAGNAME: str = 'runs'
 
-TIMEOUT_FLAGNAME = 'timeout'
+TIMEOUT_FLAGNAME: str = 'timeout'
 
-EXACT_ARTIFACT_PATH_FLAGNAME = 'exact_artifact_path'
+EXACT_ARTIFACT_PATH_FLAGNAME: str = 'exact_artifact_path'
 
-CLEANSE_CRASH_FLAGNAME = 'cleanse_crash'
+CLEANSE_CRASH_FLAGNAME: str = 'cleanse_crash'
 
-MERGE_FLAGNAME = 'merge'
+MERGE_FLAGNAME: str = 'merge'
 
-MERGE_CONTROL_FILE_FLAGNAME = 'merge_control_file'
+MERGE_CONTROL_FILE_FLAGNAME: str = 'merge_control_file'
 
-MINIMIZE_CRASH_FLAGNAME = 'minimize_crash'
+MINIMIZE_CRASH_FLAGNAME: str = 'minimize_crash'
 
-PRINT_FINAL_STATS_FLAGNAME = 'print_final_stats'
+PRINT_FINAL_STATS_FLAGNAME: str = 'print_final_stats'
 
-DETECT_LEAKS_FLAGNAME = 'detect_leaks'
+DETECT_LEAKS_FLAGNAME: str = 'detect_leaks'
 
-TMP_ARTIFACT_PREFIX_ARGUMENT = '/tmp/'
+TMP_ARTIFACT_PREFIX_ARGUMENT: str = '/tmp/'
 
-VALUE_PROFILE_FLAGNAME = 'use_value_profile'
+VALUE_PROFILE_FLAGNAME: str = 'use_value_profile'
 
 # Default value for rss_limit_mb flag to catch OOM.s
-DEFAULT_RSS_LIMIT_MB = 2560
+DEFAULT_RSS_LIMIT_MB: int = 2560
 
 # Memory overhead we want to keep to ensure we're not going OOM.s
-MEMORY_OVERHEAD = 1024  # 1 GB
+MEMORY_OVERHEAD: int = 1024  # 1 GB
 
 # Default value for timeout flag to catch timeouts.
-DEFAULT_TIMEOUT_LIMIT = 25
+DEFAULT_TIMEOUT_LIMIT: int = 25
 
 # Buffer for processing crash reports.
-REPORT_PROCESSING_TIME = 5
+REPORT_PROCESSING_TIME: int = 5
 
 # libFuzzer's exit code if a bug occurred in libFuzzer.
-LIBFUZZER_ERROR_EXITCODE = 1
+LIBFUZZER_ERROR_EXITCODE: int = 1
 
 # Defines value of runs argument when loading a testcase.
-RUNS_TO_REPRODUCE = 100
+RUNS_TO_REPRODUCE: int = 100
 
 # libFuzzer's exit code if a bug was found in the target code.
-TARGET_ERROR_EXITCODE = 77
+TARGET_ERROR_EXITCODE: int = 77
 
-NONCRASH_RETURN_CODES = {
+NONCRASH_RETURN_CODES: set[int] = {
     # Code when LibFuzzer exits due to SIGTERM cancellation (timeout exceeded).
     -15,
     0,

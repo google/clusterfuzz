@@ -13,9 +13,15 @@
 # limitations under the License.
 """Handler for finding similar issues."""
 
-from flask import request
+from typing import Any
+from typing import cast
 
+from flask import request
+from flask import Response
+
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.issue_management.issue_tracker import IssueTracker
 from handlers import base_handler
 from libs import handler
 from libs import helpers
@@ -25,13 +31,14 @@ class Handler(base_handler.Handler):
   """Handler that finds similar issues."""
 
   @staticmethod
-  def get_issues(issue_tracker, testcase, only_open):
+  def get_issues(issue_tracker: IssueTracker, testcase: data_types.Testcase,
+                 only_open: bool) -> list[dict[str, Any]]:
     """Get similar issues. It is used by self.process() and
     handler.testcase_detail.FindSimilarIssuesHandler.get()"""
     issues = issue_tracker_utils.get_similar_issues(
         issue_tracker, testcase, only_open=only_open)
 
-    items = []
+    items: list[dict[str, Any]] = []
     for entry in issues:
       items.append({
           'owner': entry.assignee,
@@ -50,9 +57,9 @@ class Handler(base_handler.Handler):
   @handler.get(handler.JSON)
   @handler.check_admin_access_if_oss_fuzz
   @handler.check_testcase_access
-  def get(self, testcase):
+  def get(self, testcase: data_types.Testcase) -> Response:
     """Find similar issues."""
-    filter_type = request.get('filterType')
+    filter_type = cast(Any, request).get('filterType')
     only_open = filter_type == 'open'
 
     issue_tracker = helpers.get_issue_tracker_for_testcase(testcase)

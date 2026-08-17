@@ -20,7 +20,7 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 
 
-def get_extra_env(fuzzer_path):
+def get_extra_env(fuzzer_path: str) -> dict[str, str] | None:
   """Get environment variables for a given fuzz target if any (or None)."""
   fuzzer_options = options.get_fuzz_target_options(fuzzer_path)
   if fuzzer_options:
@@ -29,11 +29,11 @@ def get_extra_env(fuzzer_path):
   return None
 
 
-def get_arguments(fuzzer_path) -> options.FuzzerArguments:
+def get_arguments(fuzzer_path: str) -> options.FuzzerArguments:
   """Get arguments for a given fuzz target."""
   arguments = options.FuzzerArguments()
-  rss_limit_mb = None
-  timeout = None
+  rss_limit_mb: int | None = None
+  timeout: int | None = None
 
   fuzzer_options = options.get_fuzz_target_options(fuzzer_path)
 
@@ -68,6 +68,6 @@ def get_arguments(fuzzer_path) -> options.FuzzerArguments:
 class LibFuzzer(builtin.EngineFuzzer):
   """Builtin libFuzzer fuzzer."""
 
-  def generate_arguments(self, fuzzer_path):
+  def generate_arguments(self, fuzzer_path: str) -> str:
     """Generate arguments for fuzzer using .options file or default values."""
     return ' '.join(get_arguments(fuzzer_path).list())

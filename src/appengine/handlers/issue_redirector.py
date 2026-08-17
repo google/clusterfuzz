@@ -14,6 +14,8 @@
 """Handler for redirecting to the issue url (given a testcase). See
   crbug.com/665652 on why we need it."""
 
+from typing import cast
+
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from handlers import base_handler
 from libs import helpers
@@ -22,9 +24,9 @@ from libs import helpers
 class Handler(base_handler.Handler):
   """Handler that redirects user to the issue URL."""
 
-  def get(self, testcase_id=None):
+  def get(self, testcase_id: str | int | None = None) -> base_handler.Response:
     """Redirect user to the correct URL."""
-    testcase = helpers.get_testcase(testcase_id)
+    testcase = helpers.get_testcase(cast(int | str, testcase_id))
     issue_url = helpers.get_or_exit(
         lambda: issue_tracker_utils.get_issue_url(testcase),
         'Issue tracker for testcase (id=%s) is not found.' % testcase_id,

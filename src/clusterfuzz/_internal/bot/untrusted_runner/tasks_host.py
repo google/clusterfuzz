@@ -13,8 +13,14 @@
 # limitations under the License.
 """Tasks host."""
 
-import datetime
+# pyright: reportAttributeAccessIssue=none
 
+from collections.abc import Mapping
+from collections.abc import Sequence
+import datetime
+from typing import cast
+
+from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
 import grpc
 
@@ -23,6 +29,7 @@ from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import untrusted_runner_pb2
+from clusterfuzz._internal.protos import untrusted_runner_pb2_grpc
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz.fuzz import engine
 
@@ -31,7 +38,13 @@ from . import host
 # pylint: disable=no-member
 
 
-def _fuzz_target_to_proto(fuzz_target):
+def _stub() -> untrusted_runner_pb2_grpc.UntrustedRunnerStub:
+  """Return the UntrustedRunnerStub."""
+  return cast(untrusted_runner_pb2_grpc.UntrustedRunnerStub, host.stub())
+
+
+def _fuzz_target_to_proto(fuzz_target: data_types.FuzzTarget,
+                         ) -> untrusted_runner_pb2.FuzzTarget:
   """Convert fuzz_target to protobuf."""
   return untrusted_runner_pb2.FuzzTarget(
       engine=fuzz_target.engine,
@@ -40,12 +53,15 @@ def _fuzz_target_to_proto(fuzz_target):
   )
 
 
-def _get_datetime():
+def _get_datetime() -> datetime.datetime:
   return datetime.datetime.utcnow()
 
 
-def do_corpus_pruning(uworker_input, context,
-                      revision) -> corpus_pruning_task.CorpusPruningResult:
+def do_corpus_pruning(
+    uworker_input: uworker_msg_pb2.Input,
+    context: corpus_pruning_task.Context,
+    revision: int,
+) -> corpus_pruning_task.CorpusPruningResult:
   """Do corpus pruning on untrusted worker."""
   cross_pollinate_fuzzers = [
       untrusted_runner_pb2.CrossPollinateFuzzer(
@@ -61,7 +77,7 @@ def do_corpus_pruning(uworker_input, context,
       revision=revision,
       uworker_input=uworker_input)
 
-  response = host.stub().PruneCorpus(request)
+  response = _stub().PruneCorpus(request)
 
   project_qualified_name = context.fuzz_target.project_qualified_name()
   today_date = _get_datetime()
@@ -111,27 +127,35 @@ def do_corpus_pruning(uworker_input, context,
       cross_pollination_stats=pollination_stats)
 
 
-def _unpack_values(values):
+def _unpack_values(values: Mapping[str, any_pb2.Any],
+                  ) -> dict[str, float | int | str]:
   """Unpack protobuf values."""
-  unpacked = {}
+  unpacked: dict[str, float | int | str] = {}
   for key, packed_value in values.items():
     if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
-      value = wrappers_pb2.DoubleValue()
+      double_value = wrappers_pb2.DoubleValue()
+      packed_value.Unpack(double_value)
+      unpacked[key] = double_value.value
     elif packed_value.Is(wrappers_pb2.Int64Value.DESCRIPTOR):
-      value = wrappers_pb2.Int64Value()
+      int64_value = wrappers_pb2.Int64Value()
+      packed_value.Unpack(int64_value)
+      unpacked[key] = int64_value.value
     elif packed_value.Is(wrappers_pb2.StringValue.DESCRIPTOR):
-      value = wrappers_pb2.StringValue()
+      string_value = wrappers_pb2.StringValue()
+      packed_value.Unpack(string_value)
+      unpacked[key] = string_value.value
     else:
       raise ValueError('Unknown stat type for ' + key)
-
-    packed_value.Unpack(value)
-    unpacked[key] = value.value
 
   return unpacked
 
 
-def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
-                testcase_directory):
+def engine_fuzz(
+    engine_impl: engine.Engine,
+    target_name: str,
+    sync_corpus_directory: str,
+    testcase_directory: str,
+) -> tuple[engine.FuzzResult, dict[str, str], dict[str, float | int | str]]:
   """Run engine fuzzer on untrusted worker."""
   request = untrusted_runner_pb2.EngineFuzzRequest(
       engine=engine_impl.name,
@@ -140,7 +164,7 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
           sync_corpus_directory),
       testcase_directory=file_host.rebase_to_worker_root(testcase_directory))
 
-  response = host.stub().EngineFuzz(request)
+  response = _stub().EngineFuzz(request)
   crashes = [
       engine.Crash(
           input_path=file_host.rebase_to_host_root(crash.input_path),
@@ -163,8 +187,13 @@ def engine_fuzz(engine_impl, target_name, sync_corpus_directory,
   return result, dict(response.fuzzer_metadata), unpacked_strategies
 
 
-def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
-                     timeout):
+def engine_reproduce(
+    engine_impl: engine.Engine,
+    target_name: str,
+    testcase_path: str,
+    arguments: Sequence[str],
+    timeout: int | float,
+) -> engine.ReproduceResult:
   """Run engine reproduce on untrusted worker."""
   rebased_testcase_path = file_host.rebase_to_worker_root(testcase_path)
   file_host.copy_file_to_worker(testcase_path, rebased_testcase_path)
@@ -177,7 +206,7 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
       timeout=timeout)
 
   try:
-    response = host.stub().EngineReproduce(request)
+    response = _stub().EngineReproduce(request)
   except grpc.RpcError as e:
     if 'TargetNotFoundError' in repr(e):
       # Resurface the right exception.

@@ -15,6 +15,10 @@
 
 import os
 import re
+from typing import Any
+from typing import cast
+from typing import Optional
+from typing import Tuple
 import uuid
 
 from google.cloud import ndb
@@ -27,8 +31,8 @@ from clusterfuzz._internal.system import environment
 
 from . import storage
 
-FAIL_NUM_RETRIES = 2
-FAIL_WAIT = 1.5
+FAIL_NUM_RETRIES: int = 2
+FAIL_WAIT: float = 1.5
 
 
 # pylint: disable=invalid-name
@@ -44,11 +48,11 @@ class BlobInfo(data_types.Model):
   upload_id = ndb.StringProperty()
 
   @classmethod
-  def _get_kind(cls):
+  def _get_kind(cls) -> str:
     if environment.get_value('DATASTORE_EMULATOR_HOST'):
       # Datastore emulator does not allow writing entities with names of the
       # format "__*__".
-      cls._kind_map['_BlobInfo_'] = cls
+      getattr(cls, '_kind_map')['_BlobInfo_'] = cls
       return '_BlobInfo_'
 
     return '__BlobInfo__'
@@ -67,7 +71,7 @@ class BlobsError(Exception):
   """Base exception for blobs module."""
 
 
-def _is_gcs_key(blob_key):
+def _is_gcs_key(blob_key: str) -> bool:
   """Return whether if the key is a GCS key."""
   gcs_key_pattern = re.compile(
       r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
@@ -75,12 +79,12 @@ def _is_gcs_key(blob_key):
   return bool(gcs_key_pattern.match(blob_key))
 
 
-def _get_gcs_blob_path(blob_key):
+def _get_gcs_blob_path(blob_key: str) -> str:
   """Return the full path to the blob on GCS."""
   return '/%s/%s' % (storage.blobs_bucket(), blob_key)
 
 
-def get_gcs_path(blob_key):
+def get_gcs_path(blob_key: str) -> Optional[str]:
   """Return GCS path for the blob."""
   if _is_gcs_key(blob_key):
     return _get_gcs_blob_path(blob_key)
@@ -90,7 +94,7 @@ def get_gcs_path(blob_key):
   if not blob_info:
     return None
 
-  return blob_info.gs_object_name
+  return cast(Optional[str], blob_info.gs_object_name)
 
 
 @memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
@@ -98,7 +102,7 @@ def get_gcs_path(blob_key):
     retries=FAIL_NUM_RETRIES,
     delay=FAIL_WAIT,
     function='google_cloud_utils.blobs.get_blob_size')
-def get_blob_size(blob_key):
+def get_blob_size(blob_key: Optional[str]) -> Optional[int]:
   """Returns blob size for a given blob key."""
   if not blob_key or blob_key == 'NA':
     return None
@@ -110,7 +114,7 @@ def get_blob_size(blob_key):
   return blob_info.size
 
 
-def get_blob_info(blob_key):
+def get_blob_info(blob_key: str) -> Optional[storage.GcsBlobInfo]:
   """Get the GcsBlobInfo for the given key. Always returns a
   storage.GcsBlobInfo, even for legacy blobs."""
   if _is_gcs_key(blob_key):
@@ -128,7 +132,7 @@ def get_blob_info(blob_key):
     delay=FAIL_WAIT,
     function='google_cloud_utils.blobs.delete_blob',
     retry_on_false=True)
-def delete_blob(blob_key):
+def delete_blob(blob_key: str) -> bool:
   """Delete a blob key."""
   blob_info = get_blob_info(blob_key)
   if not blob_info:
@@ -142,7 +146,7 @@ def delete_blob(blob_key):
     delay=FAIL_WAIT,
     function='google_cloud_utils.blobs.write_blob',
     retry_on_false=True)
-def write_blob(file_handle_or_path):
+def write_blob(file_handle_or_path: Any) -> str:
   """Write a single file testcase to GCS."""
   blobs_bucket = storage.blobs_bucket()
   blob_name = generate_new_blob_name()
@@ -171,7 +175,7 @@ def write_blob(file_handle_or_path):
     delay=FAIL_WAIT,
     function='google_cloud_utils.blobs.read_blob_to_disk',
     retry_on_false=True)
-def read_blob_to_disk(blob_key, local_file):
+def read_blob_to_disk(blob_key: str, local_file: str) -> bool:
   """Copy data stored in the blobstore to a local file."""
   assert not environment.is_running_on_app_engine()
 
@@ -180,18 +184,21 @@ def read_blob_to_disk(blob_key, local_file):
     os.makedirs(directory)
 
   gcs_path = get_gcs_path(blob_key)
-  return storage.copy_file_from(gcs_path, local_file)
+  return storage.copy_file_from(cast(str, gcs_path), local_file)
 
 
-def read_key(blob_key):
+def read_key(blob_key: Optional[str]) -> Optional[bytes]:
   """Returns data associated with a blobstore key."""
+  if not blob_key:
+    return None
+
   gcs_path = get_gcs_path(blob_key)
-  return storage.read_data(gcs_path)
+  return storage.read_data(cast(str, gcs_path))
 
 
-def get_legacy_blob_info(blob_key):
+def get_legacy_blob_info(blob_key: str) -> Optional[BlobInfo]:
   """Return legacy blob info information."""
-  legacy_blob_info = ndb.Key(BlobInfo, blob_key).get()
+  legacy_blob_info = cast(Optional[BlobInfo], ndb.Key(BlobInfo, blob_key).get())
   if not legacy_blob_info:
     return None
 
@@ -208,31 +215,32 @@ def get_legacy_blob_info(blob_key):
   return legacy_blob_info
 
 
-def get_blob_mapping(blob_key):
+def get_blob_mapping(blob_key: str) -> Optional[_blobmigrator_BlobKeyMapping]:
   """Return blob mapping information."""
-  return ndb.Key(_blobmigrator_BlobKeyMapping, blob_key).get()
+  return cast(Optional[_blobmigrator_BlobKeyMapping],
+              ndb.Key(_blobmigrator_BlobKeyMapping, blob_key).get())
 
 
-def generate_new_blob_name():
+def generate_new_blob_name() -> str:
   """Generate a new blob name."""
   return str(uuid.uuid4()).lower()
 
 
-def get_signed_download_url(blob_key):
+def get_signed_download_url(blob_key: str) -> str:
   """Returns a signed download URL that can be used to upload the blob pointed
   to by |blob_key|."""
   gcs_path = get_gcs_path(blob_key)
-  return storage.get_signed_download_url(gcs_path)
+  return storage.get_signed_download_url(cast(str, gcs_path))
 
 
-def get_signed_upload_url(blob_key):
+def get_signed_upload_url(blob_key: str) -> str:
   """Returns a signed download URL that can be used to download the blob pointed
   to by |blob_key|."""
   gcs_path = get_gcs_path(blob_key)
-  return storage.get_signed_upload_url(gcs_path)
+  return storage.get_signed_upload_url(cast(str, gcs_path))
 
 
-def get_blob_signed_upload_url():
+def get_blob_signed_upload_url() -> Tuple[str, str]:
   """Returns a pair of (blob_name,signed_upload_url) to be used from utask_main
   to upload blobs."""
   bucket = storage.blobs_bucket()

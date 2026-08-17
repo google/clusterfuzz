@@ -25,7 +25,7 @@ from clusterfuzz._internal.system import environment
 AFL_DUMMY_INPUT = 'in1'
 
 
-def write_dummy_file(input_dir):
+def write_dummy_file(input_dir: str) -> None:
   """Afl will refuse to run if the corpus directory is empty or contains empty
   files. So write the bare minimum to get afl to run if there is no corpus
   yet."""
@@ -40,12 +40,14 @@ def write_dummy_file(input_dir):
 class Afl(builtin.EngineFuzzer):
   """Builtin AFL fuzzer."""
 
-  def generate_arguments(self, fuzzer_path):  # pylint: disable=unused-argument
+  def generate_arguments(self, fuzzer_path: str) -> str:  # pylint: disable=unused-argument
     """Generate arguments for fuzzer using .options file or default values."""
     return ''
 
-  def run(self, input_directory, output_directory, no_of_files):
+  def run(self, input_directory: str, output_directory: str,
+          no_of_files: int) -> builtin.BuiltinFuzzerResult:
     result = super().run(input_directory, output_directory, no_of_files)
 
+    assert result.corpus_directory is not None
     write_dummy_file(result.corpus_directory)
     return result

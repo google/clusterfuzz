@@ -13,7 +13,6 @@
 # limitations under the License.
 """Build manager."""
 
-from collections import namedtuple
 import contextlib
 import datetime
 import json
@@ -22,7 +21,16 @@ import re
 import shutil
 import subprocess
 import time
+from typing import Any
+from typing import cast
+from typing import Dict
+from typing import Generator
+from typing import Iterable
+from typing import List
+from typing import NamedTuple
 from typing import Optional
+from typing import Tuple
+from typing import Union
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
@@ -43,51 +51,55 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 # The default environment variables for specifying build bucket paths.
-DEFAULT_BUILD_BUCKET_PATH_ENV_VARS = (
+DEFAULT_BUILD_BUCKET_PATH_ENV_VARS: Tuple[str, ...] = (
     'RELEASE_BUILD_BUCKET_PATH',
     'SYM_RELEASE_BUILD_BUCKET_PATH',
     'SYM_DEBUG_BUILD_BUCKET_PATH',
 )
 
 # File name for storing current build revision.
-REVISION_FILE_NAME = 'REVISION'
+REVISION_FILE_NAME: str = 'REVISION'
 
 # Various build type mapping strings.
-BUILD_TYPE_SUBSTRINGS = [
+BUILD_TYPE_SUBSTRINGS: List[str] = [
     '-beta', '-stable', '-debug', '-release', '-symbolized', '-extended_stable'
 ]
 
 # Build eviction constants.
-MAX_EVICTED_BUILDS = 100
-MIN_FREE_DISK_SPACE_CHROMIUM = 10 * 1024 * 1024 * 1024  # 10 GB
-MIN_FREE_DISK_SPACE_DEFAULT = 5 * 1024 * 1024 * 1024  # 5 GB
-TIMESTAMP_FILE = '.timestamp'
+MAX_EVICTED_BUILDS: int = 100
+MIN_FREE_DISK_SPACE_CHROMIUM: int = 10 * 1024 * 1024 * 1024  # 10 GB
+MIN_FREE_DISK_SPACE_DEFAULT: int = 5 * 1024 * 1024 * 1024  # 5 GB
+TIMESTAMP_FILE: str = '.timestamp'
 
 # Indicates if this is a partial build (due to selected files copied from fuzz
 # target).
-PARTIAL_BUILD_FILE = '.partial_build'
+PARTIAL_BUILD_FILE: str = '.partial_build'
 
 # Time for unpacking a build beyond which an error should be logged.
-UNPACK_TIME_LIMIT = 60 * 20
+UNPACK_TIME_LIMIT: int = 60 * 20
 
-PATCHELF_SIZE_LIMIT = 1.5 * 1024 * 1024 * 1024  # 1.5 GiB
+PATCHELF_SIZE_LIMIT: float = 1.5 * 1024 * 1024 * 1024  # 1.5 GiB
 
-TARGETS_LIST_FILENAME = 'targets.list'
+TARGETS_LIST_FILENAME: str = 'targets.list'
 
-BuildUrls = namedtuple('BuildUrls', ['bucket_path', 'urls_list'])
+
+class BuildUrls(NamedTuple):
+  bucket_path: str
+  urls_list: List[str]
 
 
 class BuildManagerError(Exception):
   """Build manager exceptions."""
 
 
-def _base_build_dir(bucket_path):
+def _base_build_dir(bucket_path: Optional[str]) -> str:
   """Get the base directory for a build."""
   job_name = environment.get_value('JOB_NAME')
   return _get_build_directory(bucket_path, job_name)
 
 
-def _make_space(requested_size, current_build_dir=None):
+def _make_space(requested_size: int,
+                current_build_dir: Optional[str] = None) -> bool:
   """Try to make the requested number of bytes available by deleting builds."""
   if utils.is_chromium():
     min_free_disk_space = MIN_FREE_DISK_SPACE_CHROMIUM
@@ -112,17 +124,19 @@ def _make_space(requested_size, current_build_dir=None):
       return False
 
   free_disk_space = shell.get_free_disk_space(builds_directory)
+  if free_disk_space is None:
+    return False
   result = requested_size + min_free_disk_space < free_disk_space
   if not result:
     logs.error(error_message)
   return result
 
 
-def _evict_build(current_build_dir):
+def _evict_build(current_build_dir: Optional[str]) -> bool:
   """Remove the least recently used build to make room."""
   builds_directory = environment.get_value('BUILDS_DIR')
-  least_recently_used = None
-  least_recently_used_timestamp = None
+  least_recently_used: Optional[BaseBuild] = None
+  least_recently_used_timestamp: Optional[float] = None
 
   for build_directory in os.listdir(builds_directory):
     absolute_build_directory = os.path.abspath(
@@ -130,7 +144,7 @@ def _evict_build(current_build_dir):
     if not os.path.isdir(absolute_build_directory):
       continue
 
-    if os.path.commonpath(
+    if current_build_dir and os.path.commonpath(
         [absolute_build_directory,
          os.path.abspath(current_build_dir)]) == absolute_build_directory:
       # Don't evict the build we're trying to extract. This could be a parent
@@ -155,7 +169,7 @@ def _evict_build(current_build_dir):
   return True
 
 
-def _handle_unrecoverable_error_on_windows():
+def _handle_unrecoverable_error_on_windows() -> None:
   """Handle non-recoverable error on Windows. This is usually either due to disk
   corruption or processes failing to terminate using regular methods. Force a
   restart for recovery."""
@@ -167,7 +181,7 @@ def _handle_unrecoverable_error_on_windows():
   utils.restart_machine()
 
 
-def _remove_scheme(bucket_path):
+def _remove_scheme(bucket_path: str) -> str:
   """Remove scheme from the bucket path."""
   if '://' not in bucket_path:
     raise BuildManagerError('Invalid bucket path: ' + bucket_path)
@@ -175,7 +189,8 @@ def _remove_scheme(bucket_path):
   return bucket_path.split('://')[1]
 
 
-def _get_build_directory(bucket_path, job_name):
+def _get_build_directory(bucket_path: Optional[str],
+                         job_name: Optional[str]) -> str:
   """Return the build directory based on bucket path and job name."""
   builds_directory = environment.get_value('BUILDS_DIR')
 
@@ -192,29 +207,31 @@ def _get_build_directory(bucket_path, job_name):
     file_pattern_hash = utils.string_hash(file_pattern)
     job_directory = f'{bucket_path}_{file_pattern_hash}'
   else:
-    job_directory = job_name
+    job_directory = job_name or ''
 
   return os.path.join(builds_directory, job_directory)
 
 
-def set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
+def set_random_fuzz_target_for_fuzzing_if_needed(
+    fuzz_targets: Iterable[str],
+    target_weights: Dict[str, float]) -> Optional[str]:
   """Sets a random fuzz target for fuzzing."""
   if not environment.is_engine_fuzzer_job():
     return None
 
-  fuzz_targets = list(fuzz_targets)
-  if not fuzz_targets:
+  fuzz_targets_list = list(fuzz_targets)
+  if not fuzz_targets_list:
     logs.error('No fuzz targets found. Unable to pick random one.')
     return None
 
-  fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets,
+  fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets_list,
                                                     target_weights)
   logs.info(f'Picked fuzz target {fuzz_target} for fuzzing.')
 
   return fuzz_target
 
 
-def _setup_build_directories(base_build_dir):
+def _setup_build_directories(base_build_dir: str) -> None:
   """Set up build directories for a job."""
   # Create the root build directory for this job.
   shell.create_directory(base_build_dir, create_intermediates=True)
@@ -232,8 +249,9 @@ def _setup_build_directories(base_build_dir):
     shell.create_directory(build_directory)
 
 
-def set_environment_vars(search_directories, app_path='APP_PATH',
-                         env_prefix=''):
+def set_environment_vars(search_directories: Iterable[str],
+                         app_path: str = 'APP_PATH',
+                         env_prefix: str = '') -> None:
   """Set build-related environment variables (APP_PATH, APP_DIR etc) by walking
   through the build directory."""
   app_name = environment.get_value(env_prefix + 'APP_NAME')
@@ -260,7 +278,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
       f'Use default LLVM symbolizer: {use_default_llvm_symbolizer}',
   ]))
 
-  def set_env_var(name, value):
+  def set_env_var(name: str, value: Any) -> None:
     full_name = env_prefix + name
     logs.info(f'Setting environment variable: {full_name} = {value}')
     environment.set_value(full_name, value)
@@ -300,7 +318,8 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
     logs.error(f'Could not find app {app_name!r} in search directories.')
 
 
-def _emit_job_build_retrieval_metric(start_time, step, build_type):
+def _emit_job_build_retrieval_metric(start_time: float, step: str,
+                                     build_type: str) -> None:
   elapsed_minutes = (time.time() - start_time) / 60
   monitoring_metrics.JOB_BUILD_RETRIEVAL_TIME.add(
       elapsed_minutes, {
@@ -314,17 +333,17 @@ def _emit_job_build_retrieval_metric(start_time, step, build_type):
 class BaseBuild:
   """Represents a build."""
 
-  def __init__(self, base_build_dir):
-    self.base_build_dir = base_build_dir
+  def __init__(self, base_build_dir: str) -> None:
+    self.base_build_dir: str = base_build_dir
 
-  def last_used_time(self):
+  def last_used_time(self) -> float:
     """Return the last used time for the build."""
     timestamp_file_path = os.path.join(self.base_build_dir, TIMESTAMP_FILE)
     timestamp = utils.read_data_from_file(timestamp_file_path, eval_data=True)
 
     return timestamp or 0
 
-  def delete(self):
+  def delete(self) -> None:
     """Delete this build."""
     shell.remove_directory(self.base_build_dir)
 
@@ -343,7 +362,8 @@ def _read_schema_version_from_manifest(build_dir: str) -> int:
     return 0
 
 
-def _patch_rpath(binary_path, instrumented_library_paths):
+def _patch_rpath(binary_path: str,
+                 instrumented_library_paths: List[str]) -> None:
   """Patch rpaths of a binary to point to instrumented libraries"""
   rpaths = get_rpaths(binary_path)
   # Discard all RPATHs that aren't relative to build.
@@ -356,7 +376,7 @@ def _patch_rpath(binary_path, instrumented_library_paths):
   set_rpaths(binary_path, rpaths)
 
 
-def _patch_rpaths(build_dir: str, app_path_env: str):
+def _patch_rpaths(build_dir: str, app_path_env: str) -> None:
   """Patch rpaths of builds to point to instrumented libraries."""
   instrumented_library_paths = environment.get_instrumented_libraries_paths()
   if not instrumented_library_paths:
@@ -385,39 +405,39 @@ class Build(BaseBuild):
   """Represent a build type at a particular revision."""
 
   def __init__(self,
-               base_build_dir,
-               revision,
-               build_prefix='',
-               fuzz_target=None):
+               base_build_dir: str,
+               revision: Any,
+               build_prefix: Optional[str] = '',
+               fuzz_target: Optional[str] = None) -> None:
     super().__init__(base_build_dir)
-    self.revision = revision
-    self.build_prefix = build_prefix
-    self.env_prefix = build_prefix + '_' if build_prefix else ''
+    self.revision: Any = revision
+    self.build_prefix: Optional[str] = build_prefix
+    self.env_prefix: str = build_prefix + '_' if build_prefix else ''
     # This is used by users of the class to learn the fuzz targets in the build.
-    self._fuzz_targets = None
-    self._unpack_everything = environment.get_value(
+    self._fuzz_targets: Optional[List[str]] = None
+    self._unpack_everything: bool = environment.get_value(
         'UNPACK_ALL_FUZZ_TARGETS_AND_FILES', default_value=False)
     # This is used by users of the class to instruct the class which fuzz
     # target to unpack.
-    self.fuzz_target = fuzz_target
+    self.fuzz_target: Optional[str] = fuzz_target
     # Every fetched build is a release one, except when SymbolizedBuild
     # explicitly downloads a debug build
-    self._build_type = 'release'
+    self._build_type: str = 'release'
 
-  def _reset_cwd(self):
+  def _reset_cwd(self) -> None:
     """Reset current working directory. Needed to clean up build
     without hitting dir-in-use exception on Windows."""
     root_directory = environment.get_value('ROOT_DIR')
     os.chdir(root_directory)
 
-  def _delete_partial_build_file(self):
+  def _delete_partial_build_file(self) -> None:
     """Deletes partial build file (if present). This is needed to make sure we
     clean up build directory if the previous build was partial."""
     partial_build_file_path = os.path.join(self.build_dir, PARTIAL_BUILD_FILE)
     if os.path.exists(partial_build_file_path):
       self.delete()
 
-  def _pre_setup(self):
+  def _pre_setup(self) -> None:
     """Common pre-setup."""
     self._reset_cwd()
     shell.clear_temp_directory()
@@ -431,7 +451,7 @@ class Build(BaseBuild):
     environment.set_value(self.env_prefix + 'APP_PATH', '')
     environment.set_value(self.env_prefix + 'APP_PATH_DEBUG', '')
 
-  def _post_setup_success(self, update_revision=True):
+  def _post_setup_success(self, update_revision: bool = True) -> None:
     """Common post-setup."""
     if update_revision:
       self._write_revision()
@@ -442,8 +462,9 @@ class Build(BaseBuild):
       utils.write_data_to_file(time.time(), timestamp_file_path)
 
   @contextlib.contextmanager
-  def _download_and_open_build_archive(self, base_build_dir: str,
-                                       build_dir: str, build_url: str):
+  def _download_and_open_build_archive(
+      self, base_build_dir: str, build_dir: str,
+      build_url: str) -> Generator[build_archive.BuildArchive, None, None]:
     """Downloads the build archive at `build_url` and opens it.
 
     Args:
@@ -481,8 +502,10 @@ class Build(BaseBuild):
     finally:
       shell.remove_file(build_local_archive)
 
-  def _open_build_archive(self, base_build_dir: str, build_dir: str,
-                          build_url: str, http_build_url: Optional[str]):
+  def _open_build_archive(
+      self, base_build_dir: str, build_dir: str, build_url: str,
+      http_build_url: Optional[str]
+  ) -> contextlib.AbstractContextManager[build_archive.BuildArchive]:
     """Gets a handle on a build archive for the current build. Depending on the
     provided parameters, this function might download the build archive into
     the build directory or directly use remote HTTP archive.
@@ -517,10 +540,10 @@ class Build(BaseBuild):
     return build_archive.open_uri(http_build_url)
 
   def _unpack_build(self,
-                    base_build_dir,
-                    build_dir,
-                    build_url,
-                    http_build_url=None):
+                    base_build_dir: str,
+                    build_dir: str,
+                    build_url: str,
+                    http_build_url: Optional[str] = None) -> bool:
     """Unpacks a build from a build url into the build directory."""
     # Track time taken to unpack builds so that it doesn't silently regress.
     start_time = time.time()
@@ -604,7 +627,7 @@ class Build(BaseBuild):
 
     return True
 
-  def _get_fuzz_targets_from_dir(self, build_dir):
+  def _get_fuzz_targets_from_dir(self, build_dir: str) -> Iterable[str]:
     """Get iterator of fuzz targets from build dir."""
     # Import here as this path is not available in App Engine context.
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
@@ -612,18 +635,18 @@ class Build(BaseBuild):
     for path in fuzzer_utils.get_fuzz_targets(build_dir):
       yield fuzzer_utils.normalize_target_name(path)
 
-  def setup(self):
+  def setup(self) -> bool:
     """Set up the build on disk, and set all the necessary environment
     variables. Should return whether or not build setup succeeded."""
     raise NotImplementedError
 
   @property
-  def build_dir(self):
+  def build_dir(self) -> str:
     """The build directory. Usually a subdirectory of base_build_dir."""
     raise NotImplementedError
 
   @property
-  def is_discovery(self):
+  def is_discovery(self) -> bool:
     """Return True if this is a discovery run.
 
     A discovery run is an engine fuzzer job (e.g., LibFuzzer) with no fuzz
@@ -633,7 +656,7 @@ class Build(BaseBuild):
             not self.build_prefix)
 
   @property
-  def fuzz_targets(self):
+  def fuzz_targets(self) -> Optional[List[str]]:
     if not self._fuzz_targets and self._unpack_everything:
       # we can lazily compute that when unpacking the whole archive, since we
       # know all the fuzzers will be in the build directory.
@@ -643,7 +666,7 @@ class Build(BaseBuild):
                                        self._build_type)
     return self._fuzz_targets
 
-  def exists(self):
+  def exists(self) -> bool:
     """Check if build already exists."""
     revision_file = os.path.join(self.build_dir, REVISION_FILE_NAME)
     if os.path.exists(revision_file):
@@ -660,20 +683,20 @@ class Build(BaseBuild):
 
     return False
 
-  def delete(self):
+  def delete(self) -> None:
     """Delete this build."""
     # This overrides BaseBuild.delete (which deletes the entire base build
     # directory) to delete this specific build.
     shell.remove_directory(self.build_dir)
 
-  def _write_revision(self):
+  def _write_revision(self) -> None:
     revision_file = os.path.join(self.build_dir, REVISION_FILE_NAME)
     revisions.write_revision_to_revision_file(revision_file, self.revision)
 
   def _setup_application_path(self,
-                              build_dir=None,
-                              app_path='APP_PATH',
-                              build_update=False):
+                              build_dir: Optional[str] = None,
+                              app_path: str = 'APP_PATH',
+                              build_update: bool = False) -> None:
     """Sets up APP_PATH environment variables for revision build."""
     logs.info('Setup application path.')
 
@@ -732,12 +755,12 @@ class RegularBuild(Build):
   """Represents a regular build."""
 
   def __init__(self,
-               base_build_dir,
-               revision,
-               build_url,
-               build_prefix='',
-               fuzz_target=None,
-               http_build_url=None):
+               base_build_dir: str,
+               revision: Union[int, str],
+               build_url: str,
+               build_prefix: Optional[str] = '',
+               fuzz_target: Optional[str] = None,
+               http_build_url: Optional[str] = None) -> None:
     """RegularBuild constructor. See Build constructor for other parameters.
 
     Args:
@@ -748,21 +771,22 @@ class RegularBuild(Build):
     """
     super().__init__(
         base_build_dir, revision, build_prefix, fuzz_target=fuzz_target)
-    self.build_url = build_url
-    self.http_build_url = http_build_url
+    self.build_url: str = build_url
+    self.http_build_url: Optional[str] = http_build_url
 
     if build_prefix:
-      self.build_dir_name = build_prefix.lower()
+      self.build_dir_name: str = build_prefix.lower()
     else:
-      self.build_dir_name = 'revisions'
+      self.build_dir_name: str = 'revisions'
 
-    self._build_dir = os.path.join(self.base_build_dir, self.build_dir_name)
+    self._build_dir: str = os.path.join(self.base_build_dir,
+                                        self.build_dir_name)
 
   @property
-  def build_dir(self):
+  def build_dir(self) -> str:
     return self._build_dir
 
-  def setup(self):
+  def setup(self) -> bool:
     """Sets up build with a particular revision."""
     self._pre_setup()
     environment.set_value(self.env_prefix + 'BUILD_URL', self.build_url)
@@ -774,7 +798,7 @@ class RegularBuild(Build):
                                 self.build_url, self.http_build_url):
         return False
 
-      logs.info('Retrieved build r%d.' % self.revision)
+      logs.info('Retrieved build r%s.' % str(self.revision))
     else:
       # We have the revision required locally, no more work to do, other than
       # setting application path environment variables.
@@ -795,7 +819,7 @@ class RegularBuild(Build):
 class SplitTargetBuild(RegularBuild):
   """Represents a split target build."""
 
-  def setup(self, *args, **kwargs):
+  def setup(self, *args: Any, **kwargs: Any) -> bool:
     result = super().setup(*args, **kwargs)
     self._fuzz_targets = list(_split_target_build_list_targets())
     return result
@@ -804,12 +828,12 @@ class SplitTargetBuild(RegularBuild):
 class FuchsiaBuild(RegularBuild):
   """Represents a Fuchsia build."""
 
-  def _get_fuzz_targets_from_dir(self, build_dir):
+  def _get_fuzz_targets_from_dir(self, build_dir: str) -> Iterable[str]:
     """A running instance is required to enumerate targets so this is a
     no-op."""
     return []
 
-  def setup(self):
+  def setup(self) -> bool:
     """Fuchsia build setup."""
     # Prevent App Engine import issues.
     from clusterfuzz._internal.platforms import fuchsia
@@ -843,21 +867,22 @@ class FuchsiaBuild(RegularBuild):
 class SymbolizedBuild(Build):
   """Symbolized build."""
 
-  def __init__(self, base_build_dir, revision, release_build_url,
-               debug_build_url):
+  def __init__(self, base_build_dir: str, revision: int | str | None,
+               release_build_url: Optional[str],
+               debug_build_url: Optional[str]) -> None:
     super().__init__(base_build_dir, revision)
-    self._build_dir = os.path.join(self.base_build_dir, 'symbolized')
-    self.release_build_dir = os.path.join(self.build_dir, 'release')
-    self.debug_build_dir = os.path.join(self.build_dir, 'debug')
+    self._build_dir: str = os.path.join(self.base_build_dir, 'symbolized')
+    self.release_build_dir: str = os.path.join(self.build_dir, 'release')
+    self.debug_build_dir: str = os.path.join(self.build_dir, 'debug')
 
-    self.release_build_url = release_build_url
-    self.debug_build_url = debug_build_url
+    self.release_build_url: Optional[str] = release_build_url
+    self.debug_build_url: Optional[str] = debug_build_url
 
   @property
-  def build_dir(self):
+  def build_dir(self) -> str:
     return self._build_dir
 
-  def _unpack_builds(self):
+  def _unpack_builds(self) -> bool:
     """Download and unpack builds."""
     if not shell.remove_directory(self.build_dir, recreate=True):
       logs.error('Unable to clear symbolized build directory.')
@@ -882,16 +907,16 @@ class SymbolizedBuild(Build):
 
     return True
 
-  def setup(self):
+  def setup(self) -> bool:
     self._pre_setup()
-    logs.info('Retrieving symbolized build r%d.' % self.revision)
+    logs.info('Retrieving symbolized build r%s.' % str(self.revision))
 
     build_update = not self.exists()
     if build_update:
       if not self._unpack_builds():
         return False
 
-      logs.info('Retrieved symbolized build r%d.' % self.revision)
+      logs.info('Retrieved symbolized build r%s.' % str(self.revision))
     else:
       logs.info('Build already exists.')
 
@@ -915,18 +940,19 @@ class SymbolizedBuild(Build):
 class CustomBuild(Build):
   """Custom binary."""
 
-  def __init__(self, base_build_dir, custom_binary_key, custom_binary_filename,
-               custom_binary_revision):
+  def __init__(self, base_build_dir: str, custom_binary_key: str,
+               custom_binary_filename: str,
+               custom_binary_revision: Any) -> None:
     super().__init__(base_build_dir, custom_binary_revision)
-    self.custom_binary_key = custom_binary_key
-    self.custom_binary_filename = custom_binary_filename
-    self._build_dir = os.path.join(self.base_build_dir, 'custom')
+    self.custom_binary_key: str = custom_binary_key
+    self.custom_binary_filename: str = custom_binary_filename
+    self._build_dir: str = os.path.join(self.base_build_dir, 'custom')
 
   @property
-  def build_dir(self):
+  def build_dir(self) -> str:
     return self._build_dir
 
-  def _unpack_custom_build(self):
+  def _unpack_custom_build(self) -> bool:
     """Unpack the custom build."""
     if not shell.remove_directory(self.build_dir, recreate=True):
       logs.error('Unable to clear custom binary directory.')
@@ -987,7 +1013,7 @@ class CustomBuild(Build):
                                      self._build_type)
     return True
 
-  def setup(self):
+  def setup(self) -> bool:
     """Set up the custom binary for a particular job."""
     self._pre_setup()
 
@@ -1015,11 +1041,12 @@ class CustomBuild(Build):
     return True
 
 
-def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
+def _sort_build_urls_by_revision(build_urls: Iterable[str], bucket_path: str,
+                                 reverse: bool) -> List[str]:
   """Return a sorted list of build url by revision."""
   base_url = os.path.dirname(bucket_path)
   file_pattern = os.path.basename(bucket_path)
-  filename_by_revision_dict = {}
+  filename_by_revision_dict: Dict[str, str] = {}
 
   _, base_path = storage.get_bucket_name_and_path(base_url)
   base_path_with_seperator = base_path + '/' if base_path else ''
@@ -1059,7 +1086,8 @@ def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
   return sorted_build_urls
 
 
-def get_build_urls_list(bucket_path, reverse=True):
+def get_build_urls_list(bucket_path: Optional[str],
+                        reverse: bool = True) -> List[str]:
   """Returns a sorted list of build urls from a bucket path."""
   if not bucket_path:
     return []
@@ -1092,7 +1120,7 @@ def get_build_urls_list(bucket_path, reverse=True):
   return _sort_build_urls_by_revision(build_urls, bucket_path, reverse)
 
 
-def get_primary_bucket_path():
+def get_primary_bucket_path() -> str:
   """Get the main bucket path for the current job."""
   release_build_bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
   if release_build_bucket_path:
@@ -1113,7 +1141,10 @@ def get_primary_bucket_path():
       'needs to be defined.')
 
 
-def get_revisions_list(bucket_path, bad_revisions, testcase=None):
+def get_revisions_list(
+    bucket_path: str,
+    bad_revisions: Iterable[int],
+    testcase: Optional[data_types.Testcase] = None) -> Optional[List[int]]:
   """Returns a sorted ascending list of revisions from a bucket path, excluding
   bad build revisions. Testcase crash revision is not excluded from the list
   even if it appears in the bad_revisions list."""
@@ -1145,7 +1176,7 @@ def get_revisions_list(bucket_path, bad_revisions, testcase=None):
   return revision_list
 
 
-def get_job_bad_revisions():
+def get_job_bad_revisions() -> List[int]:
   job_type = environment.get_value('JOB_NAME')
 
   bad_builds = list(
@@ -1156,12 +1187,12 @@ def get_job_bad_revisions():
   return [build.revision for build in bad_builds]
 
 
-def _base_fuzz_target_name(target_name):
+def _base_fuzz_target_name(target_name: str) -> str:
   """Get the base fuzz target name "X" from "X@Y"."""
   return target_name.split('@')[0]
 
 
-def _get_targets_list(bucket_path):
+def _get_targets_list(bucket_path: str) -> Optional[List[str]]:
   """Get the target list for a given fuzz target bucket path. This is done by
   reading the targets.list file, which contains a list of the currently active
   fuzz targets."""
@@ -1180,12 +1211,15 @@ def _get_targets_list(bucket_path):
   return [t for t in targets if _base_fuzz_target_name(t) in listed_targets]
 
 
-def _full_fuzz_target_path(bucket_path, fuzz_target):
+def _full_fuzz_target_path(bucket_path: str, fuzz_target: str) -> str:
   """Get the full fuzz target bucket path."""
   return bucket_path.replace('%TARGET%', _base_fuzz_target_name(fuzz_target))
 
 
-def _setup_split_targets_build(bucket_path, fuzz_target, revision=None):
+def _setup_split_targets_build(
+    bucket_path: str,
+    fuzz_target: Optional[str],
+    revision: Optional[Union[int, str]] = None) -> Optional[RegularBuild]:
   """Set up targets build."""
   bucket_path = environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH')
   if not fuzz_target:
@@ -1205,7 +1239,7 @@ def _setup_split_targets_build(bucket_path, fuzz_target, revision=None):
       revision, bucket_path=fuzz_target_bucket_path, fuzz_target=fuzz_target)
 
 
-def _get_latest_revision(bucket_paths):
+def _get_latest_revision(bucket_paths: Iterable[str]) -> Optional[int]:
   """Get the latest revision."""
   build_urls = []
   for bucket_path in bucket_paths:
@@ -1240,7 +1274,7 @@ def _get_latest_revision(bucket_paths):
   return None
 
 
-def _emit_build_age_metric(gcs_path):
+def _emit_build_age_metric(gcs_path: str) -> None:
   """Emits a metric to track the age of a build."""
   try:
     last_update_time = storage.get(gcs_path).get('updated')
@@ -1266,8 +1300,10 @@ def _emit_build_age_metric(gcs_path):
     logs.error(f'Failed to emit build age metric for {gcs_path}: {e}')
 
 
-def _emit_build_revision_metric(revision):
+def _emit_build_revision_metric(revision: int | None) -> None:
   """Emits a gauge metric to track the build revision."""
+  if revision is None:
+    return
   monitoring_metrics.JOB_BUILD_REVISION.set(
       revision,
       labels={
@@ -1278,7 +1314,7 @@ def _emit_build_revision_metric(revision):
 
 
 def _get_build_url(bucket_path: Optional[str], revision: int,
-                   job_type: Optional[str]):
+                   job_type: Optional[str]) -> Optional[str]:
   """Returns the GCS url for a build, given a bucket path and revision"""
   build_urls = get_build_urls_list(bucket_path)
   if not build_urls:
@@ -1292,7 +1328,7 @@ def _get_build_url(bucket_path: Optional[str], revision: int,
   return build_url
 
 
-def _get_build_bucket_paths():
+def _get_build_bucket_paths() -> List[str]:
   """Returns gcs bucket endpoints that contain the build of interest."""
   bucket_paths = []
   for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
@@ -1304,7 +1340,9 @@ def _get_build_bucket_paths():
   return bucket_paths
 
 
-def setup_trunk_build(fuzz_target, build_prefix=None):
+def setup_trunk_build(fuzz_target: Optional[str],
+                      build_prefix: Optional[str] = None
+                     ) -> Optional[RegularBuild]:
   """Sets up latest trunk build."""
   bucket_paths = _get_build_bucket_paths()
   if not bucket_paths:
@@ -1327,10 +1365,11 @@ def setup_trunk_build(fuzz_target, build_prefix=None):
   return build
 
 
-def setup_regular_build(revision,
-                        bucket_path=None,
-                        build_prefix='',
-                        fuzz_target=None) -> Optional[RegularBuild]:
+def setup_regular_build(
+    revision: Any,
+    bucket_path: Optional[str] = None,
+    build_prefix: Optional[str] = '',
+    fuzz_target: Optional[str] = None) -> Optional[RegularBuild]:
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1400,12 +1439,18 @@ def setup_regular_build(revision,
   return result
 
 
-def setup_symbolized_builds(revision):
-  """Set up symbolized release and debug build."""
-  sym_release_build_bucket_path = environment.get_value(
-      'SYM_RELEASE_BUILD_BUCKET_PATH')
-  sym_debug_build_bucket_path = environment.get_value(
-      'SYM_DEBUG_BUILD_BUCKET_PATH')
+def setup_symbolized_builds(
+    revision: int | None = None) -> SymbolizedBuild | None:
+  """Sets up both release and debug symbolized builds."""
+  sym_release_build_bucket_path = get_bucket_path(
+      'RELEASE_BUILD_BUCKET_PATH') or get_bucket_path('BUILD_BUCKET_PATH')
+  sym_debug_build_bucket_path = get_bucket_path('SYM_DEBUG_BUILD_BUCKET_PATH')
+
+  # Fuzzing build might not be symbolized, so try using a symbolized build
+  # if available.
+  sym_release_build_bucket_path = (
+      get_bucket_path('SYM_RELEASE_BUILD_BUCKET_PATH') or
+      sym_release_build_bucket_path)
 
   sym_release_build_urls = get_build_urls_list(sym_release_build_bucket_path)
   sym_debug_build_urls = get_build_urls_list(sym_debug_build_bucket_path)
@@ -1426,7 +1471,7 @@ def setup_symbolized_builds(revision):
   build_class = SymbolizedBuild
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
-    build_class = build_setup_host.RemoteSymbolizedBuild  # pylint: disable=no-member
+    build_class = build_setup_host.RemoteSymbolizedBuild  # type: ignore # pylint: disable=no-member
 
   build = build_class(base_build_dir, revision, sym_release_build_url,
                       sym_debug_build_url)
@@ -1436,7 +1481,7 @@ def setup_symbolized_builds(revision):
   return None
 
 
-def setup_custom_binary():
+def setup_custom_binary() -> Union[CustomBuild, bool, None]:
   """Set up the custom binary for a particular job."""
   job_name = environment.get_value('JOB_NAME')
   # Verify that this is really a custom binary job.
@@ -1456,7 +1501,8 @@ def setup_custom_binary():
   return None
 
 
-def setup_build(revision=0, fuzz_target=None):
+def setup_build(revision: int | None = 0,
+                fuzz_target: Optional[str] = None) -> Any:
   """Set up a custom or regular build based on revision."""
   result = _setup_build(revision, fuzz_target)
   if fuzz_target:
@@ -1466,7 +1512,7 @@ def setup_build(revision=0, fuzz_target=None):
   return result
 
 
-def _setup_build(revision, fuzz_target):
+def _setup_build(revision: int | None, fuzz_target: Optional[str]) -> Any:
   """Helper for setup_build, so setup_build can be sure to set FUZZ_TARGET on
   successful execution of this function."""
   # For custom binaries we always use the latest version. Revision is ignored.
@@ -1490,19 +1536,21 @@ def _setup_build(revision, fuzz_target):
   return setup_trunk_build(fuzz_target=fuzz_target)
 
 
-def is_custom_binary():
+def is_custom_binary() -> bool:
   """Determine if this is a custom binary."""
   return bool(environment.get_value('CUSTOM_BINARY'))
 
 
-def has_symbolized_builds():
+def has_symbolized_builds() -> bool:
   """Return a bool on if job type has either a release or debug build for stack
   symbolization."""
-  return (environment.get_value('SYM_RELEASE_BUILD_BUCKET_PATH') or
-          environment.get_value('SYM_DEBUG_BUILD_BUCKET_PATH'))
+  return cast(
+      bool,
+      environment.get_value('SYM_RELEASE_BUILD_BUCKET_PATH') or
+      environment.get_value('SYM_DEBUG_BUILD_BUCKET_PATH'))
 
 
-def _set_rpaths_chrpath(binary_path, rpaths):
+def _set_rpaths_chrpath(binary_path: str, rpaths: Iterable[str]) -> None:
   """Set rpaths using chrpath."""
   chrpath = environment.get_default_tool_path('chrpath')
   if not chrpath:
@@ -1512,7 +1560,7 @@ def _set_rpaths_chrpath(binary_path, rpaths):
       [chrpath, '-r', ':'.join(rpaths), binary_path], stderr=subprocess.PIPE)
 
 
-def _set_rpaths_patchelf(binary_path, rpaths):
+def _set_rpaths_patchelf(binary_path: str, rpaths: Iterable[str]) -> None:
   """Set rpaths using patchelf."""
   patchelf = shutil.which('patchelf')
   if not patchelf:
@@ -1523,7 +1571,7 @@ def _set_rpaths_patchelf(binary_path, rpaths):
       stderr=subprocess.PIPE)
 
 
-def set_rpaths(binary_path, rpaths):
+def set_rpaths(binary_path: str, rpaths: Iterable[str]) -> None:
   """Set rpath of a binary."""
   # Patchelf handles rpath patching much better, and allows e.g. extending the
   # length of the rpath. However, it loads the entire binary into memory so
@@ -1535,7 +1583,7 @@ def set_rpaths(binary_path, rpaths):
     _set_rpaths_patchelf(binary_path, rpaths)
 
 
-def get_rpaths(binary_path):
+def get_rpaths(binary_path: str) -> List[str]:
   """Get rpath of a binary."""
   chrpath = environment.get_default_tool_path('chrpath')
   if not chrpath:
@@ -1559,12 +1607,13 @@ def get_rpaths(binary_path):
   return []
 
 
-def _pick_random_fuzz_target_for_standard_build(target_weights):
+def _pick_random_fuzz_target_for_standard_build(
+    target_weights: Dict[str, float]) -> Optional[str]:
   return set_random_fuzz_target_for_fuzzing_if_needed(target_weights.keys(),
                                                       target_weights)
 
 
-def _split_target_build_list_targets():
+def _split_target_build_list_targets() -> List[str]:
   bucket_path = environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH')
   targets_list = _get_targets_list(bucket_path)
   if not targets_list:
@@ -1573,7 +1622,8 @@ def _split_target_build_list_targets():
   return targets_list
 
 
-def _pick_random_fuzz_target_for_split_build(target_weights):
+def _pick_random_fuzz_target_for_split_build(
+    target_weights: Dict[str, float]) -> str:
   targets_list = _split_target_build_list_targets()
   fuzz_target = set_random_fuzz_target_for_fuzzing_if_needed(
       targets_list, target_weights)
@@ -1584,13 +1634,13 @@ def _pick_random_fuzz_target_for_split_build(target_weights):
   return fuzz_target
 
 
-def pick_random_fuzz_target(target_weights):
+def pick_random_fuzz_target(target_weights: Dict[str, float]) -> Optional[str]:
   if environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'):
     return _pick_random_fuzz_target_for_split_build(target_weights)
   return _pick_random_fuzz_target_for_standard_build(target_weights)
 
 
-def check_app_path(app_path='APP_PATH') -> bool:
+def check_app_path(app_path: str = 'APP_PATH') -> bool:
   """Check if APP_PATH is properly set."""
   # If APP_NAME is not set (e.g. for grey box jobs), then we don't need
   # APP_PATH.
@@ -1604,7 +1654,7 @@ def check_app_path(app_path='APP_PATH') -> bool:
   return bool(app_path_value)
 
 
-def get_bucket_path(name):
+def get_bucket_path(name: str) -> Optional[str]:
   """Return build bucket path, applying any set overrides."""
   bucket_path = environment.get_value(name)
   bucket_path = overrides.check_and_apply_overrides(

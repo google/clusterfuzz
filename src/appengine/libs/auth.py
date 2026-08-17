@@ -13,9 +13,15 @@
 # limitations under the License.
 """Authentication helpers."""
 
-import collections
+import datetime
+from typing import Any
+from typing import cast
+from typing import NamedTuple
+from typing import Optional
+from typing import Union
 
 from firebase_admin import auth
+from firebase_admin import exceptions
 from google.auth.transport import requests as google_requests
 from google.cloud import ndb
 from google.oauth2 import id_token
@@ -32,8 +38,12 @@ from clusterfuzz._internal.system import environment
 from libs import helpers
 from libs import request_cache
 
-User = collections.namedtuple(
-    'User', ['email', 'email_verified'], defaults=(True,))
+
+class User(NamedTuple):
+  email: str
+  email_verified: bool = True
+
+
 BEARER_PREFIX = 'Bearer '
 
 
@@ -41,7 +51,7 @@ class AuthError(Exception):
   """Auth error."""
 
 
-def auth_domain():
+def auth_domain() -> str:
   """Get the auth domain."""
   domain = local_config.ProjectConfig().get('firebase.auth_domain')
   if not domain:
@@ -50,16 +60,17 @@ def auth_domain():
   return domain
 
 
-def real_auth_domain():
+def real_auth_domain() -> str:
   """Get the real auth domain"""
   real_domain = local_config.ProjectConfig().get('firebase.real_auth_domain')
   if real_domain:
     return real_domain
 
-  return utils.get_application_id() + '.firebaseapp.com'
+  app_id = utils.get_application_id()
+  return cast(str, app_id) + '.firebaseapp.com'
 
 
-def is_current_user_admin():
+def is_current_user_admin() -> bool:
   """Returns whether or not the current logged in user is an admin."""
   if environment.is_local_development():
     return True
@@ -73,7 +84,7 @@ def is_current_user_admin():
 
 
 @memoize.wrap(memoize.FifoInMemory(1))
-def _project_number_from_id(project_id):
+def _project_number_from_id(project_id: str) -> str:
   """Get the project number from project ID."""
   resource_manager = discovery.build('cloudresourcemanager', 'v1')
   # pylint: disable=no-member
@@ -85,7 +96,7 @@ def _project_number_from_id(project_id):
 
 
 @memoize.wrap(memoize.FifoInMemory(1))
-def _get_iap_key(key_id):
+def _get_iap_key(key_id: str) -> str:
   """Retrieves a public key from the list published by Identity-Aware Proxy,
   re-fetching the key file if necessary.
   """
@@ -103,9 +114,9 @@ def _get_iap_key(key_id):
   return key
 
 
-def _validate_iap_jwt(iap_jwt):
+def _validate_iap_jwt(iap_jwt: str) -> str:
   """Validate JWT assertion."""
-  project_id = utils.get_application_id()
+  project_id = cast(str, utils.get_application_id())
   expected_audience = f'/projects/{_project_number_from_id(project_id)}' \
                       f'/apps/{project_id}'
 
@@ -127,7 +138,7 @@ def _validate_iap_jwt(iap_jwt):
     raise AuthError('JWT assertion decode error: ' + str(e))
 
 
-def get_iap_email(current_request):
+def get_iap_email(current_request: Any) -> Optional[str]:
   """Get Cloud IAP email."""
   jwt_assertion = current_request.headers.get('X-Goog-IAP-JWT-Assertion')
   if not jwt_assertion:
@@ -136,7 +147,7 @@ def get_iap_email(current_request):
   return _validate_iap_jwt(jwt_assertion)
 
 
-def get_email_from_bearer_token(request):
+def get_email_from_bearer_token(request: Any) -> Optional[str]:
   """Gets the email corresponding to a bearer token in an http request."""
   bearer_token = request.headers.get('Authorization', '')
   if not bearer_token.startswith(BEARER_PREFIX):
@@ -147,16 +158,17 @@ def get_email_from_bearer_token(request):
     claim = id_token.verify_oauth2_token(token, google_requests.Request())
   except ValueError:
     raise helpers.UnauthorizedError('Malformed bearer token')
-  if (not claim.get('email_verified') or
-      claim.get('email') != utils.service_account_email()):
+  claim_dict = cast(dict[str, Any], claim)
+  if (not claim_dict.get('email_verified') or
+      claim_dict.get('email') != utils.service_account_email()):
     raise helpers.UnauthorizedError('Invalid ID token.')
 
-  if not claim.get('email_verified'):
+  if not claim_dict.get('email_verified'):
     return None
-  return claim.get('email')
+  return claim_dict.get('email')
 
 
-def get_current_user():
+def get_current_user() -> Optional[User]:
   """Get the current logged in user, or None."""
   if environment.is_local_development():
     return User('user@localhost')
@@ -194,7 +206,7 @@ def get_current_user():
     return None
 
   try:
-    decoded_claims = decode_claims(get_session_cookie())
+    decoded_claims = decode_claims(session_cookie)
   except AuthError:
     logs.warning('Invalid session cookie.')
     return None
@@ -231,28 +243,29 @@ def get_current_user():
   return User(email, email_verified)
 
 
-def create_session_cookie(token, expires_in):
+def create_session_cookie(token: str,
+                          expires_in: Union[int, datetime.timedelta]) -> str:
   """Create a new session cookie."""
   try:
     return auth.create_session_cookie(token, expires_in=expires_in)
-  except auth.AuthError:
+  except exceptions.FirebaseError:
     raise AuthError('Failed to create session cookie.')
 
 
-def get_session_cookie():
+def get_session_cookie() -> Optional[str]:
   """Get the current session cookie."""
   return request_cache.get_current_request().cookies.get('session')
 
 
-def revoke_session_cookie(session_cookie):
+def revoke_session_cookie(session_cookie: str) -> None:
   """Revoke a session cookie."""
   decoded_claims = decode_claims(session_cookie)
   auth.revoke_refresh_tokens(decoded_claims['sub'])
 
 
-def decode_claims(session_cookie):
+def decode_claims(session_cookie: str) -> dict[str, Any]:
   """Decode the claims for the current session cookie."""
   try:
     return auth.verify_session_cookie(session_cookie, check_revoked=True)
-  except (ValueError, auth.AuthError):
+  except (ValueError, exceptions.FirebaseError):
     raise AuthError('Invalid session cookie.')

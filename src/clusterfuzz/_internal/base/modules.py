@@ -19,7 +19,7 @@ import site
 import sys
 
 
-def _config_modules_directory(root_directory):
+def _config_modules_directory(root_directory: str) -> str:
   """Get the config modules directory."""
   config_dir = os.getenv('CONFIG_DIR_OVERRIDE')
   if not config_dir:
@@ -28,7 +28,7 @@ def _config_modules_directory(root_directory):
   return os.path.join(config_dir, 'modules')
 
 
-def _patch_appengine_modules_for_bots():
+def _patch_appengine_modules_for_bots() -> None:
   """Patch out App Engine reliant behaviour from bots."""
   if os.getenv('SERVER_SOFTWARE'):
     # Not applicable on App Engine.
@@ -44,7 +44,7 @@ def _patch_appengine_modules_for_bots():
     pass
 
 
-def fix_module_search_paths():
+def fix_module_search_paths() -> None:
   """Add directories that we must be able to import from to path."""
   root_directory = os.environ['ROOT_DIR']
   source_directory = os.path.join(root_directory, 'src')

@@ -13,30 +13,33 @@
 # limitations under the License.
 """Service account creation/role helpers."""
 import logging
+from typing import Any
+from typing import cast
 
-import googleapiclient
+import googleapiclient.discovery
+import googleapiclient.errors
 
 from clusterfuzz._internal.base import utils
 
-_ACCOUNT_PREFIX = 'bot-'
-_MIN_LEN = 6
-_MAX_LEN = 30
-_HASH_PREFIX_LEN = _MAX_LEN - len(_ACCOUNT_PREFIX)
+_ACCOUNT_PREFIX: str = 'bot-'
+_MIN_LEN: int = 6
+_MAX_LEN: int = 30
+_HASH_PREFIX_LEN: int = _MAX_LEN - len(_ACCOUNT_PREFIX)
 
 # pylint: disable=no-member
 
 
-def _create_client(service_name, version='v1'):
+def _create_client(service_name: str, version: str = 'v1') -> Any:
   """Create a googleapiclient client."""
   return googleapiclient.discovery.build(service_name, version)
 
 
-def _service_account_email(project_id, service_account_id):
+def _service_account_email(project_id: str, service_account_id: str) -> str:
   """Return full service account email."""
   return '%s@%s.iam.gserviceaccount.com' % (service_account_id, project_id)
 
 
-def _service_account_id(project):
+def _service_account_id(project: str) -> str:
   """Return service account ID for project."""
   # From
   # cloud.google.com/iam/reference/rest/v1/projects.serviceAccounts/create:
@@ -63,7 +66,8 @@ def _service_account_id(project):
   return account_id
 
 
-def get_service_account(iam, project_id, service_account_id):
+def get_service_account(iam: Any, project_id: str,
+                        service_account_id: str) -> dict[str, Any] | None:
   """Try to get a service account. Returns None if it does not exist."""
   try:
     request = iam.projects().serviceAccounts().get(
@@ -78,10 +82,10 @@ def get_service_account(iam, project_id, service_account_id):
     raise
 
 
-def get_or_create_service_account(project):
+def get_or_create_service_account(project: str) -> tuple[dict[str, Any], bool]:
   """Get or create service account for the project."""
   iam = _create_client('iam')
-  project_id = utils.get_application_id()
+  project_id = cast(str, utils.get_application_id())
   service_account_id = _service_account_id(project)
 
   service_account = get_service_account(iam, project_id, service_account_id)
@@ -102,7 +106,8 @@ def get_or_create_service_account(project):
   return request.execute(), False
 
 
-def _get_or_insert_iam_binding(policy, role):
+def _get_or_insert_iam_binding(policy: dict[str, Any],
+                               role: str) -> dict[str, Any]:
   """Return the binding corresponding to the given role. Creates the binding if
   needed."""
   existing_binding = next(
@@ -120,7 +125,8 @@ def _get_or_insert_iam_binding(policy, role):
   return new_binding
 
 
-def _add_service_account_role(policy, role, service_account):
+def _add_service_account_role(policy: dict[str, Any], role: str,
+                              service_account: str) -> bool:
   """Add a role to a service account. Returns whether or not changes were
   made."""
   binding = _get_or_insert_iam_binding(policy, role)
@@ -133,9 +139,9 @@ def _add_service_account_role(policy, role, service_account):
   return False
 
 
-def set_service_account_roles(service_account):
+def set_service_account_roles(service_account: dict[str, Any]) -> None:
   """Set roles for service account."""
-  project_id = utils.get_application_id()
+  project_id = cast(str, utils.get_application_id())
   resource_manager = _create_client('cloudresourcemanager')
 
   request = resource_manager.projects().getIamPolicy(

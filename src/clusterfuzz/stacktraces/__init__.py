@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Stack parsing module."""
+from collections.abc import Callable
 import os
 import re
 import string
 import subprocess
+from typing import cast
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.crash_analysis import crash_analyzer
+from clusterfuzz._internal.crash_analysis.stack_parsing import stack_parser
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms.linux.lkl import constants as lkl_constants
 from clusterfuzz._internal.system import environment
@@ -29,52 +32,95 @@ from .constants import *
 class CrashInfo:
   """Parsed crash information."""
 
-  def __init__(self):
-    self.crash_type = ''
-    self.crash_address = ''
-    self.crash_state = ''
-    self.crash_stacktrace = ''
-    self.crash_categories = set()
-    self.frame_count = 0
-    self.process_name = None
-    self.process_died = False
+  crash_type: str
+  crash_address: str
+  crash_state: str
+  crash_stacktrace: str
+  crash_categories: set[str]
+  frame_count: int
+  process_name: str | None
+  process_died: bool
+
+  # Following fields are for internal use only and subject to change. Do not
+  # rely on these.
+  frames: list[list[stack_parser.StackFrame | None]]
+  last_frame_id: int
+  raw_frames: list[str]
+
+  # Additional tracking for Java bugs.
+  found_java_exception: bool
+
+  # Additional tracking for bad casts.
+  found_bad_cast_crash_end_marker: bool
+
+  # Additional tracking for check failures.
+  check_failure_source_file: str
+
+  # Additional tracking for fatal errors.
+  fatal_error_occurred: bool
+
+  # Additional tracking for lkl bugs.
+  lkl_kernel_build_id: str | None
+
+  # Additional tracking for fuzzing directory frames,
+  fuzzer_dir_frames: int
+
+  is_kasan: bool
+  is_lkl: bool
+  is_golang: bool
+  is_python: bool
+  is_js: bool
+  found_python_crash: bool
+  found_golang_crash: bool
+  found_android_kernel_crash: bool
+  is_trusty: bool
+
+  def __init__(self) -> None:
+    self.crash_type: str = ''
+    self.crash_address: str = ''
+    self.crash_state: str = ''
+    self.crash_stacktrace: str = ''
+    self.crash_categories: set[str] = set()
+    self.frame_count: int = 0
+    self.process_name: str | None = None
+    self.process_died: bool = False
 
     # Following fields are for internal use only and subject to change. Do not
     # rely on these.
-    self.frames = []
-    self.last_frame_id = -1
-    self.raw_frames = []
+    self.frames: list[list[stack_parser.StackFrame | None]] = []
+    self.last_frame_id: int = -1
+    self.raw_frames: list[str] = []
 
     # Additional tracking for Java bugs.
-    self.found_java_exception = False
+    self.found_java_exception: bool = False
 
     # Additional tracking for bad casts.
-    self.found_bad_cast_crash_end_marker = False
+    self.found_bad_cast_crash_end_marker: bool = False
 
     # Additional tracking for check failures.
-    self.check_failure_source_file = ''
+    self.check_failure_source_file: str = ''
 
     # Additional tracking for fatal errors.
-    self.fatal_error_occurred = False
+    self.fatal_error_occurred: bool = False
 
     # Additional tracking for lkl bugs.
-    self.lkl_kernel_build_id = None
+    self.lkl_kernel_build_id: str | None = None
 
     # Additional tracking for fuzzing directory frames,
-    self.fuzzer_dir_frames = 0
+    self.fuzzer_dir_frames: int = 0
 
-    self.is_kasan = False
-    self.is_lkl = False
-    self.is_golang = False
-    self.is_python = False
-    self.is_js = False
-    self.found_python_crash = False
-    self.found_golang_crash = False
-    self.found_android_kernel_crash = False
-    self.is_trusty = False
+    self.is_kasan: bool = False
+    self.is_lkl: bool = False
+    self.is_golang: bool = False
+    self.is_python: bool = False
+    self.is_js: bool = False
+    self.found_python_crash: bool = False
+    self.found_golang_crash: bool = False
+    self.found_android_kernel_crash: bool = False
+    self.is_trusty: bool = False
 
 
-def _filter_stack_frame(stack_frame):
+def _filter_stack_frame(stack_frame: str) -> str:
   """Filter stack frame."""
   # Filter out anonymous namespaces.
   anonymous_namespaces = [
@@ -102,13 +148,23 @@ def _filter_stack_frame(stack_frame):
 class StackParser:
   """Stack parser."""
 
-  def __init__(self,
-               symbolized=True,
-               detect_ooms_and_hangs=True,
-               detect_v8_runtime_errors=False,
-               custom_stack_frame_ignore_regexes=None,
-               fuzz_target=None,
-               include_ubsan=True):
+  stack_frame_ignore_regex: re.Pattern[str]
+  stack_frame_ignore_regex_if_symbolized: re.Pattern[str]
+  detect_ooms_and_hangs: bool
+  detect_v8_runtime_errors: bool
+  symbolized: bool
+  fuzz_target: str | None
+  include_ubsan: bool
+
+  def __init__(
+      self,
+      symbolized: bool = True,
+      detect_ooms_and_hangs: bool = True,
+      detect_v8_runtime_errors: bool = False,
+      custom_stack_frame_ignore_regexes: list[str] | None = None,
+      fuzz_target: str | None = None,
+      include_ubsan: bool = True,
+  ) -> None:
 
     if not custom_stack_frame_ignore_regexes:
       custom_stack_frame_ignore_regexes = []
@@ -126,7 +182,7 @@ class StackParser:
     self.fuzz_target = fuzz_target
     self.include_ubsan = include_ubsan
 
-  def ignore_stack_frame(self, stack_frame):
+  def ignore_stack_frame(self, stack_frame: str) -> bool:
     """Return true if stack frame should not used in determining the
     crash state."""
     # No data, should ignore.
@@ -151,34 +207,36 @@ class StackParser:
 
     return False
 
-  def get_rank(self, crash_type):
+  def get_rank(self, crash_type: str) -> int:
     """Return the assignment rank of a given crash type."""
     # Higher ranked types will not be overwritten with lower ranked types.
     # Types missing in this list have a default rank of 0.
     high_rank_types = {'V8 sandbox violation': 2, 'Timeout': 1}
     return high_rank_types.get(crash_type, 0)
 
-  def update_crash_type(self, state: CrashInfo, new_type):
+  def update_crash_type(self, state: CrashInfo, new_type: str | None) -> None:
     # Prioritize the crash type associated with the latest stack frame, unless
     # the previous type has an explicitly assigned higher priority.
     if new_type is not None and self.get_rank(new_type) >= self.get_rank(
         state.crash_type):
       state.crash_type = new_type
 
-  def update_state_on_match(self,
-                            compiled_regex: re.Pattern,
-                            line: str,
-                            state: CrashInfo,
-                            new_type=None,
-                            new_state=None,
-                            new_frame_count=None,
-                            new_address=None,
-                            address_from_group=None,
-                            type_from_group=None,
-                            state_from_group=None,
-                            address_filter=lambda s: s,
-                            type_filter=lambda s: s,
-                            reset=False) -> re.Match | None:
+  def update_state_on_match(
+      self,
+      compiled_regex: re.Pattern[str],
+      line: str,
+      state: CrashInfo,
+      new_type: str | None = None,
+      new_state: str | None = None,
+      new_frame_count: int | None = None,
+      new_address: str | None = None,
+      address_from_group: int | str | None = None,
+      type_from_group: int | str | None = None,
+      state_from_group: int | str | None = None,
+      address_filter: Callable[[str], str] = lambda s: s,
+      type_filter: Callable[[str], str] = lambda s: s,
+      reset: bool = False,
+  ) -> re.Match[str] | None:
     """Update the specified parts of the state if we have a match."""
 
     match = compiled_regex.match(line)
@@ -217,16 +275,19 @@ class StackParser:
 
     return match
 
-  def add_frame_on_match(self,
-                         compiled_regex: re.Pattern,
-                         line: str,
-                         state: CrashInfo,
-                         group=0,
-                         frame_filter=_filter_stack_frame,
-                         demangle=False,
-                         can_ignore=True,
-                         frame_spec=None,
-                         frame_override_func=None):
+  def add_frame_on_match(
+      self,
+      compiled_regex: re.Pattern[str],
+      line: str,
+      state: CrashInfo,
+      group: int | str = 0,
+      frame_filter: Callable[[str], str] = _filter_stack_frame,
+      demangle: bool = False,
+      can_ignore: bool = True,
+      frame_spec: stack_parser.StackFrameSpec | None = None,
+      frame_override_func: Callable[[str, stack_parser.StackFrame | None], str]
+      | None = None,
+  ) -> re.Match[str] | None:
     """Add a frame to the crash state if we have a match on this line."""
     match = compiled_regex.match(line)
     if not match:
@@ -250,8 +311,8 @@ class StackParser:
           ['c++filt', '-n', frame],
           stdin=subprocess.PIPE,
           stdout=subprocess.PIPE)
-      frame, _ = pipe.communicate()
-      frame = frame.decode('utf-8')
+      frame_bytes, _ = pipe.communicate()
+      frame = frame_bytes.decode('utf-8')
 
     # Try to parse the frame with the various stackframes.
     frame_struct = None
@@ -263,7 +324,7 @@ class StackParser:
       if (frame_struct and frame_struct.module_offset and
           not frame_struct.function_name):
 
-        def new_frame_filter(s):
+        def new_frame_filter(s: str) -> str:
           return s
 
         frame_filter = new_frame_filter
@@ -307,7 +368,13 @@ class StackParser:
 
     return match
 
-  def update_state_on_check_failure(self, state, line, regex, crash_type):
+  def update_state_on_check_failure(
+      self,
+      state: CrashInfo,
+      line: str,
+      regex: re.Pattern[str],
+      crash_type: str,
+  ) -> None:
     """Update the state if the crash is a CHECK failure."""
     check_match = self.update_state_on_match(
         regex, line, state, new_type=crash_type, reset=True, new_frame_count=1)
@@ -316,7 +383,13 @@ class StackParser:
       source_file = fix_filename_string(check_match.group(1))
       state.crash_state = '%s in %s\n' % (failure_string, source_file)
 
-  def match_assert(self, line, state, regex, group=1):
+  def match_assert(
+      self,
+      line: str,
+      state: CrashInfo,
+      regex: re.Pattern[str],
+      group: int | str = 1,
+  ) -> None:
     """Match an assert."""
     assert_match = self.update_state_on_match(
         regex, line, state, new_type='ASSERT', new_frame_count=1)
@@ -324,7 +397,7 @@ class StackParser:
       # For asserts, we want to actually use the match as the crash state.
       state.crash_state = assert_match.group(group) + '\n'
 
-  def filter_crash_parameters(self, state):
+  def filter_crash_parameters(self, state: CrashInfo) -> CrashInfo:
     """Normalize crash parameters into generic format regardless of the tool
     used."""
     # Filter crash state represented in |state|.
@@ -374,7 +447,7 @@ class StackParser:
     # Normalize access size parameter if greater than 16 bytes.
     m = re.match('([^0-9]+)([0-9]+)', state.crash_type, re.DOTALL)
     if m:
-      num = int(m.group(2))
+      num: int | str = int(m.group(2))
       if num > 16:
         num = '{*}'
 
@@ -396,7 +469,11 @@ class StackParser:
 
     return state
 
-  def remove_lkl_kernel_times_and_set_params(self, state, crash_data):
+  def remove_lkl_kernel_times_and_set_params(
+      self,
+      state: CrashInfo,
+      crash_data: str,
+  ) -> str:
     """Filter kernel time from crash_data if LKL."""
     result = ''
     for line in crash_data.splitlines():
@@ -409,7 +486,7 @@ class StackParser:
     return result
 
   @staticmethod
-  def split_stacktrace(stacktrace: str):
+  def split_stacktrace(stacktrace: str) -> list[str]:
     """Split stacktrace by line, and handle special cases."""
     # Fix a known malformed traceback pattern:
     # A newline character is missing between the important crash info line and
@@ -785,7 +862,9 @@ class StackParser:
           # with the access type (defaulting to empty if absent).
           if 'SEGV_MTESERR' in line:
             mte_match = ANDROID_SEGV_REGEX.search(line)
-            state.crash_type = f"Tag-mismatch{(mte_match.group(2) or '')}"
+            state.crash_type = (
+                f"Tag-mismatch{(cast(re.Match[str], mte_match).group(2) or '')}"
+            )
 
           # Set the crash address for SEGVs.
           if 'SIGSEGV' in line:
@@ -1391,7 +1470,7 @@ class StackParser:
     return state
 
 
-def filter_addresses_and_numbers(stack_frame):
+def filter_addresses_and_numbers(stack_frame: str) -> str:
   """Return a normalized string without unique addresses and numbers."""
   # Remove offset part from end of every line.
   result = re.sub(r'\+0x[0-9a-fA-F]+\n', '\n', stack_frame, re.DOTALL)
@@ -1415,7 +1494,10 @@ def filter_addresses_and_numbers(stack_frame):
   return re.sub(number_expression, 'NUMBER', result, flags=re.X)
 
 
-def should_ignore_line_for_crash_processing(line, state):
+def should_ignore_line_for_crash_processing(
+    line: str,
+    state: CrashInfo,
+) -> bool:
   """Check to see if a line should be displayed in a report, but ignored when
      processing crashes."""
   # If we detected that the process had died, we won't use any further stack
@@ -1461,7 +1543,7 @@ def should_ignore_line_for_crash_processing(line, state):
   return False
 
 
-def fix_sanitizer_crash_type(crash_type):
+def fix_sanitizer_crash_type(crash_type: str) -> str:
   """Ensure that Sanitizer crashes use generic formats."""
   # General normalization.
   crash_type = crash_type.lower().replace('_', '-').capitalize()
@@ -1472,7 +1554,7 @@ def fix_sanitizer_crash_type(crash_type):
   return crash_type
 
 
-def fix_win_cdb_crash_type(crash_type):
+def fix_win_cdb_crash_type(crash_type: str) -> str:
   """Convert a Windows CDB crash type into ASAN like format."""
   # Strip application verifier string from crash type suffix.
   crash_type = utils.strip_from_right(crash_type, '_AVRF')
@@ -1487,7 +1569,7 @@ def fix_win_cdb_crash_type(crash_type):
   return crash_type
 
 
-def fix_check_failure_string(failure_string):
+def fix_check_failure_string(failure_string: str) -> str:
   """Cleanup values that should not be included in CHECK failure strings."""
   # Remove |CHECK_FAILURE_PATTERN| from start of failure string.
   failure_string = utils.strip_from_left(failure_string, CHECK_FAILURE_PATTERN)
@@ -1507,7 +1589,7 @@ def fix_check_failure_string(failure_string):
   return failure_string.strip(' .\'"[]')
 
 
-def fix_filename_string(filename_string):
+def fix_filename_string(filename_string: str) -> str:
   """Fix filename string to remove line number, path and other invalid chars."""
   # Remove invalid chars at ends first.
   filename_string = filename_string.strip(' .\'"[]')
@@ -1524,43 +1606,43 @@ def fix_filename_string(filename_string):
   return filename_string
 
 
-def get_fault_description_for_android_kernel(code):
+def get_fault_description_for_android_kernel(code: str) -> str:
   """Return human readable fault description based on numeric FSR value."""
   # Convert code from string to number.
   try:
-    code = int(code, 16)
+    code_int = int(code, 16)
   except:
     return 'BUG'
 
   # Figure out where is out-of-bounds read or write.
-  if code & 0x800 == 0:
+  if code_int & 0x800 == 0:
     fault = 'READ'
   else:
     fault = 'WRITE'
   fault += ' '
 
   # The full status code is bits 12, 10, and 0-3, but we're ignoring 12 and 10.
-  status = code & 0b1111
+  status = code_int & 0b1111
   try:
     fault += ANDROID_KERNEL_STATUS_TO_STRING[status]
   except KeyError:
     fault += 'Unknown'
 
-  fault += ' (%s)' % str(code)
+  fault += ' (%s)' % str(code_int)
   return 'Kernel failure\n' + fault
 
 
-def filter_kasan_crash_type(crash_type):
+def filter_kasan_crash_type(crash_type: str) -> str:
   """Filter a KASan crash type."""
   return 'Kernel failure\n%s' % crash_type.replace(' ', '-').capitalize()
 
 
-def filter_kernel_panic_crash_type(crash_type):
+def filter_kernel_panic_crash_type(crash_type: str) -> str:
   """Filter a kernel panic crash type."""
   return 'Kernel failure\n%s' % crash_type.replace(' ', '-')
 
 
-def update_crash_state_for_stack_overflow_if_needed(state):
+def update_crash_state_for_stack_overflow_if_needed(state: CrashInfo) -> None:
   """For stack-overflow bugs, updates crash state based on cycle detected."""
   if state.crash_type != 'Stack-overflow':
     return
@@ -1570,7 +1652,7 @@ def update_crash_state_for_stack_overflow_if_needed(state):
     for cycle_length in range(1, MAX_CYCLE_LENGTH + 1):
       # Create frame potential cycles of a given length starting from
       # |frame_index|.
-      frame_potential_cycles = []
+      frame_potential_cycles: list[list[str]] = []
       end_reached = False
       for i in range(0, REPEATED_CYCLE_COUNT):
         start_index = frame_index + i * cycle_length
@@ -1597,7 +1679,10 @@ def update_crash_state_for_stack_overflow_if_needed(state):
         return
 
 
-def llvm_test_one_input_override(frame, frame_struct):
+def llvm_test_one_input_override(
+    frame: str,
+    frame_struct: stack_parser.StackFrame | None,
+) -> str:
   """Override frame matching for LLVMFuzzerTestOneInput frames."""
   if not frame.startswith('LLVMFuzzerTestOneInput'):
     return frame
@@ -1611,12 +1696,12 @@ def llvm_test_one_input_override(frame, frame_struct):
   return frame
 
 
-def reverse_python_stacktrace(stacktrace):
+def reverse_python_stacktrace(stacktrace: list[str]) -> list[str]:
   """Extract a Python stacktrace.
   Python stacktraces are a bit special: they are reversed,
   and followed by a sanitizer one, so we need to extract them, reverse them,
   and put their "title" back on top."""
-  python_stacktrace_split = []
+  python_stacktrace_split: list[str] = []
   in_python_stacktrace = False
 
   for line in stacktrace:
@@ -1636,7 +1721,7 @@ def reverse_python_stacktrace(stacktrace):
   return python_stacktrace_split
 
 
-def update_kasan_crash_details(state, line):
+def update_kasan_crash_details(state: CrashInfo, line: str) -> None:
   """For KASan crashes, additional information about a bad access may exist."""
   if state.crash_type.startswith('Kernel failure'):
     kasan_access_match = KASAN_ACCESS_TYPE_ADDRESS_REGEX.match(line)

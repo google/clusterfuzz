@@ -14,6 +14,9 @@
 """Sanitizer related functions."""
 
 import os
+from typing import Any
+from typing import cast
+from typing import Optional
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -26,28 +29,28 @@ try:
   from clusterfuzz._internal.system import new_process
 except ImportError:
   # On App Engine.
-  new_process = None
+  new_process: Any = None
 
-ASAN_SCRIPT_TIMEOUT = 15 * 60
-SANITIZER_TOOL_TO_FILE_MAPPINGS = {
+ASAN_SCRIPT_TIMEOUT: int = 15 * 60
+SANITIZER_TOOL_TO_FILE_MAPPINGS: dict[str, str] = {
     'asan': 'asan.options',
 }
 
 
-def get_ld_library_path_for_memory_tools():
+def get_ld_library_path_for_memory_tools() -> Optional[str]:
   """Return LD_LIBRARY_PATH setting for memory tools, None otherwise."""
-  tool = settings.get_sanitizer_tool_name()
-  if tool:
+  sanitizer_tool = settings.get_sanitizer_tool_name()
+  if sanitizer_tool:
     return constants.DEVICE_SANITIZER_DIR
 
-  tool = settings.is_mte_build()
-  if tool:
+  is_mte = settings.is_mte_build()
+  if is_mte:
     return constants.DEVICE_MTE_DIR
 
   return None
 
 
-def get_options_file_path(sanitizer_tool_name):
+def get_options_file_path(sanitizer_tool_name: str) -> Optional[str]:
   """Return path for the sanitizer options file."""
   # If this a full sanitizer system build, then update the options file in
   # /system, else just put it in device temp directory.
@@ -63,7 +66,7 @@ def get_options_file_path(sanitizer_tool_name):
   return os.path.join(sanitizer_directory, sanitizer_filename)
 
 
-def set_options(sanitizer_tool_name, sanitizer_options):
+def set_options(sanitizer_tool_name: str, sanitizer_options: str) -> None:
   """Set sanitizer options on the disk file."""
   sanitizer_options_file_path = get_options_file_path(sanitizer_tool_name)
   if not sanitizer_options_file_path:
@@ -76,7 +79,7 @@ def set_options(sanitizer_tool_name, sanitizer_options):
 
 def setup_asan_if_needed() -> bool:
   """Set up asan on device.
-  
+
   Returns:
     True if the device was rebooted or restarted during setup, False otherwise.
   """
@@ -103,12 +106,14 @@ def setup_asan_if_needed() -> bool:
   logs.info('Executing ASan device setup script.')
   asan_device_setup_script_path = os.path.join(android_directory, 'third_party',
                                                'asan_device_setup.sh')
-  extra_options_arg = 'include_if_exists=' + get_options_file_path('asan')
+  options_file_path = cast(str, get_options_file_path('asan'))
+  extra_options_arg = 'include_if_exists=' + options_file_path
   asan_device_setup_script_args = [
       '--lib', app_directory, '--device', device_id, '--extra-options',
       extra_options_arg
   ]
 
+  assert new_process is not None
   process = new_process.ProcessRunner(asan_device_setup_script_path,
                                       asan_device_setup_script_args)
   result = process.run_and_wait()

@@ -16,6 +16,7 @@ from user upload."""
 
 import json
 import os
+from typing import cast
 
 from google.cloud import ndb
 
@@ -29,9 +30,11 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 
-def execute_task(metadata_id, job_type):
+def execute_task(metadata_id: str | int, job_type: str) -> None:
   """Unpack a bundled testcase archive and create analyze jobs for each item."""
-  metadata = ndb.Key(data_types.BundledArchiveMetadata, int(metadata_id)).get()
+  metadata = cast(
+      data_types.BundledArchiveMetadata | None,
+      ndb.Key(data_types.BundledArchiveMetadata, int(metadata_id)).get())
   if not metadata:
     logs.error('Invalid bundle metadata id %s.' % metadata_id)
     return
@@ -58,7 +61,8 @@ def execute_task(metadata_id, job_type):
   testcases_directory = environment.get_value('FUZZ_INPUTS_DISK')
 
   # Retrieve multi-testcase archive.
-  archive_path = os.path.join(testcases_directory, metadata.archive_filename)
+  archive_path = os.path.join(testcases_directory,
+                              cast(str, metadata.archive_filename))
   if not blobs.read_blob_to_disk(metadata.blobstore_key, archive_path):
     logs.error('Could not retrieve archive for bundle %d.' % metadata_id)
     tasks.add_task('unpack', metadata_id, job_type)
@@ -101,14 +105,16 @@ def execute_task(metadata_id, job_type):
 
     data_handler.create_user_uploaded_testcase(
         blob_key, metadata.blobstore_key, archive_state,
-        metadata.archive_filename, filename, metadata.timeout, job,
-        metadata.job_queue, metadata.http_flag, metadata.gestures,
+        cast(str, metadata.archive_filename), filename, metadata.timeout, job,
+        metadata.job_queue, cast(bool, metadata.http_flag),
+        cast(list[str] | None, metadata.gestures),
         metadata.additional_arguments, metadata.bug_information,
-        metadata.crash_revision, metadata.uploader_email, metadata.platform_id,
-        metadata.app_launch_command, metadata.fuzzer_name,
-        metadata.overridden_fuzzer_name, metadata.fuzzer_binary_name, bundled,
-        upload_metadata.retries, upload_metadata.bug_summary_update_flag,
-        upload_metadata.quiet_flag, additional_metadata)
+        cast(int, metadata.crash_revision), cast(str, metadata.uploader_email),
+        metadata.platform_id, metadata.app_launch_command,
+        cast(str, metadata.fuzzer_name), metadata.overridden_fuzzer_name,
+        metadata.fuzzer_binary_name, bundled, upload_metadata.retries,
+        cast(bool, upload_metadata.bug_summary_update_flag),
+        cast(bool, upload_metadata.quiet_flag), additional_metadata)
 
   # The upload metadata for the archive is not needed anymore since we created
   # one for each testcase.

@@ -13,28 +13,37 @@
 # limitations under the License.
 """NDB utilities. Provides utility functions for NDB."""
 
+from collections.abc import Iterable
+from collections.abc import Iterator
+from typing import Any
+from typing import cast
+from typing import TypeVar
+
 from google.cloud import ndb
 
-_GET_BATCH_SIZE = 1000
-_MODIFY_BATCH_SIZE = 500
+_T = TypeVar('_T')
+_ModelT = TypeVar('_ModelT', bound=ndb.Model)
+
+_GET_BATCH_SIZE: int = 1000
+_MODIFY_BATCH_SIZE: int = 500
 
 
-def is_true(boolean_prop):
+def is_true(boolean_prop: Any) -> ndb.FilterNode:
   """Helper for boolean property filters to avoid lint errors."""
   return boolean_prop == True  # pylint: disable=g-explicit-bool-comparison,singleton-comparison
 
 
-def is_false(boolean_prop):
+def is_false(boolean_prop: Any) -> ndb.FilterNode:
   """Helper for boolean property filters to avoid lint errors."""
   return boolean_prop == False  # pylint: disable=g-explicit-bool-comparison,singleton-comparison
 
 
-def get_all_from_model(model):
+def get_all_from_model(model: type[_ModelT]) -> Iterator[_ModelT]:
   """Get all results from a ndb.Model."""
-  return get_all_from_query(model.query())
+  return cast(Iterator[_ModelT], get_all_from_query(cast(Any, model).query()))
 
 
-def get_all_from_query(query, **kwargs):
+def get_all_from_query(query: ndb.Query, **kwargs: Any) -> Iterator[Any]:
   """Return all entities based on the query by paging, to avoid query
   expirations on App Engine."""
   # TODO(ochang): Queries no longer expire with new NDB. Remove this and all
@@ -43,34 +52,34 @@ def get_all_from_query(query, **kwargs):
   yield from query.iter(**kwargs)
 
 
-def _gen_chunks(values, size):
+def _gen_chunks(values: Iterable[_T], size: int) -> Iterator[list[_T]]:
   """Generate chunks of iterable."""
   values = list(values)
   for i in range(0, len(values), size):
     yield values[i:i + size]
 
 
-def get_multi(keys):
+def get_multi(keys: Iterable[ndb.Key]) -> list[ndb.Model | None]:
   """Get multiple entities, working around a limitation in the NDB library with
   the maximum number of keys allowed."""
-  result = []
+  result: list[ndb.Model | None] = []
   for chunk in _gen_chunks(keys, _GET_BATCH_SIZE):
     result.extend(ndb.get_multi(chunk))
 
   return result
 
 
-def put_multi(entities):
+def put_multi(entities: Iterable[ndb.Model]) -> list[ndb.Key]:
   """Put multiple entities, working around a limitation in the NDB library with
   the maximum number of keys allowed."""
-  result = []
+  result: list[ndb.Key] = []
   for chunk in _gen_chunks(entities, _MODIFY_BATCH_SIZE):
     result.extend(ndb.put_multi(chunk))
 
   return result
 
 
-def delete_multi(keys):
+def delete_multi(keys: Iterable[ndb.Key]) -> None:
   """Delete multiple entities, working around a limitation in the NDB library
   with the maximum number of keys allowed."""
   for chunk in _gen_chunks(keys, _MODIFY_BATCH_SIZE):

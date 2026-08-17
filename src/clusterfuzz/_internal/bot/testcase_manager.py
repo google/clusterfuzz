@@ -14,13 +14,17 @@
 """Functions for testcase management."""
 
 import base64
-import collections
+from collections.abc import Sequence
 import dataclasses
 import datetime
 import os
 import queue
 import re
+from typing import cast
+from typing import NamedTuple
 import zlib
+
+from google.protobuf import message
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -45,24 +49,24 @@ from clusterfuzz.fuzz import engine
 from clusterfuzz.stacktraces import CrashInfo
 
 # Testcase filename prefixes and suffixes.
-CRASH_PREFIX = 'crash-'
-FUZZ_PREFIX = 'fuzz-'
-FLAGS_PREFIX = 'flags-'
-HTTP_PREFIX = 'http-'
-RESOURCES_PREFIX = 'resources-'
+CRASH_PREFIX: str = 'crash-'
+FUZZ_PREFIX: str = 'fuzz-'
+FLAGS_PREFIX: str = 'flags-'
+HTTP_PREFIX: str = 'http-'
+RESOURCES_PREFIX: str = 'resources-'
 
 # TODO(mbarbella): Once all fuzzers are converted to "resources-", remove this.
-DEPENDENCY_PREFIX = 'cfdependency-'
-APPS_PREFIX = 'fuzz-apps-'
-EXTENSIONS_PREFIX = 'fuzz-extension-'
-COVERAGE_SUFFIX = '.cov'
+DEPENDENCY_PREFIX: str = 'cfdependency-'
+APPS_PREFIX: str = 'fuzz-apps-'
+EXTENSIONS_PREFIX: str = 'fuzz-extension-'
+COVERAGE_SUFFIX: str = '.cov'
 
-INFO_FILE_EXTENSION = '.info'
-IPCDUMP_EXTENSION = '.ipcdump'
-REPRODUCIBILITY_FACTOR = 0.5
-SEARCH_INDEX_TESTCASES_DIRNAME = 'common'
-SEARCH_INDEX_BUNDLE_PREFIX = '__%s_' % SEARCH_INDEX_TESTCASES_DIRNAME
-TESTCASE_LIST_FILENAME = 'files.info'
+INFO_FILE_EXTENSION: str = '.info'
+IPCDUMP_EXTENSION: str = '.ipcdump'
+REPRODUCIBILITY_FACTOR: float = 0.5
+SEARCH_INDEX_TESTCASES_DIRNAME: str = 'common'
+SEARCH_INDEX_BUNDLE_PREFIX: str = '__%s_' % SEARCH_INDEX_TESTCASES_DIRNAME
+TESTCASE_LIST_FILENAME: str = 'files.info'
 
 CHROME_URL_LOAD_REGEX = re.compile(
     r'.*(NetworkDelegate::NotifyBeforeURLRequest|FileURLLoader::Start)'
@@ -71,7 +75,7 @@ FILE_URL_REGEX = re.compile(r'file:///([^"#?]+)')
 HTTP_URL_REGEX = re.compile(
     r'.*(localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[^/]*[/]([^"#?]+)')
 
-BAD_STATE_HINTS = [
+BAD_STATE_HINTS: list[str] = [
     # X server issues.
     'cannot open display',
     'Maximum number of clients reached',
@@ -82,7 +86,7 @@ BAD_STATE_HINTS = [
 ]
 
 # Flaky crash types for which crash comparison does not make sense.
-IGNORE_STATE_CRASH_TYPES = [
+IGNORE_STATE_CRASH_TYPES: list[str] = [
     'Stack-overflow',
 ]
 
@@ -95,7 +99,7 @@ class TargetNotFoundError(TestcaseManagerError):
   """Error when a fuzz target is not found."""
 
 
-def set_extra_sanitizers(crash_type):
+def set_extra_sanitizers(crash_type: str | None) -> None:
   """Set extra sanitizers based on crash_type."""
   if crash_type in crash_analyzer.EXTRA_SANITIZERS_SECURITY:
     environment.set_value('USE_EXTRA_SANITIZERS', True)
@@ -104,7 +108,7 @@ def set_extra_sanitizers(crash_type):
     environment.set_value('USE_EXTRA_SANITIZERS', False)
 
 
-def create_testcase_list_file(output_directory):
+def create_testcase_list_file(output_directory: str) -> None:
   """Create a testcase list file for tests in a directory."""
   files_list = []
   files_list_file_path = os.path.join(output_directory, TESTCASE_LIST_FILENAME)
@@ -125,7 +129,7 @@ def create_testcase_list_file(output_directory):
   utils.write_data_to_file('\n'.join(sorted(files_list)), files_list_file_path)
 
 
-def get_testcases_from_directories(directories):
+def get_testcases_from_directories(directories: Sequence[str]) -> list[str]:
   """Returns all testcases from testcase directories."""
   testcase_paths = []
   max_testcases = environment.get_value('MAX_TESTCASES')
@@ -158,7 +162,7 @@ def get_testcases_from_directories(directories):
   return testcase_paths
 
 
-def is_testcase_resource(filename):
+def is_testcase_resource(filename: str) -> bool:
   """Returns true if this is a testcase or its resource dependency."""
   if filename.startswith(FUZZ_PREFIX):
     return True
@@ -178,7 +182,7 @@ def is_testcase_resource(filename):
   return False
 
 
-def remove_testcases_from_directories(directories):
+def remove_testcases_from_directories(directories: Sequence[str]) -> None:
   """Removes all testcases and their dependencies from testcase directories."""
   generators = []
   for directory in directories:
@@ -209,7 +213,7 @@ def remove_testcases_from_directories(directories):
         shell.remove_file(file_path)
 
 
-def read_resource_list(resource_file_path):
+def read_resource_list(resource_file_path: str) -> list[str]:
   """Generate a resource list."""
   if not os.path.exists(resource_file_path):
     return []
@@ -228,7 +232,8 @@ def read_resource_list(resource_file_path):
   return resources
 
 
-def get_resource_dependencies(testcase_absolute_path, test_prefix=FUZZ_PREFIX):
+def get_resource_dependencies(testcase_absolute_path: str,
+                              test_prefix: str = FUZZ_PREFIX) -> list[str]:
   """Returns the list of testcase resource dependencies."""
   resources = []
   if not os.path.exists(testcase_absolute_path):
@@ -285,7 +290,7 @@ def get_resource_dependencies(testcase_absolute_path, test_prefix=FUZZ_PREFIX):
   return resources
 
 
-def get_command_line_flags(testcase_path):
+def get_command_line_flags(testcase_path: str) -> str:
   """Returns command line flags to use for a testcase."""
   arguments = environment.get_value('APP_ARGS')
   additional_arguments = get_additional_command_line_flags(testcase_path)
@@ -297,7 +302,7 @@ def get_command_line_flags(testcase_path):
   return arguments.strip()
 
 
-def get_additional_command_line_flags(testcase_path):
+def get_additional_command_line_flags(testcase_path: str) -> str:
   """Returns additional command line flags to use for a testcase."""
   # Get the initial flags list from the environment value.
   additional_command_line_flags = (
@@ -319,7 +324,9 @@ def get_additional_command_line_flags(testcase_path):
   return additional_command_line_flags.strip()
 
 
-def run_testcase(thread_index, file_path, gestures, env_copy):
+def run_testcase(thread_index: int, file_path: str, gestures: list[str] | None,
+                 env_copy: dict[str, str] | None
+                ) -> tuple[int | None, float | None, str | None]:
   """Run a single testcase and return crash results in the crash queue."""
   try:
     # Update environment with environment copy from parent.
@@ -349,13 +356,16 @@ def run_testcase(thread_index, file_path, gestures, env_copy):
     return None, None, None
 
 
-class Crash(
-    collections.namedtuple(
-        'Crash', 'file_path crash_time return_code resource_list gestures '
-        'stack_file_path')):
+class Crash(NamedTuple):
   """Represents a crash in a queue. This class is transformed into
     fuzz_task.Crash. Therefore, please be careful when adding/removing
     fields."""
+  file_path: str
+  crash_time: float | None
+  return_code: int | None
+  resource_list: list[str]
+  gestures: list[str] | None
+  stack_file_path: str
 
 
 @dataclasses.dataclass
@@ -371,15 +381,16 @@ class FuzzerRunOutputData:
   _output: str | bytes | None = None
   _file_path: str | None = None
   crash_path: str | None = None
-  return_code: int = 0
+  return_code: int | None = 0
   log_time: datetime.datetime | None = None
 
   @classmethod
-  def from_file_path(cls,
-                     file_path: str,
-                     crash_path: str | None = None,
-                     return_code: int = 0,
-                     log_time: datetime.datetime | None = None):
+  def from_file_path(
+      cls,
+      file_path: str,
+      crash_path: str | None = None,
+      return_code: int | None = 0,
+      log_time: datetime.datetime | None = None) -> 'FuzzerRunOutputData':
     return cls(
         _file_path=file_path,
         crash_path=crash_path,
@@ -387,11 +398,12 @@ class FuzzerRunOutputData:
         log_time=log_time)
 
   @classmethod
-  def from_memory(cls,
-                  output: str | bytes,
-                  crash_path: str | None = None,
-                  return_code: int = 0,
-                  log_time: datetime.datetime | None = None):
+  def from_memory(
+      cls,
+      output: str | bytes,
+      crash_path: str | None = None,
+      return_code: int | None = 0,
+      log_time: datetime.datetime | None = None) -> 'FuzzerRunOutputData':
     return cls(
         _output=output,
         crash_path=crash_path,
@@ -422,7 +434,7 @@ class TestcaseRunResult:
   fuzzer_run_output_data: FuzzerRunOutputData | None = None
 
 
-def get_resource_paths(output):
+def get_resource_paths(output: str) -> list[str]:
   """Read the urls from the output."""
   resource_paths = set()
   for line in output.splitlines():
@@ -438,7 +450,7 @@ def get_resource_paths(output):
   return list(resource_paths)
 
 
-def convert_dependency_url_to_local_path(url):
+def convert_dependency_url_to_local_path(url: str) -> str | None:
   """Convert a dependency URL to a corresponding local path."""
   # Bot-specific import.
   from clusterfuzz._internal.bot.webserver import http_server
@@ -481,7 +493,7 @@ def convert_dependency_url_to_local_path(url):
   return local_path
 
 
-def _get_testcase_time(testcase_path):
+def _get_testcase_time(testcase_path: str) -> datetime.datetime:
   """Returns the timestamp of a testcase."""
   stats = fuzzer_stats.TestcaseRun.read_from_disk(testcase_path)
   if stats:
@@ -490,7 +502,10 @@ def _get_testcase_time(testcase_path):
   return datetime.datetime.utcnow()
 
 
-def upload_testcase(testcase_path, testcase_data, log_time, fuzzer_name=None):
+def upload_testcase(testcase_path: str | None,
+                    testcase_data: str | bytes | None,
+                    log_time: datetime.datetime,
+                    fuzzer_name: str | None = None) -> None:
   """Uploads testcase so that a log file can be matched with it folder."""
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
   if not fuzz_logs_bucket:
@@ -514,7 +529,7 @@ def upload_testcase(testcase_path, testcase_data, log_time, fuzzer_name=None):
       file_extension='.testcase')
 
 
-def _get_crash_output(output):
+def _get_crash_output(output: str | None) -> str | None:
   """Returns crash part of the output, excluding unrelated content (e.g. output
   from corpus merge, etc)."""
   if output is None:
@@ -530,7 +545,7 @@ def _get_crash_output(output):
 
 def run_testcase_and_return_result_in_queue(
     crash_queue: queue.Queue, thread_index: int, file_path: str,
-    gestures: list[str], env_copy: dict) -> None:
+    gestures: list[str] | None, env_copy: dict[str, str] | None) -> None:
   """Run a single testcase and return crash results in the crash queue."""
   # Since this is running in its own process, initialize the log handler again.
   # This is needed for Windows where instances are not shared across child
@@ -548,7 +563,7 @@ def run_testcase_and_return_result_in_queue(
 
 def _do_run_testcase_and_return_result_in_queue(
     crash_queue: queue.Queue, thread_index: int, file_path: str,
-    gestures: list[str], env_copy: dict) -> None:
+    gestures: list[str] | None, env_copy: dict[str, str] | None) -> None:
   """Run a single testcase and return crash results in the crash queue."""
   try:
     # Run testcase and check whether a crash occurred or not.
@@ -572,6 +587,7 @@ def _do_run_testcase_and_return_result_in_queue(
     if crash_result.is_crash():
       # Initialize resource list with the testcase path.
       resource_list = [file_path]
+      assert crash_output is not None
       resource_list += get_resource_paths(crash_output)
 
       # Store the crash stack file in the crash stacktrace directory
@@ -613,8 +629,9 @@ def _do_run_testcase_and_return_result_in_queue(
         exception=e)
 
 
-def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
-                     arguments, timeout) -> engine.ReproduceResult:
+def engine_reproduce(engine_impl: engine.Engine, target_name: str,
+                     testcase_path: str, arguments: Sequence[str],
+                     timeout: int | float) -> engine.ReproduceResult:
   """Do engine reproduction."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
@@ -640,19 +657,30 @@ def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
 class TestcaseRunner:
   """Testcase runner."""
 
+  _testcase_path: str
+  _test_timeout: int | float
+  _gestures: list[str] | None
+  _needs_http: bool
+  _is_black_box: bool
+  _engine_impl: engine.Engine
+  _arguments: list[str]
+  _fuzz_target: data_types.FuzzTarget
+  _command: str
+
   def __init__(self,
-               fuzz_target,
-               testcase_path,
-               test_timeout,
-               gestures,
-               needs_http=False,
-               arguments=None):
+               fuzz_target: data_types.FuzzTarget | None,
+               testcase_path: str,
+               test_timeout: int | float,
+               gestures: list[str] | None,
+               needs_http: bool = False,
+               arguments: str | None = None):
     self._testcase_path = testcase_path
     self._test_timeout = test_timeout
     self._gestures = gestures
     self._needs_http = needs_http
 
     if fuzz_target:
+      assert fuzz_target.engine is not None
       engine_impl = engine.get(fuzz_target.engine)
     else:
       engine_impl = None
@@ -690,6 +718,7 @@ class TestcaseRunner:
           current_working_directory=app_directory)
     else:
       try:
+        assert self._fuzz_target.binary is not None
         result = engine_reproduce(self._engine_impl, self._fuzz_target.binary,
                                   self._testcase_path, self._arguments,
                                   run_timeout)
@@ -715,7 +744,7 @@ class TestcaseRunner:
 
     return crash_result
 
-  def _pre_run_cleanup(self):
+  def _pre_run_cleanup(self) -> None:
     """Common cleanup before running a testcase."""
     # Cleanup any existing application instances and user profile directories.
     # Cleaning up temp user profile directories. Should be done before calling
@@ -741,7 +770,7 @@ class TestcaseRunner:
 
   def reproduce_with_retries(self,
                              retries: int,
-                             expected_state: CrashInfo | None = None,
+                             expected_state: str | None = None,
                              expected_security_flag: bool | None = None,
                              flaky_stacktrace: bool = False) -> CrashResult:
     """Try reproducing a crash with retries."""
@@ -782,14 +811,15 @@ class TestcaseRunner:
       logs.info('Crash stacktrace does not match original stacktrace.')
 
     logs.info('Didn\'t crash at all.')
+    assert crash_result is not None
     return CrashResult(
         return_code=0,
         crash_time=0,
         output=crash_result.output,
         unexpected_crash=unexpected_crash)
 
-  def test_reproduce_reliability(self, retries, expected_state,
-                                 expected_security_flag) -> bool:
+  def test_reproduce_reliability(self, retries: int, expected_state: str | None,
+                                 expected_security_flag: bool | None) -> bool:
     """Test to see if a crash is fully reproducible or is a one-time crasher."""
     logs.info("Beginning a reproducibility test.")
     self._pre_run_cleanup()
@@ -835,14 +865,15 @@ class TestcaseRunner:
     return False
 
 
-def test_for_crash_with_retries(fuzz_target,
-                                testcase,
-                                testcase_path,
-                                test_timeout,
-                                http_flag=False,
-                                use_gestures=True,
-                                compare_crash=True,
-                                crash_retries=None) -> CrashResult:
+def test_for_crash_with_retries(
+    fuzz_target: data_types.FuzzTarget | None,
+    testcase: data_types.Testcase,
+    testcase_path: str,
+    test_timeout: int | float,
+    http_flag: bool = False,
+    use_gestures: bool = True,
+    compare_crash: bool = True,
+    crash_retries: int | None = None) -> CrashResult:
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
   logs.info('Testing for crash.')
@@ -854,6 +885,8 @@ def test_for_crash_with_retries(fuzz_target,
   if crash_retries is None:
     crash_retries = environment.get_value('CRASH_RETRIES')
 
+  assert crash_retries is not None
+
   if compare_crash and testcase.crash_type not in IGNORE_STATE_CRASH_TYPES:
     expected_state = testcase.crash_state
     expected_security_flag = testcase.security_flag
@@ -864,20 +897,22 @@ def test_for_crash_with_retries(fuzz_target,
   try:
     return runner.reproduce_with_retries(crash_retries, expected_state,
                                          expected_security_flag,
-                                         testcase.flaky_stack)
+                                         bool(testcase.flaky_stack))
   except TargetNotFoundError:
     # If a target isn't found, treat it as not crashing.
     return CrashResult(return_code=0, crash_time=0, output='')
 
 
-def get_fuzz_target_from_input(uworker_input):
+def get_fuzz_target_from_input(uworker_input: uworker_msg_pb2.Input | None  # pylint: disable=no-member
+                              ) -> data_types.FuzzTarget | None:
   if uworker_input and uworker_input.HasField('fuzz_target'):
     return uworker_io.entity_from_protobuf(uworker_input.fuzz_target,
                                            data_types.FuzzTarget)
   return None
 
 
-def preprocess_testcase_manager(testcase, uworker_input):
+def preprocess_testcase_manager(testcase: data_types.Testcase,
+                                uworker_input: uworker_msg_pb2.Input) -> None:  # pylint: disable=no-member
   """Preprocess function for users of test_for_reproducibility."""
   # TODO(metzman): Make this work for test_for_crash_with_retries.
   fuzz_target = testcase.get_fuzz_target()
@@ -888,18 +923,19 @@ def preprocess_testcase_manager(testcase, uworker_input):
   if not fuzz_target:
     return
 
-  uworker_input.fuzz_target.CopyFrom(uworker_io.entity_to_protobuf(fuzz_target))
+  uworker_input.fuzz_target.CopyFrom(  # pylint: disable=no-member
+      cast(message.Message, uworker_io.entity_to_protobuf(fuzz_target)))
 
 
-def test_for_reproducibility(fuzz_target,
-                             testcase_path,
-                             crash_type,
-                             expected_state,
-                             expected_security_flag,
-                             test_timeout,
-                             http_flag,
-                             gestures,
-                             arguments=None) -> bool:
+def test_for_reproducibility(fuzz_target: data_types.FuzzTarget | None,
+                             testcase_path: str,
+                             crash_type: str | None,
+                             expected_state: str | None,
+                             expected_security_flag: bool | None,
+                             test_timeout: int | float,
+                             http_flag: bool,
+                             gestures: list[str] | None,
+                             arguments: str | None = None) -> bool:
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
   set_extra_sanitizers(crash_type)
   runner = TestcaseRunner(
@@ -911,11 +947,13 @@ def test_for_reproducibility(fuzz_target,
       arguments=arguments)
 
   crash_retries = environment.get_value('CRASH_RETRIES')
+  assert crash_retries is not None
   return runner.test_reproduce_reliability(crash_retries, expected_state,
                                            expected_security_flag)
 
 
-def _prepare_log_for_upload(symbolized_output, return_code, app_revision):
+def _prepare_log_for_upload(symbolized_output: str, return_code: int | None,
+                            app_revision: str | int | None) -> bytes:
   """Prepare log for upload."""
   # Add revision information to the logs.
   app_revision = app_revision or environment.get_value('APP_REVISION')
@@ -940,11 +978,11 @@ def _prepare_log_for_upload(symbolized_output, return_code, app_revision):
   return result.encode('utf-8')
 
 
-def upload_log(symbolized_output,
-               return_code,
-               log_time,
-               app_revision=None,
-               fuzzer_name=None):
+def upload_log(symbolized_output: str,
+               return_code: int | None,
+               log_time: datetime.datetime,
+               app_revision: str | int | None = None,
+               fuzzer_name: str | None = None) -> None:
   """Upload the output into corresponding GCS logs bucket."""
   log = _prepare_log_for_upload(symbolized_output, return_code, app_revision)
   fuzz_logs_bucket = environment.get_value('FUZZ_LOGS_BUCKET')
@@ -955,7 +993,7 @@ def upload_log(symbolized_output,
       fuzz_logs_bucket, log, time=log_time, fuzzer_name=fuzzer_name)
 
 
-def get_user_profile_directory(user_profile_index):
+def get_user_profile_directory(user_profile_index: int) -> str:
   """Returns a user profile directory from a directory index."""
   temp_directory = environment.get_value('BOT_TMPDIR')
   user_profile_in_memory = environment.get_value('USER_PROFILE_IN_MEMORY')
@@ -971,13 +1009,13 @@ def get_user_profile_directory(user_profile_index):
   return user_profile_directory
 
 
-def get_command_line_for_application(file_to_run='',
-                                     user_profile_index=0,
-                                     app_path=None,
-                                     app_args=None,
-                                     needs_http=False,
-                                     write_command_line_file=False,
-                                     get_arguments_only=False):
+def get_command_line_for_application(file_to_run: str = '',
+                                     user_profile_index: int = 0,
+                                     app_path: str | None = None,
+                                     app_args: str | None = None,
+                                     needs_http: bool = False,
+                                     write_command_line_file: bool = False,
+                                     get_arguments_only: bool = False) -> str:
   """Returns the complete command line required to execute application."""
   if app_args is None:
     app_args = environment.get_value('APP_ARGS')
@@ -1149,7 +1187,7 @@ def get_command_line_for_application(file_to_run='',
   return str(command)
 
 
-def setup_user_profile_directory_if_needed(user_profile_directory):
+def setup_user_profile_directory_if_needed(user_profile_directory: str) -> None:
   """Set user profile directory if it does not exist."""
   if os.path.exists(user_profile_directory):
     # User profile directory already exists. Bail out.
@@ -1314,7 +1352,8 @@ def check_for_bad_build(job_type: str,
       build_run_console_output=build_run_console_output)
 
 
-def update_build_metadata(job_type: str, build_data: uworker_msg_pb2.BuildData):  # pylint: disable=no-member
+def update_build_metadata(job_type: str,
+                          build_data: uworker_msg_pb2.BuildData) -> None:  # pylint: disable=no-member
   """
   Updates the corresponding build metadata.
 

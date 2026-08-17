@@ -13,7 +13,9 @@
 # limitations under the License.
 """Fuzz task for handling fuzzing."""
 
-import collections
+from collections.abc import Generator
+from collections.abc import MutableMapping
+from collections.abc import Sequence
 import datetime
 import itertools
 import json
@@ -24,9 +26,13 @@ import re
 import threading
 import time
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import List
+from typing import NamedTuple
 from typing import Optional
+from typing import Set
+from typing import Tuple
 
 from google.cloud import ndb
 
@@ -76,17 +82,17 @@ from clusterfuzz.fuzz import engine
 
 # 10 MB limit for proto testcase payload field (see FuzzerRunOutput testcase in
 # src/clusterfuzz/_internal/protos/uworker_msg.proto:L248).
-MAX_TESTCASE_PAYLOAD_SIZE = 10 * 1024 * 1024
+MAX_TESTCASE_PAYLOAD_SIZE: int = 10 * 1024 * 1024
 # PROTO msg limit is 2 GB, reserving 200 MB for safety
 # https://protobuf.dev/programming-guides/proto-limits/
-PROTOBUF_MSG_LIMIT = 1.8 * 1024 * 1024 * 1024
-FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
-FUZZER_FAILURE_THRESHOLD = 0.33
-MAX_NEW_CORPUS_FILES = 500
-THREAD_WAIT_TIMEOUT = 1
-MAX_CRASHES_UPLOADED = 64
+PROTOBUF_MSG_LIMIT: float = 1.8 * 1024 * 1024 * 1024
+FUZZER_METADATA_REGEX: re.Pattern = re.compile(r'metadata::(\w+):\s*(.*)')
+FUZZER_FAILURE_THRESHOLD: float = 0.33
+MAX_NEW_CORPUS_FILES: int = 500
+THREAD_WAIT_TIMEOUT: int = 1
+MAX_CRASHES_UPLOADED: int = 64
 
-ENGINE_OUTPUT_LIMIT = 10 * 2**20
+ENGINE_OUTPUT_LIMIT: int = 10 * 2**20
 
 
 class FuzzTaskError(Exception):
@@ -98,26 +104,42 @@ class FuzzTargetNotFoundError(Exception):
 
 
 class FuzzErrorCode:
-  FUZZER_TIMEOUT = -1
-  FUZZER_SETUP_FAILED = -2
-  FUZZER_EXECUTION_FAILED = -3
-  DATA_BUNDLE_SETUP_FAILED = -4
-  BUILD_SETUP_FAILED = -5
+  FUZZER_TIMEOUT: int = -1
+  FUZZER_SETUP_FAILED: int = -2
+  FUZZER_EXECUTION_FAILED: int = -3
+  DATA_BUNDLE_SETUP_FAILED: int = -4
+  BUILD_SETUP_FAILED: int = -5
 
 
-Context = collections.namedtuple('Context', [
-    'project_name', 'bot_name', 'job_type', 'fuzz_target', 'redzone',
-    'disable_ubsan', 'platform_id', 'crash_revision', 'fuzzer_name',
-    'window_argument', 'fuzzer_metadata', 'testcases_metadata',
-    'timeout_multiplier', 'test_timeout', 'data_directory'
-])
+class Context(NamedTuple):
+  """Fuzz task context."""
 
-GenerateBlackboxTestcasesResult = collections.namedtuple(
-    'GenerateBlackboxTestcasesResult',
-    ['success', 'testcase_file_paths', 'fuzzer_metadata'])
+  project_name: Optional[str]
+  bot_name: Optional[str]
+  job_type: str
+  fuzz_target: Optional[data_types.FuzzTarget]
+  redzone: int
+  disable_ubsan: bool
+  platform_id: Optional[str]
+  crash_revision: Any
+  fuzzer_name: str
+  window_argument: Optional[str]
+  fuzzer_metadata: Dict[str, Any]
+  testcases_metadata: Dict[str, Any]
+  timeout_multiplier: float
+  test_timeout: int
+  data_directory: Optional[str]
 
 
-def get_unsymbolized_crash_stacktrace(stack_file_path):
+class GenerateBlackboxTestcasesResult(NamedTuple):
+  """Result from generating blackbox testcases."""
+
+  success: bool
+  testcase_file_paths: Optional[List[str]]
+  fuzzer_metadata: Optional[Dict[str, Any]]
+
+
+def get_unsymbolized_crash_stacktrace(stack_file_path: str) -> str:
   """Read unsymbolized crash stacktrace."""
   with open(stack_file_path, 'rb') as f:
     return utils.decode_to_unicode(f.read())
@@ -131,7 +153,7 @@ class UploadUrlCollection:
   """Upload URLs collection."""
 
   def __init__(self, upload_urls: List[uworker_msg_pb2.BlobUploadUrl]):
-    self.upload_urls = upload_urls
+    self.upload_urls: List[uworker_msg_pb2.BlobUploadUrl] = upload_urls
 
   def get(self) -> uworker_msg_pb2.BlobUploadUrl:
     if not self.upload_urls:
@@ -146,7 +168,7 @@ def _get_max_testcases() -> int:
   return environment.get_value('MAX_TESTCASES', 1)
 
 
-def _get_max_corpus_uploads_per_task():
+def _get_max_corpus_uploads_per_task() -> int:
   number_of_fuzzer_runs = _get_max_testcases()
   return MAX_NEW_CORPUS_FILES * number_of_fuzzer_runs
 
@@ -155,7 +177,8 @@ class Crash:
   """Represents a crash (before creating a testcase)."""
 
   @classmethod
-  def from_testcase_manager_crash(cls, crash):
+  def from_testcase_manager_crash(
+      cls, crash: testcase_manager.Crash) -> Optional['Crash']:
     """Create a Crash from a testcase_manager.Crash."""
     try:
       orig_unsymbolized_crash_stacktrace = (
@@ -174,11 +197,13 @@ class Crash:
             crash.file_path, needs_http=needs_http))
 
     # TODO(ochang): Remove once all engines are migrated to new pipeline.
-    fuzzing_strategies = libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
-        orig_unsymbolized_crash_stacktrace)
-    if fuzzing_strategies:
-      assert len(fuzzing_strategies.groups()) == 1
-      fuzzing_strategies_string = fuzzing_strategies.groups()[0]
+    fuzzing_strategies_match = (
+        libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
+            orig_unsymbolized_crash_stacktrace))
+    fuzzing_strategies = None
+    if fuzzing_strategies_match:
+      assert len(fuzzing_strategies_match.groups()) == 1
+      fuzzing_strategies_string = fuzzing_strategies_match.groups()[0]
       fuzzing_strategies = [
           strategy.strip() for strategy in fuzzing_strategies_string.split(',')
       ]
@@ -196,7 +221,8 @@ class Crash:
         fuzzing_strategies=fuzzing_strategies)
 
   @classmethod
-  def from_engine_crash(cls, crash, fuzzing_strategies):
+  def from_engine_crash(cls, crash: engine.Crash,
+                        fuzzing_strategies: Optional[List[str]]) -> 'Crash':
     """Create a Crash from a engine.Crash."""
     return Crash(
         file_path=crash.input_path,
@@ -211,62 +237,63 @@ class Crash:
         fuzzing_strategies=fuzzing_strategies)
 
   def __init__(self,
-               file_path,
-               crash_time,
-               return_code,
-               resource_list,
-               gestures,
-               unsymbolized_crash_stacktrace,
-               arguments,
-               application_command_line,
-               http_flag=False,
-               fuzzing_strategies=None):
-    self.file_path = file_path
-    self.crash_time = crash_time
-    self.return_code = return_code
-    self.resource_list = resource_list
-    self.gestures = gestures
-    self.arguments = arguments
-    self.fuzzing_strategies = fuzzing_strategies
+               file_path: str,
+               crash_time: Any,
+               return_code: Any,
+               resource_list: Any,
+               gestures: Any,
+               unsymbolized_crash_stacktrace: str,
+               arguments: str,
+               application_command_line: str,
+               http_flag: bool = False,
+               fuzzing_strategies: Optional[Sequence[str]] = None):
+    self.file_path: str = file_path
+    self.crash_time: Any = crash_time
+    self.return_code: Any = return_code
+    self.resource_list: Any = resource_list
+    self.gestures: Any = gestures
+    self.arguments: str = arguments
+    self.fuzzing_strategies: Optional[List[str]] = (
+        list(fuzzing_strategies) if fuzzing_strategies else None)
 
-    self.security_flag = False
-    self.should_be_ignored = False
+    self.security_flag: bool = False
+    self.should_be_ignored: bool = False
 
-    self.http_flag = http_flag
-    self.application_command_line = application_command_line
-    self.unsymbolized_crash_stacktrace = unsymbolized_crash_stacktrace
+    self.http_flag: bool = http_flag
+    self.application_command_line: str = application_command_line
+    self.unsymbolized_crash_stacktrace: str = unsymbolized_crash_stacktrace
     state = stack_analyzer.get_crash_data(self.unsymbolized_crash_stacktrace)
-    self.crash_type = state.crash_type
-    self.crash_address = state.crash_address
-    self.crash_state = state.crash_state
-    self.crash_stacktrace = utils.get_crash_stacktrace_output(
+    self.crash_type: str = state.crash_type
+    self.crash_address: str = state.crash_address
+    self.crash_state: str = state.crash_state
+    self.crash_stacktrace: str = utils.get_crash_stacktrace_output(
         self.application_command_line, state.crash_stacktrace,
         self.unsymbolized_crash_stacktrace)
-    self.crash_categories = state.crash_categories
+    self.crash_categories: Set[str] = state.crash_categories
     self.security_flag = crash_analyzer.is_security_issue(
         self.unsymbolized_crash_stacktrace, self.crash_type, self.crash_address)
-    self.key = f'{self.crash_type},{self.crash_state},{self.security_flag}'
+    self.key: str = f'{self.crash_type},{self.crash_state},{self.security_flag}'
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
         state.crash_stacktrace)
 
     # self.crash_info gets populated in create_testcase; save what we need.
-    self.crash_frames = state.frames
-    self.crash_info = None
-    self.fuzzed_key = None
-    self.absolute_path = None
-    self.archive_filename = None
-    self.archived = False
+    self.crash_frames: Optional[List[Any]] = state.frames
+    self.crash_info: Optional[Any] = None
+    self.fuzzed_key: Optional[str] = None
+    self.absolute_path: Optional[str] = None
+    self.archive_filename: Optional[str] = None
+    self.archived: Optional[bool] = False
 
   @property
-  def filename(self):
+  def filename(self) -> str:
     return os.path.basename(self.file_path)
 
-  def is_uploaded(self):
+  def is_uploaded(self) -> bool:
     """Return true if archive_testcase_in_blobstore(..) was performed."""
     return self.fuzzed_key is not None
 
-  def archive_testcase_in_blobstore(self,
-                                    upload_url: uworker_msg_pb2.BlobUploadUrl):
+  def archive_testcase_in_blobstore(
+      self, upload_url: uworker_msg_pb2.BlobUploadUrl) -> None:
     """Calling setup.archive_testcase_and_dependencies_in_gcs(..)
       and hydrate certain attributes. We single out this method because it's
       expensive and we want to do it at the very last minute."""
@@ -281,11 +308,11 @@ class Crash:
         setup.archive_testcase_and_dependencies_in_gcs(
             self.resource_list, self.file_path, upload_url.url))
 
-  def is_valid(self):
+  def is_valid(self) -> bool:
     """Return true if the crash is valid for processing."""
     return self.get_error() is None
 
-  def get_error(self):
+  def get_error(self) -> Optional[str]:
     """Return the reason why the crash is invalid."""
     filter_functional_bugs = environment.get_value('FILTER_FUNCTIONAL_BUGS')
     if filter_functional_bugs and not self.security_flag:
@@ -304,16 +331,23 @@ class Crash:
 
     return None
 
-  def to_proto(self):
+  def to_proto(self) -> uworker_msg_pb2.FuzzTaskCrash:
     """Converts this object to a proto."""
     is_valid = self.is_valid()
     crash = uworker_msg_pb2.FuzzTaskCrash()
     crash.is_valid = is_valid
     crash.file_path = self.file_path
-    crash.crash_time = self.crash_time
-    crash.return_code = self.return_code
-    crash.resource_list.extend(self.resource_list)
-    crash.gestures.extend(self.gestures)
+    if self.crash_time is not None:
+      crash.crash_time = self.crash_time
+    if self.return_code is not None:
+      crash.return_code = self.return_code
+    if self.resource_list:
+      crash.resource_list.extend(self.resource_list)
+    if self.gestures:
+      if isinstance(self.gestures, (list, tuple)):
+        crash.gestures.extend(self.gestures)
+      else:
+        crash.gestures.append(self.gestures)
     crash.arguments = self.arguments
     if self.fuzzing_strategies:
       crash.fuzzing_strategies.extend(self.fuzzing_strategies)
@@ -328,18 +362,20 @@ class Crash:
     crash.security_flag = self.security_flag
     crash.key = self.key
     crash.should_be_ignored = self.should_be_ignored
-    crash.archived = self.archived
+    crash.archived = bool(self.archived)
     if self.fuzzed_key:
       crash.fuzzed_key = self.fuzzed_key
+      assert self.absolute_path is not None
       crash.absolute_path = self.absolute_path
     if self.archive_filename:
       crash.archive_filename = self.archive_filename
     return crash
 
 
-def find_main_crash(crashes: List[Crash],
-                    fuzz_target: Optional[data_types.FuzzTarget],
-                    test_timeout: int, upload_urls: UploadUrlCollection):
+def find_main_crash(
+    crashes: List[Crash], fuzz_target: Optional[data_types.FuzzTarget],
+    test_timeout: int,
+    upload_urls: UploadUrlCollection) -> Tuple[Optional[Crash], Optional[bool]]:
   """Find the first reproducible crash or the first valid crash. And return the
     crash and the one_time_crasher_flag."""
   for crash in crashes:
@@ -380,22 +416,25 @@ class CrashGroup:
   """Represent a group of identical crashes. The key is
       (crash_type, crash_state, security_flag)."""
 
-  def __init__(self, crashes: List[Crash], context,
+  def __init__(self, crashes: List[Crash], context: Context,
                upload_urls: UploadUrlCollection):
     for c in crashes:
       assert crashes[0].crash_type == c.crash_type
       assert crashes[0].crash_state == c.crash_state
       assert crashes[0].security_flag == c.security_flag
 
-    self.crashes = crashes
+    self.crashes: List[Crash] = crashes
+    self.main_crash: Optional[Crash]
+    self.one_time_crasher_flag: Optional[bool]
     self.main_crash, self.one_time_crasher_flag = find_main_crash(
         crashes, context.fuzz_target, context.test_timeout, upload_urls)
 
-    self.newly_created_testcase = None
+    self.newly_created_testcase: Optional[data_types.Testcase] = None
 
 
-def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
-                            existing_testcase):
+def _should_create_testcase(
+    group: uworker_msg_pb2.FuzzTaskCrashGroup,
+    existing_testcase: Optional[data_types.Testcase]) -> bool:
   """Returns True if this crash should create a testcase."""
   if not existing_testcase:
     return True
@@ -415,15 +454,15 @@ def _should_create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
 
 class _TrackFuzzTime:
   """Track the actual fuzzing time (e.g. excluding preparing binary)."""
-  _active_trackers = set()
-  _lock = threading.Lock()
-  _callback_registered = False
-  _accumulated_wasted_time = 0
-  _session_fuzzer = None
-  _session_job = None
+  _active_trackers: Set['_TrackFuzzTime'] = set()
+  _lock: threading.Lock = threading.Lock()
+  _callback_registered: bool = False
+  _accumulated_wasted_time: float = 0
+  _session_fuzzer: Optional[str] = None
+  _session_job: Optional[str] = None
 
   @classmethod
-  def reset_session(cls, fuzzer_name, job_type):
+  def reset_session(cls, fuzzer_name: str, job_type: str) -> None:
     """Resets the accumulated time at the start of a session."""
     with cls._lock:
       cls._accumulated_wasted_time = 0
@@ -431,23 +470,23 @@ class _TrackFuzzTime:
       cls._session_job = job_type
 
   @classmethod
-  def add_wasted_time(cls, duration):
+  def add_wasted_time(cls, duration: float) -> None:
     """Accumulates time from finished rounds."""
     with cls._lock:
       cls._accumulated_wasted_time += duration
 
   @classmethod
-  def get_active_trackers(cls):
+  def get_active_trackers(cls) -> List['_TrackFuzzTime']:
     with cls._lock:
       return list(cls._active_trackers)
 
   @classmethod
   def record_metrics(cls,
-                     duration,
-                     fuzzer_name,
-                     job_type,
-                     timeout=None,
-                     is_preempted=False):
+                     duration: float,
+                     fuzzer_name: str,
+                     job_type: str,
+                     timeout: Optional[bool] = None,
+                     is_preempted: bool = False) -> None:
     """Helper to record metrics consistently."""
     common_labels = {
         'platform': environment.platform(),
@@ -473,7 +512,7 @@ class _TrackFuzzTime:
     job_metric.increment_by(int(duration), job_labels)
 
   @classmethod
-  def _preemption_callback(cls):
+  def _preemption_callback(cls) -> None:
     """Callback to record wasted fuzzing time on preemption.
 
     We track `_accumulated_wasted_time` because if a task is preempted at any
@@ -489,6 +528,7 @@ class _TrackFuzzTime:
         for tracker in active_trackers:
           tracker.preempted = True  # Mark to avoid double counting in __exit__
 
+          assert tracker.start_time is not None
           current_duration = tracker.time.time() - tracker.start_time
           total_wasted = cls._accumulated_wasted_time + current_duration
 
@@ -521,15 +561,15 @@ class _TrackFuzzTime:
               cls._session_job,
               is_preempted=True)
 
-  def __init__(self, fuzzer_name, job_type, time_module=time):
-    self.fuzzer_name = fuzzer_name
-    self.job_type = job_type
-    self.time = time_module
-    self.start_time = None
-    self.timeout = None
-    self.preempted = False
+  def __init__(self, fuzzer_name: str, job_type: str, time_module: Any = time):
+    self.fuzzer_name: str = fuzzer_name
+    self.job_type: str = job_type
+    self.time: Any = time_module
+    self.start_time: Optional[float] = None
+    self.timeout: Optional[bool] = None
+    self.preempted: bool = False
 
-  def __enter__(self):
+  def __enter__(self) -> '_TrackFuzzTime':
     if not _TrackFuzzTime._callback_registered:
       monitor.register_on_sigterm(_TrackFuzzTime._preemption_callback)
       _TrackFuzzTime._callback_registered = True
@@ -540,10 +580,11 @@ class _TrackFuzzTime:
       self._active_trackers.add(self)
     return self
 
-  def __exit__(self, exc_type, value, traceback):
+  def __exit__(self, exc_type: Any, value: Any, traceback: Any) -> None:
     with self._lock:
       self._active_trackers.discard(self)
 
+    assert self.start_time is not None
     duration = self.time.time() - self.start_time
     if not self.preempted:
       _TrackFuzzTime.record_metrics(
@@ -558,15 +599,16 @@ class _TrackFuzzTime:
                 'as it was already handled by preemption callback.')
 
 
-def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
-                             expected_testcase_count, return_code):
+def _track_fuzzer_run_result(
+    fuzzer_name: str, job_type: str, generated_testcase_count: int,
+    expected_testcase_count: int | float, return_code: int) -> None:
   """Track fuzzer run result"""
   if expected_testcase_count > 0:
     ratio = float(generated_testcase_count) / expected_testcase_count
     monitoring_metrics.FUZZER_TESTCASE_COUNT_RATIO.add(ratio,
                                                        {'fuzzer': fuzzer_name})
 
-  def clamp(val, minimum, maximum):
+  def clamp(val: int, minimum: int, maximum: int) -> int:
     return max(minimum, min(maximum, val))
 
   # Clamp return code to max, min int 32-bit, otherwise it can get detected as
@@ -585,7 +627,7 @@ def _track_fuzzer_run_result(fuzzer_name, job_type, generated_testcase_count,
   })
 
 
-def _track_build_run_result(job_type, _, is_bad_build):
+def _track_build_run_result(job_type: str, _: Any, is_bad_build: bool) -> None:
   """Track build run result."""
   # FIXME: Add support for |crash_revision| as part of state.
   monitoring_metrics.JOB_BAD_BUILD_COUNT.increment({
@@ -594,8 +636,8 @@ def _track_build_run_result(job_type, _, is_bad_build):
   })
 
 
-def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
-                               known_crash_count):
+def _track_testcase_run_result(fuzzer: str, job_type: str, new_crash_count: int,
+                               known_crash_count: int) -> None:
   """Track testcase run result."""
   monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.increment_by(
       known_crash_count, {
@@ -623,7 +665,7 @@ def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
       })
 
 
-def _last_sync_time(sync_file_path):
+def _last_sync_time(sync_file_path: str) -> Optional[datetime.datetime]:
   """Read and parse the last sync file for the GCS corpus."""
   if not os.path.exists(sync_file_path):
     return None
@@ -648,23 +690,24 @@ def _last_sync_time(sync_file_path):
 class GcsCorpus:
   """Sync state for a corpus."""
 
-  def __init__(self, engine_name, project_qualified_target_name,
-               corpus_directory, data_directory, proto_corpus):
+  def __init__(self, engine_name: str, project_qualified_target_name: str,
+               corpus_directory: str, data_directory: str,
+               proto_corpus: uworker_msg_pb2.FuzzTargetCorpus):
     if environment.is_trusted_host():
       from clusterfuzz._internal.bot.untrusted_runner import \
           corpus_manager as remote_corpus_manager
-      self.gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
+      self.gcs_corpus: Any = remote_corpus_manager.RemoteFuzzTargetCorpus(
           engine_name, project_qualified_target_name)
     else:
       self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus.deserialize(
           proto_corpus)
 
-    self._corpus_directory = corpus_directory
-    self._data_directory = data_directory
-    self._project_qualified_target_name = project_qualified_target_name
-    self._synced_files = set()
+    self._corpus_directory: str = corpus_directory
+    self._data_directory: str = data_directory
+    self._project_qualified_target_name: str = project_qualified_target_name
+    self._synced_files: Set[str] = set()
 
-  def _walk(self):
+  def _walk(self) -> Generator[str, None, None]:
     if environment.is_trusted_host():
       from clusterfuzz._internal.bot.untrusted_runner import file_host
       yield from file_host.list_files(self._corpus_directory, recursive=True)
@@ -673,16 +716,16 @@ class GcsCorpus:
         for filename in files:
           yield os.path.join(root, filename)
 
-  def _get_gcs_url(self):
+  def _get_gcs_url(self) -> str:
     # TODO(https://github.com/google/clusterfuzz/issues/3726): Get rid of this
     # wrapper when untrusted runner is removed.
     return self.gcs_corpus.get_gcs_url()
 
-  def _sync_to_disk(self, corpus_directory):
+  def _sync_to_disk(self, corpus_directory: str) -> bool:
     self.gcs_corpus.rsync_to_disk(corpus_directory)
     return True
 
-  def sync_from_gcs(self):
+  def sync_from_gcs(self) -> bool:
     """Update sync state after a sync from GCS."""
     already_synced = False
     sync_file_path = os.path.join(
@@ -727,13 +770,13 @@ class GcsCorpus:
 
     return result
 
-  def upload_files(self, new_files):
+  def upload_files(self, new_files: Sequence[str]) -> bool:
     """Update state after files are uploaded."""
     result = self.gcs_corpus.upload_files(new_files)
     self._synced_files.update(new_files)
     return result
 
-  def get_new_files(self):
+  def get_new_files(self) -> List[str]:
     """Return list of new files in the directory that were generated by the
     fuzzer."""
     new_files = []
@@ -744,20 +787,21 @@ class GcsCorpus:
     return new_files
 
 
-def upload_testcase_run_stats(testcase_run):
+def upload_testcase_run_stats(testcase_run: fuzzer_stats.BaseRun) -> None:
   """Upload TestcaseRun stats."""
   fuzzer_stats.upload_stats([testcase_run])
 
 
-def add_additional_testcase_run_data(testcase_run, fully_qualified_fuzzer_name,
-                                     job_type, revision):
+def add_additional_testcase_run_data(testcase_run: fuzzer_stats.TestcaseRun,
+                                     fully_qualified_fuzzer_name: str,
+                                     job_type: str, revision: Any) -> None:
   """Add additional testcase run data."""
   testcase_run['fuzzer'] = fully_qualified_fuzzer_name
   testcase_run['job'] = job_type
   testcase_run['build_revision'] = revision
 
 
-def get_fuzzer_metadata_from_output(fuzzer_output):
+def get_fuzzer_metadata_from_output(fuzzer_output: str) -> Dict[str, str]:
   """Extract metadata from fuzzer output."""
   metadata = {}
   for line in fuzzer_output.splitlines():
@@ -768,7 +812,8 @@ def get_fuzzer_metadata_from_output(fuzzer_output):
   return metadata
 
 
-def get_testcases(testcase_count, testcase_directory, data_directory):
+def get_testcases(testcase_count: int | float, testcase_directory: str,
+                  data_directory: str) -> Tuple[List[str], int, str]:
   """Return fuzzed testcases from the data directories."""
   logs.info('Locating generated test cases.')
 
@@ -811,14 +856,14 @@ def get_testcases(testcase_count, testcase_directory, data_directory):
           generated_testcase_string)
 
 
-def set_test_timeout(timeout, multipler):
+def set_test_timeout(timeout: float, multipler: float) -> int:
   """Set the test timeout based on a timeout value and multiplier."""
   test_timeout = int(timeout * multipler)
   environment.set_value('TEST_TIMEOUT', test_timeout)
   return test_timeout
 
 
-def truncate_fuzzer_output(output, limit):
+def truncate_fuzzer_output(output: str, limit: int) -> str:
   """Truncate output in the middle according to limit."""
   if len(output) < limit:
     return output
@@ -836,16 +881,16 @@ def truncate_fuzzer_output(output, limit):
 def upload_job_run_stats(
     fuzzer_name: str,
     job_type: str,
-    revision: int,
+    revision: Any,
     timestamp: float,
     new_crash_count: int,
     known_crash_count: int,
     testcases_executed: int,
-    groups: List[Dict[str, Any]],
-    testcases_generated: int = None,
-    testcase_generation_duration: datetime.timedelta = None,
-    testcase_execution_duration: datetime.timedelta = None,
-    fuzzing_duration: datetime.timedelta = None):
+    groups: Any,
+    testcases_generated: Optional[int] = None,
+    testcase_generation_duration: Optional[datetime.timedelta] = None,
+    testcase_execution_duration: Optional[datetime.timedelta] = None,
+    fuzzing_duration: Optional[datetime.timedelta] = None) -> None:
   """Upload job run stats."""
   # New format.
   job_run = fuzzer_stats.JobRun(fuzzer_name, job_type, revision, timestamp,
@@ -859,10 +904,13 @@ def upload_job_run_stats(
                              known_crash_count)
 
 
-def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
-                             fuzzer_output, fuzzer_return_code,
-                             generated_testcase_count, expected_testcase_count,
-                             generated_testcase_string, fuzz_task_input):
+def store_fuzzer_run_results(
+    testcase_file_paths: Sequence[str], fuzzer: data_types.Fuzzer,
+    fuzzer_command: str, fuzzer_output: str, fuzzer_return_code: Optional[int],
+    generated_testcase_count: int, expected_testcase_count: int | float,
+    generated_testcase_string: str,
+    fuzz_task_input: uworker_msg_pb2.FuzzTaskInput
+) -> Optional[uworker_msg_pb2.StoreFuzzerRunResultsOutput]:
   """Store fuzzer run results in database."""
   # Upload fuzzer script output to bucket.
   if environment.is_engine_fuzzer_job():
@@ -910,11 +958,13 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   fuzzer_run_results_output.console_output = console_output
   fuzzer_run_results_output.generated_testcase_string = (
       generated_testcase_string)
-  fuzzer_run_results_output.fuzzer_return_code = fuzzer_return_code
+  if fuzzer_return_code is not None:
+    fuzzer_run_results_output.fuzzer_return_code = fuzzer_return_code
   return fuzzer_run_results_output
 
 
-def preprocess_store_fuzzer_run_results(fuzz_task_input):
+def preprocess_store_fuzzer_run_results(
+    fuzz_task_input: uworker_msg_pb2.FuzzTaskInput) -> None:
   """Does preprocessing for store_fuzzer_run_results. More specifically, gets
   URLs to upload a sample testcase and the logs."""
   if environment.is_engine_fuzzer_job():
@@ -927,7 +977,8 @@ def preprocess_store_fuzzer_run_results(fuzz_task_input):
       fuzz_task_input.script_log_upload_key)
 
 
-def postprocess_store_fuzzer_run_results(output):
+def postprocess_store_fuzzer_run_results(
+    output: uworker_msg_pb2.Output) -> None:
   """Postprocess store_fuzzer_run_results."""
   if environment.is_engine_fuzzer_job(output.uworker_input.job_type):
     return
@@ -953,6 +1004,7 @@ def postprocess_store_fuzzer_run_results(output):
       data_types.Fuzzer.name == output.uworker_input.fuzzer_name).get()
   if not fuzzer:
     logs.log_fatal_and_exit('Fuzzer does not exist, exiting.')
+  assert fuzzer is not None
 
   fuzzer_run_results = output.fuzz_task_output.fuzzer_run_results
   if fuzzer.revision != output.fuzz_task_output.fuzzer_revision:
@@ -969,7 +1021,9 @@ def postprocess_store_fuzzer_run_results(output):
   logs.info('Finished storing results from fuzzer run.')
 
 
-def _infer_fully_qualified_fuzzer_name(uworker_input: uworker_msg_pb2.Input):
+def _infer_fully_qualified_fuzzer_name(
+    uworker_input: uworker_msg_pb2.Input) -> str:
+  """Infers the fully qualified fuzzer name from uworker input."""
   fuzz_target = None
   if uworker_input.fuzz_task_input.HasField('fuzz_target'):
     fuzz_target = uworker_io.entity_from_protobuf(
@@ -981,17 +1035,18 @@ def _infer_fully_qualified_fuzzer_name(uworker_input: uworker_msg_pb2.Input):
   return fully_qualified_fuzzer_name
 
 
-def _get_sample_rate():
+def _get_sample_rate() -> int:
   project_config = local_config.ProjectConfig()
   return int(project_config.get('fuzz_task_sampling.sampling_rate', 0))
 
 
-def _get_replication_topic():
+def _get_replication_topic() -> Optional[str]:
   project_config = local_config.ProjectConfig()
   return project_config.get('fuzz_task_sampling.sampling_topic', None)
 
 
-def _publish_to_pubsub(messages, topic_name):
+def _publish_to_pubsub(messages: Sequence[Dict[str, Any]],
+                       topic_name: str) -> None:
   pubsub_client = pubsub.PubSubClient()
   topic_name = pubsub.topic_name(utils.get_application_id(), topic_name)
   pubsub_messages = [
@@ -1000,8 +1055,9 @@ def _publish_to_pubsub(messages, topic_name):
   pubsub_client.publish(topic_name, pubsub_messages)
 
 
-def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
-                                 uworker_output: uworker_msg_pb2.Output):
+def postprocess_sample_testcases(
+    uworker_input: uworker_msg_pb2.Input,
+    uworker_output: uworker_msg_pb2.Output) -> None:
   """Samples fuzz task testcases to reupload through the Upload Testcase
     endpoint in AppEngine. Meant to enable analyze task coverage in
     testing environments."""
@@ -1054,11 +1110,12 @@ def postprocess_sample_testcases(uworker_input: uworker_msg_pb2.Input,
   _publish_to_pubsub(messages, sampling_topic)
 
 
-def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
-                                uworker_output: uworker_msg_pb2.Output):
+def postprocess_process_crashes(
+    uworker_input: uworker_msg_pb2.Input, uworker_output: uworker_msg_pb2.Output
+) -> Tuple[int, int, List[uworker_msg_pb2.FuzzTaskCrashGroup]]:
   """Postprocess process_crashes"""
   processed_groups = []
-  crash_groups_for_stats = []
+  crash_groups_for_stats: Any = []
   new_crash_count = 0
   known_crash_count = 0
 
@@ -1075,7 +1132,7 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
     # condition among different machines. One machine might finish first and
     # prevent other machines from creating identical testcases.
     existing_testcase = data_handler.find_testcase(
-        uworker_input.uworker_env.get('PROJECT_NAME'),
+        uworker_input.uworker_env.get('PROJECT_NAME', ''),
         group.crashes[0].crash_type,
         group.crashes[0].crash_state,
         group.crashes[0].security_flag,
@@ -1088,6 +1145,7 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
           uworker_output=uworker_output,
           fully_qualified_fuzzer_name=fully_qualified_fuzzer_name)
     else:
+      assert existing_testcase is not None
       _update_testcase_variant_if_needed(group, existing_testcase,
                                          fuzz_task_output.crash_revision,
                                          uworker_input.job_type)
@@ -1137,19 +1195,20 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
   return new_crash_count, known_crash_count, processed_groups
 
 
-def get_regression(one_time_crasher_flag):
+def get_regression(one_time_crasher_flag: Optional[bool]) -> str:
   """Get the right regression value."""
   if one_time_crasher_flag or build_manager.is_custom_binary():
     return 'NA'
   return ''
 
 
-def get_fixed_or_minimized_key(one_time_crasher_flag):
+def get_fixed_or_minimized_key(one_time_crasher_flag: Optional[bool]) -> str:
   """Get the right fixed value."""
   return 'NA' if one_time_crasher_flag else ''
 
 
-def get_testcase_timeout_multiplier(timeout_multiplier, crash, test_timeout):
+def get_testcase_timeout_multiplier(timeout_multiplier: float, crash: Any,
+                                    test_timeout: float) -> float:
   """Get testcase timeout multiplier."""
   testcase_timeout_multiplier = timeout_multiplier
   if timeout_multiplier > 1 and (crash.crash_time + THREAD_WAIT_TIMEOUT) < (
@@ -1162,7 +1221,7 @@ def get_testcase_timeout_multiplier(timeout_multiplier, crash, test_timeout):
 def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
                     uworker_input: uworker_msg_pb2.Input,
                     uworker_output: uworker_msg_pb2.Output,
-                    fully_qualified_fuzzer_name: str):
+                    fully_qualified_fuzzer_name: str) -> data_types.Testcase:
   """Create a testcase based on crash."""
   crash = group.main_crash
   fuzz_task_output = uworker_output.fuzz_task_output
@@ -1257,18 +1316,20 @@ def filter_crashes(crashes: List[Crash]) -> List[Crash]:
   return filtered
 
 
-def get_engine(context):
+def get_engine(context: Context) -> str:
   """Get the fuzzing engine."""
-  if context.fuzz_target:
+  if context.fuzz_target and context.fuzz_target.engine:
     return context.fuzz_target.engine
 
   return ''
 
 
-def write_crashes_to_big_query(group, newly_created_testcase, existing_testcase,
-                               uworker_input: uworker_msg_pb2.Input,
-                               output: uworker_msg_pb2.Output,
-                               fully_qualified_fuzzer_name):
+def write_crashes_to_big_query(
+    group: uworker_msg_pb2.FuzzTaskCrashGroup,
+    newly_created_testcase: Optional[data_types.Testcase],
+    existing_testcase: Optional[data_types.Testcase],
+    uworker_input: uworker_msg_pb2.Input, output: uworker_msg_pb2.Output,
+    fully_qualified_fuzzer_name: str) -> None:
   """Write a group of crashes to BigQuery."""
 
   # Many of ChromeOS fuzz targets run on Linux bots, so we incorrectly set the
@@ -1358,13 +1419,16 @@ def write_crashes_to_big_query(group, newly_created_testcase, existing_testcase,
         row_count, {'success': False})
 
 
-def _update_testcase_variant_if_needed(group, existing_testcase, crash_revision,
-                                       job_type):
+def _update_testcase_variant_if_needed(
+    group: uworker_msg_pb2.FuzzTaskCrashGroup,
+    existing_testcase: data_types.Testcase, crash_revision: Any,
+    job_type: str) -> None:
   """Update testcase variant if this is not already covered by existing testcase
   variant on this job."""
 
-  variant = data_handler.get_or_create_testcase_variant(
-      existing_testcase.key.id(), job_type)
+  testcase_id = existing_testcase.key.id()
+  assert testcase_id is not None
+  variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
   if not variant or variant.status == data_types.TestcaseVariantStatus.PENDING:
     # Either no variant created yet since minimization hasn't finished OR
     # variant analysis is not yet finished. Wait in both cases, since we
@@ -1390,10 +1454,11 @@ def _update_testcase_variant_if_needed(group, existing_testcase, crash_revision,
 
 
 def process_crashes(crashes: List[Crash], context: Context,
-                    upload_urls) -> List[uworker_msg_pb2.FuzzTaskCrashGroup]:
+                    upload_urls: Sequence[uworker_msg_pb2.BlobUploadUrl]
+                   ) -> List[uworker_msg_pb2.FuzzTaskCrashGroup]:
   """Process a list of crashes."""
 
-  def key_fn(crash):
+  def key_fn(crash: Crash) -> str:
     return crash.key
 
   crash_groups = []
@@ -1402,10 +1467,10 @@ def process_crashes(crashes: List[Crash], context: Context,
   crashes = filter_crashes(crashes)
   group_of_crashes = itertools.groupby(sorted(crashes, key=key_fn), key_fn)
 
-  upload_urls = UploadUrlCollection(upload_urls)
+  upload_url_collection = UploadUrlCollection(list(upload_urls))
   for _, grouped_crashes in group_of_crashes:
     try:
-      group = CrashGroup(list(grouped_crashes), context, upload_urls)
+      group = CrashGroup(list(grouped_crashes), context, upload_url_collection)
     except NoMoreUploadUrlsError:
       # Ignore the remaining crashes.
       logs.error('Ran out of crash upload URLs.')
@@ -1422,6 +1487,7 @@ def process_crashes(crashes: List[Crash], context: Context,
       context.fuzzer_metadata['issue_metadata'] = json.dumps(
           context.fuzzer_metadata['issue_metadata'])
 
+    assert group.one_time_crasher_flag is not None
     group_proto = uworker_msg_pb2.FuzzTaskCrashGroup(
         context=uworker_msg_pb2.FuzzContext(
             redzone=context.redzone,
@@ -1448,7 +1514,7 @@ def process_crashes(crashes: List[Crash], context: Context,
   return crash_groups
 
 
-def _get_issue_metadata_from_environment(variable_name):
+def _get_issue_metadata_from_environment(variable_name: str) -> List[str]:
   """Get issue metadata from environment."""
   values = str(environment.get_value_string(variable_name, '')).split(',')
   # Allow a variation with a '_1' to specified. This is needed in cases where
@@ -1458,14 +1524,14 @@ def _get_issue_metadata_from_environment(variable_name):
   return [value.strip() for value in values if value.strip()]
 
 
-def _add_issue_metadata_from_environment(metadata):
+def _add_issue_metadata_from_environment(metadata: Dict[str, Any]) -> None:
   """Add issue metadata from environment."""
 
-  def _append(old, new_values):
+  def _append(old: Optional[str], new_values: Sequence[str]) -> str:
     if not old:
       return ','.join(new_values)
 
-    return ','.join(old.split(',') + new_values)
+    return ','.join(old.split(',') + list(new_values))
 
   components = _get_issue_metadata_from_environment('AUTOMATIC_COMPONENTS')
   if components:
@@ -1477,8 +1543,9 @@ def _add_issue_metadata_from_environment(metadata):
     metadata['issue_labels'] = _append(metadata.get('issue_labels'), labels)
 
 
-def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
-                      testcase_directory):
+def run_engine_fuzzer(engine_impl: Any, target_name: str,
+                      sync_corpus_directory: str,
+                      testcase_directory: str) -> Any:
   """Run engine for fuzzing."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
@@ -1535,46 +1602,52 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
 class FuzzingSession:
   """Class for orchestrating fuzzing sessions."""
 
-  def __init__(self, uworker_input, test_timeout):
-    self.fuzzer_name = uworker_input.fuzzer_name
-    self.job_type = uworker_input.job_type
-    self.uworker_input = uworker_input
+  def __init__(self, uworker_input: uworker_msg_pb2.Input,
+               test_timeout: Optional[float]):
+    self.fuzzer_name: str = uworker_input.fuzzer_name
+    self.job_type: str = uworker_input.job_type
+    self.uworker_input: uworker_msg_pb2.Input = uworker_input
 
     # Set up randomly selected fuzzing parameters.
-    self.redzone = fuzz_task_knobs.pick_redzone()
-    self.disable_ubsan = fuzz_task_knobs.pick_ubsan_disabled(self.job_type)
-    self.timeout_multiplier = fuzz_task_knobs.pick_timeout_multiplier()
-    self.window_argument = fuzz_task_knobs.pick_window_argument()
-    self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
+    self.redzone: int = fuzz_task_knobs.pick_redzone()
+    self.disable_ubsan: bool = fuzz_task_knobs.pick_ubsan_disabled(
+        self.job_type)
+    self.timeout_multiplier: float = fuzz_task_knobs.pick_timeout_multiplier()
+    self.window_argument: Optional[str] = fuzz_task_knobs.pick_window_argument()
+    self.test_timeout: int = set_test_timeout(test_timeout or 0,
+                                              self.timeout_multiplier)
 
     # Set up during run().
-    self.fuzzer = None
-    self.testcase_directory = None
-    self.data_directory = None
+    self.fuzzer: Optional[data_types.Fuzzer] = None
+    self.testcase_directory: Optional[str] = None
+    self.data_directory: Optional[str] = None
 
     # Fuzzing engine specific state.
     if uworker_input.fuzz_task_input.HasField('fuzz_target'):
-      self.fuzz_target = uworker_io.entity_from_protobuf(
-          uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
+      self.fuzz_target: Optional[
+          data_types.FuzzTarget] = uworker_io.entity_from_protobuf(
+              uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
     else:
       # We take this branch when no fuzz target is picked. Such as on a new
       # build.
       self.fuzz_target = None
 
-    self.gcs_corpus = None
+    self.gcs_corpus: Optional[GcsCorpus] = None
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()  # pylint: disable=no-member
 
   @property
-  def fully_qualified_fuzzer_name(self):
+  def fully_qualified_fuzzer_name(self) -> str:
     """Get the fully qualified fuzzer name."""
     if self.fuzz_target:
       return self.fuzz_target.fully_qualified_name()
 
     return self.fuzzer_name
 
-  def sync_corpus(self, sync_corpus_directory):
+  def sync_corpus(self, sync_corpus_directory: str) -> None:
     """Sync corpus from GCS."""
     # Corpus should always be set at this point.
+    assert self.fuzz_target is not None
+    assert self.data_directory is not None
     self.gcs_corpus = GcsCorpus(self.fuzzer_name,
                                 self.fuzz_target.project_qualified_name(),
                                 sync_corpus_directory, self.data_directory,
@@ -1584,7 +1657,7 @@ class FuzzingSession:
           'Failed to sync corpus for fuzzer %s (job %s).' %
           (self.fuzz_target.project_qualified_name(), self.job_type))
 
-  def _file_size(self, file_path):
+  def _file_size(self, file_path: str) -> Optional[int]:
     """Return file size depending on whether file is local or remote (untrusted
     worker)."""
     if environment.is_trusted_host():
@@ -1594,8 +1667,10 @@ class FuzzingSession:
 
     return os.path.getsize(file_path)
 
-  def sync_new_corpus_files(self):
+  def sync_new_corpus_files(self) -> None:
     """Sync new files from corpus to GCS."""
+    assert self.gcs_corpus is not None
+    assert self.fuzz_target is not None
     new_files = self.gcs_corpus.get_new_files()
     new_files_count = len(new_files)
     logs.info('%d new corpus files generated by fuzzer %s (job %s).' %
@@ -1607,7 +1682,9 @@ class FuzzingSession:
     for new_file in new_files:
       if filtered_new_files_count >= MAX_NEW_CORPUS_FILES:
         break
-      if self._file_size(new_file) > engine_common.CORPUS_INPUT_SIZE_LIMIT:
+      file_size = self._file_size(new_file)
+      if (file_size is not None and
+          file_size > engine_common.CORPUS_INPUT_SIZE_LIMIT):
         continue
       filtered_new_files.append(new_file)
       filtered_new_files_count += 1
@@ -1621,15 +1698,18 @@ class FuzzingSession:
     self.gcs_corpus.upload_files(filtered_new_files)
 
   def generate_blackbox_testcases(
-      self, fuzzer, job_type, fuzzer_directory,
-      testcase_count) -> GenerateBlackboxTestcasesResult:
+      self, fuzzer: data_types.Fuzzer, job_type: str, fuzzer_directory: str,
+      testcase_count: int | float) -> GenerateBlackboxTestcasesResult:
     """Run the blackbox fuzzer and generate testcases."""
     # Helper variables.
+    assert fuzzer.name is not None
     fuzzer_name = fuzzer.name
 
     error_return_value = GenerateBlackboxTestcasesResult(False, None, None)
 
     # Clear existing testcases (only if past task failed).
+    assert self.testcase_directory is not None
+    assert self.data_directory is not None
     testcase_directories = [self.testcase_directory]
     testcase_manager.remove_testcases_from_directories(testcase_directories)
 
@@ -1738,6 +1818,7 @@ class FuzzingSession:
             output=fuzzer_output)
 
     # Store fuzzer run results.
+    assert fuzzer.name is not None
     fuzzer_run_results = store_fuzzer_run_results(
         testcase_file_paths, fuzzer, fuzzer_command, fuzzer_output,
         fuzzer_return_code, generated_testcase_count, testcase_count,
@@ -1753,8 +1834,12 @@ class FuzzingSession:
     return GenerateBlackboxTestcasesResult(success, testcase_file_paths,
                                            fuzzer_metadata)
 
-  def do_engine_fuzzing(self, engine_impl):
+  def do_engine_fuzzing(self,
+                        engine_impl: Any) -> Tuple[List[Crash], Dict[str, Any]]:
     """Run fuzzing engine."""
+    assert self.fuzz_target is not None
+    assert self.data_directory is not None
+    assert self.testcase_directory is not None
     _TrackFuzzTime.reset_session(self.fully_qualified_fuzzer_name,
                                  self.job_type)
 
@@ -1771,8 +1856,8 @@ class FuzzingSession:
         redzone_size=self.redzone, disable_ubsan=self.disable_ubsan)
 
     revision = environment.get_value('APP_REVISION')
-    crashes = []
-    fuzzer_metadata = {}
+    crashes: List[Crash] = []
+    fuzzer_metadata: Dict[str, Any] = {}
     return_code = 1  # Vanilla return-code for engine crashes.
 
     self.fuzz_task_output.app_revision = environment.get_value('APP_REVISION')
@@ -1782,6 +1867,7 @@ class FuzzingSession:
       try:
         with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
                             self.job_type) as tracker:
+          assert self.fuzz_target.binary is not None
           result, cur_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
               engine_impl, self.fuzz_target.binary, sync_corpus_directory,
               self.testcase_directory)
@@ -1843,8 +1929,9 @@ class FuzzingSession:
 
     return crashes, fuzzer_metadata
 
-  def _emit_testcase_generation_time_metric(self, start_time, testcase_count,
-                                            fuzzer, job):
+  def _emit_testcase_generation_time_metric(self, start_time: float,
+                                            testcase_count: int | float,
+                                            fuzzer: str, job: str) -> None:
     """Emits the average testcase generation time metric to GCP."""
     testcase_generation_finish = time.time()
     elapsed_testcase_generation_time = testcase_generation_finish
@@ -1870,8 +1957,8 @@ class FuzzingSession:
     return self.fuzz_task_output.ByteSize() >= PROTOBUF_MSG_LIMIT
 
   def _handle_unexecuted_testcases(
-      self, testcase_file_paths: list[str], testcases_metadata: dict[str, dict],
-      testcases_executed: int) -> tuple[list[str], dict[str, dict]]:
+      self, testcase_file_paths: List[str], testcases_metadata: Dict[str, Any],
+      testcases_executed: int) -> Tuple[List[str], Dict[str, Any]]:
     """Cleans up unexecuted testcase files and slices execution metadata.
 
     Args:
@@ -1895,7 +1982,7 @@ class FuzzingSession:
 
   def _add_crashes_from_temp_queue(
       self, temp_queue: queue.Queue,
-      crashes: list[testcase_manager.Crash]) -> None:
+      crashes: List[testcase_manager.Crash]) -> None:
     """Pops items from temp_queue and processes crashes and run outputs.
 
     Args:
@@ -1913,7 +2000,10 @@ class FuzzingSession:
         if fuzzer_run_output and not self._is_fuzz_task_output_limit_exceeded():
           self.fuzz_task_output.fuzzer_run_outputs.append(fuzzer_run_output)
 
-  def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
+  def do_blackbox_fuzzing(
+      self, fuzzer: data_types.Fuzzer, fuzzer_directory: str,
+      job_type: str) -> Tuple[Optional[Dict[str, Any]], Optional[List[str]],
+                              Optional[Dict[str, Any]], Optional[List[Crash]]]:
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
     _TrackFuzzTime.reset_session(self.fully_qualified_fuzzer_name, job_type)
 
@@ -1947,17 +2037,19 @@ class FuzzingSession:
     if not generate_result.success:
       return None, None, None, None
 
+    assert generate_result.testcase_file_paths is not None
     generation_time = datetime.timedelta(seconds=time.time() -
                                          testcase_generation_start)
     self.fuzz_task_output.testcase_generation_duration.FromTimedelta(
         generation_time)
+    assert fuzzer.name is not None
     self._emit_testcase_generation_time_metric(
         testcase_generation_start, testcase_count, fuzzer.name, job_type)
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
     # Initialize a list of crashes.
-    crashes = []
+    crashes: List[testcase_manager.Crash] = []
 
     # Helper variables.
     max_threads = utils.maximum_parallel_processes_allowed()
@@ -1973,7 +2065,7 @@ class FuzzingSession:
         redzone_size=self.redzone, disable_ubsan=self.disable_ubsan)
 
     # Create a dict to store metadata specific to each testcase.
-    testcases_metadata = {}
+    testcases_metadata: Dict[str, Any] = {}
     testcase_file_paths = generate_result.testcase_file_paths
     self.fuzz_task_output.testcases_generated = len(testcase_file_paths)
 
@@ -1988,7 +2080,7 @@ class FuzzingSession:
     db_trials = self.uworker_input.fuzz_task_input.trials
     # Setup trials from DB and build.
     # Prepare selecting trials in main loop below.
-    trial_selector = trials.Trials(db_trials)
+    trial_selector = trials.Trials(cast(List[str], db_trials))
 
     # TODO(machenbach): Move this back to the main loop and make it test-case
     # specific in a way that get's persistet on crashes.
@@ -2093,7 +2185,7 @@ class FuzzingSession:
     if crashes:
       crashes = [
           Crash.from_testcase_manager_crash(crash) for crash in crashes if crash
-      ]
+      ]  # type: ignore
     executed_testcase_file_paths = testcase_file_paths
     executed_testcases_metadata = testcases_metadata
     if test_number < len(testcase_file_paths):
@@ -2103,9 +2195,9 @@ class FuzzingSession:
               testcases_metadata=testcases_metadata,
               testcases_executed=test_number))
     return (generate_result.fuzzer_metadata, executed_testcase_file_paths,
-            executed_testcases_metadata, crashes)
+            executed_testcases_metadata, cast(Optional[List[Crash]], crashes))
 
-  def run(self):
+  def run(self) -> uworker_msg_pb2.Output:
     """Run the fuzzing session."""
     start_time = time.time()
     # Update LSAN local blacklist with global blacklist.
@@ -2145,6 +2237,7 @@ class FuzzingSession:
         environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
     _add_build_metadata_to_output(self.fuzz_task_output)
 
+    assert self.fuzzer.name is not None
     engine_impl = engine.get(self.fuzzer.name)
     if engine_impl and build_setup_result:
       # If we did not pick a fuzz target to fuzz with the engine, then return
@@ -2188,6 +2281,9 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
+    testcase_file_paths: Optional[List[str]]
+    testcases_metadata: Optional[Dict[str, Any]]
+    crashes: Optional[List[Crash]]
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
@@ -2223,6 +2319,8 @@ class FuzzingSession:
     # Process and save crashes to datastore.
     bot_name = environment.get_value('BOT_NAME')
     project_name = environment.get_value('PROJECT_NAME')
+    assert fuzzer_metadata is not None
+    assert testcases_metadata is not None
     crash_groups = process_crashes(
         crashes=crashes,
         context=Context(
@@ -2246,6 +2344,7 @@ class FuzzingSession:
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's
     # unclear if needed but it is kept because it is not harmful.
+    assert testcase_file_paths is not None
     for testcase_file_path in testcase_file_paths:
       shell.remove_file(testcase_file_path)
 
@@ -2268,7 +2367,7 @@ class FuzzingSession:
     self.fuzz_task_output.crash_revision = str(crash_revision)
     self.fuzz_task_output.job_run_timestamp = time.time()
     self.fuzz_task_output.testcases_executed = testcases_executed
-    self.fuzz_task_output.fuzzer_revision = self.fuzzer.revision
+    self.fuzz_task_output.fuzzer_revision = cast(int, self.fuzzer.revision)
     self.fuzz_task_output.crash_groups.extend(crash_groups)
 
     fuzzing_session_duration_seconds = time.time() - start_time
@@ -2285,7 +2384,7 @@ class FuzzingSession:
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
-  def postprocess(self, uworker_output):
+  def postprocess(self, uworker_output: uworker_msg_pb2.Output) -> None:
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
     fuzz_task_output = uworker_output.fuzz_task_output
@@ -2316,7 +2415,7 @@ class FuzzingSession:
         uworker_input.job_type, uworker_output.fuzz_task_output.build_data)
 
 
-def _upload_testcase_run_jsons(testcase_run_jsons):
+def _upload_testcase_run_jsons(testcase_run_jsons: Sequence[str]) -> None:
   for testcase_run in testcase_run_jsons:
     testcase_run = fuzzer_stats.BaseRun.from_json(testcase_run)
     if not testcase_run:
@@ -2326,31 +2425,33 @@ def _upload_testcase_run_jsons(testcase_run_jsons):
   # TODO(metzman): Find out if this can be a single upload.
 
 
-def handle_fuzz_build_setup_failure(output):
+def handle_fuzz_build_setup_failure(output: uworker_msg_pb2.Output) -> None:
   _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
                            output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.BUILD_SETUP_FAILED)
 
 
-def handle_fuzz_data_bundle_setup_failure(output):
+def handle_fuzz_data_bundle_setup_failure(
+    output: uworker_msg_pb2.Output) -> None:
   _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
                            output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
 
 
-def handle_fuzz_no_fuzzer(output):
+def handle_fuzz_no_fuzzer(output: uworker_msg_pb2.Output) -> None:
   _track_fuzzer_run_result(output.uworker_input.fuzzer_name,
                            output.uworker_input.job_type, 0, 0,
                            FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
-def handle_fuzz_bad_build(uworker_output):
+def handle_fuzz_bad_build(uworker_output: uworker_msg_pb2.Output) -> None:
   testcase_manager.update_build_metadata(
       uworker_output.uworker_input.job_type,
       uworker_output.fuzz_task_output.build_data)
 
 
-def _get_fuzz_target(uworker_input):
+def _get_fuzz_target(
+    uworker_input: uworker_msg_pb2.Input) -> Optional[data_types.FuzzTarget]:
   if uworker_input.fuzz_task_input.HasField('fuzz_target'):
     fuzz_target = uworker_io.entity_from_protobuf(
         uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
@@ -2359,7 +2460,8 @@ def _get_fuzz_target(uworker_input):
   return fuzz_target
 
 
-def utask_main(uworker_input):
+def utask_main(
+    uworker_input: uworker_msg_pb2.Input) -> Optional[uworker_msg_pb2.Output]:
   """Runs the given fuzzer for one round."""
   if not engine.get(uworker_input.fuzzer_name):
     update_task.update_tests_if_needed(
@@ -2373,7 +2475,7 @@ def utask_main(uworker_input):
     return session.run()
 
 
-def handle_fuzz_no_fuzz_target_selected(output):
+def handle_fuzz_no_fuzz_target_selected(output: uworker_msg_pb2.Output) -> None:
   save_fuzz_targets(output)
   # Try again now that there are some fuzz targets.
   utask_preprocess(output.uworker_input.fuzzer_name,
@@ -2381,7 +2483,7 @@ def handle_fuzz_no_fuzz_target_selected(output):
                    output.uworker_input.uworker_env)
 
 
-def _make_session(uworker_input):
+def _make_session(uworker_input: uworker_msg_pb2.Input) -> FuzzingSession:
   test_timeout = environment.get_value('TEST_TIMEOUT')
   return FuzzingSession(
       uworker_input,
@@ -2403,7 +2505,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
 
-def _pick_fuzz_target():
+def _pick_fuzz_target() -> Optional[str]:
   """Picks a random fuzz target from job_type for use in fuzzing."""
   if not environment.is_engine_fuzzer_job():
     logs.info('Not engine fuzzer. Not picking fuzz target.')
@@ -2414,7 +2516,8 @@ def _pick_fuzz_target():
   return build_manager.pick_random_fuzz_target(target_weights)
 
 
-def _get_or_create_fuzz_target(engine_name, fuzz_target_binary, job_type):
+def _get_or_create_fuzz_target(engine_name: str, fuzz_target_binary: str,
+                               job_type: str) -> data_types.FuzzTarget:
   """Gets or creates a FuzzTarget db entity."""
   project = data_handler.get_project_name(job_type)
   qualified_name = data_types.fuzz_target_fully_qualified_name(
@@ -2429,14 +2532,17 @@ def _get_or_create_fuzz_target(engine_name, fuzz_target_binary, job_type):
   return fuzz_target
 
 
-def _preprocess_get_fuzz_target(fuzzer_name, job_type):
+def _preprocess_get_fuzz_target(
+    fuzzer_name: str, job_type: str) -> Optional[data_types.FuzzTarget]:
   fuzz_target_name = _pick_fuzz_target()
   if fuzz_target_name:
     return _get_or_create_fuzz_target(fuzzer_name, fuzz_target_name, job_type)
   return None
 
 
-def _utask_preprocess(fuzzer_name, job_type, uworker_env):
+def _utask_preprocess(
+    fuzzer_name: str, job_type: str,
+    uworker_env: MutableMapping[str, str]) -> uworker_msg_pb2.Input:
   """Preprocess untrusted task."""
   setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
   fuzz_task_knobs.do_multiarmed_bandit_strategy_selection(uworker_env)
@@ -2485,7 +2591,9 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   )
 
 
-def utask_preprocess(fuzzer_name, job_type, uworker_env):
+def utask_preprocess(
+    fuzzer_name: str, job_type: str,
+    uworker_env: MutableMapping[str, str]) -> Optional[uworker_msg_pb2.Input]:
   """Set logs context and preprocess untrusted task."""
   # Delay adding the fuzz target to logs context until it is chosen in
   # preprocess.
@@ -2497,7 +2605,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       return None
 
 
-def save_fuzz_targets(output):
+def save_fuzz_targets(output: uworker_msg_pb2.Output) -> None:
   """Saves fuzz targets that were seen in the build to the database."""
   if not output.fuzz_task_output.fuzz_targets:
     return
@@ -2508,8 +2616,8 @@ def save_fuzz_targets(output):
                                    output.uworker_input.job_type)
 
 
-def _to_fuzzer_run_output(data: testcase_manager.FuzzerRunOutputData
-                         ) -> uworker_msg_pb2.FuzzerRunOutput | None:
+def _to_fuzzer_run_output(data: Optional[testcase_manager.FuzzerRunOutputData]
+                         ) -> Optional[uworker_msg_pb2.FuzzerRunOutput]:
   """Returns a FuzzerRunOutput proto from FuzzerRunOutputData."""
   if not data:
     return None
@@ -2522,6 +2630,7 @@ def _to_fuzzer_run_output(data: testcase_manager.FuzzerRunOutputData
   if len(output) != len(truncated_output):
     logs.warning('Fuzzer output truncated.')
 
+  assert data.log_time is not None
   proto_timestamp = uworker_io.timestamp_to_proto_timestamp(data.log_time)
   fuzzer_run_output = uworker_msg_pb2.FuzzerRunOutput(
       output=truncated_output.encode('utf-8'),
@@ -2544,7 +2653,10 @@ def _add_build_metadata_to_output(
   fuzz_task_output.gn_args = data_handler.get_filtered_gn_args() or ''
 
 
-def _upload_fuzzer_run_output(fuzzer_run_output, fuzzer_name):
+def _upload_fuzzer_run_output(
+    fuzzer_run_output: uworker_msg_pb2.FuzzerRunOutput,
+    fuzzer_name: str) -> None:
+  """Uploads fuzzer run log and testcase."""
   timestamp = uworker_io.proto_timestamp_to_timestamp(
       fuzzer_run_output.timestamp)
   testcase_manager.upload_log(
@@ -2556,7 +2668,7 @@ def _upload_fuzzer_run_output(fuzzer_run_output, fuzzer_name):
       None, fuzzer_run_output.testcase, timestamp, fuzzer_name=fuzzer_name)
 
 
-def _utask_postprocess(output):
+def _utask_postprocess(output: uworker_msg_pb2.Output) -> None:
   """Postprocesses fuzz_task."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
     _ERROR_HANDLER.handle(output)
@@ -2575,7 +2687,7 @@ def _utask_postprocess(output):
     _upload_fuzzer_run_output(fuzzer_run_output, fuzzer_name)
 
 
-def utask_postprocess(output):
+def utask_postprocess(output: uworker_msg_pb2.Output) -> None:
   """Sets fuzzing logs context and postprocesses fuzz_task."""
   fuzzer_name = output.uworker_input.fuzzer_name
   job_type = output.uworker_input.job_type

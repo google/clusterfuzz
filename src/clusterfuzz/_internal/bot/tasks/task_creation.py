@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Common functions for task creation for test cases."""
+
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -24,8 +25,8 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-def mark_unreproducible_if_flaky(testcase, task_name,
-                                 potentially_flaky) -> None:
+def mark_unreproducible_if_flaky(testcase: data_types.Testcase, task_name: str,
+                                 potentially_flaky: bool) -> None:
   """Check to see if a test case appears to be flaky."""
 
   # If this run does not suggest that we are flaky, clear the flag and assume
@@ -34,7 +35,7 @@ def mark_unreproducible_if_flaky(testcase, task_name,
     testcase.set_metadata('potentially_flaky', False)
     return
 
-  # If we have not been marked as potentially flaky in the past, don't mark
+  # If this is the first time that we are seeing potential flakiness, do not
   # mark the test case as unreproducible yet. It is now potentially flaky.
   if not testcase.get_metadata('potentially_flaky'):
     testcase.set_metadata('potentially_flaky', True)
@@ -71,7 +72,7 @@ def mark_unreproducible_if_flaky(testcase, task_name,
   bisection.request_bisection(testcase)
 
 
-def create_blame_task_if_needed(testcase):
+def create_blame_task_if_needed(testcase: data_types.Testcase) -> None:
   """Creates a blame task if needed."""
   # Blame doesn't work for non-chromium projects.
   if not utils.is_chromium():
@@ -113,7 +114,7 @@ def create_blame_task_if_needed(testcase):
     tasks.add_task('blame', testcase.key.id(), testcase.job_type)
 
 
-def create_impact_task_if_needed(testcase):
+def create_impact_task_if_needed(testcase: data_types.Testcase) -> None:
   """Creates an impact task if needed."""
   # Impact doesn't make sense for non-chromium projects.
   if not utils.is_chromium():
@@ -131,12 +132,12 @@ def create_impact_task_if_needed(testcase):
   tasks.add_task('impact', testcase.key.id(), testcase.job_type)
 
 
-def create_minimize_task_if_needed(testcase):
+def create_minimize_task_if_needed(testcase: data_types.Testcase) -> None:
   """Creates a minimize task if needed."""
   tasks.add_task('minimize', testcase.key.id(), testcase.job_type)
 
 
-def create_regression_task_if_needed(testcase):
+def create_regression_task_if_needed(testcase: data_types.Testcase) -> None:
   """Creates a regression task if needed."""
   # We cannot run regression job for custom binaries since we don't have any
   # archived builds for previous revisions. We only track the last uploaded
@@ -147,7 +148,7 @@ def create_regression_task_if_needed(testcase):
   tasks.add_task('regression', testcase.key.id(), testcase.job_type)
 
 
-def create_variant_tasks_if_needed(testcase):
+def create_variant_tasks_if_needed(testcase: data_types.Testcase) -> None:
   """Creates a variant task if needed."""
   # TODO(https://b.corp.google.com/issues/328691756): Allow untrusted
   # testcases to only run untrusted variants.
@@ -164,13 +165,14 @@ def create_variant_tasks_if_needed(testcase):
   if not testcase_job_is_engine:
     testcase_job = (
         data_types.Job.query(data_types.Job.name == testcase.job_type).get())
+    assert testcase_job is not None
     testcase_job_environment = testcase_job.get_environment()
     testcase_job_app_name = testcase_job_environment.get('APP_NAME')
   num_variant_tasks = 0
   for job in jobs:
     # The variant needs to be tested in a different job type than us.
     job_type = job.name
-    if testcase.job_type == job_type:
+    if not job_type or testcase.job_type == job_type:
       continue
 
     # Don't try to reproduce engine fuzzer testcase with blackbox fuzzer
@@ -205,7 +207,7 @@ def create_variant_tasks_if_needed(testcase):
   logs.info(f'Number of variant tasks: {num_variant_tasks}.')
 
 
-def create_symbolize_task_if_needed(testcase):
+def create_symbolize_task_if_needed(testcase: data_types.Testcase) -> None:
   """Creates a symbolize task if needed."""
   # We cannot run symbolize job for custom binaries since we don't have any
   # archived symbolized builds.
@@ -219,7 +221,7 @@ def create_symbolize_task_if_needed(testcase):
   tasks.add_task('symbolize', testcase.key.id(), testcase.job_type)
 
 
-def create_tasks(testcase):
+def create_tasks(testcase: data_types.Testcase) -> None:
   """Create tasks like minimization, regression, impact, progression, stack
   stack for a newly generated testcase."""
   # No need to create progression task. It is automatically created by the cron
@@ -264,7 +266,7 @@ def create_tasks(testcase):
     create_postminimize_tasks(testcase)
 
 
-def create_postminimize_tasks(testcase):
+def create_postminimize_tasks(testcase: data_types.Testcase) -> None:
   """Create assorted tasks needed after minimize task completes."""
   if testcase.status == 'Duplicate' or testcase.duplicate_of:
     return

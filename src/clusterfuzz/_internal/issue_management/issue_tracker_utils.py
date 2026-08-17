@@ -13,6 +13,15 @@
 # limitations under the License.
 """Utilities for managing issue tracker instance."""
 
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import ParamSpec
+from typing import TypeVar
+
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
@@ -21,18 +30,26 @@ from clusterfuzz._internal.issue_management import google_issue_tracker
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import jira
 from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.issue_tracker import Issue
+from clusterfuzz._internal.issue_management.issue_tracker import IssueTracker
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-_ISSUE_TRACKER_CACHE_CAPACITY = 8
-_ISSUE_TRACKER_CONSTRUCTORS = {
-    'monorail': monorail.get_issue_tracker,
-    'jira': jira.get_issue_tracker,
-    'google_issue_tracker': google_issue_tracker.get_issue_tracker,
-}
+_P = ParamSpec('_P')
+_R = TypeVar('_R')
+
+_ISSUE_TRACKER_CACHE_CAPACITY: int = 8
+_ISSUE_TRACKER_CONSTRUCTORS: Dict[str, Callable[..., Optional[
+    IssueTracker]]] = {
+        'monorail': monorail.get_issue_tracker,
+        'jira': jira.get_issue_tracker,
+        'google_issue_tracker': google_issue_tracker.get_issue_tracker,
+    }
 
 
-def register_issue_tracker(tracker_type, constructor):
+def register_issue_tracker(
+    tracker_type: str,
+    constructor: Callable[..., Optional[IssueTracker]]) -> None:
   """Register an issue tracker implementation."""
   if tracker_type in _ISSUE_TRACKER_CONSTRUCTORS:
     raise ValueError(
@@ -40,17 +57,18 @@ def register_issue_tracker(tracker_type, constructor):
   _ISSUE_TRACKER_CONSTRUCTORS[tracker_type] = constructor
 
 
-def _get_issue_tracker_project_name(testcase=None):
+def _get_issue_tracker_project_name(
+    testcase: Optional[data_types.Testcase] = None) -> Optional[str]:
   """Return issue tracker project name given a testcase or default."""
   from clusterfuzz._internal.datastore import data_handler
   job_type = testcase.job_type if testcase else None
   issue_tracker_name = data_handler.get_issue_tracker_name(job_type)
-  logs.info(
-      f'For testcase {testcase.key}, using issue tracker {issue_tracker_name}')
+  logs.info(f'For testcase {cast(Any, testcase).key}, using issue tracker '
+            f'{issue_tracker_name}')
   return issue_tracker_name
 
 
-def request_or_task_cache(func):
+def request_or_task_cache(func: Callable[_P, _R]) -> Callable[_P, _R]:
   """Cache that lasts for a bot task's lifetime, or an App Engine request
   lifetime."""
   if environment.is_running_on_app_engine():
@@ -60,7 +78,8 @@ def request_or_task_cache(func):
 
 
 @request_or_task_cache
-def get_issue_tracker(project_name=None):
+def get_issue_tracker(
+    project_name: Optional[str] = None) -> Optional[IssueTracker]:
   """Get the issue tracker with the given type and name."""
   issue_tracker_config = local_config.IssueTrackerConfig()
   if not project_name:
@@ -83,7 +102,8 @@ def get_issue_tracker(project_name=None):
   return constructor(project_name, issue_project_config)
 
 
-def get_issue_tracker_for_testcase(testcase):
+def get_issue_tracker_for_testcase(
+    testcase: data_types.Testcase) -> Optional[IssueTracker]:
   """Get the issue tracker with the given type and name."""
   issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
   if not issue_tracker_project_name or issue_tracker_project_name == 'disabled':
@@ -92,7 +112,9 @@ def get_issue_tracker_for_testcase(testcase):
   return get_issue_tracker(issue_tracker_project_name)
 
 
-def get_issue_tracker_policy_for_testcase(testcase):
+def get_issue_tracker_policy_for_testcase(
+    testcase: data_types.Testcase
+) -> Optional[issue_tracker_policy.IssueTrackerPolicy]:
   """Get the issue tracker with the given type and name."""
   issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
   if not issue_tracker_project_name or issue_tracker_project_name == 'disabled':
@@ -101,40 +123,42 @@ def get_issue_tracker_policy_for_testcase(testcase):
   return issue_tracker_policy.get(issue_tracker_project_name)
 
 
-def get_issue_for_testcase(testcase):
+def get_issue_for_testcase(testcase: data_types.Testcase) -> Optional[Issue]:
   """Return issue object associated with testcase."""
   if not testcase.bug_information:
     # Do not check |testcase.group_bug_information| as we look for an issue
     # associated with the testcase directly, not through a group of testcases.
     return None
 
-  issue_tracker = get_issue_tracker_for_testcase(testcase)
-  if not issue_tracker:
+  issue_tracker_instance = get_issue_tracker_for_testcase(testcase)
+  if not issue_tracker_instance:
     return None
 
   issue_id = testcase.bug_information
-  return issue_tracker.get_original_issue(issue_id)
+  return issue_tracker_instance.get_original_issue(issue_id)
 
 
-def get_search_keywords(testcase):
+def get_search_keywords(testcase: data_types.Testcase) -> List[str]:
   """Get search keywords for a testcase."""
-  crash_state_lines = testcase.crash_state.splitlines()
+  crash_state_lines = cast(str, testcase.crash_state).splitlines()
   # Use top 2 frames for searching.
   return crash_state_lines[:2]
 
 
-def get_similar_issues(issue_tracker, testcase, only_open=True):
+def get_similar_issues(issue_tracker: IssueTracker,
+                       testcase: data_types.Testcase,
+                       only_open: bool = True) -> List[Issue]:
   """Get issue objects that seem to be related to a particular test case."""
   # Get list of issues using the search query.
   keywords = get_search_keywords(testcase)
 
   issues = issue_tracker.find_issues(keywords=keywords, only_open=only_open)
   if issues:
-    issues = list(issues)
+    issue_list: List[Issue] = list(issues)
   else:
-    issues = []
+    issue_list = []
 
-  issue_ids = [issue.id for issue in issues]
+  issue_ids = [issue.id for issue in issue_list]
 
   # Add issues from similar testcases sharing the same group id.
   if testcase.group_id:
@@ -160,23 +184,25 @@ def get_similar_issues(issue_tracker, testcase, only_open=True):
       if (only_open and (not issue.is_open or not testcase.open)):
         continue
 
-      issues.append(issue)
+      issue_list.append(issue)
       issue_ids.append(issue_id)
 
-  return issues
+  return issue_list
 
 
-def get_similar_issues_url(issue_tracker, testcase, only_open=True):
+def get_similar_issues_url(issue_tracker: IssueTracker,
+                           testcase: data_types.Testcase,
+                           only_open: bool = True) -> Optional[str]:
   """Get similar issues web URL."""
   keywords = get_search_keywords(testcase)
   return issue_tracker.find_issues_url(keywords=keywords, only_open=only_open)
 
 
-def get_issue_url(testcase):
+def get_issue_url(testcase: data_types.Testcase) -> Optional[str]:
   """Return issue url for a testcase. This is used when rendering a testcase,
   details page, therefore it accounts for |group_bug_information| as well."""
-  issue_tracker = get_issue_tracker_for_testcase(testcase)
-  if not issue_tracker:
+  issue_tracker_instance = get_issue_tracker_for_testcase(testcase)
+  if not issue_tracker_instance:
     return None
 
   issue_id = (
@@ -186,10 +212,10 @@ def get_issue_url(testcase):
     return None
 
   # Use str(issue_id) as |group_bug_information| might be an integer.
-  return issue_tracker.issue_url(str(issue_id))
+  return issue_tracker_instance.issue_url(str(issue_id))
 
 
-def was_label_added(issue, label):
+def was_label_added(issue: Issue, label: Optional[str]) -> bool:
   """Check if a label was ever added to an issue."""
   if not label:
     return False

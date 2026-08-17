@@ -13,6 +13,7 @@
 # limitations under the License.
 """The initialization script for Mac. It is run before running a task."""
 
+from collections.abc import Iterator
 import os
 import re
 import shutil
@@ -28,10 +29,11 @@ LSREGISTER_CMD = ('/System/Library/Frameworks/CoreServices.framework'
                   '/lsregister -dump')
 
 
-def _execute(cmd):
+def _execute(cmd: str) -> Iterator[str]:
   """Execute command and return output as an iterator."""
   proc = subprocess.Popen(
       cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  assert proc.stdout is not None
   try:
     for line in iter(proc.stdout.readline, b''):
       yield line.decode('utf-8')
@@ -39,7 +41,7 @@ def _execute(cmd):
     proc.kill()
 
 
-def get_launch_service_path():
+def get_launch_service_path() -> str | None:
   """Get launch service path from lsregister."""
   for line in _execute(LSREGISTER_CMD):
     m = LAUNCH_SERVICE_PATH_REGEX.match(line)
@@ -51,7 +53,7 @@ def get_launch_service_path():
   return None
 
 
-def clear_launch_service_data():
+def clear_launch_service_data() -> None:
   """See crbug.com/661221 for more info."""
   path = get_launch_service_path()
   if not path or not os.path.exists(path):
@@ -62,7 +64,7 @@ def clear_launch_service_data():
   shutil.rmtree(os.path.join(path, 'T'), ignore_errors=True)
 
 
-def run():
+def run() -> None:
   """Run the initialization for Mac."""
   init_runner.run()
   clear_launch_service_data()

@@ -38,15 +38,7 @@ asdf plugin add gcloud https://github.com/jthegedus/asdf-gcloud
 asdf install
 ```
 
-### 4. Install `pipenv`
-
-Once `asdf` has installed the correct python version, you need to install `pipenv`:
-
-```bash
-python -m pip install pipenv
-```
-
-### 5. Install Project Dependencies
+### 4. Install Project Dependencies
 
 Now you are ready to install the project's dependencies. Run the following command from the root of the repository:
 
@@ -55,18 +47,17 @@ Now you are ready to install the project's dependencies. Run the following comma
 ```
 
 ## Using Butler
-Before each time you use the `butler.py` script, verify that you are inside the virtual environment, if not activate it by running `python -m pipenv shell`, or pre append any `python butler.py` call with
-`pipenv run`
+Before using the `butler.py` script, verify that you are inside the virtual environment (`source .venv/bin/activate`), or prepend any `butler.py` call with `uv run`.
 
 For instance:
 ```bash
-pipenv run python butler.py lint
+uv run butler.py lint
 ```
 Is the same as running
 ```bash
 python butler.py lint
 ```
-if you are inside a virtual environment.
+if you are inside an activated virtual environment.
 
 ## Testing
 
