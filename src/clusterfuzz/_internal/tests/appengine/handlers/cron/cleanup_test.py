@@ -2383,3 +2383,39 @@ class UpdateSeverityLabelsTest(unittest.TestCase):
     self.assertNotIn('Security_Severity-High', self.issue.labels)
     self.assertIn('Security_Severity-Medium', self.issue.labels)
     self.assertIn('different from what was assigned', result)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class CleanupInvalidFuzzerJobsTest(unittest.TestCase):
+  """Tests for cleanup_invalid_fuzzer_jobs."""
+
+  def setUp(self):
+    """Set up test entities."""
+    self.fuzzer1 = data_types.Fuzzer(name='fuzzer1').put()
+    self.fuzzer2_deleted = data_types.Fuzzer(name='fuzzer2', deleted=True).put()
+    self.job1 = data_types.Job(name='job1').put()
+    self.job2_deleted = data_types.Job(name='job2', deleted=True).put()
+
+    # Valid mapping
+    self.fj_valid = data_types.FuzzerJob(fuzzer='fuzzer1', job='job1').put()
+    # Invalid: deleted fuzzer
+    self.fj_del_fuzzer = data_types.FuzzerJob(
+        fuzzer='fuzzer2', job='job1').put()
+    # Invalid: deleted job
+    self.fj_del_job = data_types.FuzzerJob(fuzzer='fuzzer1', job='job2').put()
+    # Invalid: non-existent fuzzer
+    self.fj_nonexistent = data_types.FuzzerJob(
+        fuzzer='unknown', job='job1').put()
+    # Invalid: marked deleted
+    self.fj_marked_deleted = data_types.FuzzerJob(
+        fuzzer='fuzzer1', job='job1', deleted=True).put()
+
+  def test_cleanup_invalid_fuzzer_jobs(self):
+    """Test cleanup_invalid_fuzzer_jobs deletes only invalid entities."""
+    cleanup.cleanup_invalid_fuzzer_jobs()
+
+    self.assertIsNotNone(self.fj_valid.get())
+    self.assertIsNone(self.fj_del_fuzzer.get())
+    self.assertIsNone(self.fj_del_job.get())
+    self.assertIsNone(self.fj_nonexistent.get())
+    self.assertIsNone(self.fj_marked_deleted.get())

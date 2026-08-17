@@ -590,8 +590,9 @@ def preprocess_update_fuzzer_and_data_bundles(
   """Does preprocessing for calls to update_fuzzer_and_data_bundles in
   uworker_main. Returns a SetupInput object."""
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
-  if not fuzzer:
-    logs.error('No fuzzer exists with name %s.' % fuzzer_name)
+  if not fuzzer or fuzzer.deleted:
+    logs.error(
+        'No fuzzer exists with name %s or fuzzer is deleted.' % fuzzer_name)
     raise errors.InvalidFuzzerError
 
   update_input = uworker_msg_pb2.SetupInput(  # pylint: disable=no-member

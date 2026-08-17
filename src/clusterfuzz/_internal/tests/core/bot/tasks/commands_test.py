@@ -313,3 +313,45 @@ class UpdateEnvironmentForJobTest(unittest.TestCase):
         'FUZZ_TEST_TIMEOUT = 123\nMAX_TESTCASES = 5\n')
     self.assertEqual(9001, environment.get_value('FUZZ_TEST_TIMEOUT'))
     self.assertEqual(42, environment.get_value('MAX_TESTCASES'))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ProcessCommandImplPoisonedTest(unittest.TestCase):
+  """Tests for process_command_impl dropping poisoned messages."""
+
+  def setUp(self):
+    """Set up test environment."""
+    helpers.patch_environ(self)
+
+  def test_job_missing(self):
+    """Test process_command_impl returns None when job does not exist."""
+    result = commands.process_command_impl('fuzz', 'fuzzer', 'nonexistent_job',
+                                           False, False)
+    self.assertIsNone(result)
+
+  def test_job_deleted(self):
+    """Test process_command_impl returns None when job is deleted."""
+    data_types.Job(name='deleted_job', platform='LINUX', deleted=True).put()
+    data_types.Fuzzer(name='fuzzer').put()
+    data_types.FuzzerJob(fuzzer='fuzzer', job='deleted_job').put()
+    result = commands.process_command_impl('fuzz', 'fuzzer', 'deleted_job',
+                                           False, False)
+    self.assertIsNone(result)
+
+  def test_fuzzer_deleted(self):
+    """Test process_command_impl returns None when fuzzer is deleted."""
+    data_types.Job(name='job', platform='LINUX').put()
+    data_types.Fuzzer(name='fuzzer', deleted=True).put()
+    data_types.FuzzerJob(fuzzer='fuzzer', job='job').put()
+    result = commands.process_command_impl('fuzz', 'fuzzer', 'job', False,
+                                           False)
+    self.assertIsNone(result)
+
+  def test_fuzzer_job_deleted(self):
+    """Test process_command_impl returns None when fuzzer_job is deleted."""
+    data_types.Job(name='job', platform='LINUX').put()
+    data_types.Fuzzer(name='fuzzer').put()
+    data_types.FuzzerJob(fuzzer='fuzzer', job='job', deleted=True).put()
+    result = commands.process_command_impl('fuzz', 'fuzzer', 'job', False,
+                                           False)
+    self.assertIsNone(result)

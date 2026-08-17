@@ -280,6 +280,7 @@ class Fuzzer(Model):
       'builtin',
       'differential',
       'has_large_testcases',
+      'deleted',
   )
 
   # Created at timestamp. Not set for fuzzers created before this field was
@@ -381,6 +382,9 @@ class Fuzzer(Model):
   # If this flag is set, fuzzer generates the testcase in the larger directory
   # on disk |FUZZ_INPUTS_DISK|, rather than smaller tmpfs one (FUZZ_INPUTS).
   has_large_testcases = ndb.BooleanProperty(default=False)
+
+  # Whether this fuzzer is soft-deleted.
+  deleted = ndb.BooleanProperty(default=False)
 
   def get_config_dict(self):
     """Returns a dict containing the required config to upload a fuzzer."""
@@ -1027,6 +1031,9 @@ class Job(Model):
   # value here is the subscription used for receiving reproduction updates.
   external_updates_subscription = ndb.StringProperty()
 
+  # Whether this job is soft-deleted.
+  deleted = ndb.BooleanProperty(default=False)
+
   def is_external(self):
     """Whether this job is external."""
     return (bool(self.external_reproduction_topic) or
@@ -1580,6 +1587,7 @@ class FuzzerJob(Model):
   platform = ndb.StringProperty()
   weight = ndb.FloatProperty(default=1.0)
   multiplier = ndb.FloatProperty(default=1.0)
+  deleted = ndb.BooleanProperty(default=False)
 
   @property
   def actual_weight(self):

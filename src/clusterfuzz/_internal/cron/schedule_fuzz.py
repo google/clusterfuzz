@@ -125,6 +125,8 @@ class OssfuzzFuzzTaskProvider(BaseFuzzTaskProvider):
     # TODO(metzman): Handle cases where jobs are fuzzed by multiple fuzzers.
     candidates_by_job = {}
     for job in ndb_utils.get_all_from_query(data_types.Job.query()):
+      if job.deleted:
+        continue
       project = projects_by_name.get(job.project)
       base_os_version = None
       if project and project.base_os_version:
@@ -140,8 +142,23 @@ class OssfuzzFuzzTaskProvider(BaseFuzzTaskProvider):
     fuzzer_job_query = ndb_utils.get_all_from_query(
         data_types.FuzzerJob.query())
 
-    # TODO(metzman): Refactor this to use richer types and less primitives.
+    deleted_fuzzers = {
+        fuzzer.name
+        for fuzzer in ndb_utils.get_all_from_model(data_types.Fuzzer)
+        if fuzzer.name and fuzzer.deleted
+    }
+
     for fuzzer_job in fuzzer_job_query:
+      if fuzzer_job.deleted:
+        continue
+      if fuzzer_job.job not in candidates_by_job:
+        logs.warning(f'Job {fuzzer_job.job} for FuzzerJob '
+                     f'{fuzzer_job.fuzzer} not found or deleted.')
+        continue
+      if fuzzer_job.fuzzer in deleted_fuzzers:
+        logs.warning(f'Fuzzer {fuzzer_job.fuzzer} for FuzzerJob with job '
+                     f'{fuzzer_job.job} is deleted.')
+        continue
       fuzz_task_candidate = candidates_by_job[fuzzer_job.job].copy()
       fuzz_task_candidate.fuzzer = fuzzer_job.fuzzer
       fuzz_task_candidate.weight = fuzzer_job.actual_weight
@@ -216,7 +233,11 @@ class ChromeFuzzTaskProvider(BaseFuzzTaskProvider):
 
 def _get_jobs_for_platforms(platforms: list[str]) -> list[data_types.Job]:
   """Returns all jobs for the given platforms."""
-  return list(data_types.Job.query(data_types.Job.platform.IN(platforms)))
+  return [
+      job
+      for job in data_types.Job.query(data_types.Job.platform.IN(platforms))
+      if not job.deleted
+  ]
 
 
 def _get_swarming_jobs():
@@ -269,6 +290,7 @@ def _fill_queue(queue: PubSubTaskQueue, provider: BaseFuzzTaskProvider):
 def _create_candidates_from_jobs(
     jobs: list[data_types.Job]) -> list[FuzzTaskCandidate]:
   """Create candidates from jobs & assign weights to them."""
+  jobs = [job for job in jobs if not job.deleted]
   if not jobs:
     return []
 
@@ -278,8 +300,22 @@ def _create_candidates_from_jobs(
           data_types.FuzzerJob.job.IN(list(jobs_by_name.keys()))))
   fuzz_task_candidates = []
 
+  deleted_fuzzers = {
+      fuzzer.name
+      for fuzzer in ndb_utils.get_all_from_model(data_types.Fuzzer)
+      if fuzzer.name and fuzzer.deleted
+  }
+
   for fuzzer_job in fuzzer_job_query:
-    job = jobs_by_name[fuzzer_job.job]
+    if fuzzer_job.deleted:
+      continue
+    job = jobs_by_name.get(fuzzer_job.job)
+    if not job:
+      logs.warning(f'Job {fuzzer_job.job} not found or deleted.')
+      continue
+    if fuzzer_job.fuzzer in deleted_fuzzers:
+      logs.warning(f'Fuzzer {fuzzer_job.fuzzer} is deleted.')
+      continue
     fuzz_task_candidate = FuzzTaskCandidate(
         job=job.name,
         project=job.project,

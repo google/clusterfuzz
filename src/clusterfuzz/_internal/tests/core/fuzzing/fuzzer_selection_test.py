@@ -147,6 +147,21 @@ class UpdateMappingsForFuzzerTest(unittest.TestCase):
     mappings = _get_job_list_for_fuzzer(fuzzer)
     self.assertCountEqual(['job_1'], mappings)
 
+  def test_soft_deleted_job(self):
+    """Ensure soft-deleted job references are cleaned up from fuzzer.jobs."""
+    data_types.Job(name='deleted_job', deleted=True).put()
+    fuzzer = data_types.Fuzzer(
+        name='soft_delete_fuzzer', jobs=['deleted_job', 'job_1'])
+    fuzzer.put()
+
+    fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
+
+    fuzzer = fuzzer.key.get()
+    self.assertCountEqual(['job_1'], fuzzer.jobs)
+
+    mappings = _get_job_list_for_fuzzer(fuzzer)
+    self.assertCountEqual(['job_1'], mappings)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UpdateMappingsForJobTest(unittest.TestCase):

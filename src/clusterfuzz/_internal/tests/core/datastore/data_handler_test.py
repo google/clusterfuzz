@@ -1246,3 +1246,21 @@ class GetValueFromJobDefinitionTest(unittest.TestCase):
     self.assertEqual(result, 'env_value')
     self.mock.get_value.assert_called_once_with('VAR_PATTERN', 'default_val')
     self.mock.query.assert_not_called()
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetJobsSoftDeleteTest(unittest.TestCase):
+  """Tests for get_all_job_type_names with soft-delete."""
+
+  def setUp(self):
+    """Set up test entities."""
+    helpers.patch_environ(self)
+
+  def test_get_all_job_type_names_excludes_deleted(self):
+    """Test get_all_job_type_names excludes soft-deleted jobs."""
+    data_types.Job(name='active_job').put()
+    data_types.Job(name='deleted_job', deleted=True).put()
+
+    jobs = data_handler.get_all_job_type_names(__memoize_force__=True)
+    self.assertIn('active_job', jobs)
+    self.assertNotIn('deleted_job', jobs)
