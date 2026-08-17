@@ -90,8 +90,10 @@ sudo apt-get install -y \
 sudo apt-get install -y apt-transport-https software-properties-common
 
 if [ "$distro_codename" == "rodete" ]; then
-  glogin
-  sudo glinux-add-repo docker-ce-"$distro_codename"
+  if ! which docker > /dev/null 2>&1; then
+    glogin
+    sudo glinux-add-repo docker-ce-"$distro_codename"
+  fi
 else
   curl -fsSL https://download.docker.com/linux/${distro_id,,}/gpg | \
       sudo apt-key add -
@@ -147,13 +149,20 @@ if gcloud components install --quiet beta; then
 else
   # Either Cloud SDK component manager is disabled (default on GCE), or google-cloud-cli package is
   # installed via apt-get.
-  sudo apt-get install -y \
-      google-cloud-cli-app-engine-go \
-      google-cloud-cli-app-engine-python \
-      google-cloud-cli-app-engine-python-extras \
-      google-cloud-cli \
-      google-cloud-cli-datastore-emulator \
-      google-cloud-cli-pubsub-emulator
+  # Note: app-engine-python, app-engine-python-extras, and pubsub-emulator apt packages are optional on rodete (b/414408644, b/484368884).
+  if [ "$distro_codename" == "rodete" ]; then
+    sudo apt-get install -y \
+        google-cloud-cli \
+        google-cloud-cli-datastore-emulator
+  else
+    sudo apt-get install -y \
+        google-cloud-cli \
+        google-cloud-cli-app-engine-go \
+        google-cloud-cli-app-engine-python \
+        google-cloud-cli-app-engine-python-extras \
+        google-cloud-cli-datastore-emulator \
+        google-cloud-cli-pubsub-emulator
+  fi
 fi
 
 dir=$(dirname "$0")
