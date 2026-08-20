@@ -347,6 +347,11 @@ def run_process(cmdline,
         'Process (%s) ended with exit code (%s).' % (repr(cmdline),
                                                      str(return_code)),
         output=output)
+  elif is_android:
+    logs.info(
+        'Android process (%s) finished with exit code (%s).' %
+        (repr(cmdline), str(return_code)),
+        output=output)
 
   return return_code, round(time.time() - start_time, 1), output
 
