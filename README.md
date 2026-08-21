@@ -18,7 +18,7 @@ a software project's development process:
   100,000 VMs).
 - Accurate deduplication of crashes.
 - Fully automatic bug filing, triage and closing for various issue trackers
-  (e.g. [Monorail], [Jira]).
+  (e.g. [Issue Tracker], [Jira]).
 - Supports multiple [coverage guided fuzzing engines]
   ([libFuzzer], [AFL], [AFL++] and [Honggfuzz])
   for optimal results (with [ensemble fuzzing] and [fuzzing strategies]).
