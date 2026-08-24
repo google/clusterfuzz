@@ -18,6 +18,7 @@ import time
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import errors
@@ -318,8 +319,11 @@ NUMERIC_METADATA_KEYS = frozenset({
     'last_regression_max',
 })
 
+MetadataValue = Union[str, int, float, bool, None]
 
-def _sanitize_metadata_value(key: str, value):
+
+def _sanitize_metadata_value(
+    key: str, value: MetadataValue) -> Optional[Union[str, int, float, bool]]:
   """Validates and casts metadata value based on expected key type."""
   if key in NUMERIC_METADATA_KEYS:
     try:
@@ -331,7 +335,8 @@ def _sanitize_metadata_value(key: str, value):
   return value
 
 
-def _update_issue_metadata(testcase: data_types.Testcase, metadata: Dict):
+def _update_issue_metadata(testcase: data_types.Testcase,
+                           metadata: Dict[str, MetadataValue]) -> None:
   """Updates testcase issue metadata with validated values."""
   if not metadata or not isinstance(metadata, dict):
     return

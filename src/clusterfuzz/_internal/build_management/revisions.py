@@ -20,6 +20,10 @@ import os
 import re
 import time
 import urllib.parse
+from typing import Dict
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
@@ -271,7 +275,7 @@ def _to_dict(contents):
   return None
 
 
-def is_valid_revision(revision) -> bool:
+def is_valid_revision(revision: Optional[Union[str, int]]) -> bool:
   """Returns True if the revision is a safe and valid identifier.
 
   Valid revisions contain only alphanumeric characters, dots, underscores, and hyphens.
@@ -292,7 +296,8 @@ class _SafeDepsEvaluator:
     self.deps = {}
     self.deps_os = {}
 
-  def _eval_literal(self, node: ast.AST):
+  def _eval_literal(self,
+                    node: ast.AST) -> Optional[Union[str, int, float, bool]]:
     """Evaluates literal AST nodes (constants, numbers, strings, and names)."""
     if isinstance(node, ast.Constant):
       return node.value
@@ -306,7 +311,7 @@ class _SafeDepsEvaluator:
       return self.vars.get(node.id)
     return None
 
-  def _eval_binop(self, node: ast.BinOp):
+  def _eval_binop(self, node: ast.BinOp) -> Optional[str]:
     """Evaluates binary operations (string concatenation only)."""
     if not isinstance(node.op, ast.Add):
       return None
@@ -317,7 +322,7 @@ class _SafeDepsEvaluator:
       return str(left) + str(right)
     return None
 
-  def _eval_call(self, node: ast.Call):
+  def _eval_call(self, node: ast.Call) -> Optional[str]:
     """Evaluates trusted call nodes (Var(...) and Str(...))."""
     if not isinstance(node.func, ast.Name):
       return None
@@ -340,7 +345,7 @@ class _SafeDepsEvaluator:
         result[key] = val
     return result
 
-  def _eval_sequence(self, node: ast.AST):
+  def _eval_sequence(self, node: ast.AST) -> Optional[Union[list, tuple]]:
     """Evaluates List or Tuple nodes."""
     if isinstance(node, ast.List):
       return [self._eval_node(elt) for elt in node.elts]
@@ -348,7 +353,9 @@ class _SafeDepsEvaluator:
       return tuple(self._eval_node(elt) for elt in node.elts)
     return None
 
-  def _eval_node(self, node: ast.AST):
+  def _eval_node(
+      self,
+      node: ast.AST) -> Optional[Union[str, int, float, bool, dict, list, tuple]]:
     """Dispatches AST evaluation based on node type."""
     if isinstance(node, (ast.Constant, ast.Str, ast.Num, ast.Name)):
       return self._eval_literal(node)
@@ -362,7 +369,7 @@ class _SafeDepsEvaluator:
       return self._eval_sequence(node)
     return None
 
-  def _process_assignment(self, target_name: str, value_node: ast.AST):
+  def _process_assignment(self, target_name: str, value_node: ast.AST) -> None:
     """Processes an assignment statement for vars, deps, or deps_os."""
     val = self._eval_node(value_node)
     if not isinstance(val, dict):
@@ -375,7 +382,8 @@ class _SafeDepsEvaluator:
     elif target_name == 'deps_os':
       self.deps_os.update(val)
 
-  def parse(self, content: str):
+  def parse(
+      self, content: str) -> Tuple[Optional[dict], Optional[dict], Optional[dict]]:
     """Parse DEPS content string into (vars, deps, deps_os)."""
     try:
       tree = ast.parse(content)
@@ -391,7 +399,7 @@ class _SafeDepsEvaluator:
     return self.vars, self.deps, self.deps_os
 
 
-def deps_to_revisions_dict(content):
+def deps_to_revisions_dict(content: str) -> Optional[Dict[str, dict]]:
   """Parses DEPS content and returns a dictionary of revision variables."""
   evaluator = _SafeDepsEvaluator()
   vars_dict, deps_dict, deps_os_dict = evaluator.parse(content)
