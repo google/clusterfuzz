@@ -450,6 +450,36 @@ class RevisionsTestcase(unittest.TestCase):
                                               'd00d')
     self.assertEqual(None, val)
 
+  def test_is_valid_revision(self):
+    """Test is_valid_revision helper with valid and invalid values."""
+    valid_revisions = [
+        12345,
+        '12345',
+        '336903',
+        '35dc4dd0e14e3afb4a2c7e319a3f4110e20c7cf2',
+        '1.2.3.4',
+        'release-1.0_beta',
+    ]
+    for rev in valid_revisions:
+      self.assertTrue(revisions.is_valid_revision(rev), f'Expected {rev!r} to be valid')
+
+    invalid_revisions = [
+        0,
+        '0',
+        None,
+        '',
+        'EVIL/DEPS?x=',
+        '../DEPS',
+        '123#fragment',
+        '123?query=1',
+        '123%20space',
+        '123 456',
+        'rev/path',
+        'rev\\path',
+    ]
+    for rev in invalid_revisions:
+      self.assertFalse(revisions.is_valid_revision(rev), f'Expected {rev!r} to be invalid')
+
   @mock.patch(
       'clusterfuzz._internal.build_management.revisions._get_url_content')
   def test_invalid_revisions_rejected(self, mock_get_url_content):

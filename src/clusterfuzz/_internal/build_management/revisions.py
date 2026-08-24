@@ -271,16 +271,29 @@ def _to_dict(contents):
   return None
 
 
+def is_valid_revision(revision) -> bool:
+  """Returns True if the revision is a safe and valid identifier.
+
+  Valid revisions contain only alphanumeric characters, dots, underscores, and hyphens.
+  Rejects path traversal, query strings, and URL manipulation characters.
+  """
+  if revision in (0, '0', None, ''):
+    return False
+
+  revision_str = str(revision).strip()
+  return bool(REVISION_PATTERN.match(revision_str))
+
+
 class _SafeDepsEvaluator:
-  """Safely parses and evaluates DEPS assignments without exec()."""
+  """Safely parses and evaluates Chromium DEPS files without exec()."""
 
   def __init__(self):
     self.vars = {}
     self.deps = {}
     self.deps_os = {}
 
-  def _eval_node(self, node):
-    """Safely evaluates an AST node to a literal or concatenated string."""
+  def _eval_literal(self, node: ast.AST):
+    """Evaluates literal AST nodes (constants, numbers, strings, and names)."""
     if isinstance(node, ast.Constant):
       return node.value
     if isinstance(node, ast.Str):
@@ -291,37 +304,78 @@ class _SafeDepsEvaluator:
       if node.id in ('True', 'False', 'None'):
         return {'True': True, 'False': False, 'None': None}[node.id]
       return self.vars.get(node.id)
-    if isinstance(node, ast.BinOp):
-      left = self._eval_node(node.left)
-      right = self._eval_node(node.right)
-      if isinstance(node.op, ast.Add):
-        if left is not None and right is not None:
-          return str(left) + str(right)
+    return None
+
+  def _eval_binop(self, node: ast.BinOp):
+    """Evaluates binary operations (string concatenation only)."""
+    if not isinstance(node.op, ast.Add):
       return None
-    if isinstance(node, ast.Call):
-      if isinstance(node.func, ast.Name):
-        func_name = node.func.id
-        args = [self._eval_node(a) for a in node.args]
-        if func_name == 'Var' and args and args[0] is not None:
-          return self.vars.get(str(args[0]), '')
-        if func_name == 'Str' and args and args[0] is not None:
-          return str(args[0])
+
+    left = self._eval_node(node.left)
+    right = self._eval_node(node.right)
+    if left is not None and right is not None:
+      return str(left) + str(right)
+    return None
+
+  def _eval_call(self, node: ast.Call):
+    """Evaluates trusted call nodes (Var(...) and Str(...))."""
+    if not isinstance(node.func, ast.Name):
       return None
-    if isinstance(node, ast.Dict):
-      result = {}
-      for k, v in zip(node.keys, node.values):
-        key = self._eval_node(k)
-        val = self._eval_node(v)
-        if key is not None:
-          result[key] = val
-      return result
+
+    func_name = node.func.id
+    args = [self._eval_node(a) for a in node.args]
+    if func_name == 'Var' and args and args[0] is not None:
+      return self.vars.get(str(args[0]), '')
+    if func_name == 'Str' and args and args[0] is not None:
+      return str(args[0])
+    return None
+
+  def _eval_dict(self, node: ast.Dict) -> dict:
+    """Evaluates AST Dict nodes into Python dictionaries."""
+    result = {}
+    for key_node, val_node in zip(node.keys, node.values):
+      key = self._eval_node(key_node)
+      val = self._eval_node(val_node)
+      if key is not None:
+        result[key] = val
+    return result
+
+  def _eval_sequence(self, node: ast.AST):
+    """Evaluates List or Tuple nodes."""
     if isinstance(node, ast.List):
       return [self._eval_node(elt) for elt in node.elts]
     if isinstance(node, ast.Tuple):
       return tuple(self._eval_node(elt) for elt in node.elts)
     return None
 
-  def parse(self, content):
+  def _eval_node(self, node: ast.AST):
+    """Dispatches AST evaluation based on node type."""
+    if isinstance(node, (ast.Constant, ast.Str, ast.Num, ast.Name)):
+      return self._eval_literal(node)
+    if isinstance(node, ast.BinOp):
+      return self._eval_binop(node)
+    if isinstance(node, ast.Call):
+      return self._eval_call(node)
+    if isinstance(node, ast.Dict):
+      return self._eval_dict(node)
+    if isinstance(node, (ast.List, ast.Tuple)):
+      return self._eval_sequence(node)
+    return None
+
+  def _process_assignment(self, target_name: str, value_node: ast.AST):
+    """Processes an assignment statement for vars, deps, or deps_os."""
+    val = self._eval_node(value_node)
+    if not isinstance(val, dict):
+      return
+
+    if target_name == 'vars':
+      self.vars.update(val)
+    elif target_name == 'deps':
+      self.deps.update(val)
+    elif target_name == 'deps_os':
+      self.deps_os.update(val)
+
+  def parse(self, content: str):
     """Parse DEPS content string into (vars, deps, deps_os)."""
     try:
       tree = ast.parse(content)
@@ -332,14 +386,7 @@ class _SafeDepsEvaluator:
       if isinstance(stmt, ast.Assign):
         for target in stmt.targets:
           if isinstance(target, ast.Name):
-            name = target.id
-            val = self._eval_node(stmt.value)
-            if name == 'vars' and isinstance(val, dict):
-              self.vars.update(val)
-            elif name == 'deps' and isinstance(val, dict):
-              self.deps.update(val)
-            elif name == 'deps_os' and isinstance(val, dict):
-              self.deps_os.update(val)
+            self._process_assignment(target.id, stmt.value)
 
     return self.vars, self.deps, self.deps_os
 
@@ -428,8 +475,7 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
     # Return empty dict for zero start revision.
     return {}
 
-  revision_str = str(revision).strip()
-  if not REVISION_PATTERN.match(revision_str):
+  if not is_valid_revision(revision):
     logs.error('Invalid revision identifier: %r' % revision)
     return None
 
