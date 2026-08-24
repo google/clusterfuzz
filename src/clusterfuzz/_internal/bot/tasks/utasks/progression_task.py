@@ -15,7 +15,6 @@
 
 import json
 import time
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -320,7 +319,7 @@ NUMERIC_METADATA_KEYS = frozenset({
 })
 
 
-def _sanitize_metadata_value(key: str, value: Any) -> Optional[Any]:
+def _sanitize_metadata_value(key: str, value):
   """Validates and casts metadata value based on expected key type."""
   if key in NUMERIC_METADATA_KEYS:
     try:
