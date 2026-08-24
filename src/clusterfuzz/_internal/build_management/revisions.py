@@ -44,6 +44,7 @@ DISK_CACHE_SIZE = 1000
 SOURCE_MAP_EXTENSION = '.srcmap.json'
 FIND_BRANCHED_FROM = re.compile(
     r'Cr-Branched-From:.*(?:master|main)@\{#(\d+)\}')
+REVISION_PATTERN = re.compile(r'^[a-zA-Z0-9._-]+$')
 
 
 def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
@@ -270,32 +271,96 @@ def _to_dict(contents):
   return None
 
 
+class _SafeDepsEvaluator:
+  """Safely parses and evaluates DEPS assignments without exec()."""
+
+  def __init__(self):
+    self.vars = {}
+    self.deps = {}
+    self.deps_os = {}
+
+  def _eval_node(self, node):
+    """Safely evaluates an AST node to a literal or concatenated string."""
+    if isinstance(node, ast.Constant):
+      return node.value
+    if isinstance(node, ast.Str):
+      return node.s
+    if isinstance(node, ast.Num):
+      return node.n
+    if isinstance(node, ast.Name):
+      if node.id in ('True', 'False', 'None'):
+        return {'True': True, 'False': False, 'None': None}[node.id]
+      return self.vars.get(node.id)
+    if isinstance(node, ast.BinOp):
+      left = self._eval_node(node.left)
+      right = self._eval_node(node.right)
+      if isinstance(node.op, ast.Add):
+        if left is not None and right is not None:
+          return str(left) + str(right)
+      return None
+    if isinstance(node, ast.Call):
+      if isinstance(node.func, ast.Name):
+        func_name = node.func.id
+        args = [self._eval_node(a) for a in node.args]
+        if func_name == 'Var' and args and args[0] is not None:
+          return self.vars.get(str(args[0]), '')
+        if func_name == 'Str' and args and args[0] is not None:
+          return str(args[0])
+      return None
+    if isinstance(node, ast.Dict):
+      result = {}
+      for k, v in zip(node.keys, node.values):
+        key = self._eval_node(k)
+        val = self._eval_node(v)
+        if key is not None:
+          result[key] = val
+      return result
+    if isinstance(node, ast.List):
+      return [self._eval_node(elt) for elt in node.elts]
+    if isinstance(node, ast.Tuple):
+      return tuple(self._eval_node(elt) for elt in node.elts)
+    return None
+
+  def parse(self, content):
+    """Parse DEPS content string into (vars, deps, deps_os)."""
+    try:
+      tree = ast.parse(content)
+    except (SyntaxError, ValueError, TypeError):
+      return None, None, None
+
+    for stmt in tree.body:
+      if isinstance(stmt, ast.Assign):
+        for target in stmt.targets:
+          if isinstance(target, ast.Name):
+            name = target.id
+            val = self._eval_node(stmt.value)
+            if name == 'vars' and isinstance(val, dict):
+              self.vars.update(val)
+            elif name == 'deps' and isinstance(val, dict):
+              self.deps.update(val)
+            elif name == 'deps_os' and isinstance(val, dict):
+              self.deps_os.update(val)
+
+    return self.vars, self.deps, self.deps_os
+
+
 def deps_to_revisions_dict(content):
   """Parses DEPS content and returns a dictionary of revision variables."""
-  local_context = {}
-  global_context = {
-      'Var': lambda x: local_context.get('vars', {}).get(x),
-      'Str': str,
-  }
-  # pylint: disable=exec-used
-  exec(content, global_context, local_context)
-
-  revisions_dict = {}
-
-  vars_dict = local_context.get('vars', {})
-  deps_dict = local_context.get('deps')
+  evaluator = _SafeDepsEvaluator()
+  vars_dict, deps_dict, deps_os_dict = evaluator.parse(content)
   if not deps_dict:
-    # |deps| variable is required. If it does not exist, we should raise an
-    # exception.
+    # |deps| variable is required. If it does not exist, return None.
     logs.error('Deps format has changed, code needs fixing.')
     return None
+
+  revisions_dict = {}
   _add_components_from_dict(deps_dict, vars_dict, revisions_dict)
 
-  deps_os_dict = local_context.get('deps_os')
   if deps_os_dict:
     # |deps_os| variable is optional.
     for deps_os in list(deps_os_dict.values()):
-      _add_components_from_dict(deps_os, vars_dict, revisions_dict)
+      if isinstance(deps_os, dict):
+        _add_components_from_dict(deps_os, vars_dict, revisions_dict)
 
   return revisions_dict
 
@@ -359,9 +424,14 @@ def _get_revision_vars_url_format(job_type, platform_id=None):
 @memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
 def get_component_revisions_dict(revision, job_type, platform_id=None):
   """Retrieve revision vars dict."""
-  if revision == 0 or revision == '0' or revision is None:
+  if revision in (0, '0', None, ''):
     # Return empty dict for zero start revision.
     return {}
+
+  revision_str = str(revision).strip()
+  if not REVISION_PATTERN.match(revision_str):
+    logs.error('Invalid revision identifier: %r' % revision)
+    return None
 
   revision_vars_url_format = _get_revision_vars_url_format(
       job_type, platform_id=platform_id)

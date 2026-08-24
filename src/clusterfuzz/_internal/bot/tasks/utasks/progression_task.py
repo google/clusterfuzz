@@ -310,10 +310,23 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
 
 
 def _update_issue_metadata(testcase: data_types.Testcase, metadata: Dict):
-  if not metadata:
+  """Updates testcase issue metadata with validated values."""
+  if not metadata or not isinstance(metadata, dict):
     return
 
   for key, value in metadata.items():
+    if not isinstance(key, str):
+      continue
+
+    if key in ('last_tested_crash_revision', 'last_tested_revision',
+               'last_progression_min', 'last_progression_max',
+               'last_regression_min', 'last_regression_max'):
+      try:
+        value = int(value)
+      except (ValueError, TypeError):
+        logs.warning(f'Ignoring invalid integer metadata for {key}: {value!r}')
+        continue
+
     old_value = testcase.get_metadata(key)
     if old_value != value:
       logs.info(

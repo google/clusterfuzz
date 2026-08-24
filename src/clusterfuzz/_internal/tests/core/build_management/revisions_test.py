@@ -450,6 +450,33 @@ class RevisionsTestcase(unittest.TestCase):
                                               'd00d')
     self.assertEqual(None, val)
 
+  @mock.patch(
+      'clusterfuzz._internal.build_management.revisions._get_url_content')
+  def test_invalid_revisions_rejected(self, mock_get_url_content):
+    """Test that invalid revision strings containing URL delimiters are rejected."""
+    invalid_revisions = [
+        'EVIL/DEPS?x=',
+        '../DEPS',
+        '123#fragment',
+        '123?query=1',
+        '123%20space',
+        '123 456',
+        'rev/path',
+        'rev\\path',
+    ]
+    for invalid_rev in invalid_revisions:
+      result = revisions.get_component_revisions_dict(
+          invalid_rev, SRCMAP_JOB_TYPE)
+      self.assertIsNone(
+          result, f'Expected None for invalid revision {invalid_rev!r}')
+    mock_get_url_content.assert_not_called()
+
+  def test_empty_or_zero_revision_returns_empty_dict(self):
+    """Test that zero or empty revisions return an empty dict."""
+    for zero_rev in [0, '0', None, '']:
+      result = revisions.get_component_revisions_dict(zero_rev, SRCMAP_JOB_TYPE)
+      self.assertEqual(result, {})
+
 
 @test_utils.with_cloud_emulators('datastore')
 class GetComponentsListTest(unittest.TestCase):
@@ -583,3 +610,45 @@ class DepsToRevisionsDictTest(unittest.TestCase):
     deps_content = 'vars = {}'
     actual_revisions_dict = revisions.deps_to_revisions_dict(deps_content)
     self.assertEqual(None, actual_revisions_dict)
+
+  def test_malicious_deps_not_executed(self):
+    """Test that malicious python code in DEPS is not executed."""
+    malicious_deps = """
+import os
+os.environ['__MALICIOUS_DEPS_EXEC__'] = 'pwned'
+vars = {'chromium_git': 'https://chromium.googlesource.com'}
+deps = {'src/safe': Var('chromium_git') + '/safe.git@12345'}
+"""
+    os.environ.pop('__MALICIOUS_DEPS_EXEC__', None)
+    actual_revisions_dict = revisions.deps_to_revisions_dict(malicious_deps)
+    self.assertNotIn('__MALICIOUS_DEPS_EXEC__', os.environ)
+    self.assertEqual(actual_revisions_dict, {
+        'src/safe': {
+            'name': 'Safe',
+            'rev': '12345',
+            'url': 'https://chromium.googlesource.com/safe.git'
+        }
+    })
+
+  def test_deps_os_parsed(self):
+    """Test that deps_os is correctly parsed."""
+    deps_content = """
+vars = {'chromium_git': 'https://chromium.googlesource.com'}
+deps = {'src/common': Var('chromium_git') + '/common.git@111'}
+deps_os = {
+    'win': {'src/win_dep': Var('chromium_git') + '/win.git@222'}
+}
+"""
+    actual_revisions_dict = revisions.deps_to_revisions_dict(deps_content)
+    self.assertEqual(actual_revisions_dict, {
+        'src/common': {
+            'name': 'Common',
+            'rev': '111',
+            'url': 'https://chromium.googlesource.com/common.git'
+        },
+        'src/win_dep': {
+            'name': 'Win_dep',
+            'rev': '222',
+            'url': 'https://chromium.googlesource.com/win.git'
+        }
+    })
