@@ -330,7 +330,9 @@ class BaseBuild:
 
 def _read_schema_version_from_manifest(build_dir: str) -> int:
   """Reads archive_schema_version from clusterfuzz_manifest.json."""
+  # Import here as this path is not available in App Engine context.
   from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+
   manifest = fuzzer_utils.read_chrome_manifest(build_dir)
   if not manifest:
     return 0
