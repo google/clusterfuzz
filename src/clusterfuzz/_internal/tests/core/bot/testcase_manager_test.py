@@ -30,6 +30,7 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libfuzzer_engine
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -252,10 +253,11 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
   def test_file_match_android(self):
     """Tests matching a file URL."""
     self.mock.platform.return_value = 'ANDROID'
+    testcases_dir = android.constants.get_testcases_directory()
     self.assertEqual(
         '/mnt/scratch0/test.html',
         testcase_manager.convert_dependency_url_to_local_path(
-            'file:///sdcard/fuzzer-testcases/test.html'))
+            f'file://{testcases_dir}/test.html'))
     self.mock.normalize_path.assert_called_once_with('/mnt/scratch0/test.html')
 
   def test_file_match_linux(self):
