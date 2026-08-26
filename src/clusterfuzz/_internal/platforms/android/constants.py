@@ -15,11 +15,13 @@
 
 import re
 
+from clusterfuzz._internal.system import environment
+
 from . import app
 
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 
-DEVICE_TESTCASES_DIR = '/sdcard/Android/data/%PKG_NAME%/files'
+_DEFAULT_DEVICE_TESTCASES_DIR = '/sdcard/Android/data/%PKG_NAME%/files'
 
 DEVICE_TMP_DIR = '/data/local/tmp'
 
@@ -92,5 +94,7 @@ DEVICES_WITH_NO_FALLBACK_QUEUE_LIST = ['ANDROID:PIXEL6']
 
 def get_testcases_directory():
   """Returns the testcases directory."""
+  testcases_dir = environment.get_value('DEVICE_TESTCASES_DIR',
+                                        _DEFAULT_DEVICE_TESTCASES_DIR)
   package_name = app.get_package_name() or ''
-  return DEVICE_TESTCASES_DIR.replace('%PKG_NAME%', package_name)
+  return testcases_dir.replace('%PKG_NAME%', package_name)
