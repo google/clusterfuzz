@@ -310,29 +310,7 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
   return uworker_msg_pb2.Output(progression_task_output=progression_task_output)  # pylint: disable=no-member
 
 
-NUMERIC_METADATA_KEYS = frozenset({
-    'last_tested_crash_revision',
-    'last_tested_revision',
-    'last_progression_min',
-    'last_progression_max',
-    'last_regression_min',
-    'last_regression_max',
-})
-
 MetadataValue = Union[str, int, float, bool, None]
-
-
-def _sanitize_metadata_value(
-    key: str, value: MetadataValue) -> Optional[Union[str, int, float, bool]]:
-  """Validates and casts metadata value based on expected key type."""
-  if key in NUMERIC_METADATA_KEYS:
-    try:
-      return int(value)
-    except (ValueError, TypeError):
-      logs.warning(f'Ignoring invalid integer metadata for {key}: {value!r}')
-      return None
-
-  return value
 
 
 def _update_issue_metadata(testcase: data_types.Testcase,
@@ -341,14 +319,7 @@ def _update_issue_metadata(testcase: data_types.Testcase,
   if not metadata or not isinstance(metadata, dict):
     return
 
-  for key, raw_value in metadata.items():
-    if not isinstance(key, str):
-      continue
-
-    value = _sanitize_metadata_value(key, raw_value)
-    if value is None and raw_value is not None and key in NUMERIC_METADATA_KEYS:
-      continue
-
+  for key, value in data_handler.sanitize_issue_metadata(metadata).items():
     old_value = testcase.get_metadata(key)
     if old_value != value:
       logs.info(

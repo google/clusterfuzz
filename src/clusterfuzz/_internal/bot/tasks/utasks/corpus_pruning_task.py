@@ -923,7 +923,9 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
               creation_origin=events.TestcaseOrigin.CORPUS_PRUNING))
 
       if output.issue_metadata:
-        for key, value in json.loads(output.issue_metadata).items():
+        issue_metadata = data_handler.sanitize_issue_metadata(
+            json.loads(output.issue_metadata))
+        for key, value in issue_metadata.items():
           testcase.set_metadata(key, value, update_testcase=False)
 
         testcase.put()

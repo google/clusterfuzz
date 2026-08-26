@@ -50,6 +50,12 @@ FIND_BRANCHED_FROM = re.compile(
     r'Cr-Branched-From:.*(?:master|main)@\{#(\d+)\}')
 REVISION_PATTERN = re.compile(r'^[a-zA-Z0-9._-]+$')
 
+# Value types _SafeDepsEvaluator can produce from a DEPS file.
+_LiteralValue = Union[str, int, float, bool]
+_NodeValue = Union[_LiteralValue, dict, list, tuple]
+# (vars, deps, deps_os), each None if the file could not be parsed.
+_ParseResult = Tuple[Optional[dict], Optional[dict], Optional[dict]]
+
 
 def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
   """Add components from a dict representing a DEPS file."""
@@ -278,8 +284,9 @@ def _to_dict(contents):
 def is_valid_revision(revision: Optional[Union[str, int]]) -> bool:
   """Returns True if the revision is a safe and valid identifier.
 
-  Valid revisions contain only alphanumeric characters, dots, underscores, and hyphens.
-  Rejects path traversal, query strings, and URL manipulation characters.
+  Valid revisions contain only alphanumeric characters, dots, underscores and
+  hyphens. Rejects path traversal, query strings and other characters that
+  would let a poisoned revision reshape the url it is interpolated into.
   """
   if revision in (0, '0', None, ''):
     return False
@@ -296,15 +303,14 @@ class _SafeDepsEvaluator:
     self.deps = {}
     self.deps_os = {}
 
-  def _eval_literal(self,
-                    node: ast.AST) -> Optional[Union[str, int, float, bool]]:
-    """Evaluates literal AST nodes (constants, numbers, strings, and names)."""
+  def _eval_literal(self, node: ast.AST) -> Optional[_LiteralValue]:
+    """Evaluates literal AST nodes (constants and names)."""
     if isinstance(node, ast.Constant):
-      return node.value
-    if isinstance(node, ast.Str):
-      return node.s
-    if isinstance(node, ast.Num):
-      return node.n
+      # Constants can also hold bytes, complex or Ellipsis, none of which are
+      # meaningful in a DEPS file.
+      if node.value is None or isinstance(node.value, (str, int, float, bool)):
+        return node.value
+      return None
     if isinstance(node, ast.Name):
       if node.id in ('True', 'False', 'None'):
         return {'True': True, 'False': False, 'None': None}[node.id]
@@ -353,11 +359,9 @@ class _SafeDepsEvaluator:
       return tuple(self._eval_node(elt) for elt in node.elts)
     return None
 
-  def _eval_node(
-      self,
-      node: ast.AST) -> Optional[Union[str, int, float, bool, dict, list, tuple]]:
+  def _eval_node(self, node: ast.AST) -> Optional[_NodeValue]:
     """Dispatches AST evaluation based on node type."""
-    if isinstance(node, (ast.Constant, ast.Str, ast.Num, ast.Name)):
+    if isinstance(node, (ast.Constant, ast.Name)):
       return self._eval_literal(node)
     if isinstance(node, ast.BinOp):
       return self._eval_binop(node)
@@ -382,8 +386,7 @@ class _SafeDepsEvaluator:
     elif target_name == 'deps_os':
       self.deps_os.update(val)
 
-  def parse(
-      self, content: str) -> Tuple[Optional[dict], Optional[dict], Optional[dict]]:
+  def parse(self, content: str) -> _ParseResult:
     """Parse DEPS content string into (vars, deps, deps_os)."""
     try:
       tree = ast.parse(content)
@@ -524,8 +527,12 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
     logs.error('Failed to get component revisions from %s.' % revision_vars_url)
     return None
 
+  # The checks below use the admin-configured format string rather than the
+  # interpolated url: |revision| is part of the url, so checking the url would
+  # let a poisoned revision pick which parser runs on the response.
+
   # Parse as per DEPS format.
-  if _is_deps(revision_vars_url):
+  if _is_deps(revision_vars_url_format):
     deps_revisions_dict = deps_to_revisions_dict(url_content)
     if not deps_revisions_dict:
       return None
@@ -534,7 +541,7 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
     return revisions_dict
 
   # Parse as per Clank DEPS format.
-  if _is_clank(revision_vars_url):
+  if _is_clank(revision_vars_url_format):
     return _clank_revision_file_to_revisions_dict(url_content)
 
   # Default case: parse content as yaml.
@@ -545,7 +552,7 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
     return None
 
   # Parse as per source map format.
-  if revision_vars_url.endswith(SOURCE_MAP_EXTENSION):
+  if revision_vars_url_format.endswith(SOURCE_MAP_EXTENSION):
     revisions_dict = _src_map_to_revisions_dict(revisions_dict, project_name)
 
   return revisions_dict
