@@ -299,6 +299,24 @@ class TarArchiveReader(ArchiveReader):
                                         member)):
         return None
 
+      tarinfo = self._archive.getmember(member)
+      if tarinfo.islnk():
+        # Mirror how tarfile resolves hard link targets (absolute targets are
+        # re-rooted at the output directory), then apply the same containment
+        # check as for member names. Without this, a relative linkname
+        # containing '..' makes tarfile's os.link() alias a file outside the
+        # output directory, and the realpath-based check cannot detect it
+        # because it does not resolve hard links.
+        linkname = tarinfo.linkname
+        if linkname.startswith('/'):
+          linkname = linkname[1:]
+        link_target = os.path.join(
+            output_directory, os.path.dirname(member), linkname)
+        if _is_attempting_path_traversal(
+            self._archive_path, output_directory,
+            os.path.relpath(link_target, output_directory)):
+          return None
+
     self._archive.extract(member=member, path=output_directory)
     return os.path.realpath(os.path.join(output_directory, member))
 
