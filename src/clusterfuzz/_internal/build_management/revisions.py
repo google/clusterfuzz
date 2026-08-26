@@ -20,10 +20,6 @@ import os
 import re
 import time
 import urllib.parse
-from typing import Dict
-from typing import Optional
-from typing import Tuple
-from typing import Union
 
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
@@ -51,10 +47,10 @@ FIND_BRANCHED_FROM = re.compile(
 REVISION_PATTERN = re.compile(r'^[a-zA-Z0-9._-]+$')
 
 # Value types _SafeDepsEvaluator can produce from a DEPS file.
-_LiteralValue = Union[str, int, float, bool]
-_NodeValue = Union[_LiteralValue, dict, list, tuple]
+_LiteralValue = str | int | float | bool
+_NodeValue = _LiteralValue | dict | list | tuple
 # (vars, deps, deps_os), each None if the file could not be parsed.
-_ParseResult = Tuple[Optional[dict], Optional[dict], Optional[dict]]
+_ParseResult = tuple[dict | None, dict | None, dict | None]
 
 
 def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
@@ -281,7 +277,7 @@ def _to_dict(contents):
   return None
 
 
-def is_valid_revision(revision: Optional[Union[str, int]]) -> bool:
+def is_valid_revision(revision: str | int | None) -> bool:
   """Returns True if the revision is a safe and valid identifier.
 
   Valid revisions contain only alphanumeric characters, dots, underscores and
@@ -303,7 +299,7 @@ class _SafeDepsEvaluator:
     self.deps = {}
     self.deps_os = {}
 
-  def _eval_literal(self, node: ast.AST) -> Optional[_LiteralValue]:
+  def _eval_literal(self, node: ast.AST) -> _LiteralValue | None:
     """Evaluates literal AST nodes (constants and names)."""
     if isinstance(node, ast.Constant):
       # Constants can also hold bytes, complex or Ellipsis, none of which are
@@ -317,7 +313,7 @@ class _SafeDepsEvaluator:
       return self.vars.get(node.id)
     return None
 
-  def _eval_binop(self, node: ast.BinOp) -> Optional[str]:
+  def _eval_binop(self, node: ast.BinOp) -> str | None:
     """Evaluates binary operations (string concatenation only)."""
     if not isinstance(node.op, ast.Add):
       return None
@@ -328,7 +324,7 @@ class _SafeDepsEvaluator:
       return str(left) + str(right)
     return None
 
-  def _eval_call(self, node: ast.Call) -> Optional[str]:
+  def _eval_call(self, node: ast.Call) -> str | None:
     """Evaluates trusted call nodes (Var(...) and Str(...))."""
     if not isinstance(node.func, ast.Name):
       return None
@@ -351,7 +347,7 @@ class _SafeDepsEvaluator:
         result[key] = val
     return result
 
-  def _eval_sequence(self, node: ast.AST) -> Optional[Union[list, tuple]]:
+  def _eval_sequence(self, node: ast.AST) -> list | tuple | None:
     """Evaluates List or Tuple nodes."""
     if isinstance(node, ast.List):
       return [self._eval_node(elt) for elt in node.elts]
@@ -359,7 +355,7 @@ class _SafeDepsEvaluator:
       return tuple(self._eval_node(elt) for elt in node.elts)
     return None
 
-  def _eval_node(self, node: ast.AST) -> Optional[_NodeValue]:
+  def _eval_node(self, node: ast.AST) -> _NodeValue | None:
     """Dispatches AST evaluation based on node type."""
     if isinstance(node, (ast.Constant, ast.Name)):
       return self._eval_literal(node)
@@ -402,7 +398,7 @@ class _SafeDepsEvaluator:
     return self.vars, self.deps, self.deps_os
 
 
-def deps_to_revisions_dict(content: str) -> Optional[Dict[str, dict]]:
+def deps_to_revisions_dict(content: str) -> dict[str, dict] | None:
   """Parses DEPS content and returns a dictionary of revision variables."""
   evaluator = _SafeDepsEvaluator()
   vars_dict, deps_dict, deps_os_dict = evaluator.parse(content)
