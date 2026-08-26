@@ -48,6 +48,8 @@ STABLE_CUTTLEFISH_BUILD = {
 DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = (
     "gs://android-haiku/target-cuttlefish/stable_build_info.json")
 
+API_VERSION = 'V4'
+
 
 def _call_android_api_enabled():
   """Return True if we should call the Android Build API, enabled by default,
@@ -71,7 +73,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
 
   logs.info(
       'AndroidBuildAPI download_artifact started.',
-      api_version='V4',
+      api_version=API_VERSION,
       operation='download_artifact',
       build_id=bid,
       target=target,
@@ -84,7 +86,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
     logs.error(
         'AndroidBuildAPI download_artifact failed: artifact metadata '
         'unreachable.',
-        api_version='V4',
+        api_version=API_VERSION,
         operation='download_artifact',
         build_id=bid,
         target=target,
@@ -96,7 +98,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
   size = int(artifact['size'])
   logs.info(
       'AndroidBuildAPI download_artifact metadata retrieved successfully.',
-      api_version='V4',
+      api_version=API_VERSION,
       operation='download_artifact',
       build_id=bid,
       target=target,
@@ -114,7 +116,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
   if os.path.exists(output_path) and os.path.getsize(output_path) == size:
     logs.info(
         'AndroidBuildAPI download_artifact skipped (file already exists).',
-        api_version='V4',
+        api_version=API_VERSION,
         operation='download_artifact',
         build_id=bid,
         target=target,
@@ -135,7 +137,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
   # Just like get, except get_media.
   logs.info(
       'AndroidBuildAPI download_artifact media download started.',
-      api_version='V4',
+      api_version=API_VERSION,
       operation='download_artifact_media',
       build_id=bid,
       target=target,
@@ -147,7 +149,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
   if not success:
     logs.error(
         'AndroidBuildAPI download_artifact failed.',
-        api_version='V4',
+        api_version=API_VERSION,
         operation='download_artifact',
         build_id=bid,
         target=target,
@@ -159,7 +161,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
 
   logs.info(
       'AndroidBuildAPI download_artifact completed successfully.',
-      api_version='V4',
+      api_version=API_VERSION,
       operation='download_artifact',
       build_id=bid,
       target=target,
@@ -185,7 +187,7 @@ def _get_artifacts_for_build(client,
 
   logs.info(
       'AndroidBuildAPI get_artifacts_for_build started.',
-      api_version='V4',
+      api_version=API_VERSION,
       operation='get_artifacts_for_build',
       build_id=bid,
       target=target,
@@ -196,7 +198,7 @@ def _get_artifacts_for_build(client,
 
   logs.info(
       'AndroidBuildAPI get_artifacts_for_build completed.',
-      api_version='V4',
+      api_version=API_VERSION,
       operation='get_artifacts_for_build',
       build_id=bid,
       target=target,
@@ -223,7 +225,8 @@ def _get_client():
 
   key_dict = json.loads(build_apiary_service_account_private_key)
 
-  logs.info('AndroidBuildAPI client initialization started.', api_version='V4')
+  logs.info(
+      'AndroidBuildAPI client initialization started.', api_version=API_VERSION)
 
   try:
     credentials = service_account.Credentials.from_service_account_info(
@@ -278,7 +281,7 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
 
   logs.info(
       'AndroidBuildAPI get_latest_artifact_info started.',
-      api_version='V4',
+      api_version=API_VERSION,
       operation='get_latest_artifact_info',
       branch=branch,
       target=target,
@@ -289,7 +292,7 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
   if not builds:
     logs.error(
         'AndroidBuildAPI get_latest_artifact_info failed: no builds found.',
-        api_version='V4',
+        api_version=API_VERSION,
         operation='get_latest_artifact_info',
         branch=branch,
         target=target,
@@ -303,7 +306,7 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
 
   logs.info(
       'AndroidBuildAPI get_latest_artifact_info completed.',
-      api_version='V4',
+      api_version=API_VERSION,
       operation='get_latest_artifact_info',
       branch=branch,
       target=target,
