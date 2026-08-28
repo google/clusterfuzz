@@ -561,6 +561,26 @@ class DeployExecuteTest(unittest.TestCase):
         deployment_bucket_override='test-deployment',
         custom_manifest_name='ibarba.zip.manifest')
 
+  def test_execute_custom_zip_without_explicit_prod_flag(self):
+    """Verifies butler.py deploy --targets custom_zip defaults to computing
+    production revision without requiring an explicit --prod or --staging flag."""
+    self.mock.get_git_user.return_value = 'ibarba'
+    args = mock.MagicMock(
+        staging=False,
+        prod=False,
+        targets=['custom_zip'],
+        config_dir='/config/dir',
+        release='prod',
+        force=False,
+        custom_zip_name=None,
+        deployment_bucket=None,
+    )
+    deploy.execute(args)
+
+    self.mock.compute_prod_revision.assert_called_once()
+    self.mock.package.assert_called_once_with(
+        'prod-rev-1', release='prod', custom_zip_name='ibarba.zip')
+
   def test_execute_custom_zip_no_git_user_fallback(self):
     """Verifies butler.py deploy --targets custom_zip falls back to
     'custom_user.zip' and 'custom_user.zip.manifest' when no git or OS username

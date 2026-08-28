@@ -543,18 +543,6 @@ def execute(args):
               'or clusterfuzz-config. Please fix or use --force.')
         sys.exit(1)
 
-  if args.staging:
-    revision = common.compute_staging_revision()
-    platforms = ['linux']  # No other platforms required.
-  elif args.prod:
-    revision = common.compute_prod_revision()
-    platforms = list(constants.PLATFORMS.keys())
-  else:
-    print('Please specify either --prod or --staging. For production '
-          'deployments, you probably want to use deploy.sh from your '
-          'configs directory instead.')
-    sys.exit(1)
-
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
   deploy_terraform = 'terraform' in args.targets
@@ -565,6 +553,18 @@ def execute(args):
     deploy_appengine = False
     deploy_terraform = False
     deploy_zips = True
+
+  if args.staging:
+    revision = common.compute_staging_revision()
+    platforms = ['linux']  # No other platforms required.
+  elif args.prod or custom_zip_deployment:
+    revision = common.compute_prod_revision()
+    platforms = list(constants.PLATFORMS.keys())
+  else:
+    print('Please specify either --prod or --staging. For production '
+          'deployments, you probably want to use deploy.sh from your '
+          'configs directory instead.')
+    sys.exit(1)
 
   custom_zip_name = None
   custom_manifest_name = None
