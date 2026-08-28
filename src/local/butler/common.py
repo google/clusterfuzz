@@ -219,7 +219,10 @@ def _install_chromedriver():
   if plt == 'linux':
     archive_name = 'chromedriver_linux64.zip'
   elif plt == 'macos':
-    archive_name = 'chromedriver_mac64.zip'
+    if platform.machine() == 'arm64' or platform.processor() == 'arm':
+      archive_name = 'chromedriver_mac64_m1.zip'
+    else:
+      archive_name = 'chromedriver_mac64.zip'
   elif plt == 'windows':
     archive_name = 'chromedriver_win32.zip'
 
@@ -299,25 +302,36 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
 
   pip_abi = constants.ABIS[platform_name]
 
-  for pip_platform in pip_platforms:
-    temp_dir = tempfile.mkdtemp()
-    return_code, _ = execute(
-        f'{_pip()} download --no-deps --only-binary=:all: '
-        f'--platform={pip_platform} --abi={pip_abi} -r {requirements_path} -d '
-        f'{temp_dir}',
-        exit_on_error=False)
+  with open(requirements_path, 'r') as f:
+    requirements = [
+        line.strip()
+        for line in f
+        if line.strip() and not line.startswith('#')
+    ]
 
-    if return_code != 0:
-      print(f'Did not find package for platform: {pip_platform}')
-      continue
+  for req in requirements:
+    downloaded = False
+    for pip_platform_entry in pip_platforms:
+      temp_dir = tempfile.mkdtemp()
+      return_code, _ = execute(
+          f'{_pip()} download --no-deps --only-binary=:all: '
+          f'--platform={pip_platform_entry} --abi={pip_abi} "{req}" -d '
+          f'{temp_dir}',
+          exit_on_error=False)
 
-    execute(f'unzip -o -d {target_path} "{temp_dir}/*.whl"')
-    shutil.rmtree(temp_dir, ignore_errors=True)
-    break
+      if return_code != 0:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        print(f'Did not find {req} for platform: {pip_platform_entry}')
+        continue
 
-  if return_code != 0:
-    raise RuntimeError(
-        f'Failed to find package in supported platforms: {pip_platforms}')
+      execute(f'unzip -o -d {target_path} "{temp_dir}/*.whl"')
+      shutil.rmtree(temp_dir, ignore_errors=True)
+      downloaded = True
+      break
+
+    if not downloaded:
+      raise RuntimeError(
+          f'Failed to find {req} in supported platforms: {pip_platforms}')
 
 
 def _remove_invalid_files():

@@ -72,6 +72,9 @@ def get_source_url():
       'Darwin': 'macos'
   }
   platform_name = platform_mappings[platform_name]
+  if platform_name == 'macos' and environment.get_cpu_arch() == 'arm64':
+    platform_name = 'macos_arm64'
+
   return _deployment_file_url(
       utils.get_platform_deployment_filename(platform_name, release))
 

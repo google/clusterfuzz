@@ -268,3 +268,43 @@ class UpdateSourceCodeIntegrationTest(unittest.TestCase):
         filepath = os.path.join(self.temp_directory, member.filename)
         if mode & 0o100:
           self.assertTrue(os.access(filepath, os.X_OK))
+
+
+class GetSourceUrlTest(unittest.TestCase):
+  """Tests for get_source_url."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.ProjectConfig',
+        'clusterfuzz._internal.base.utils.get_clusterfuzz_release',
+        'clusterfuzz._internal.system.environment.get_cpu_arch',
+        'platform.system',
+    ])
+    self.mock.ProjectConfig().get.return_value = 'deployment-bucket'
+    self.mock.get_clusterfuzz_release.return_value = 'prod'
+
+  def test_linux(self):
+    """Test get_source_url for linux."""
+    self.mock.system.return_value = 'Linux'
+    self.mock.get_cpu_arch.return_value = 'x86_64'
+    self.assertEqual(
+        'gs://deployment-bucket/linux-3.zip',
+        update_task.get_source_url())
+
+  def test_mac_x86_64(self):
+    """Test get_source_url for mac x86_64."""
+    self.mock.system.return_value = 'Darwin'
+    self.mock.get_cpu_arch.return_value = 'x86_64'
+    self.assertEqual(
+        'gs://deployment-bucket/macos-3.zip',
+        update_task.get_source_url())
+
+  def test_mac_arm64(self):
+    """Test get_source_url for mac arm64."""
+    self.mock.system.return_value = 'Darwin'
+    self.mock.get_cpu_arch.return_value = 'arm64'
+    self.assertEqual(
+        'gs://deployment-bucket/macos_arm64-3.zip',
+        update_task.get_source_url())
+

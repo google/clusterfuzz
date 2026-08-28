@@ -38,22 +38,54 @@ PACKAGE_TARGET_MANIFEST_PATH = os.path.join('src', 'appengine', 'resources',
 PLATFORMS = collections.OrderedDict([
     ('windows', 'win_amd64'),
     ('macos', ('macosx_10_14_x86_64', 'macosx_10_12_x86_64')),
-    ('linux', ('manylinux2014_x86_64')),
+    ('macos_arm64', (
+        'macosx_14_0_arm64',
+        'macosx_13_0_arm64',
+        'macosx_12_0_arm64',
+        'macosx_11_0_arm64',
+        'macosx_10_9_universal2',
+    )),
+    ('linux', ('manylinux2014_x86_64',)),
 ])
 
 # Additional required packages when deploying to prod.
 ADDITIONAL_RELEASES = ['chrome-tests-syncer']
 
 if sys.version_info.major == 3 and sys.version_info.minor == 7:
-  ABIS = {'linux': 'cp37m', 'windows': 'cp37m', 'macos': 'cp37m'}
+  ABIS = {
+      'linux': 'cp37m',
+      'windows': 'cp37m',
+      'macos': 'cp37m',
+      'macos_arm64': 'cp37m',
+  }
 elif sys.version_info.major == 3 and sys.version_info.minor == 8:
-  ABIS = {'linux': 'cp38', 'windows': 'cp38', 'macos': 'cp38'}
+  ABIS = {
+      'linux': 'cp38',
+      'windows': 'cp38',
+      'macos': 'cp38',
+      'macos_arm64': 'cp38',
+  }
 elif sys.version_info.major == 3 and sys.version_info.minor == 9:
-  ABIS = {'linux': 'cp39', 'windows': 'cp39', 'macos': 'cp39'}
+  ABIS = {
+      'linux': 'cp39',
+      'windows': 'cp39',
+      'macos': 'cp39',
+      'macos_arm64': 'cp39',
+  }
 elif sys.version_info.major == 3 and sys.version_info.minor == 10:
-  ABIS = {'linux': 'cp310', 'windows': 'cp310', 'macos': 'cp310'}
+  ABIS = {
+      'linux': 'cp310',
+      'windows': 'cp310',
+      'macos': 'cp310',
+      'macos_arm64': 'cp310',
+  }
 elif sys.version_info.major == 3 and sys.version_info.minor == 11:
-  ABIS = {'linux': 'cp311', 'windows': 'cp311', 'macos': 'cp311'}
+  ABIS = {
+      'linux': 'cp311',
+      'windows': 'cp311',
+      'macos': 'cp311',
+      'macos_arm64': 'cp311',
+  }
 else:
   raise ValueError('Only python versions 3.7-3.11 are supported.')
 

@@ -112,8 +112,11 @@ def is_supported_cpu_arch_for_job():
     # No specific cpu architecture requirement specified in job, bail out.
     return True
 
-  # Convert to list just in case anyone specifies value as a single string.
-  supported_cpu_arch_list = list(supported_cpu_arch)
+  if isinstance(supported_cpu_arch, list):
+    supported_cpu_arch_list = supported_cpu_arch
+  else:
+    supported_cpu_arch_list = utils.parse_delimited(
+        str(supported_cpu_arch), delimiter=',', strip=True, remove_empty=True)
 
   return cpu_arch in supported_cpu_arch_list
 
