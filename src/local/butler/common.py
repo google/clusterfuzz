@@ -91,6 +91,28 @@ def _get_clusterfuzz_config_commit_sha():
   return git_sha.strip().decode('utf-8')
 
 
+def get_git_user():
+  """Get the git username of the current user."""
+  # 1. Try git config user.email
+  return_code, output = execute(
+      'git config user.email', print_output=False, exit_on_error=False)
+  if return_code == 0 and output.strip():
+    email = output.strip().decode('utf-8')
+    if '@' in email:
+      return email.split('@', maxsplit=1)[0]
+    return email
+
+  # 2. Try git config user.name
+  return_code, output = execute(
+      'git config user.name', print_output=False, exit_on_error=False)
+  if return_code == 0 and output.strip():
+    name = output.strip().decode('utf-8').replace(' ', '_').lower()
+    return name
+
+  # 3. Fallback to OS USER
+  return os.environ.get('USER', 'custom_user')
+
+
 def _compute_revision(timestamp, is_staging=False):
   """Return a source code revision.
 

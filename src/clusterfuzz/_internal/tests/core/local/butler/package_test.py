@@ -15,6 +15,7 @@
 import os
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 
 from clusterfuzz._internal.system import shell
@@ -105,3 +106,40 @@ class PackageTest(unittest.TestCase):
           os.path.join('clusterfuzz', 'local', '__init__.py'), files)
       self.assertNotIn(
           os.path.join('clusterfuzz', 'src', 'appengine', 'app.yaml'), files)
+
+
+class PackageExecuteTest(unittest.TestCase):
+  """Tests for package.execute CLI command dispatcher."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'local.butler.common.compute_staging_revision',
+        'local.butler.package.package',
+    ])
+    self.mock.compute_staging_revision.return_value = 'staging-rev'
+
+  def test_package_execute_with_custom_zip_name(self):
+    """Verifies butler.py package with --custom-zip-name builds only the single
+    specified archive rather than all platform archives."""
+    args = mock.MagicMock(
+        platform='linux',
+        release='prod',
+        custom_zip_name='custom_test.zip',
+    )
+    package.execute(args)
+    self.mock.package.assert_called_once_with(
+        revision='staging-rev',
+        platform_name='linux',
+        release='prod',
+        custom_zip_name='custom_test.zip')
+
+  def test_package_execute_without_custom_zip_name_all_platforms(self):
+    """Verifies butler.py package with platform='all' builds packages for all
+    platforms when --custom-zip-name is not provided."""
+    args = mock.MagicMock(
+        platform='all',
+        release='prod',
+        custom_zip_name=None,
+    )
+    package.execute(args)
+    self.assertEqual(3, self.mock.package.call_count)

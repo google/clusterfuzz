@@ -85,8 +85,18 @@ steps:
       exit 1
     fi
 
-    echo "✅ Running deploy for project config: $configpath"
-    python3.11 butler.py deploy -c $configpath --prod --targets zips appengine --force
+    targets="${_TARGETS:-zips appengine}"
+    extra_args=""
+    if echo "$$targets" | grep -q "custom_zip"; then
+      bucket="${_DEPLOYMENT_BUCKET:-test-deployment}"
+      extra_args="--deployment-bucket $$bucket"
+      if [ -n "${_CUSTOM_ZIP_NAME}" ]; then
+        extra_args="$$extra_args --custom-zip-name ${_CUSTOM_ZIP_NAME}"
+      fi
+    fi
+
+    echo "✅ Running deploy for project config: $configpath with targets: $$targets"
+    python3.11 butler.py deploy -c $configpath --prod --targets $$targets --force $$extra_args
 
 - id: update project metadata with revision
   name: gcr.io/google.com/cloudsdktool/cloud-sdk
@@ -94,6 +104,11 @@ steps:
   args:
   - -c
   - |
+    if echo "${_TARGETS:-zips appengine}" | grep -q "custom_zip"; then
+      echo "Skipping project metadata update for custom_zip deployment."
+      exit 0
+    fi
+
     if [ -n "${_CLUSTERFUZZ_REVISION}" ]; then
       cd clusterfuzz
     fi
@@ -128,6 +143,10 @@ steps:
   args:
   - '-c'
   - |
+    if echo "${_TARGETS:-zips appengine}" | grep -q "custom_zip"; then
+      echo "Skipping terraform init for custom_zip deployment."
+      exit 0
+    fi
     cd /workspace/clusterfuzz-config/configs/${_PROJECT}/terraform
     terraform init || exit 1
 
@@ -137,8 +156,17 @@ steps:
   args:
   - '-c'
   - |
+    if echo "${_TARGETS:-zips appengine}" | grep -q "custom_zip"; then
+      echo "Skipping terraform apply for custom_zip deployment."
+      exit 0
+    fi
     cd /workspace/clusterfuzz-config/configs/${_PROJECT}/terraform
     terraform apply -target=module.compute -auto-approve || exit 1
+
+substitutions:
+  _TARGETS: 'zips appengine'
+  _DEPLOYMENT_BUCKET: ''
+  _CUSTOM_ZIP_NAME: ''
 
 timeout: 3000s
 options:

@@ -103,7 +103,8 @@ def _deploy_app_prod(project,
                      package_zip_paths,
                      deploy_appengine=True,
                      test_deployment=False,
-                     release='prod'):
+                     release='prod',
+                     custom_manifest_name=None):
   """Deploy app in production."""
   if deploy_appengine:
     services = _get_services(yaml_paths)
@@ -124,14 +125,21 @@ def _deploy_app_prod(project,
       _deploy_zip(
           deployment_bucket, package_zip_path, test_deployment=test_deployment)
 
-    releases = [release]
-    releases += constants.ADDITIONAL_RELEASES if release == 'prod' else []
-    for rel in releases:
+    if custom_manifest_name:
       _deploy_manifest(
           deployment_bucket,
           constants.PACKAGE_TARGET_MANIFEST_PATH,
           test_deployment=test_deployment,
-          release=rel)
+          custom_manifest_name=custom_manifest_name)
+    else:
+      releases = [release]
+      releases += constants.ADDITIONAL_RELEASES if release == 'prod' else []
+      for rel in releases:
+        _deploy_manifest(
+            deployment_bucket,
+            constants.PACKAGE_TARGET_MANIFEST_PATH,
+            test_deployment=test_deployment,
+            release=rel)
 
 
 def _deploy_app_staging(project, yaml_paths):
@@ -247,10 +255,13 @@ def _deploy_zip(bucket_name, zip_path, test_deployment=False):
 def _deploy_manifest(bucket_name,
                      manifest_path,
                      test_deployment=False,
-                     release='prod'):
+                     release='prod',
+                     custom_manifest_name=None):
   """Deploy source manifest to GCS."""
   gcloud_storage = common.Gcloud(storage=True)
-  remote_manifest_path = utils.get_remote_manifest_filename(release)
+  remote_manifest_path = (
+      custom_manifest_name if custom_manifest_name is not None else
+      utils.get_remote_manifest_filename(release))
 
   if test_deployment:
     gcloud_storage.run(
@@ -397,10 +408,13 @@ def _prod_deployment_helper(config_dir,
                             deploy_appengine=True,
                             deploy_terraform=True,
                             test_deployment=False,
-                            release='prod'):
+                            release='prod',
+                            deployment_bucket_override=None,
+                            custom_manifest_name=None):
   """Helper for production deployment."""
   config = local_config.Config()
-  deployment_bucket = config.get('project.deployment.bucket')
+  deployment_bucket = deployment_bucket_override or config.get(
+      'project.deployment.bucket')
 
   gae_config = config.sub_config(local_config.GAE_CONFIG_PATH)
   gae_deployment = gae_config.sub_config('deployment')
@@ -440,7 +454,8 @@ def _prod_deployment_helper(config_dir,
         package_zip_paths,
         deploy_appengine=deploy_appengine,
         test_deployment=test_deployment,
-        release=release)
+        release=release,
+        custom_manifest_name=custom_manifest_name)
 
     if deploy_appengine:
       common.execute(
@@ -544,17 +559,35 @@ def execute(args):
   deploy_appengine = 'appengine' in args.targets
   deploy_terraform = 'terraform' in args.targets
   test_deployment = 'test_deployment' in args.targets
+  custom_zip_deployment = 'custom_zip' in args.targets
 
-  if test_deployment:
+  if test_deployment or custom_zip_deployment:
     deploy_appengine = False
     deploy_terraform = False
     deploy_zips = True
 
+  custom_zip_name = None
+  custom_manifest_name = None
+  deployment_bucket_override = getattr(args, 'deployment_bucket', None)
+
+  if custom_zip_deployment:
+    custom_zip_name = getattr(args, 'custom_zip_name',
+                              None) or f'{common.get_git_user()}.zip'
+    if not custom_zip_name.endswith('.zip'):
+      custom_zip_name = f'{custom_zip_name}.zip'
+    custom_manifest_name = f'{custom_zip_name}.manifest'
+    if not deployment_bucket_override:
+      deployment_bucket_override = 'test-deployment'
+
   package_zip_paths = []
   if deploy_zips:
-    for platform_name in platforms:
-      package_zip_paths += package.package(
-          revision, platform_name=platform_name, release=args.release)
+    if custom_zip_name:
+      package_zip_paths = package.package(
+          revision, release=args.release, custom_zip_name=custom_zip_name)
+    else:
+      for platform_name in platforms:
+        package_zip_paths += package.package(
+            revision, platform_name=platform_name, release=args.release)
   else:
     # package.package calls these, so only set these up if we're not packaging,
     # since they can be fairly slow.
@@ -584,7 +617,9 @@ def execute(args):
         deploy_appengine,
         deploy_terraform,
         test_deployment=test_deployment,
-        release=args.release)
+        release=args.release,
+        deployment_bucket_override=deployment_bucket_override,
+        custom_manifest_name=custom_manifest_name)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print('Source updated to %s' % f.read())

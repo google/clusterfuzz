@@ -73,7 +73,8 @@ def package(revision,
             target_zip_dir=constants.PACKAGE_TARGET_ZIP_DIRECTORY,
             target_manifest_path=constants.PACKAGE_TARGET_MANIFEST_PATH,
             platform_name=None,
-            release='prod'):
+            release='prod',
+            custom_zip_name=None):
   """Prepare clusterfuzz-source.zip."""
   is_ci = os.getenv('TEST_BOT_ENVIRONMENT')
   if not is_ci and common.is_git_dirty():
@@ -97,7 +98,10 @@ def package(revision,
     os.makedirs(target_zip_dir)
 
   target_zip_name = constants.LEGACY_ZIP_NAME
-  if platform_name:
+  if custom_zip_name:
+    target_zip_name = custom_zip_name if custom_zip_name.endswith(
+        '.zip') else f'{custom_zip_name}.zip'
+  elif platform_name:
     target_zip_name = utils.get_platform_deployment_filename(
         platform_name, release)
 
@@ -136,7 +140,7 @@ def package(revision,
   print('%s is ready.' % target_zip_path)
 
   targets_zip_paths = [target_zip_path]
-  if platform_name and release == 'prod':
+  if not custom_zip_name and platform_name and release == 'prod':
     # Copy prod package into additional releases.
     for add_release in constants.ADDITIONAL_RELEASES:
       add_target_zip_name = utils.get_platform_deployment_filename(
@@ -152,7 +156,14 @@ def package(revision,
 
 def execute(args):
   """Execute the butler package command."""
-  if args.platform == 'all':
+  custom_zip_name = getattr(args, 'custom_zip_name', None)
+  if custom_zip_name:
+    package(
+        revision=common.compute_staging_revision(),
+        platform_name=args.platform,
+        release=args.release,
+        custom_zip_name=custom_zip_name)
+  elif args.platform == 'all':
     for platform_name in list(constants.PLATFORMS.keys()):
       package(
           revision=common.compute_staging_revision(),

@@ -131,6 +131,9 @@ def _add_package_subparser(toplevel_subparsers):
       '--release',
       choices=['prod', 'candidate', 'chrome-tests-syncer'],
       default='prod')
+  parser_package.add_argument(
+      '--custom-zip-name',
+      help='Custom name for the zip file (e.g. username.zip).')
 
 
 def _add_bootstrap_subparser(toplevel_subparsers):
@@ -403,7 +406,15 @@ def main():
       '--targets',
       nargs='*',
       default=['appengine', 'terraform', 'zips'],
-      choices=['appengine', 'terraform', 'zips', 'test_deployment'])
+      choices=[
+          'appengine', 'terraform', 'zips', 'test_deployment', 'custom_zip'
+      ])
+  parser_deploy.add_argument(
+      '--deployment-bucket',
+      help='Override the GCS deployment bucket (e.g. test-deployment).')
+  parser_deploy.add_argument(
+      '--custom-zip-name',
+      help='Custom name for the deployed zip package (defaults to git user).')
   parser_deploy.add_argument(
       '--release',
       '-r',

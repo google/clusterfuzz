@@ -24,6 +24,7 @@ import yaml
 
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
+from local.butler import common
 from local.butler import deploy
 
 
@@ -356,6 +357,316 @@ class DeployTest(fake_filesystem_unittest.TestCase):
             'src/appengine/cron-service.yaml',
             exit_on_error=False),
     ])
+
+  def test_custom_zip_deployment(self):
+    """Verifies custom zip deployment uploads the single developer zip package
+    and its custom manifest to the default test bucket (test-deployment)
+    without running App Engine or Terraform deploy commands."""
+    deploy._prod_deployment_helper(
+        '/config_dir', ['/ibarba.zip'],
+        deploy_appengine=False,
+        deploy_terraform=False,
+        deployment_bucket_override='test-deployment',
+        custom_manifest_name='ibarba.zip.manifest')
+
+    self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'cp', '/ibarba.zip',
+                  'gs://test-deployment/ibarba.zip'),
+        mock.call(mock.ANY, 'cp',
+                  'src/appengine/resources/clusterfuzz-source.manifest',
+                  'gs://test-deployment/ibarba.zip.manifest'),
+    ])
+    # Ensure appengine and terraform commands were not executed.
+    for call in self.mock.execute.call_args_list:
+      self.assertNotIn('app deploy', call[0][0])
+      self.assertNotIn('terraform', call[0][0])
+
+  def test_custom_zip_deployment_bucket_override(self):
+    """Verifies custom zip deployment respects an explicit bucket override,
+    uploading the zip package and manifest to the specified bucket instead of
+    the default test bucket."""
+    deploy._prod_deployment_helper(
+        '/config_dir', ['/my_bot.zip'],
+        deploy_appengine=False,
+        deploy_terraform=False,
+        deployment_bucket_override='my-custom-bucket',
+        custom_manifest_name='my_bot.zip.manifest')
+
+    self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'cp', '/my_bot.zip',
+                  'gs://my-custom-bucket/my_bot.zip'),
+        mock.call(mock.ANY, 'cp',
+                  'src/appengine/resources/clusterfuzz-source.manifest',
+                  'gs://my-custom-bucket/my_bot.zip.manifest'),
+    ])
+
+  def test_custom_zip_deployment_test_mode(self):
+    """Verifies custom zip deployment in test_deployment mode prefixes the
+    destination GCS bucket paths with '/test-deployment/' for isolated testing."""
+    deploy._prod_deployment_helper(
+        '/config_dir', ['/my_bot.zip'],
+        deploy_appengine=False,
+        deploy_terraform=False,
+        test_deployment=True,
+        deployment_bucket_override='test-deployment',
+        custom_manifest_name='my_bot.zip.manifest')
+
+    self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'cp', '/my_bot.zip',
+                  'gs://test-deployment/test-deployment/my_bot.zip'),
+        mock.call(mock.ANY, 'cp',
+                  'src/appengine/resources/clusterfuzz-source.manifest',
+                  'gs://test-deployment/test-deployment/my_bot.zip.manifest'),
+    ])
+
+
+class GetGitUserTest(unittest.TestCase):
+  """Tests for common.get_git_user username resolution and fallback order."""
+
+  def setUp(self):
+    helpers.patch(self, ['local.butler.common.execute'])
+    helpers.patch_environ(self)
+
+  def test_git_config_email(self):
+    """Verifies get_git_user extracts the username prefix before '@' when
+    'git config user.email' returns a standard email address."""
+    self.mock.execute.return_value = (0, b'ibarba@google.com\n')
+    self.assertEqual('ibarba', common.get_git_user())
+
+  def test_git_config_email_no_at(self):
+    """Verifies get_git_user returns the raw string directly when
+    'git config user.email' does not contain an '@' delimiter."""
+    self.mock.execute.return_value = (0, b'myusername\n')
+    self.assertEqual('myusername', common.get_git_user())
+
+  def test_git_config_email_empty(self):
+    """Verifies get_git_user falls back to 'git config user.name' when
+    'git config user.email' returns empty output or whitespace."""
+    self.mock.execute.side_effect = [
+        (0, b'   \n'),  # git config user.email empty
+        (0, b'Jane Doe\n'),  # git config user.name succeeds
+    ]
+    self.assertEqual('jane_doe', common.get_git_user())
+
+  def test_git_config_email_command_failure(self):
+    """Verifies get_git_user falls back to 'git config user.name' when the
+    'git config user.email' command exits with a non-zero return code."""
+    self.mock.execute.side_effect = [
+        (1, b''),  # git config user.email fails
+        (0, b'Jane Doe\n'),  # git config user.name succeeds
+    ]
+    self.assertEqual('jane_doe', common.get_git_user())
+
+  def test_git_config_name_spaces_and_special_chars(self):
+    """Verifies get_git_user normalizes user names by lowercasing and
+    replacing spaces with underscores."""
+    self.mock.execute.side_effect = [
+        (1, b''),  # git config user.email fails
+        (0, b'First Middle Last\n'),  # git config user.name
+    ]
+    self.assertEqual('first_middle_last', common.get_git_user())
+
+  def test_fallback_to_os_user_env(self):
+    """Verifies get_git_user falls back to the system '$USER' environment
+    variable when both git email and git name configurations are missing."""
+    self.mock.execute.side_effect = [
+        (1, b''),  # git config user.email fails
+        (1, b''),  # git config user.name fails
+    ]
+    os.environ['USER'] = 'dev_worker'
+    self.assertEqual('dev_worker', common.get_git_user())
+
+  def test_fallback_to_default_when_no_os_user(self):
+    """Verifies get_git_user defaults to 'custom_user' when neither git config
+    nor the system '$USER' environment variable is available."""
+    self.mock.execute.side_effect = [
+        (1, b''),  # git config user.email fails
+        (1, b''),  # git config user.name fails
+    ]
+    if 'USER' in os.environ:
+      del os.environ['USER']
+    self.assertEqual('custom_user', common.get_git_user())
+
+
+class DeployExecuteTest(unittest.TestCase):
+  """Test deploy.execute."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'local.butler.common.compute_prod_revision',
+        'local.butler.common.compute_staging_revision',
+        'local.butler.common.get_git_user',
+        'local.butler.common.get_platform',
+        'local.butler.common.has_file_in_path',
+        'local.butler.common.install_dependencies',
+        'local.butler.common.is_git_dirty',
+        'local.butler.appengine.build_templates',
+        'local.butler.package.package',
+        'local.butler.deploy.find_file_exceeding_limit',
+        'local.butler.deploy.is_diff_origin_master',
+        'local.butler.deploy._enforce_safe_day_to_deploy',
+        'local.butler.deploy._prod_deployment_helper',
+        'local.butler.deploy._staging_deployment_helper',
+        'local.butler.deploy.local_config.ProjectConfig',
+        'clusterfuzz._internal.system.environment.set_value',
+        'os.path.exists',
+    ])
+    self.mock.exists.return_value = True
+    self.mock.has_file_in_path.return_value = True
+    self.mock.is_git_dirty.return_value = False
+    self.mock.is_diff_origin_master.return_value = False
+    self.mock.compute_prod_revision.return_value = 'prod-rev-1'
+    self.mock.compute_staging_revision.return_value = 'staging-rev-1'
+    self.mock.get_platform.return_value = 'linux'
+    self.mock.find_file_exceeding_limit.return_value = None
+    self.mock.ProjectConfig.return_value.get.return_value = {
+        'APPLICATION_ID': 'test-app'
+    }
+    self.mock.package.return_value = ['/packages/custom.zip']
+
+    self.manifest_patcher = mock.patch(
+        'builtins.open', mock.mock_open(read_data='test-revision'))
+    self.manifest_patcher.start()
+
+  def tearDown(self):
+    self.manifest_patcher.stop()
+
+  def test_execute_custom_zip_default_git_user(self):
+    """Verifies butler.py deploy --targets custom_zip automatically discovers
+    the git username, packages <git_user>.zip, and deploys it with its manifest
+    to gs://test-deployment/."""
+    self.mock.get_git_user.return_value = 'ibarba'
+    args = mock.MagicMock(
+        staging=False,
+        prod=True,
+        targets=['custom_zip'],
+        config_dir='/config/dir',
+        release='prod',
+        force=False,
+        custom_zip_name=None,
+        deployment_bucket=None,
+    )
+    deploy.execute(args)
+
+    self.mock.package.assert_called_once_with(
+        'prod-rev-1', release='prod', custom_zip_name='ibarba.zip')
+    self.mock._prod_deployment_helper.assert_called_once_with(
+        '/config/dir',
+        ['/packages/custom.zip'],
+        False,  # deploy_appengine
+        False,  # deploy_terraform
+        test_deployment=False,
+        release='prod',
+        deployment_bucket_override='test-deployment',
+        custom_manifest_name='ibarba.zip.manifest')
+
+  def test_execute_custom_zip_no_git_user_fallback(self):
+    """Verifies butler.py deploy --targets custom_zip falls back to
+    'custom_user.zip' and 'custom_user.zip.manifest' when no git or OS username
+    is discovered."""
+    self.mock.get_git_user.return_value = 'custom_user'
+    args = mock.MagicMock(
+        staging=False,
+        prod=True,
+        targets=['custom_zip'],
+        config_dir='/config/dir',
+        release='prod',
+        force=False,
+        custom_zip_name=None,
+        deployment_bucket=None,
+    )
+    deploy.execute(args)
+
+    self.mock.package.assert_called_once_with(
+        'prod-rev-1', release='prod', custom_zip_name='custom_user.zip')
+    self.mock._prod_deployment_helper.assert_called_once_with(
+        '/config/dir', ['/packages/custom.zip'],
+        False,
+        False,
+        test_deployment=False,
+        release='prod',
+        deployment_bucket_override='test-deployment',
+        custom_manifest_name='custom_user.zip.manifest')
+
+  def test_execute_custom_zip_name_without_extension(self):
+    """Verifies butler.py deploy --targets custom_zip appends the '.zip'
+    extension when --custom-zip-name is provided without one."""
+    args = mock.MagicMock(
+        staging=False,
+        prod=True,
+        targets=['custom_zip'],
+        config_dir='/config/dir',
+        release='prod',
+        force=False,
+        custom_zip_name='my_custom_bot',
+        deployment_bucket='my-test-bucket',
+    )
+    deploy.execute(args)
+
+    self.mock.package.assert_called_once_with(
+        'prod-rev-1', release='prod', custom_zip_name='my_custom_bot.zip')
+    self.mock._prod_deployment_helper.assert_called_once_with(
+        '/config/dir', ['/packages/custom.zip'],
+        False,
+        False,
+        test_deployment=False,
+        release='prod',
+        deployment_bucket_override='my-test-bucket',
+        custom_manifest_name='my_custom_bot.zip.manifest')
+
+  def test_execute_custom_zip_name_with_extension(self):
+    """Verifies butler.py deploy --targets custom_zip preserves the provided file
+    name without duplicate '.zip' extensions when --custom-zip-name already ends
+    in '.zip'."""
+    args = mock.MagicMock(
+        staging=False,
+        prod=True,
+        targets=['custom_zip'],
+        config_dir='/config/dir',
+        release='prod',
+        force=False,
+        custom_zip_name='my_custom_bot.zip',
+        deployment_bucket='my-test-bucket',
+    )
+    deploy.execute(args)
+
+    self.mock.package.assert_called_once_with(
+        'prod-rev-1', release='prod', custom_zip_name='my_custom_bot.zip')
+    self.mock._prod_deployment_helper.assert_called_once_with(
+        '/config/dir', ['/packages/custom.zip'],
+        False,
+        False,
+        test_deployment=False,
+        release='prod',
+        deployment_bucket_override='my-test-bucket',
+        custom_manifest_name='my_custom_bot.zip.manifest')
+
+  def test_execute_custom_zip_disables_appengine_and_terraform(self):
+    """Verifies butler.py deploy disables App Engine and Terraform operations
+    whenever 'custom_zip' is in targets, even if 'appengine' or 'terraform' are
+    also specified."""
+    args = mock.MagicMock(
+        staging=False,
+        prod=True,
+        targets=['custom_zip', 'appengine', 'terraform'],
+        config_dir='/config/dir',
+        release='prod',
+        force=False,
+        custom_zip_name='bot.zip',
+        deployment_bucket='test-deployment',
+    )
+    deploy.execute(args)
+
+    self.mock._prod_deployment_helper.assert_called_once_with(
+        '/config/dir',
+        ['/packages/custom.zip'],
+        False,  # deploy_appengine disabled
+        False,  # deploy_terraform disabled
+        test_deployment=False,
+        release='prod',
+        deployment_bucket_override='test-deployment',
+        custom_manifest_name='bot.zip.manifest')
 
 
 class FindFileExceedingLimitTest(fake_filesystem_unittest.TestCase):
