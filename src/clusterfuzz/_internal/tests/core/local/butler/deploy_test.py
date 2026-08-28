@@ -360,21 +360,21 @@ class DeployTest(fake_filesystem_unittest.TestCase):
 
   def test_custom_zip_deployment(self):
     """Verifies custom zip deployment uploads the single developer zip package
-    and its custom manifest to the default test bucket (test-deployment)
+    and its custom manifest to the default project test bucket (<PROJECT-ID>-test-deployment)
     without running App Engine or Terraform deploy commands."""
     deploy._prod_deployment_helper(
         '/config_dir', ['/ibarba.zip'],
         deploy_appengine=False,
         deploy_terraform=False,
-        deployment_bucket_override='test-deployment',
+        deployment_bucket_override='test-clusterfuzz-test-deployment',
         custom_manifest_name='ibarba.zip.manifest')
 
     self.mock.run.assert_has_calls([
         mock.call(mock.ANY, 'cp', '/ibarba.zip',
-                  'gs://test-deployment/ibarba.zip'),
+                  'gs://test-clusterfuzz-test-deployment/ibarba.zip'),
         mock.call(mock.ANY, 'cp',
                   'src/appengine/resources/clusterfuzz-source.manifest',
-                  'gs://test-deployment/ibarba.zip.manifest'),
+                  'gs://test-clusterfuzz-test-deployment/ibarba.zip.manifest'),
     ])
     # Ensure appengine and terraform commands were not executed.
     for call in self.mock.execute.call_args_list:
@@ -398,25 +398,6 @@ class DeployTest(fake_filesystem_unittest.TestCase):
         mock.call(mock.ANY, 'cp',
                   'src/appengine/resources/clusterfuzz-source.manifest',
                   'gs://my-custom-bucket/my_bot.zip.manifest'),
-    ])
-
-  def test_custom_zip_deployment_test_mode(self):
-    """Verifies custom zip deployment in test_deployment mode prefixes the
-    destination GCS bucket paths with '/test-deployment/' for isolated testing."""
-    deploy._prod_deployment_helper(
-        '/config_dir', ['/my_bot.zip'],
-        deploy_appengine=False,
-        deploy_terraform=False,
-        test_deployment=True,
-        deployment_bucket_override='test-deployment',
-        custom_manifest_name='my_bot.zip.manifest')
-
-    self.mock.run.assert_has_calls([
-        mock.call(mock.ANY, 'cp', '/my_bot.zip',
-                  'gs://test-deployment/test-deployment/my_bot.zip'),
-        mock.call(mock.ANY, 'cp',
-                  'src/appengine/resources/clusterfuzz-source.manifest',
-                  'gs://test-deployment/test-deployment/my_bot.zip.manifest'),
     ])
 
 
@@ -508,6 +489,7 @@ class DeployExecuteTest(unittest.TestCase):
         'local.butler.deploy._enforce_safe_day_to_deploy',
         'local.butler.deploy._prod_deployment_helper',
         'local.butler.deploy._staging_deployment_helper',
+        'local.butler.deploy.local_config.Config',
         'local.butler.deploy.local_config.ProjectConfig',
         'clusterfuzz._internal.system.environment.set_value',
         'os.path.exists',
@@ -520,6 +502,8 @@ class DeployExecuteTest(unittest.TestCase):
     self.mock.compute_staging_revision.return_value = 'staging-rev-1'
     self.mock.get_platform.return_value = 'linux'
     self.mock.find_file_exceeding_limit.return_value = None
+    self.mock.Config.return_value.sub_config.return_value.get.return_value = (
+        'test-app')
     self.mock.ProjectConfig.return_value.get.return_value = {
         'APPLICATION_ID': 'test-app'
     }
@@ -535,7 +519,7 @@ class DeployExecuteTest(unittest.TestCase):
   def test_execute_custom_zip_default_git_user(self):
     """Verifies butler.py deploy --targets custom_zip automatically discovers
     the git username, packages <git_user>.zip, and deploys it with its manifest
-    to gs://test-deployment/."""
+    to gs://<PROJECT-ID>-test-deployment/."""
     self.mock.get_git_user.return_value = 'ibarba'
     args = mock.MagicMock(
         staging=False,
@@ -558,7 +542,7 @@ class DeployExecuteTest(unittest.TestCase):
         False,  # deploy_terraform
         test_deployment=False,
         release='prod',
-        deployment_bucket_override='test-deployment',
+        deployment_bucket_override='test-app-test-deployment',
         custom_manifest_name='ibarba.zip.manifest')
 
   def test_execute_custom_zip_without_explicit_prod_flag(self):
@@ -580,6 +564,23 @@ class DeployExecuteTest(unittest.TestCase):
     self.mock.compute_prod_revision.assert_called_once()
     self.mock.package.assert_called_once_with(
         'prod-rev-1', release='prod', custom_zip_name='ibarba.zip')
+
+  def test_execute_custom_zip_fails_when_no_project_id(self):
+    """Verifies butler.py deploy --targets custom_zip fails with exit code 1
+    when no application_id is found in the project configuration."""
+    self.mock.Config.return_value.sub_config.return_value.get.return_value = None
+    args = mock.MagicMock(
+        staging=False,
+        prod=False,
+        targets=['custom_zip'],
+        config_dir='/config/dir',
+        release='prod',
+        force=False,
+        custom_zip_name=None,
+        deployment_bucket=None,
+    )
+    with self.assertRaises(SystemExit):
+      deploy.execute(args)
 
   def test_execute_custom_zip_no_git_user_fallback(self):
     """Verifies butler.py deploy --targets custom_zip falls back to
@@ -606,7 +607,7 @@ class DeployExecuteTest(unittest.TestCase):
         False,
         test_deployment=False,
         release='prod',
-        deployment_bucket_override='test-deployment',
+        deployment_bucket_override='test-app-test-deployment',
         custom_manifest_name='custom_user.zip.manifest')
 
   def test_execute_custom_zip_name_without_extension(self):

@@ -88,8 +88,9 @@ steps:
     targets="${_TARGETS:-zips appengine}"
     extra_args=""
     if echo "$$targets" | grep -q "custom_zip"; then
-      bucket="${_DEPLOYMENT_BUCKET:-test-deployment}"
-      extra_args="--deployment-bucket $$bucket"
+      if [ -n "${_DEPLOYMENT_BUCKET}" ]; then
+        extra_args="--deployment-bucket ${_DEPLOYMENT_BUCKET}"
+      fi
       if [ -n "${_CUSTOM_ZIP_NAME}" ]; then
         extra_args="$$extra_args --custom-zip-name ${_CUSTOM_ZIP_NAME}"
       fi

@@ -411,7 +411,8 @@ def main():
       ])
   parser_deploy.add_argument(
       '--deployment-bucket',
-      help='Override the GCS deployment bucket (e.g. test-deployment).')
+      help=('Override the GCS deployment bucket (defaults to '
+            '<PROJECT-ID>-test-deployment).'))
   parser_deploy.add_argument(
       '--custom-zip-name',
       help='Custom name for the deployed zip package (defaults to git user).')
