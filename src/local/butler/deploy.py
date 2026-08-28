@@ -580,7 +580,7 @@ def execute(args):
 
   custom_zip_name = None
   custom_manifest_name = None
-  deployment_bucket_override = getattr(args, 'deployment_bucket', None)
+  deployment_bucket_override = None
 
   if custom_zip_deployment:
     custom_zip_name = getattr(args, 'custom_zip_name',
@@ -588,15 +588,14 @@ def execute(args):
     if not custom_zip_name.endswith('.zip'):
       custom_zip_name = f'{custom_zip_name}.zip'
     custom_manifest_name = f'{custom_zip_name}.manifest'
-    if not deployment_bucket_override:
-      config = local_config.Config()
-      gae_config = config.sub_config(local_config.GAE_CONFIG_PATH)
-      project_id = gae_config.get('application_id')
-      if not project_id:
-        print('Failed to find application_id in configuration. Please provide '
-              'a valid configuration directory or use --deployment-bucket.')
-        sys.exit(1)
-      deployment_bucket_override = f'{project_id}-test-deployment'
+    config = local_config.Config()
+    gae_config = config.sub_config(local_config.GAE_CONFIG_PATH)
+    project_id = gae_config.get('application_id')
+    if not project_id:
+      print('Failed to find application_id in configuration. Please provide '
+            'a valid configuration directory.')
+      sys.exit(1)
+    deployment_bucket_override = f'{project_id}-test-deployment'
 
   package_zip_paths = []
   if deploy_zips:

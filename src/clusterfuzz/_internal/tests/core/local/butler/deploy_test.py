@@ -587,7 +587,6 @@ class DeployExecuteTest(unittest.TestCase):
         release='prod',
         force=False,
         custom_zip_name=None,
-        deployment_bucket=None,
     )
     deploy.execute(args)
 
@@ -615,7 +614,6 @@ class DeployExecuteTest(unittest.TestCase):
         release='prod',
         force=False,
         custom_zip_name=None,
-        deployment_bucket=None,
     )
     deploy.execute(args)
 
@@ -635,7 +633,6 @@ class DeployExecuteTest(unittest.TestCase):
         release='prod',
         force=False,
         custom_zip_name=None,
-        deployment_bucket=None,
     )
     with self.assertRaises(SystemExit):
       deploy.execute(args)
@@ -653,7 +650,6 @@ class DeployExecuteTest(unittest.TestCase):
         release='prod',
         force=False,
         custom_zip_name=None,
-        deployment_bucket=None,
     )
     deploy.execute(args)
 
@@ -679,7 +675,6 @@ class DeployExecuteTest(unittest.TestCase):
         release='prod',
         force=False,
         custom_zip_name='my_custom_bot',
-        deployment_bucket='my-test-bucket',
     )
     deploy.execute(args)
 
@@ -691,7 +686,7 @@ class DeployExecuteTest(unittest.TestCase):
         False,
         test_deployment=False,
         release='prod',
-        deployment_bucket_override='my-test-bucket',
+        deployment_bucket_override='test-app-test-deployment',
         custom_manifest_name='my_custom_bot.zip.manifest')
 
   def test_execute_custom_zip_name_with_extension(self):
@@ -706,7 +701,6 @@ class DeployExecuteTest(unittest.TestCase):
         release='prod',
         force=False,
         custom_zip_name='my_custom_bot.zip',
-        deployment_bucket='my-test-bucket',
     )
     deploy.execute(args)
 
@@ -718,7 +712,7 @@ class DeployExecuteTest(unittest.TestCase):
         False,
         test_deployment=False,
         release='prod',
-        deployment_bucket_override='my-test-bucket',
+        deployment_bucket_override='test-app-test-deployment',
         custom_manifest_name='my_custom_bot.zip.manifest')
 
   def test_execute_custom_zip_disables_appengine_and_terraform(self):
@@ -733,7 +727,6 @@ class DeployExecuteTest(unittest.TestCase):
         release='prod',
         force=False,
         custom_zip_name='bot.zip',
-        deployment_bucket='test-deployment',
     )
     deploy.execute(args)
 
@@ -744,7 +737,7 @@ class DeployExecuteTest(unittest.TestCase):
         False,  # deploy_terraform disabled
         test_deployment=False,
         release='prod',
-        deployment_bucket_override='test-deployment',
+        deployment_bucket_override='test-app-test-deployment',
         custom_manifest_name='bot.zip.manifest')
 
 
