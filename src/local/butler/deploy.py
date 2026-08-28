@@ -121,6 +121,7 @@ def _deploy_app_prod(project,
       _delete_old_versions(project, service, VERSION_DELETE_WINDOW_MINUTES)
 
   if package_zip_paths:
+    _create_bucket_if_needed(deployment_bucket, project)
     for package_zip_path in package_zip_paths:
       _deploy_zip(
           deployment_bucket, package_zip_path, test_deployment=test_deployment)
@@ -238,6 +239,17 @@ def find_file_exceeding_limit(path, limit):
       if os.path.getsize(full_path) >= limit:
         return full_path
   return None
+
+
+def _create_bucket_if_needed(bucket_name, project=None):
+  """Check if a GCS bucket exists, and create it if it does not."""
+  gcloud_storage = common.Gcloud(project_id=project, storage=True)
+  try:
+    gcloud_storage.run('buckets', 'describe', f'gs://{bucket_name}')
+  except common.GcloudError:
+    print(f'Bucket gs://{bucket_name} does not exist. Creating bucket...')
+    gcloud_storage.run('buckets', 'create', f'gs://{bucket_name}',
+                       '--uniform-bucket-level-access')
 
 
 def _deploy_zip(bucket_name, zip_path, test_deployment=False):

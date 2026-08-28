@@ -154,6 +154,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   'bigquery'),
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
                   'bigquery', '--config=./configs/test/bigquery/datasets.yaml'),
+        mock.call(mock.ANY, 'buckets', 'describe',
+                  'gs://test-deployment-bucket'),
         mock.call(mock.ANY, 'cp', '/windows.zip',
                   'gs://test-deployment-bucket/windows.zip'),
         mock.call(mock.ANY, 'cp', '/mac.zip',
@@ -242,6 +244,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   'bigquery'),
         mock.call(mock.ANY, 'deployment-manager', 'deployments', 'update',
                   'bigquery', '--config=./configs/test/bigquery/datasets.yaml'),
+        mock.call(mock.ANY, 'buckets', 'describe',
+                  'gs://test-deployment-bucket'),
         mock.call(mock.ANY, 'cp', '/windows.zip',
                   'gs://test-deployment-bucket/windows.zip'),
         mock.call(mock.ANY, 'cp', '/mac.zip',
@@ -370,6 +374,8 @@ class DeployTest(fake_filesystem_unittest.TestCase):
         custom_manifest_name='ibarba.zip.manifest')
 
     self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'buckets', 'describe',
+                  'gs://test-clusterfuzz-test-deployment'),
         mock.call(mock.ANY, 'cp', '/ibarba.zip',
                   'gs://test-clusterfuzz-test-deployment/ibarba.zip'),
         mock.call(mock.ANY, 'cp',
@@ -393,11 +399,63 @@ class DeployTest(fake_filesystem_unittest.TestCase):
         custom_manifest_name='my_bot.zip.manifest')
 
     self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'buckets', 'describe', 'gs://my-custom-bucket'),
         mock.call(mock.ANY, 'cp', '/my_bot.zip',
                   'gs://my-custom-bucket/my_bot.zip'),
         mock.call(mock.ANY, 'cp',
                   'src/appengine/resources/clusterfuzz-source.manifest',
                   'gs://my-custom-bucket/my_bot.zip.manifest'),
+    ])
+
+  def test_create_bucket_if_needed_when_bucket_exists(self):
+    """Verifies _create_bucket_if_needed does not attempt to create the bucket
+    when 'gcloud storage buckets describe' confirms it already exists."""
+    deploy._create_bucket_if_needed('existing-bucket', project='test-app')
+    self.mock.run.assert_called_once_with(mock.ANY, 'buckets', 'describe',
+                                          'gs://existing-bucket')
+
+  def test_create_bucket_if_needed_when_bucket_missing(self):
+    """Verifies _create_bucket_if_needed automatically creates the bucket with
+    uniform bucket-level access when 'gcloud storage buckets describe' raises
+    a GcloudError (e.g. 404)."""
+    self.mock.run.side_effect = [
+        common.GcloudError('Bucket not found: 404'),  # buckets describe fails
+        None,  # buckets create succeeds
+    ]
+    deploy._create_bucket_if_needed('missing-bucket', project='test-app')
+    self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'buckets', 'describe', 'gs://missing-bucket'),
+        mock.call(mock.ANY, 'buckets', 'create', 'gs://missing-bucket',
+                  '--uniform-bucket-level-access'),
+    ])
+
+  def test_custom_zip_deployment_creates_missing_bucket(self):
+    """Verifies custom zip deployment automatically creates the target bucket
+    if it does not exist before copying package zips and manifests."""
+
+    def _mock_run(self_gcloud, *args):
+      if args[:2] == ('buckets', 'describe'):
+        raise common.GcloudError('Bucket not found: 404')
+
+    self.mock.run.side_effect = _mock_run
+    deploy._prod_deployment_helper(
+        '/config_dir', ['/ibarba.zip'],
+        deploy_appengine=False,
+        deploy_terraform=False,
+        deployment_bucket_override='test-clusterfuzz-test-deployment',
+        custom_manifest_name='ibarba.zip.manifest')
+
+    self.mock.run.assert_has_calls([
+        mock.call(mock.ANY, 'buckets', 'describe',
+                  'gs://test-clusterfuzz-test-deployment'),
+        mock.call(mock.ANY, 'buckets', 'create',
+                  'gs://test-clusterfuzz-test-deployment',
+                  '--uniform-bucket-level-access'),
+        mock.call(mock.ANY, 'cp', '/ibarba.zip',
+                  'gs://test-clusterfuzz-test-deployment/ibarba.zip'),
+        mock.call(mock.ANY, 'cp',
+                  'src/appengine/resources/clusterfuzz-source.manifest',
+                  'gs://test-clusterfuzz-test-deployment/ibarba.zip.manifest'),
     ])
 
 
