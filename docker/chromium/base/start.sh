@@ -14,13 +14,15 @@
 # limitations under the License.
 
 
-DEPLOYMENT_ZIP="linux-3.zip"
-if [[ $CLUSTERFUZZ_RELEASE == "candidate" ]]; then
-    DEPLOYMENT_ZIP="linux-3-candidate.zip"
-fi
+if [ -z "$DEPLOYMENT_ZIP" ]; then
+    DEPLOYMENT_ZIP="linux-3.zip"
+    if [[ $CLUSTERFUZZ_RELEASE == "candidate" ]]; then
+        DEPLOYMENT_ZIP="linux-3-candidate.zip"
+    fi
 
-if [ ! -z $USE_TEST_DEPLOYMENT ]; then
-    DEPLOYMENT_ZIP="test-deployment/$DEPLOYMENT_ZIP"
+    if [ ! -z $USE_TEST_DEPLOYMENT ]; then
+        DEPLOYMENT_ZIP="test-deployment/$DEPLOYMENT_ZIP"
+    fi
 fi
 
 export DEPLOYMENT_ZIP

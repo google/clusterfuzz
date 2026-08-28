@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DEPLOYMENT_ZIP="linux-3.zip"
-if [[ $CLUSTERFUZZ_RELEASE == "candidate" ]]; then
-    DEPLOYMENT_ZIP="linux-3-candidate.zip"
+if [ -z "$DEPLOYMENT_ZIP" ]; then
+    DEPLOYMENT_ZIP="linux-3.zip"
+    if [[ $CLUSTERFUZZ_RELEASE == "candidate" ]]; then
+        DEPLOYMENT_ZIP="linux-3-candidate.zip"
+    fi
 fi
 export DEPLOYMENT_ZIP
 
