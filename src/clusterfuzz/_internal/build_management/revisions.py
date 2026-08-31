@@ -284,7 +284,7 @@ def is_valid_revision(revision: str | int | None) -> bool:
   hyphens. Rejects path traversal, query strings and other characters that
   would let a poisoned revision reshape the url it is interpolated into.
   """
-  if revision in (0, '0', None, ''):
+  if revision is None:
     return False
 
   revision_str = str(revision).strip()
@@ -478,7 +478,7 @@ def _get_revision_vars_url_format(job_type, platform_id=None):
 @memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
 def get_component_revisions_dict(revision, job_type, platform_id=None):
   """Retrieve revision vars dict."""
-  if revision in (0, '0', None, ''):
+  if revision in (0, '0', None):
     # Return empty dict for zero start revision.
     return {}
 

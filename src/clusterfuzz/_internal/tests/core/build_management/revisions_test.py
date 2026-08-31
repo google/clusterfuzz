@@ -466,6 +466,8 @@ class RevisionsTestcase(unittest.TestCase):
   def test_is_valid_revision(self):
     """Test is_valid_revision helper with valid and invalid values."""
     valid_revisions = [
+        0,
+        '0',
         12345,
         '12345',
         '336903',
@@ -476,21 +478,21 @@ class RevisionsTestcase(unittest.TestCase):
     for rev in valid_revisions:
       self.assertTrue(revisions.is_valid_revision(rev), f'{rev!r} is valid')
 
-    for rev in INVALID_REVISIONS + [0, '0', None, '']:
+    for rev in INVALID_REVISIONS + [None, '', '   ']:
       self.assertFalse(revisions.is_valid_revision(rev), f'{rev!r} is invalid')
 
   @mock.patch(
       'clusterfuzz._internal.build_management.revisions._get_url_content')
   def test_invalid_revisions_rejected(self, mock_get_url_content):
     """Test that revisions that reshape the url are rejected before fetching."""
-    for rev in INVALID_REVISIONS:
+    for rev in INVALID_REVISIONS + ['']:
       result = revisions.get_component_revisions_dict(rev, SRCMAP_JOB_TYPE)
       self.assertIsNone(result, f'Expected None for revision {rev!r}')
     mock_get_url_content.assert_not_called()
 
-  def test_empty_or_zero_revision_returns_empty_dict(self):
-    """Test that zero or empty revisions return an empty dict."""
-    for zero_rev in [0, '0', None, '']:
+  def test_zero_or_none_revision_returns_empty_dict(self):
+    """Test that zero or None revisions return an empty dict."""
+    for zero_rev in [0, '0', None]:
       result = revisions.get_component_revisions_dict(zero_rev, SRCMAP_JOB_TYPE)
       self.assertEqual(result, {})
 
