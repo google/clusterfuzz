@@ -502,11 +502,6 @@ class GetCpuArchTest(unittest.TestCase):
     self.mock.machine.return_value = 'AMD64'
     self.assertEqual('x86_64', environment.get_cpu_arch())
 
-  def test_override(self):
-    """Test BOT_CPU_ARCH override."""
-    environment.set_value('BOT_CPU_ARCH', 'custom_arch')
-    self.assertEqual('custom_arch', environment.get_cpu_arch())
-
 
 class GetDefaultToolPathTest(unittest.TestCase):
   """Tests for get_default_tool_path."""
@@ -516,33 +511,23 @@ class GetDefaultToolPathTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.system.environment.is_android',
         'clusterfuzz._internal.system.environment.platform',
-        'clusterfuzz._internal.system.environment.get_cpu_arch',
         'clusterfuzz._internal.system.environment.get_platform_resources_directory',
-        'os.path.exists',
     ])
     self.mock.is_android.return_value = False
     self.mock.platform.return_value = 'MAC'
-    self.mock.get_platform_resources_directory.return_value = '/resources/platform/mac'
+    self.mock.get_platform_resources_directory.return_value = (
+        '/resources/platform/mac')
 
-  def test_arch_specific_tool_exists(self):
-    """Test when arch-specific tool exists."""
-    self.mock.get_cpu_arch.return_value = 'arm64'
-    self.mock.exists.side_effect = lambda path: path == '/resources/platform/mac/arm64/llvm-symbolizer'
-    self.assertEqual('/resources/platform/mac/arm64/llvm-symbolizer',
-                     environment.get_default_tool_path('llvm-symbolizer'))
-
-  def test_arch_specific_tool_fallback(self):
-    """Test fallback when arch-specific tool does not exist."""
-    self.mock.get_cpu_arch.return_value = 'arm64'
-    self.mock.exists.return_value = False
+  def test_desktop(self):
+    """Test getting default tool path on desktop."""
     self.assertEqual('/resources/platform/mac/llvm-symbolizer',
                      environment.get_default_tool_path('llvm-symbolizer'))
 
-  def test_android_ignores_cpu_arch(self):
-    """Test that Android uses host tools and ignores get_cpu_arch."""
+  def test_android(self):
+    """Test getting default tool path for Android uses host linux directory."""
     self.mock.is_android.return_value = True
     self.mock.get_platform_resources_directory.return_value = (
         '/resources/platform/linux')
     self.assertEqual('/resources/platform/linux/llvm-symbolizer',
                      environment.get_default_tool_path('llvm-symbolizer'))
-    self.mock.get_cpu_arch.assert_not_called()
+    self.mock.get_platform_resources_directory.assert_called_once_with('linux')

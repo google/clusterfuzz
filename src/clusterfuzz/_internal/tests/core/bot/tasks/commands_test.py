@@ -341,4 +341,3 @@ class IsSupportedCpuArchForJobTest(unittest.TestCase):
     self.mock.get_cpu_arch.return_value = 'arm64'
     environment.set_value('CPU_ARCH', ['x86_64', 'arm64'])
     self.assertTrue(commands.is_supported_cpu_arch_for_job())
-

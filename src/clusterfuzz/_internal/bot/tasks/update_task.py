@@ -72,7 +72,10 @@ def get_source_url():
       'Darwin': 'macos'
   }
   platform_name = platform_mappings[platform_name]
-  if platform_name == 'macos' and environment.get_cpu_arch() == 'arm64':
+
+  # macOS bots run on both x86_64 and arm64 (Apple Silicon), requiring distinct
+  # deployment bundles. Other desktop platforms currently share a single bundle.
+  if platform_name == 'macos' and platform.machine().lower() == 'arm64':
     platform_name = 'macos_arm64'
 
   return _deployment_file_url(

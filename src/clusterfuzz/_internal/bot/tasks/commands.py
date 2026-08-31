@@ -112,6 +112,8 @@ def is_supported_cpu_arch_for_job():
     # No specific cpu architecture requirement specified in job, bail out.
     return True
 
+  # We support specifying CPU_ARCH as a list e.g. ['armeabi', 'armeabi-v7a'] or
+  # as a string e.g. 'x86_64, arm64'.
   if isinstance(supported_cpu_arch, list):
     supported_cpu_arch_list = supported_cpu_arch
   else:

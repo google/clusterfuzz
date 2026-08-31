@@ -288,7 +288,7 @@ def _install_pip(requirements_path, target_path):
 
 def _install_platform_pip(requirements_path, target_path, platform_name):
   """Install platform specific pip packages."""
-  pip_platform = constants.PLATFORMS.get(platform_name)
+  pip_platform = constants.DEPLOYMENT_TARGETS.get(platform_name)
   if not pip_platform:
     raise OSError(f'Unknown platform: {platform_name}.')
 
@@ -304,30 +304,30 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
 
   with open(requirements_path, 'r') as f:
     requirements = [
-        line.strip()
-        for line in f
-        if line.strip() and not line.startswith('#')
+        line.strip() for line in f if line.strip() and not line.startswith('#')
     ]
 
+  # Different packages on PyPI publish binary wheels targeting different macOS
+  # deployment targets (e.g. macosx_11_0 vs macosx_12_0 vs universal2). We
+  # iterate over requirements individually so each package can match its own
+  # highest compatible platform tag.
   for req in requirements:
     downloaded = False
     for pip_platform_entry in pip_platforms:
-      temp_dir = tempfile.mkdtemp()
-      return_code, _ = execute(
-          f'{_pip()} download --no-deps --only-binary=:all: '
-          f'--platform={pip_platform_entry} --abi={pip_abi} "{req}" -d '
-          f'{temp_dir}',
-          exit_on_error=False)
+      with tempfile.TemporaryDirectory() as temp_dir:
+        return_code, _ = execute(
+            f'{_pip()} download --no-deps --only-binary=:all: '
+            f'--platform={pip_platform_entry} --abi={pip_abi} "{req}" -d '
+            f'{temp_dir}',
+            exit_on_error=False)
 
-      if return_code != 0:
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        print(f'Did not find {req} for platform: {pip_platform_entry}')
-        continue
+        if return_code != 0:
+          print(f'Did not find {req} for platform: {pip_platform_entry}')
+          continue
 
-      execute(f'unzip -o -d {target_path} "{temp_dir}/*.whl"')
-      shutil.rmtree(temp_dir, ignore_errors=True)
-      downloaded = True
-      break
+        execute(f'unzip -o -d {target_path} "{temp_dir}/*.whl"')
+        downloaded = True
+        break
 
     if not downloaded:
       raise RuntimeError(

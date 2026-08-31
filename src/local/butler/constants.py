@@ -34,10 +34,11 @@ LEGACY_ZIP_NAME = 'clusterfuzz-source.zip'
 PACKAGE_TARGET_MANIFEST_PATH = os.path.join('src', 'appengine', 'resources',
                                             'clusterfuzz-source.manifest')
 
-# Supported Platforms and ABIS (newer to older order).
-PLATFORMS = collections.OrderedDict([
+# Supported Deployment Targets and ABIs (newer to older order).
+DEPLOYMENT_TARGETS = collections.OrderedDict([
     ('windows', 'win_amd64'),
     ('macos', ('macosx_10_14_x86_64', 'macosx_10_12_x86_64')),
+    # The max macOS version tag should match our bots' OS version.
     ('macos_arm64', (
         'macosx_14_0_arm64',
         'macosx_13_0_arm64',
@@ -47,6 +48,9 @@ PLATFORMS = collections.OrderedDict([
     )),
     ('linux', ('manylinux2014_x86_64',)),
 ])
+
+# Alias for backward compatibility.
+PLATFORMS = DEPLOYMENT_TARGETS
 
 # Additional required packages when deploying to prod.
 ADDITIONAL_RELEASES = ['chrome-tests-syncer']

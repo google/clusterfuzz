@@ -228,11 +228,6 @@ def get_cpu_arch():
     from clusterfuzz._internal.platforms import android
     return android.settings.get_cpu_arch()
 
-  # Allow environment override if set (e.g. for testing / emulation).
-  cpu_arch_override = get_value('BOT_CPU_ARCH')
-  if cpu_arch_override:
-    return cpu_arch_override
-
   machine = platform_util.machine().lower()
   if machine in ('arm64', 'aarch64'):
     return 'arm64'
@@ -288,23 +283,13 @@ def get_default_tool_path(tool_name):
     # For android devices, we do symbolization on the host machine, which is
     # linux. So, we use the linux version of llvm-symbolizer.
     platform_override = 'linux'
-    cpu_arch = None
   else:
     # No override needed, use default.
     platform_override = None
-    cpu_arch = get_cpu_arch()
 
   tool_filename = get_executable_filename(tool_name)
-  platform_res_dir = get_platform_resources_directory(platform_override)
-
-  # Check for architecture-specific tool path
-  # (e.g. resources/platform/mac/arm64/tool).
-  if cpu_arch:
-    arch_tool_path = os.path.join(platform_res_dir, cpu_arch, tool_filename)
-    if os.path.exists(arch_tool_path):
-      return arch_tool_path
-
-  tool_path = os.path.join(platform_res_dir, tool_filename)
+  tool_path = os.path.join(
+      get_platform_resources_directory(platform_override), tool_filename)
   return tool_path
 
 

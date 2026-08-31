@@ -4,6 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+# If you add or bump packages here with native/compiled C/C++/Rust extensions,
+# make sure to also update src/platform_requirements.txt.
 cryptography = "==37.0.4"
 crcmod = "==1.7"
 future = "==0.17.1"

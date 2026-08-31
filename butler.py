@@ -129,8 +129,7 @@ def _add_package_subparser(toplevel_subparsers):
   parser_package.add_argument(
       '-p',
       '--platform',
-      choices=list(constants.PLATFORMS.keys()) + ['all'],
-      default='all')
+      choices=list(constants.DEPLOYMENT_TARGETS.keys()) + ['all'])
   parser_package.add_argument(
       '-r',
       '--release',
