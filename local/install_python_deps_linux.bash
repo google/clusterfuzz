@@ -22,6 +22,7 @@ export PATH="$PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "
 
 uv sync
 source .venv/bin/activate
+ln -sf "$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")/uv" .venv/bin/uv
 
 if [ $install_android_emulator ]; then
   ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
