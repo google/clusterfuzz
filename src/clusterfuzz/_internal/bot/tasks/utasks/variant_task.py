@@ -13,6 +13,8 @@
 # limitations under the License.
 """Variant task for analyzing testcase variants with a different job."""
 
+from typing import cast
+
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -28,7 +30,8 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
-def _get_variant_testcase_for_job(testcase, job_type):
+def _get_variant_testcase_for_job(testcase: data_types.Testcase,
+                                  job_type: str) -> data_types.Testcase:
   """Return a testcase entity for variant task use. This changes the fuzz target
   params for a particular fuzzing engine."""
   if testcase.job_type == job_type:
@@ -40,6 +43,7 @@ def _get_variant_testcase_for_job(testcase, job_type):
     return testcase
 
   engine_name = environment.get_engine_for_job(job_type)
+  assert engine_name is not None
   project = data_handler.get_project_name(job_type)
   binary_name = testcase.get_metadata('fuzzer_binary_name')
   fully_qualified_fuzzer_name = data_types.fuzz_target_fully_qualified_name(
@@ -52,12 +56,17 @@ def _get_variant_testcase_for_job(testcase, job_type):
   variant_testcase.job_type = job_type
 
   # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-  variant_testcase.put = lambda: None
+  variant_testcase.put = (  # pyright: ignore[reportAttributeAccessIssue]
+      lambda: None)
 
   return variant_testcase
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def utask_preprocess(
+    testcase_id: str,
+    job_type: str,
+    uworker_env: dict,
+) -> uworker_msg_pb2.Input | None:  # pylint: disable=no-member
   """Run a test case with a different job type to see if they reproduce."""
   try:
     testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -103,7 +112,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     return uworker_input
 
 
-def utask_main(uworker_input):
+def utask_main(
+    uworker_input: uworker_msg_pb2.Input,  # pylint: disable=no-member
+) -> uworker_msg_pb2.Output | None:  # pylint: disable=no-member
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
@@ -114,7 +125,7 @@ def utask_main(uworker_input):
       # Remove put() method to avoid updates. DO NOT REMOVE THIS.
       # Repeat this because the in-memory executor may allow puts.
       # TODO(metzman): Remove this when we use batch.
-      testcase.put = lambda: None
+      testcase.put = lambda: None  # pyright: ignore[reportAttributeAccessIssue]
 
     # Setup testcase and its dependencies.
     _, testcase_file_path, error = setup.setup_testcase(
@@ -122,12 +133,15 @@ def utask_main(uworker_input):
     if error:
       return error
 
+    assert testcase_file_path is not None
+
     # Set up a custom or regular build. We explicitly omit the crash revision
     # since we want to test against the latest build here.
     try:
       fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
-      fuzz_target = fuzz_target.binary if fuzz_target else None
-      build_setup_result = build_manager.setup_build(fuzz_target=fuzz_target)
+      fuzz_target_binary = fuzz_target.binary if fuzz_target else None
+      build_setup_result = build_manager.setup_build(
+          fuzz_target=fuzz_target_binary)
     except errors.BuildNotFoundError:
       logs.warning('Matching build not found.')
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
@@ -146,7 +160,9 @@ def utask_main(uworker_input):
     # Reproduce the crash.
     app_path = environment.get_value('APP_PATH')
     command = testcase_manager.get_command_line_for_application(
-        testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
+        testcase_file_path,
+        app_path=app_path,
+        needs_http=cast(bool, testcase.http_flag))
     test_timeout = environment.get_value('TEST_TIMEOUT', 10)
     revision = environment.get_value('APP_REVISION')
     fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
@@ -156,7 +172,7 @@ def utask_main(uworker_input):
           testcase,
           testcase_file_path,
           test_timeout,
-          http_flag=testcase.http_flag,
+          http_flag=cast(bool, testcase.http_flag),
           use_gestures=use_gestures,
           compare_crash=False)
     except testcase_manager.TargetNotFoundError:
@@ -169,11 +185,12 @@ def utask_main(uworker_input):
       crash_type = result.get_type()
       security_flag = result.is_security_issue()
 
-      gestures = testcase.gestures if use_gestures else None
+      gestures = cast(list[str] | None,
+                      testcase.gestures) if use_gestures else None
       fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
       one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
           fuzz_target, testcase_file_path, crash_type, crash_state,
-          security_flag, test_timeout, testcase.http_flag, gestures)
+          security_flag, test_timeout, cast(bool, testcase.http_flag), gestures)
       if one_time_crasher_flag:
         status = data_types.TestcaseVariantStatus.FLAKY
       else:
@@ -213,7 +230,7 @@ def utask_main(uworker_input):
         crash_stacktrace_output=crash_stacktrace_output)
 
 
-def handle_build_setup_error(output):
+def handle_build_setup_error(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(
       testcase, data_types.TaskState.ERROR,
@@ -228,7 +245,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 )
 
 
-def utask_postprocess(output):
+def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   """Handle the output from utask_main."""
   try:
     testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
@@ -243,7 +260,7 @@ def utask_postprocess(output):
 
     if environment.is_engine_fuzzer_job(output.uworker_input.job_type):
       # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-      testcase.put = lambda: None
+      testcase.put = lambda: None  # pyright: ignore[reportAttributeAccessIssue]
 
     if (output.uworker_input.variant_task_input.original_job_type ==
         output.uworker_input.job_type):

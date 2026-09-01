@@ -22,5 +22,5 @@ class Handler(base_handler.Handler):
   """Triage testcases."""
 
   @handler.cron()
-  def get(self):
+  def get(self) -> None:
     triage.main()

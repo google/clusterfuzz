@@ -13,7 +13,9 @@
 # limitations under the License.
 """Query handles constructing BigQuery's SQL."""
 
+from collections.abc import Sequence
 import json
+from typing import Any
 
 from libs.query import base
 
@@ -21,35 +23,35 @@ from libs.query import base
 class Query(base.Query):
   """Represent a query for BigQuery's query. Named parameter mode is used."""
 
-  def __init__(self):
-    self.conditions = []
-    self.or_groups = []
-    self.sort_by = None
+  def __init__(self) -> None:
+    self.conditions: list[str] = []
+    self.or_groups: list[Sequence[Query]] = []
+    self.sort_by: str | None = None
 
-  def raw_filter(self, cond):
+  def raw_filter(self, cond: str) -> None:
     """Add raw filter directly."""
     self.conditions.append(cond)
 
-  def filter(self, field, value, operator='='):
+  def filter(self, field: str, value: Any, operator: str = '=') -> None:
     """Filter by a single value."""
     # json.dumps converts Python literals to BigQuery literals perfectly well.
     # See tests.
     self.conditions.append('%s %s %s' % (field, operator, json.dumps(value)))
 
-  def filter_in(self, field, values):
+  def filter_in(self, field: str, values: Sequence[Any]) -> None:
     """Filter by multiple values."""
     literals = [json.dumps(v) for v in values]
     self.conditions.append('%s IN (%s)' % (field, ', '.join(literals)))
 
-  def union(self, *queries):
+  def union(self, *queries: Any) -> None:
     """Combine queries with OR conditions."""
     self.or_groups.append(queries)
 
-  def new_subquery(self):
+  def new_subquery(self) -> 'Query':
     """Generate a new subquery."""
     return Query()
 
-  def get_where_clause(self):
+  def get_where_clause(self) -> str:
     """Get the where clause."""
     subquery_wheres = []
     for or_queries in self.or_groups:

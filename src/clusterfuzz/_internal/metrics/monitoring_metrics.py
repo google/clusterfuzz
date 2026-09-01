@@ -16,7 +16,7 @@
 from clusterfuzz._internal.metrics import monitor
 
 # Fuzz task metrics.
-UPLOAD_TESTCASE_COUNT = monitor.CounterMetric(
+UPLOAD_TESTCASE_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/uploaded_testcase_count',
     description='The number of uploaded testcases in GAE.',
     field_spec=[
@@ -27,14 +27,14 @@ UPLOAD_TESTCASE_COUNT = monitor.CounterMetric(
     ])
 
 # Fuzz task metrics.
-BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
+BIG_QUERY_WRITE_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'debug/big_query/write_count',
     description='The number of BigQuery writes',
     field_spec=[
         monitor.BooleanField('success'),
     ])
 
-CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
+CF_TIP_BOOT_FAILED_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'tip_boot_failure',
     description=
     'Count of failure in booting up cuttlefish with tip-of-the-tree build ',
@@ -45,7 +45,7 @@ CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
         monitor.BooleanField('is_succeeded'),
     ])
 
-JOB_BAD_BUILD_COUNT = monitor.CounterMetric(
+JOB_BAD_BUILD_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/job/bad_build_count',
     description=("Count of fuzz task's bad build count "
                  '(grouped by job type)'),
@@ -54,19 +54,20 @@ JOB_BAD_BUILD_COUNT = monitor.CounterMetric(
         monitor.BooleanField('bad_build'),
     ])
 
-JOB_BUILD_AGE = monitor.CumulativeDistributionMetric(
-    'job/build_age',
-    bucketer=monitor.GeometricBucketer(),
-    description=('Distribution of latest build\'s age in hours. '
-                 '(grouped by fuzzer/job)'),
-    field_spec=[
-        monitor.StringField('job'),
-        monitor.StringField('platform'),
-        monitor.StringField('task'),
-    ],
-)
+JOB_BUILD_AGE: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'job/build_age',
+        bucketer=monitor.GeometricBucketer(),
+        description=('Distribution of latest build\'s age in hours. '
+                     '(grouped by fuzzer/job)'),
+        field_spec=[
+            monitor.StringField('job'),
+            monitor.StringField('platform'),
+            monitor.StringField('task'),
+        ],
+    ))
 
-JOB_BUILD_REVISION = monitor.GaugeMetric(
+JOB_BUILD_REVISION: monitor._GaugeMetric = monitor.GaugeMetric(
     'job/build_revision',
     description=('Gauge for revision of trunk build '
                  '(grouped by job/platform/task).'),
@@ -77,20 +78,21 @@ JOB_BUILD_REVISION = monitor.GaugeMetric(
     ],
 )
 
-JOB_BUILD_RETRIEVAL_TIME = monitor.CumulativeDistributionMetric(
-    'task/build_retrieval_time',
-    bucketer=monitor.GeometricBucketer(),
-    description=('Distribution of fuzz task\'s build retrieval times. '
-                 '(grouped by fuzzer/job, in minutes).'),
-    field_spec=[
-        monitor.StringField('job'),
-        monitor.StringField('step'),
-        monitor.StringField('platform'),
-        monitor.StringField('build_type'),
-    ],
-)
+JOB_BUILD_RETRIEVAL_TIME: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'task/build_retrieval_time',
+        bucketer=monitor.GeometricBucketer(),
+        description=('Distribution of fuzz task\'s build retrieval times. '
+                     '(grouped by fuzzer/job, in minutes).'),
+        field_spec=[
+            monitor.StringField('job'),
+            monitor.StringField('step'),
+            monitor.StringField('platform'),
+            monitor.StringField('build_type'),
+        ],
+    ))
 
-FUZZER_KNOWN_CRASH_COUNT = monitor.CounterMetric(
+FUZZER_KNOWN_CRASH_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/fuzzer/known_crash_count',
     description=('Count of fuzz task\'s known crash count '
                  '(grouped by fuzzer)'),
@@ -100,7 +102,7 @@ FUZZER_KNOWN_CRASH_COUNT = monitor.CounterMetric(
         monitor.StringField('runtime')
     ])
 
-FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
+FUZZER_NEW_CRASH_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/fuzzer/new_crash_count',
     description=('Count of fuzz task\'s new crash count '
                  '(grouped by fuzzer)'),
@@ -110,7 +112,7 @@ FUZZER_NEW_CRASH_COUNT = monitor.CounterMetric(
         monitor.StringField('runtime')
     ])
 
-JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
+JOB_KNOWN_CRASH_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/job/known_crash_count',
     description=('Count of fuzz task\'s known crash count '
                  '(grouped by job)'),
@@ -120,7 +122,7 @@ JOB_KNOWN_CRASH_COUNT = monitor.CounterMetric(
         monitor.StringField('runtime')
     ])
 
-JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
+JOB_NEW_CRASH_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/job/new_crash_count',
     description=('Count of fuzz task\'s new crash count '
                  '(grouped by job)'),
@@ -130,7 +132,7 @@ JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
         monitor.StringField('runtime')
     ])
 
-FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
+FUZZER_RETURN_CODE_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/fuzzer/return_code_count',
     description=("Count of fuzz task's return codes "
                  '(grouped by fuzzer)'),
@@ -143,7 +145,7 @@ FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
     ],
 )
 
-FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
+FUZZER_TOTAL_FUZZ_TIME: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/fuzzer/total_time',
     description=('The total fuzz time in seconds '
                  '(grouped by fuzzer)'),
@@ -158,19 +160,20 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
-FUZZER_PREEMPTED_TOTAL_FUZZ_TIME = monitor.CounterMetric(
-    'task/fuzz/fuzzer/preempted_total_time',
-    description=('The total fuzz time wasted due to preemption in seconds '
-                 '(grouped by fuzzer).'),
-    field_spec=[
-        monitor.StringField('fuzzer'),
-        monitor.StringField('platform'),
-        monitor.StringField('is_batch'),
-        monitor.StringField('runtime')
-    ],
-)
+FUZZER_PREEMPTED_TOTAL_FUZZ_TIME: monitor._CounterMetric = (
+    monitor.CounterMetric(
+        'task/fuzz/fuzzer/preempted_total_time',
+        description=('The total fuzz time wasted due to preemption in seconds '
+                     '(grouped by fuzzer).'),
+        field_spec=[
+            monitor.StringField('fuzzer'),
+            monitor.StringField('platform'),
+            monitor.StringField('is_batch'),
+            monitor.StringField('runtime')
+        ],
+    ))
 
-JOB_PREEMPTED_TOTAL_FUZZ_TIME = monitor.CounterMetric(
+JOB_PREEMPTED_TOTAL_FUZZ_TIME: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/job/preempted_total_time',
     description=('The total fuzz time wasted due to preemption in seconds '
                  '(grouped by job).'),
@@ -184,19 +187,20 @@ JOB_PREEMPTED_TOTAL_FUZZ_TIME = monitor.CounterMetric(
 
 # This metric tracks fuzzer setup and data bundle update,
 # fuzzing time and crash processing on the worker
-FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
-    'task/fuzz/session/duration',
-    bucketer=monitor.GeometricBucketer(),
-    description=('Total duration of fuzzing session.'),
-    field_spec=[
-        monitor.StringField('fuzzer'),
-        monitor.StringField('job'),
-        monitor.StringField('platform'),
-        monitor.StringField('runtime')
-    ],
-)
+FUZZING_SESSION_DURATION: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'task/fuzz/session/duration',
+        bucketer=monitor.GeometricBucketer(),
+        description=('Total duration of fuzzing session.'),
+        field_spec=[
+            monitor.StringField('fuzzer'),
+            monitor.StringField('job'),
+            monitor.StringField('platform'),
+            monitor.StringField('runtime')
+        ],
+    ))
 
-JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
+JOB_TOTAL_FUZZ_TIME: monitor._CounterMetric = monitor.CounterMetric(
     'task/fuzz/job/total_time',
     description=('The total fuzz time in seconds '
                  '(grouped by job)'),
@@ -211,32 +215,34 @@ JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
-TESTCASE_GENERATION_AVERAGE_TIME = monitor.CumulativeDistributionMetric(
-    'task/fuzz/fuzzer/testcase_generation_duration',
-    bucketer=monitor.GeometricBucketer(),
-    description=('Distribution of blackbox fuzzer average testcase '
-                 ' generation time, in seconds '
-                 '(grouped by fuzzer, job and platform).'),
-    field_spec=[
-        monitor.StringField('platform'),
-        monitor.StringField('job'),
-        monitor.StringField('fuzzer'),
-    ],
-)
+TESTCASE_GENERATION_AVERAGE_TIME: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'task/fuzz/fuzzer/testcase_generation_duration',
+        bucketer=monitor.GeometricBucketer(),
+        description=('Distribution of blackbox fuzzer average testcase '
+                     ' generation time, in seconds '
+                     '(grouped by fuzzer, job and platform).'),
+        field_spec=[
+            monitor.StringField('platform'),
+            monitor.StringField('job'),
+            monitor.StringField('fuzzer'),
+        ],
+    ))
 
-FUZZER_TESTCASE_COUNT_RATIO = monitor.CumulativeDistributionMetric(
-    'task/fuzz/fuzzer/testcase_count_ratio',
-    bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
-    description=('Distribution of fuzz task\'s generated testcase '
-                 'counts divided by expected testcase counts '
-                 '(grouped by fuzzers)'),
-    field_spec=[
-        monitor.StringField('fuzzer'),
-    ],
-)
+FUZZER_TESTCASE_COUNT_RATIO: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'task/fuzz/fuzzer/testcase_count_ratio',
+        bucketer=monitor.FixedWidthBucketer(width=0.05, num_finite_buckets=20),
+        description=('Distribution of fuzz task\'s generated testcase '
+                     'counts divided by expected testcase counts '
+                     '(grouped by fuzzers)'),
+        field_spec=[
+            monitor.StringField('fuzzer'),
+        ],
+    ))
 
 # Global error count.
-LOG_ERROR_COUNT = monitor.CounterMetric(
+LOG_ERROR_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'errors/count',
     description='Error count.',
     field_spec=[
@@ -244,19 +250,19 @@ LOG_ERROR_COUNT = monitor.CounterMetric(
     ])
 
 # Untrusted host metrics.
-HOST_INCONSISTENT_COUNT = monitor.CounterMetric(
+HOST_INCONSISTENT_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'untrusted_runner/host/inconsistent_count',
     description='Inconsistent worker state count.',
     field_spec=None)
 
-HOST_ERROR_COUNT = monitor.CounterMetric(
+HOST_ERROR_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'untrusted_runner/host/error_count',
     description='Error count.',
     field_spec=[
         monitor.IntegerField('return_code'),
     ])
 
-TRY_COUNT = monitor.CounterMetric(
+TRY_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'utils/retry/count',
     description='Success/Failure count when utils.retry fails',
     field_spec=[
@@ -264,7 +270,7 @@ TRY_COUNT = monitor.CounterMetric(
         monitor.BooleanField('is_succeeded'),
     ])
 
-BOT_COUNT = monitor.GaugeMetric(
+BOT_COUNT: monitor._GaugeMetric = monitor.GaugeMetric(
     'bot_count',
     description='Bot count',
     field_spec=[
@@ -274,7 +280,7 @@ BOT_COUNT = monitor.GaugeMetric(
         monitor.StringField('os_version')
     ])
 
-TASK_COUNT = monitor.CounterMetric(
+TASK_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/count',
     description='The number of started tasks',
     field_spec=[
@@ -282,7 +288,7 @@ TASK_COUNT = monitor.CounterMetric(
         monitor.StringField('job'),
     ])
 
-TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
+TASK_TOTAL_RUN_TIME: monitor._CounterMetric = monitor.CounterMetric(
     'task/total_time',
     description=('The task run time in seconds'),
     field_spec=[
@@ -291,21 +297,22 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
-TESTCASE_TRIAGE_DURATION = monitor.CumulativeDistributionMetric(
-    'testcase_analysis/triage_duration_hours',
-    description=('Time elapsed between testcase upload and completion'
-                 ' of relevant tasks in the testcase lifecycle.'
-                 ' Origin can be either from a fuzzer, or a manual'
-                 ' upload. Measured in hours.'),
-    bucketer=monitor.GeometricBucketer(),
-    field_spec=[
-        monitor.StringField('step'),
-        monitor.StringField('job'),
-        monitor.BooleanField('from_fuzzer'),
-    ],
-)
+TESTCASE_TRIAGE_DURATION: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'testcase_analysis/triage_duration_hours',
+        description=('Time elapsed between testcase upload and completion'
+                     ' of relevant tasks in the testcase lifecycle.'
+                     ' Origin can be either from a fuzzer, or a manual'
+                     ' upload. Measured in hours.'),
+        bucketer=monitor.GeometricBucketer(),
+        field_spec=[
+            monitor.StringField('step'),
+            monitor.StringField('job'),
+            monitor.BooleanField('from_fuzzer'),
+        ],
+    ))
 
-TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
+TASK_RATE_LIMIT_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/rate_limit',
     description=('Counter for rate limit events.'),
     field_spec=[
@@ -314,7 +321,7 @@ TASK_RATE_LIMIT_COUNT = monitor.CounterMetric(
         monitor.StringField('argument'),
     ])
 
-TASK_OUTCOME_COUNT = monitor.CounterMetric(
+TASK_OUTCOME_COUNT: monitor._CounterMetric = monitor.CounterMetric(
     'task/outcome',
     description=('Counter metric for task outcome (success/failure).'),
     field_spec=[
@@ -326,55 +333,58 @@ TASK_OUTCOME_COUNT = monitor.CounterMetric(
         monitor.BooleanField('task_succeeded'),
     ])
 
-TASK_OUTCOME_COUNT_BY_ERROR_TYPE = monitor.CounterMetric(
-    'task/outcome_by_error_type',
-    description=('Counter metric for task outcome, with error type.'),
-    field_spec=[
-        monitor.StringField('task'),
-        monitor.StringField('subtask'),
-        monitor.StringField('mode'),
-        monitor.StringField('platform'),
-        monitor.BooleanField('task_succeeded'),
-        monitor.StringField('error_condition'),
-    ])
+TASK_OUTCOME_COUNT_BY_ERROR_TYPE: monitor._CounterMetric = (
+    monitor.CounterMetric(
+        'task/outcome_by_error_type',
+        description=('Counter metric for task outcome, with error type.'),
+        field_spec=[
+            monitor.StringField('task'),
+            monitor.StringField('subtask'),
+            monitor.StringField('mode'),
+            monitor.StringField('platform'),
+            monitor.BooleanField('task_succeeded'),
+            monitor.StringField('error_condition'),
+        ]))
 
-UTASK_SUBTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
-    'utask/subtask_e2e_duration_secs',
-    description=(
-        'Time elapsed since preprocess started for this task, in ' +
-        'seconds, per subtask ("preprocess", "uworker_main" and ' +
-        '"postprocess"). Subtask "postprocess" being the last, that ' +
-        'measures total e2e task duration. Mode is either "batch" or ' +
-        '"queue" depending on whether uworker_main was scheduled and ' +
-        'executed on Cloud Batch or not, respectively.'),
-    bucketer=monitor.GeometricBucketer(),
-    field_spec=[
-        monitor.StringField('task'),
-        monitor.StringField('job'),
-        monitor.StringField('subtask'),
-        monitor.StringField('mode'),
-        monitor.StringField('platform'),
-    ],
-)
+UTASK_SUBTASK_E2E_DURATION_SECS: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'utask/subtask_e2e_duration_secs',
+        description=(
+            'Time elapsed since preprocess started for this task, in ' +
+            'seconds, per subtask ("preprocess", "uworker_main" and ' +
+            '"postprocess"). Subtask "postprocess" being the last, that ' +
+            'measures total e2e task duration. Mode is either "batch" or ' +
+            '"queue" depending on whether uworker_main was scheduled and ' +
+            'executed on Cloud Batch or not, respectively.'),
+        bucketer=monitor.GeometricBucketer(),
+        field_spec=[
+            monitor.StringField('task'),
+            monitor.StringField('job'),
+            monitor.StringField('subtask'),
+            monitor.StringField('mode'),
+            monitor.StringField('platform'),
+        ],
+    ))
 
-UTASK_SUBTASK_DURATION_SECS = monitor.CumulativeDistributionMetric(
-    'utask/subtask_duration_secs',
-    description=(
-        'Duration of each subtask ("preprocess", "uworker_main" and ' +
-        '"postprocess"). Mode is either "batch" or "queue" depending on ' +
-        'whether uworker_main was scheduled and executed on Cloud Batch or ' +
-        'not, respectively.'),
-    bucketer=monitor.GeometricBucketer(),
-    field_spec=[
-        monitor.StringField('task'),
-        monitor.StringField('job'),
-        monitor.StringField('subtask'),
-        monitor.StringField('mode'),
-        monitor.StringField('platform'),
-    ],
-)
+UTASK_SUBTASK_DURATION_SECS: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'utask/subtask_duration_secs',
+        description=(
+            'Duration of each subtask ("preprocess", "uworker_main" and ' +
+            '"postprocess"). Mode is either "batch" or "queue" depending on ' +
+            'whether uworker_main was scheduled and executed on Cloud Batch or '
+            + 'not, respectively.'),
+        bucketer=monitor.GeometricBucketer(),
+        field_spec=[
+            monitor.StringField('task'),
+            monitor.StringField('job'),
+            monitor.StringField('subtask'),
+            monitor.StringField('mode'),
+            monitor.StringField('platform'),
+        ],
+    ))
 
-ANDROID_UPTIME = monitor.CounterMetric(
+ANDROID_UPTIME: monitor._CounterMetric = monitor.CounterMetric(
     'android_device_uptime',
     description='Android device uptime',
     field_spec=[
@@ -383,14 +393,14 @@ ANDROID_UPTIME = monitor.CounterMetric(
     ],
 )
 
-CHROME_TEST_SYNCER_SUCCESS = monitor.CounterMetric(
+CHROME_TEST_SYNCER_SUCCESS: monitor._CounterMetric = monitor.CounterMetric(
     'chrome_test_syncer_success',
     description='Counter for successful test syncer exits.',
     field_spec=[])
 
 # Metrics related to issue lifecycle
 
-ISSUE_FILING = monitor.CounterMetric(
+ISSUE_FILING: monitor._CounterMetric = monitor.CounterMetric(
     'issues/filing',
     description='Bugs opened through triage task.',
     field_spec=[
@@ -398,7 +408,7 @@ ISSUE_FILING = monitor.CounterMetric(
         monitor.StringField('status'),
     ])
 
-ISSUE_CLOSING = monitor.CounterMetric(
+ISSUE_CLOSING: monitor._CounterMetric = monitor.CounterMetric(
     'issues/closing/success',
     description='Bugs closed during cleanup task.',
     field_spec=[
@@ -406,28 +416,31 @@ ISSUE_CLOSING = monitor.CounterMetric(
         monitor.StringField('status'),
     ])
 
-BUG_FILING_FROM_TESTCASE_ELAPSED_TIME = monitor.CumulativeDistributionMetric(
-    'fuzzed_testcase_analysis/triage_duration_secs',
-    description='Time elapsed between testcase and bug creation, in minutes.',
-    bucketer=monitor.GeometricBucketer(),
-    field_spec=[
-        monitor.StringField('job'),
-        monitor.StringField('platform'),
-    ])
+BUG_FILING_FROM_TESTCASE_ELAPSED_TIME: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'fuzzed_testcase_analysis/triage_duration_secs',
+        description=(
+            'Time elapsed between testcase and bug creation, in minutes.'),
+        bucketer=monitor.GeometricBucketer(),
+        field_spec=[
+            monitor.StringField('job'),
+            monitor.StringField('platform'),
+        ]))
 
-UNTRIAGED_TESTCASE_AGE = monitor.CumulativeDistributionMetric(
-    'issues/untriaged_testcase_age',
-    description='Age of testcases that were not yet triaged '
-    '(have not yet completed analyze, regression,'
-    ' minimization, impact task), in hours.',
-    bucketer=monitor.GeometricBucketer(),
-    field_spec=[
-        monitor.StringField('job'),
-        monitor.StringField('platform'),
-        monitor.StringField('step'),
-    ])
+UNTRIAGED_TESTCASE_AGE: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'issues/untriaged_testcase_age',
+        description='Age of testcases that were not yet triaged '
+        '(have not yet completed analyze, regression,'
+        ' minimization, impact task), in hours.',
+        bucketer=monitor.GeometricBucketer(),
+        field_spec=[
+            monitor.StringField('job'),
+            monitor.StringField('platform'),
+            monitor.StringField('step'),
+        ]))
 
-UNTRIAGED_TESTCASE_COUNT = monitor.GaugeMetric(
+UNTRIAGED_TESTCASE_COUNT: monitor._GaugeMetric = monitor.GaugeMetric(
     'issues/untriaged_testcase_count',
     description='Number of testcases that were not yet triaged '
     '(have not yet completed analyze, regression,'
@@ -440,7 +453,7 @@ UNTRIAGED_TESTCASE_COUNT = monitor.GaugeMetric(
 
 # Grouper-related metrics
 
-TESTCASE_GROUP_OVERFLOW_COUNT = monitor.GaugeMetric(
+TESTCASE_GROUP_OVERFLOW_COUNT: monitor._GaugeMetric = monitor.GaugeMetric(
     'grouper/testcase_group_overflow_count',
     description='The number of testcases that were marked as closed or deleted '
     'due to group overflow.',
@@ -449,13 +462,14 @@ TESTCASE_GROUP_OVERFLOW_COUNT = monitor.GaugeMetric(
         monitor.StringField('fuzzer_name'),
     ])
 
-TESTCASE_GROUPS_SIZES = monitor.CumulativeDistributionMetric(
-    'grouper/testcase_groups_sizes',
-    description='Distribution of testcase groups sizes (before shrinkage).',
-    bucketer=monitor.GeometricBucketer(),
-    field_spec=None)
+TESTCASE_GROUPS_SIZES: monitor._CumulativeDistributionMetric = (
+    monitor.CumulativeDistributionMetric(
+        'grouper/testcase_groups_sizes',
+        description='Distribution of testcase groups sizes (before shrinkage).',
+        bucketer=monitor.GeometricBucketer(),
+        field_spec=None))
 
-ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
+ANALYZE_TASK_REPRODUCIBILITY: monitor._CounterMetric = monitor.CounterMetric(
     'task/analyze/reproducibility',
     description='Outcome count for analyze task.',
     field_spec=[
@@ -465,7 +479,7 @@ ANALYZE_TASK_REPRODUCIBILITY = monitor.CounterMetric(
         monitor.BooleanField('crashes'),
     ])
 
-PRODUCTION_DEPLOYMENT = monitor.CounterMetric(
+PRODUCTION_DEPLOYMENT: monitor._CounterMetric = monitor.CounterMetric(
     'debug/deployment/count',
     description='The number of deployments',
     field_spec=[

@@ -15,13 +15,14 @@
 
 import datetime
 import json
+from typing import Any
 
 
 class JSONEncoder(json.JSONEncoder):
   """Custom version of JSON encoder with support for additional object types
   (e.g. datetime)."""
 
-  def default(self, o):  # pylint: disable=method-hidden
+  def default(self, o: Any) -> Any:  # pylint: disable=method-hidden
     if isinstance(o, datetime.datetime):
       return {
           '__type__': 'datetime',
@@ -47,12 +48,15 @@ class JSONEncoder(json.JSONEncoder):
 class JSONDecoder(json.JSONDecoder):
   """Custom version of JSON decoder with support for additional object types
   (e.g. datetime)."""
-  _TYPES = {'datetime': datetime.datetime, 'date': datetime.date}
+  _TYPES: dict[str, type[datetime.date]] = {
+      'datetime': datetime.datetime,
+      'date': datetime.date,
+  }
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args: Any, **kwargs: Any) -> None:
     super().__init__(object_hook=self.dict_to_object, *args, **kwargs)
 
-  def dict_to_object(self, d):
+  def dict_to_object(self, d: dict[str, Any]) -> Any:
     if '__type__' not in d:
       return d
 
@@ -64,14 +68,14 @@ class JSONDecoder(json.JSONDecoder):
       return d
 
 
-def dumps(obj, *args, **kwargs):
+def dumps(obj: Any, *args: Any, **kwargs: Any) -> str:
   """Custom json.dumps using custom encoder JSONEncoder defined in this file."""
   kwargs['cls'] = JSONEncoder
   kwargs['sort_keys'] = True
   return json.dumps(obj, *args, **kwargs)
 
 
-def loads(obj, *args, **kwargs):
+def loads(obj: str | bytes | bytearray, *args: Any, **kwargs: Any) -> Any:
   """Custom json.loads using custom encoder JSONDecoder defined in this file."""
   kwargs['cls'] = JSONDecoder
   return json.loads(obj, *args, **kwargs)

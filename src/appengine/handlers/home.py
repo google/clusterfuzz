@@ -14,6 +14,9 @@
 """Home page handler."""
 
 import json
+from typing import Any
+from typing import cast
+from typing import Sequence
 
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
@@ -33,12 +36,12 @@ INTROSPECTOR_INDEX_JSON_URL = 'gs://oss-fuzz-introspector/build_status.json'
 MEMCACHE_TTL_IN_SECONDS = 30 * 60
 
 
-def _sort_by_name(item):
+def _sort_by_name(item: dict[str, Any]) -> Any:
   """Sort key function."""
   return item['name']
 
 
-def _get_engine_names(job_name):
+def _get_engine_names(job_name: str) -> tuple[str, str]:
   """Return the (engine display name, engine name) for the job."""
   if job_name.startswith('afl_'):
     return 'AFL', 'afl'
@@ -50,7 +53,8 @@ def _get_engine_names(job_name):
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def get_single_fuzz_target_or_none(project, engine_name):
+def get_single_fuzz_target_or_none(project: str,
+                                   engine_name: str) -> str | None:
   """Return the name of the single child fuzzer for the project, or None."""
   fuzz_targets = data_handler.get_fuzz_targets(
       engine=engine_name, project=project)
@@ -66,28 +70,31 @@ def get_single_fuzz_target_or_none(project, engine_name):
   return fuzz_target_name
 
 
-def get_introspector_index():
+def get_introspector_index() -> dict[str, Any]:
   """Return introspector projects status"""
   if storage.exists(INTROSPECTOR_INDEX_JSON_URL):
-    introspector_index = json.loads(
-        storage.read_data(INTROSPECTOR_INDEX_JSON_URL))
+    introspector_data = cast(bytes,
+                             storage.read_data(INTROSPECTOR_INDEX_JSON_URL))
+    introspector_index = json.loads(introspector_data)
   else:
     introspector_index = {}
   logs.info('Loaded introspector status: %d' % len(introspector_index))
   return introspector_index
 
 
-def _get_project_results_for_jobs(jobs):
+def _get_project_results_for_jobs(
+    jobs: Sequence[data_types.Job]) -> list[dict[str, Any]]:
   """Return projects for jobs."""
-  projects = {}
+  projects: dict[str, dict[str, Any]] = {}
   introspector_index = get_introspector_index()
-  for job in sorted(jobs, key=lambda j: j.name):
-    project_name = job.get_environment().get('PROJECT_NAME', job.name)
+  for job in sorted(jobs, key=lambda j: cast(str, j.name)):
+    job_name = cast(str, job.name)
+    project_name = job.get_environment().get('PROJECT_NAME', job_name)
     if project_name not in projects:
       projects[project_name] = {'name': project_name, 'jobs': []}
 
     if utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
-      projects[project_name]['coverage_job'] = job.name
+      projects[project_name]['coverage_job'] = job_name
 
     projects[project_name]['has_introspector'] = False
     if project_name in introspector_index:
@@ -95,45 +102,46 @@ def _get_project_results_for_jobs(jobs):
       projects[project_name]['introspector_report'] = introspector_index[
           project_name]
 
-    engine_display_name, engine_name = _get_engine_names(job.name)
+    engine_display_name, engine_name = _get_engine_names(job_name)
     projects[project_name]['jobs'].append({
         'engine_display_name':
             engine_display_name,
         'engine_name':
             engine_name,
         'sanitizer_string':
-            environment.get_memory_tool_display_string(job.name),
+            environment.get_memory_tool_display_string(job_name),
         'name':
-            job.name,
+            job_name,
         'single_target':
             get_single_fuzz_target_or_none(project_name, engine_name),
         'has_stats':
             True
     })
 
-  projects = list(projects.values())
-  projects.sort(key=_sort_by_name)
-  for project in projects:
+  project_list = list(projects.values())
+  project_list.sort(key=_sort_by_name)
+  for project in project_list:
     project['jobs'].sort(key=_sort_by_name)
 
-  return projects
+  return project_list
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def _get_all_project_results():
+def _get_all_project_results() -> list[dict[str, Any]]:
   """Return all results."""
   jobs = list(data_types.Job.query())
   return _get_project_results_for_jobs(jobs)
 
 
-def _get_project_results_for_external_user(external_jobs):
+def _get_project_results_for_external_user(
+    external_jobs: Sequence[str]) -> list[dict[str, Any]]:
   """Return results for external user."""
   jobs = list(data_types.Job.query())
   jobs = [job for job in jobs if job.name in external_jobs]
   return _get_project_results_for_jobs(jobs)
 
 
-def get_results():
+def get_results() -> dict[str, Any]:
   """Return results."""
   is_user = access.has_access()
   user_email = helpers.get_user_email()
@@ -162,7 +170,7 @@ class Handler(base_handler.Handler):
 
   @handler.get(handler.HTML)
   @handler.oauth
-  def get(self):
+  def get(self) -> base_handler.Response:
     """GET handler."""
     return self.render('oss-fuzz-home.html', get_results())
 
@@ -171,7 +179,7 @@ class RefreshCacheHandler(base_handler.Handler):
   """Home page handler."""
 
   @handler.cron()
-  def get(self):
+  def get(self) -> None:
     """GET handler."""
     # pylint: disable=unexpected-keyword-arg
-    _get_all_project_results(__memoize_force__=True)
+    cast(Any, _get_all_project_results)(__memoize_force__=True)

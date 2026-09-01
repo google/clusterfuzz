@@ -28,34 +28,34 @@ from clusterfuzz._internal.system import new_process
 # We only report the tail of the log because otherwise we would only end up
 # seeing the beginning of it once the logging library later truncates it to the
 # STACKDRIVER_LOG_MESSAGE_LIMIT.
-QEMU_LOG_LIMIT = 64 * 1024
+QEMU_LOG_LIMIT: int = 64 * 1024
 
 # In order to properly clean up any stale instances, we keep track of handles in
 # the persistent cache. We assume that only one instance of a bot will be
 # accessing this cache at a time.
-HANDLE_CACHE_KEY = 'undercoat-handles'
+HANDLE_CACHE_KEY: str = 'undercoat-handles'
 
 
-def add_running_handle(handle):
+def add_running_handle(handle: str) -> None:
   """Record a handle as potentially needing to be cleaned up on restart."""
   new_handle_list = list(set(get_running_handles()) | {handle})
   persistent_cache.set_value(
       HANDLE_CACHE_KEY, new_handle_list, persist_across_reboots=True)
 
 
-def remove_running_handle(handle):
+def remove_running_handle(handle: str) -> None:
   """Remove a handle from the tracked set."""
   new_handle_list = list(set(get_running_handles()) - {handle})
   persistent_cache.set_value(
       HANDLE_CACHE_KEY, new_handle_list, persist_across_reboots=True)
 
 
-def get_running_handles():
+def get_running_handles() -> list[str]:
   """Get a list of potentially stale handles from previous runs."""
   return persistent_cache.get_value(HANDLE_CACHE_KEY, default_value=[])
 
 
-def get_temp_dir():
+def get_temp_dir() -> str:
   """Define a tempdir for undercoat to store its data in.
 
   This tempdir needs to be of a scope that persists across invocations of the
@@ -70,7 +70,10 @@ class UndercoatError(Exception):
   """Error for errors while running undercoat."""
 
 
-def undercoat_api_command(*args, timeout=None):
+def undercoat_api_command(
+    *args: str,
+    timeout: float | None = None,
+) -> new_process.ProcessResult:
   """Make an API call to the undercoat binary."""
   logs.info(f'Running undercoat command {args}')
   bundle_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
@@ -97,11 +100,13 @@ def undercoat_api_command(*args, timeout=None):
   return result
 
 
-def undercoat_instance_command(command,
-                               handle,
-                               *args,
-                               timeout=None,
-                               abort_on_error=True):
+def undercoat_instance_command(
+    command: str,
+    handle: str,
+    *args: str,
+    timeout: float | None = None,
+    abort_on_error: bool = True,
+) -> new_process.ProcessResult:
   """Helper for the subset of undercoat commands that operate on an instance."""
   try:
     return undercoat_api_command(
@@ -115,7 +120,7 @@ def undercoat_instance_command(command,
     raise
 
 
-def get_version():
+def get_version() -> tuple[int, int, int]:
   """Get undercoat API version as (major, minor, patch) tuple."""
   version = undercoat_api_command('version', timeout=30).output
 
@@ -127,12 +132,12 @@ def get_version():
     raise UndercoatError('Invalid version reported: %s' % version)
 
   try:
-    return tuple(int(part) for part in parts)
+    return (int(parts[0]), int(parts[1]), int(parts[2]))
   except ValueError as e:
     raise UndercoatError('Invalid version reported: %s' % version) from e
 
 
-def validate_api_version():
+def validate_api_version() -> None:
   """Check that the undercoat API version is supported. Raises an error if it is
   not."""
   major, minor, patch = get_version()
@@ -141,14 +146,14 @@ def validate_api_version():
         'Unsupported API version: %d.%d.%d' % (major, minor, patch))
 
 
-def dump_instance_logs(handle):
+def dump_instance_logs(handle: str) -> None:
   """Dump logs from an undercoat instance."""
   qemu_log = undercoat_instance_command(
       'get_logs', handle, abort_on_error=False).output
   logs.warning(qemu_log[-QEMU_LOG_LIMIT:])
 
 
-def start_instance():
+def start_instance() -> str:
   """Start an instance via undercoat."""
   handle = undercoat_api_command('start_instance').output.strip()
   logs.info('Started undercoat instance with handle %s' % handle)
@@ -160,7 +165,7 @@ def start_instance():
   return handle
 
 
-def stop_all():
+def stop_all() -> None:
   """Attempt to stop any running undercoat instances that may have not been
   cleanly shut down."""
   for handle in get_running_handles():
@@ -178,7 +183,7 @@ def stop_all():
   shutil.rmtree(get_temp_dir())
 
 
-def stop_instance(handle):
+def stop_instance(handle: str) -> new_process.ProcessResult:
   """Stop a running undercoat instance."""
   result = undercoat_instance_command(
       'stop_instance', handle, abort_on_error=False)
@@ -189,17 +194,23 @@ def stop_instance(handle):
   return result
 
 
-def list_fuzzers(handle):
+def list_fuzzers(handle: str) -> list[str]:
   """List fuzzers available on an instance, via undercoat."""
   return undercoat_instance_command('list_fuzzers', handle).output.split('\n')
 
 
-def prepare_fuzzer(handle, fuzzer):
+def prepare_fuzzer(handle: str, fuzzer: str) -> new_process.ProcessResult:
   """Prepare a fuzzer of the given name for use, via undercoat."""
   return undercoat_instance_command('prepare_fuzzer', handle, '-fuzzer', fuzzer)
 
 
-def run_fuzzer(handle, fuzzer, outdir, args, timeout=None):
+def run_fuzzer(
+    handle: str,
+    fuzzer: str,
+    outdir: str | None,
+    args: list[str],
+    timeout: float | None = None,
+) -> new_process.ProcessResult:
   """Run a fuzzer of the given name, via undercoat."""
   # TODO(fxbug.dev/47490): Pass back raw return code from libFuzzer?
   undercoat_args = ['-fuzzer', fuzzer]
@@ -210,7 +221,7 @@ def run_fuzzer(handle, fuzzer, outdir, args, timeout=None):
       'run_fuzzer', handle, *args, timeout=timeout)
 
 
-def put_data(handle, fuzzer, src, dst):
+def put_data(handle: str, fuzzer: str, src: str, dst: str) -> str:
   """Put files for a fuzzer onto an instance, via undercoat.
   If src is a directory, it will be copied recursively. Standard globs are
   supported."""
@@ -218,7 +229,7 @@ def put_data(handle, fuzzer, src, dst):
                                     '-src', src, '-dst', dst).output
 
 
-def get_data(handle, fuzzer, src, dst):
+def get_data(handle: str, fuzzer: str, src: str, dst: str) -> str | None:
   """Get files from a fuzzer on an instance, via undercoat.
   If src is a directory, it will be copied recursively. Standard globs are
   supported."""

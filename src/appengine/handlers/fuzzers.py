@@ -15,8 +15,12 @@
 
 import datetime
 import io
+from typing import Any
+from typing import cast
+from typing import Optional
 
 from flask import request
+from flask import Response
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import utils
@@ -33,8 +37,8 @@ from libs import gcs
 from libs import handler
 from libs import helpers
 
-ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
-FUZZER_FIELDS_EXCLUDED_FROM_LOG = [
+ARCHIVE_READ_SIZE_LIMIT: int = 16 * 1024 * 1024
+FUZZER_FIELDS_EXCLUDED_FROM_LOG: list[str] = [
     'result', 'result_timestamp', 'console_output', 'return_code',
     'sample_testcase', 'stats_columns', 'stats_column_descriptions'
 ]
@@ -47,7 +51,7 @@ class Handler(base_handler.Handler):
   @handler.oauth
   @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=False)
-  def get(self):
+  def get(self) -> Response:
     """Handle a get request."""
     fuzzer_logs_bucket = fuzzer_logs.get_bucket()
     fuzzers = list(data_types.Fuzzer.query().order(data_types.Fuzzer.name))
@@ -81,7 +85,7 @@ class Handler(base_handler.Handler):
 class BaseEditHandler(base_handler.GcsUploadHandler):
   """Base edit handler."""
 
-  def _read_to_bytesio(self, gcs_path):
+  def _read_to_bytesio(self, gcs_path: str) -> io.BytesIO:
     """Return a bytesio representing a GCS object."""
     data = storage.read_data(gcs_path)
     if not data:
@@ -89,9 +93,10 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     return io.BytesIO(data)
 
-  def _get_executable_path(self, upload_info):
+  def _get_executable_path(
+      self, upload_info: Optional[storage.GcsBlobInfo]) -> Optional[str]:
     """Get executable path."""
-    executable_path = request.get('executable_path')
+    executable_path = cast(Any, request).get('executable_path')
     if not upload_info:
       return executable_path
 
@@ -105,9 +110,10 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     with archive.open(upload_info.filename, reader) as archive_reader:
       return archive_reader.get_first_file_matching(executable_path)
 
-  def _get_launcher_script(self, upload_info):
+  def _get_launcher_script(
+      self, upload_info: Optional[storage.GcsBlobInfo]) -> Optional[str]:
     """Get launcher script path."""
-    launcher_script = request.get('launcher_script')
+    launcher_script = cast(Any, request).get('launcher_script')
     if not upload_info:
       return launcher_script
 
@@ -126,9 +132,9 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     return launcher_script
 
-  def _get_integer_value(self, key):
+  def _get_integer_value(self, key: str) -> Optional[int]:
     """Check a numeric input value."""
-    value = request.get(key)
+    value = cast(Any, request).get(key)
     if value is None:
       return None
 
@@ -147,7 +153,9 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     fuzzer_dict = fuzzer.to_dict(exclude=FUZZER_FIELDS_EXCLUDED_FROM_LOG)
     return '\n'.join(f"{key}: {val}" for key, val in fuzzer_dict.items())
 
-  def apply_fuzzer_changes(self, fuzzer, upload_info):
+  def apply_fuzzer_changes(
+      self, fuzzer: data_types.Fuzzer,
+      upload_info: Optional[storage.GcsBlobInfo]) -> Response:
     """Apply changes to a fuzzer."""
     if upload_info and not archive.is_archive(upload_info.filename):
       raise helpers.EarlyExitError(
@@ -170,15 +178,16 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     existing_fuzzer_info = self._get_fuzzer_state_str(fuzzer)
 
-    jobs = request.get('jobs', [])
+    jobs = cast(Any, request).get('jobs', [])
     timeout = self._get_integer_value('timeout')
     max_testcases = self._get_integer_value('max_testcases')
-    external_contribution = bool(request.get('external_contribution', False))
-    trusted = bool(request.get('trusted', False))
-    differential = bool(request.get('differential', False))
-    environment_string = request.get('additional_environment_string')
-    data_bundle_name = request.get('data_bundle_name')
-    primary_owner = request.get('primary_owner')
+    external_contribution = bool(
+        cast(Any, request).get('external_contribution', False))
+    trusted = bool(cast(Any, request).get('trusted', False))
+    differential = bool(cast(Any, request).get('differential', False))
+    environment_string = cast(Any, request).get('additional_environment_string')
+    data_bundle_name = cast(Any, request).get('data_bundle_name')
+    primary_owner = cast(Any, request).get('primary_owner')
 
     # Save the fuzzer file metadata.
     if upload_info:
@@ -187,7 +196,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
       fuzzer.file_size = utils.get_size_string(upload_info.size)
 
     fuzzer.jobs = jobs
-    fuzzer.revision = fuzzer.revision + 1
+    fuzzer.revision = cast(int, fuzzer.revision) + 1
     fuzzer.last_edited_by = helpers.get_user_email()
     fuzzer.timeout = timeout
     fuzzer.max_testcases = max_testcases
@@ -240,9 +249,9 @@ class CreateHandler(BaseEditHandler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> Response:
     """Handle a post request."""
-    name = request.get('name')
+    name = cast(Any, request).get('name')
     if not name:
       raise helpers.EarlyExitError('Please give the fuzzer a name!', 400)
 
@@ -276,7 +285,7 @@ class EditHandler(BaseEditHandler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> Response:
     """Handle a post request."""
     key = helpers.get_integer_key(request)
 
@@ -294,7 +303,7 @@ class DeleteHandler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> Response:
     """Handle a post request."""
     key = helpers.get_integer_key(request)
 
@@ -313,7 +322,7 @@ class LogHandler(base_handler.Handler):
   """Show the console output from a fuzzer run."""
 
   @handler.check_user_access(need_privileged_access=False)
-  def get(self, fuzzer_name):
+  def get(self, fuzzer_name: str) -> Response:
     """Handle a get request."""
     helpers.log('LogHandler', fuzzer_name)
     fuzzer = data_types.Fuzzer.query(
@@ -321,7 +330,8 @@ class LogHandler(base_handler.Handler):
     if not fuzzer:
       raise helpers.EarlyExitError('Fuzzer not found.', 400)
 
-    return self.render('viewer.html', {
-        'title': 'Output for ' + fuzzer.name,
-        'content': fuzzer.console_output,
-    })
+    return self.render(
+        'viewer.html', {
+            'title': 'Output for ' + cast(str, fuzzer.name),
+            'content': fuzzer.console_output,
+        })

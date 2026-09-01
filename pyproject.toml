@@ -1,0 +1,179 @@
+[project]
+name = "clusterfuzz"
+version = "0.1.0"
+description = "ClusterFuzz"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
+
+# We do something a bit peculiar that probably predates Python dependency
+# managers. Instead of installing dependencies into a virtual environment and
+# executing within said environment, dependencies are vendored (as source or
+# binary distributions) into `src/third_party` and `src/appengine/third_party`.
+# The resulting codebase is then shipped as is to bots for execution.
+#
+# In practice `butler.py bootstrap` runs `uv export` to convert this file into
+# several `requirements.txt` passed to `(uv) pip install --target $3P_DIR`.
+# We then rely on PYTHONPATH shenanigans to get project code to find dependency
+# packages.
+#
+# TODO: This whole setup should likely be replaced by using `uv` and virtualenvs
+# directly, both within and without docker images. It used to be the case that
+# docker images were updated much less frequently than the source code, but
+# this is not the case anymore - each release of ClusterFuzz runs
+# `local/install_deps.bash` to build the image, which includes installing
+# Python dependencies. Still, some bots run ClusterFuzz natively, which includes
+# another peculiarity: the self-update mechanism in `update_task.py`. Someone
+# would need to figure out how to mesh that with a virtualenv-based release.
+dependencies = []
+
+[dependency-groups]
+dev = [
+    # Development, testing, and linting tools (from ./Pipfile)
+    "Fabric==1.14.1",
+    "grpcio-tools==1.62.2",
+    "gunicorn",
+    "isort",
+    "mypy-protobuf==3.4.0",
+    "nodeenv==1.9.1",
+    "parameterized==0.9.0",
+    "paramiko==2.6.0",
+    "pyfakefs==4.4.0",
+    "pylint~=2.4",
+    "pylint-protobuf==0.21.0",
+    "pyright==1.1.411",
+    "pywinauto==0.6.8; sys_platform == 'win32'",
+    "PyYAML==6.0.1",
+    "selenium==3.141.0",
+    "setuptools==80.9.0",
+    "twine",
+    "ty==0.0.69",
+    "WebTest==3.0.0",
+    "yapf==0.22.0",
+]
+
+[project.optional-dependencies]
+core = [
+    # Core bot & engine runtime dependencies (vendored to src/third_party)
+    "aiohttp==3.10.5",
+    "antlr4-python3-runtime==4.7.2",
+    "bcrypt==4.1.2",
+    "certifi==2024.2.2",
+    "cffi==1.15.1",
+    "crcmod==1.7",
+    "cryptography==37.0.4",
+    "future==0.17.1",
+    "google-api-core==2.11.1",
+    "google-api-python-client==2.93.0",
+    "google-auth==2.22.0",
+    "google-auth-oauthlib==0.4.1",
+    "google-cloud-batch==0.11.0",
+    "google-cloud-core==2.3.3",
+    "google-cloud-datastore==2.16.1",
+    "google-cloud-logging==3.6.0",
+    "google-cloud-monitoring==2.15.1",
+    "google-cloud-ndb==2.2.1",
+    "google-cloud-profiler==4.1.0",
+    "google-cloud-secret-manager==2.17.0",
+    "google-cloud-storage==2.10.0",
+    "google-crc32c==1.5.0",
+    "grpcio==1.62.2",
+    "httplib2==0.19.0",
+    "jira==2.0.0",
+    "Jinja2==3.1.4",
+    "kubernetes==34.1.0",
+    "mozprocess==1.3.1",
+    "oauth2client==4.1.3",
+    "protobuf==4.23.4",
+    "psutil==5.9.4",
+    "pygithub==1.55",
+    "pyOpenSSL==22.0.0",
+    "python-dateutil==2.8.1",
+    "PyYAML==6.0.1",
+    "pytz==2023.3",
+    "redis==4.6.0",
+    "requests==2.21.0",
+    "sendgrid==6.0.4",
+    "wrapt==1.16.0",
+]
+
+appengine = [
+    # App Engine specific dependencies (vendored to src/appengine/third_party)
+    "charset-normalizer==3.3.2",
+    "firebase-admin==6.2.0",
+    "Flask==2.2.2",
+    "itsdangerous==2.0.1",
+    "parameterized==0.9.0",
+    "PyJWT==2.7.0",
+    "requests-toolbelt==0.9.1",
+    "werkzeug==2.2.2",
+]
+
+# Note: platform-specific dependencies are binary wheels downloaded via `pip download`
+# for target platform/ABI (see common.py `_install_platform_pip`) rather than vendored
+# via `uv pip install --target`.
+platform-specific = [
+    # Platform-specific packages (replacing src/platform_requirements.txt)
+    "grpcio==1.62.2",
+    "kubernetes==34.1.0",
+    "protobuf==4.23.4",
+    "psutil==5.9.4",
+]
+
+[tool.ty.rules]
+deprecated = "ignore"
+
+[tool.ty.src]
+include = [
+    "src/clusterfuzz",
+    "src/appengine",
+]
+exclude = [
+    "src/appengine/__init__.py",
+    "src/appengine/clusterfuzz",
+    "src/appengine/handlers/__init__.py",
+    "src/appengine/handlers/cron/__init__.py",
+    "src/appengine/templates",
+    "src/appengine/third_party",
+    "src/clusterfuzz/_internal/bot/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/afl/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/centipede/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/googlefuzztest/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/honggfuzz/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/libFuzzer/__init__.py",
+    "src/clusterfuzz/_internal/bot/minimizer/__init__.py",
+    "src/clusterfuzz/_internal/bot/tasks/__init__.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/__init__.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/HTMLLexer.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/JavaScriptBaseLexer.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/JavaScriptLexer.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/__init__.py",
+    "src/clusterfuzz/_internal/bot/untrusted_runner/__init__.py",
+    "src/clusterfuzz/_internal/bot/webserver/__init__.py",
+    "src/clusterfuzz/_internal/config/__init__.py",
+    "src/clusterfuzz/_internal/datastore/__init__.py",
+    "src/clusterfuzz/_internal/fuzzer_utils/__init__.py",
+    "src/clusterfuzz/_internal/google_cloud_utils/__init__.py",
+    "src/clusterfuzz/_internal/metrics/__init__.py",
+    "src/clusterfuzz/_internal/protos",
+    "src/clusterfuzz/_internal/system/__init__.py",
+    "src/clusterfuzz/_internal/tests",
+    "src/clusterfuzz/environment/__init__.py",
+    "src/clusterfuzz/fuzz/__init__.py",
+    "src/third_party",
+]
+
+[tool.ty.environment]
+python-version = "3.11"
+extra-paths = [
+    "src",
+    "src/appengine",
+    "src/third_party",
+    "src/appengine/third_party",
+    "src/appengine/libs",
+]

@@ -14,6 +14,10 @@
 """Impact task.
    Determine whether or not a test case affects production branches."""
 
+from collections.abc import Mapping
+from typing import Any
+from typing import cast
+
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
@@ -28,20 +32,23 @@ from clusterfuzz._internal.system import environment
 class Impact:
   """Represents impact on a build type."""
 
-  def __init__(self, version='', likely=False, extra_trace=''):
+  def __init__(self,
+               version: str | int = '',
+               likely: bool = False,
+               extra_trace: str = '') -> None:
     self.version = str(version)
     self.likely = likely
     self.extra_trace = extra_trace
 
-  def __str__(self):
+  def __str__(self) -> str:
     return (f'version: {self.version}, likely: {self.likely}, '
             f'extra_trace: {self.extra_trace}')
 
-  def is_empty(self):
+  def is_empty(self) -> bool:
     """Return True if empty."""
     return not self.version
 
-  def __eq__(self, other):
+  def __eq__(self, other: 'Impact') -> bool:  # type: ignore
     return (self.version == other.version and self.likely == other.likely and
             self.extra_trace == other.extra_trace)
 
@@ -49,29 +56,34 @@ class Impact:
 class Impacts:
   """Represents impacts on different release channels."""
 
-  def __init__(self, stable=None, beta=None, extended_stable=None, head=None):
+  def __init__(self,
+               stable: Impact | None = None,
+               beta: Impact | None = None,
+               extended_stable: Impact | None = None,
+               head: Impact | None = None) -> None:
     self.stable = stable or Impact()
     self.beta = beta or Impact()
     self.extended_stable = extended_stable or Impact()
     self.head = head or Impact()
 
-  def is_empty(self):
+  def is_empty(self) -> bool:
     return (self.extended_stable.is_empty() and self.stable.is_empty() and
             self.beta.is_empty() and self.head.is_empty())
 
-  def get_extra_trace(self):
+  def get_extra_trace(self) -> str:
     return (
         self.extended_stable.extra_trace + '\n' + self.stable.extra_trace + '\n'
         + self.beta.extra_trace + '\n' + self.head.extra_trace).strip()
 
-  def __eq__(self, other):
+  def __eq__(self, other: 'Impacts') -> bool:  # type: ignore
     return (self.extended_stable == other.extended_stable and
             self.stable == other.stable and self.beta == other.beta and
             self.head == other.head)
 
 
-def get_chromium_component_start_and_end_revision(start_revision, end_revision,
-                                                  job_type):
+def get_chromium_component_start_and_end_revision(
+    start_revision: int, end_revision: int,
+    job_type: str | None) -> tuple[int, int]:
   """Get revisions from chromium component."""
   component_rev_list = revisions.get_component_range_list(
       start_revision, end_revision, job_type)
@@ -84,7 +96,8 @@ def get_chromium_component_start_and_end_revision(start_revision, end_revision,
   return start_revision, end_revision
 
 
-def get_start_and_end_revision(regression_range, job_type):
+def get_start_and_end_revision(regression_range: str | None,
+                               job_type: str | None) -> tuple[int, int]:
   """Get start and end revision."""
   start_revision, end_revision = revisions.get_start_and_end_revision(
       regression_range)
@@ -97,14 +110,16 @@ def get_start_and_end_revision(regression_range, job_type):
   return start_revision, end_revision
 
 
-def is_valid_regression_range(regression_range, job_type):
+def is_valid_regression_range(regression_range: str | None,
+                              job_type: str | None) -> bool:
   """Return whether we have a valid regression range."""
   start, end = get_start_and_end_revision(regression_range, job_type)
   return start != 0 or end != 0
 
 
-def get_component_information_by_name(chromium_revision,
-                                      component_display_name):
+def get_component_information_by_name(
+    chromium_revision: str | int,
+    component_display_name: str) -> dict[str, Any] | None:
   """Returns a dictionary with information about a component at a revision."""
   lower_name = component_display_name.lower()
   component_revisions = revisions.get_component_revisions_dict(
@@ -122,10 +137,10 @@ def get_component_information_by_name(chromium_revision,
   return None
 
 
-def get_component_impacts_from_url(component_name,
-                                   regression_range,
-                                   job_type,
-                                   platform=None):
+def get_component_impacts_from_url(component_name: str,
+                                   regression_range: str | None,
+                                   job_type: str | None,
+                                   platform: str | None = None) -> Impacts:
   """Gets component impact string using the build information url."""
   logs.info('Getting component impacts from URL. Component name %s, '
             'regression range %s, job type %s, platform %s.' %
@@ -140,7 +155,7 @@ def get_component_impacts_from_url(component_name,
   if not build_revision_mappings:
     return Impacts()
 
-  found_impacts = {}
+  found_impacts: dict[str, Impact] = {}
   for build in ['extended_stable', 'stable', 'beta', 'canary']:
     mapping = build_revision_mappings.get(build)
     logs.info('Considering impacts for %s.' % (build))
@@ -177,11 +192,13 @@ def get_component_impacts_from_url(component_name,
                  found_impacts['extended_stable'], found_impacts['canary'])
 
 
-def get_impacts_from_url(regression_range, job_type, platform=None):
+def get_impacts_from_url(regression_range: str | None,
+                         job_type: str | None,
+                         platform: str | None = None) -> Impacts:
   """Gets impact string using the build information url."""
   logs.info('Get component impacts from URL: range %s, '
             'job type %s.' % (regression_range, str(job_type)))
-  component_name = data_handler.get_component_name(job_type)
+  component_name = data_handler.get_component_name(cast(str, job_type))
   if component_name:
     return get_component_impacts_from_url(component_name, regression_range,
                                           job_type, platform)
@@ -211,10 +228,10 @@ def get_impacts_from_url(regression_range, job_type, platform=None):
   return Impacts(stable, beta, extended_stable, head)
 
 
-def get_impact(build_revision,
-               start_revision,
-               end_revision,
-               is_last_possible_build=False):
+def get_impact(build_revision: Mapping[str, Any] | None,
+               start_revision: int,
+               end_revision: int,
+               is_last_possible_build: bool = False) -> Impact:
   """Return a Impact object represents the impact on a given build_type. Or
     return None."""
   if not build_revision:
@@ -245,7 +262,8 @@ def get_impact(build_revision,
   return Impact(version, likely=True)
 
 
-def get_head_impact(build_revision_mappings, start_revision, end_revision):
+def get_head_impact(build_revision_mappings: Mapping[str, Any],
+                    start_revision: int, end_revision: int) -> Impact:
   """Return the impact on 'head', i.e. the latest build we can find."""
   latest_build = build_revision_mappings.get('canary')
   if latest_build is None:
@@ -254,7 +272,8 @@ def get_head_impact(build_revision_mappings, start_revision, end_revision):
       latest_build, start_revision, end_revision, is_last_possible_build=True)
 
 
-def set_testcase_with_impacts(testcase, impacts):
+def set_testcase_with_impacts(testcase: data_types.Testcase,
+                              impacts: Impacts) -> None:
   """Set testcase's impact-related fields given impacts."""
   testcase.impact_extended_stable_version = impacts.extended_stable.version
   testcase.impact_extended_stable_version_likely = \
@@ -268,7 +287,7 @@ def set_testcase_with_impacts(testcase, impacts):
   testcase.is_impact_set_flag = True
 
 
-def _execute_task(testcase_id, job_type):
+def _execute_task(testcase_id: int | str, job_type: str) -> None:
   """Attempt to find if the testcase affects release branches on Chromium."""
   # We don't need job_type but it's supplied to all tasks.
   del job_type
@@ -328,12 +347,12 @@ def _execute_task(testcase_id, job_type):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   set_testcase_with_impacts(testcase, impacts)
   testcase_utils.emit_testcase_triage_duration_metric(
-      testcase_id,
+      cast(int, testcase_id),
       testcase_utils.TESTCASE_TRIAGE_DURATION_IMPACT_COMPLETED_STEP)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)
 
 
-def execute_task(testcase_id, job_type):
+def execute_task(testcase_id: int | str, job_type: str) -> None:
   """Set logs context and execute Chromium impact task."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):

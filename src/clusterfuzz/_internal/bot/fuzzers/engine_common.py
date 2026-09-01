@@ -13,6 +13,8 @@
 # limitations under the License.
 """Common functionality for engine fuzzers (ie: libFuzzer or AFL)."""
 
+from collections.abc import Iterator
+from collections.abc import Sequence
 import contextlib
 import glob
 import json
@@ -24,6 +26,13 @@ import shutil
 import string
 import sys
 import time
+import types
+from typing import Any
+from typing import cast
+from typing import IO
+from typing import NoReturn
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import options
@@ -38,53 +47,61 @@ from clusterfuzz._internal.system import minijail
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import shell
 
+if TYPE_CHECKING:
+  from clusterfuzz._internal.bot.fuzzers import strategy_selection
+
 # Maximum allowed size of a corpus file.
-CORPUS_INPUT_SIZE_LIMIT = 5 * 1024 * 1024
+CORPUS_INPUT_SIZE_LIMIT: int = 5 * 1024 * 1024
 
 # Number of testcases to use for the corpus subset strategy.
 # See https://crbug.com/682311 for more information.
 # Size 100 has a slightly higher chance as it seems to be the best one so far.
-CORPUS_SUBSET_NUM_TESTCASES = [10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150]
+CORPUS_SUBSET_NUM_TESTCASES: list[int] = [
+    10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150
+]
 
 # Suffix used for seed corpus archive generated with build. Does not include
 # file extension.
-SEED_CORPUS_ARCHIVE_SUFFIX = '_seed_corpus'
+SEED_CORPUS_ARCHIVE_SUFFIX: str = '_seed_corpus'
 
 # Maximum number of files in the corpus for which we will unpack the seed
 # corpus.
-MAX_FILES_FOR_UNPACK = 5
+MAX_FILES_FOR_UNPACK: int = 5
 
 # Extension for owners file containing list of people to be notified.
-OWNERS_FILE_EXTENSION = '.owners'
+OWNERS_FILE_EXTENSION: str = '.owners'
 
 # Extension for per-fuzz target labels to be added to issue tracker.
-LABELS_FILE_EXTENSION = '.labels'
+LABELS_FILE_EXTENSION: str = '.labels'
 
 # Extension for per-fuzz target components to be added to issue tracker.
-COMPONENTS_FILE_EXTENSION = '.components'
+COMPONENTS_FILE_EXTENSION: str = '.components'
 
 # Extension for additional metadata to be added to issue descriptions.
-METADATA_FILE_EXTENSION = '.issue_metadata'
+METADATA_FILE_EXTENSION: str = '.issue_metadata'
 
 # Number of radamsa mutations.
-RADAMSA_MUTATIONS = 2000
+RADAMSA_MUTATIONS: int = 2000
 
 # Maximum number of seconds to run radamsa for.
-RADAMSA_TIMEOUT = 3
+RADAMSA_TIMEOUT: int = 3
 
-HEXDIGITS_SET = set(string.hexdigits)
+HEXDIGITS_SET: set[str] = set(string.hexdigits)
 
 # Allow 30 minutes to merge the testcases back into the corpus.
-DEFAULT_MERGE_TIMEOUT = 30 * 60
+DEFAULT_MERGE_TIMEOUT: int = 30 * 60
+
+_T = TypeVar('_T')
 
 
 class Generator:
   """Generators we can use."""
-  NONE = 0
-  RADAMSA = 1
+  NONE: int = 0
+  RADAMSA: int = 1
 
 
-def select_generator(strategy_pool, fuzzer_path):
+def select_generator(strategy_pool: 'strategy_selection.StrategyPool',
+                     fuzzer_path: str) -> int:
   """Pick a generator to generate new testcases before fuzzing or return
   Generator.NONE if no generator selected."""
   if environment.is_lib() or environment.platform() == 'FUCHSIA':
@@ -102,8 +119,9 @@ def select_generator(strategy_pool, fuzzer_path):
   return Generator.NONE
 
 
-def generate_new_testcase_mutations(
-    corpus_directory, new_testcase_mutations_directory, candidate_generator):
+def generate_new_testcase_mutations(corpus_directory: str,
+                                    new_testcase_mutations_directory: str,
+                                    candidate_generator: int) -> bool:
   """Generate new testcase mutations, using existing corpus directory or other
   methods.
 
@@ -128,12 +146,13 @@ def generate_new_testcase_mutations(
 
 
 # Filename length limit on ext4.
-FILENAME_LENGTH_LIMIT = 255
+FILENAME_LENGTH_LIMIT: int = 255
 
-RADAMSA_FILENAME_REGEX = re.compile(r'radamsa-\d+-(.*)', re.DOTALL)
+RADAMSA_FILENAME_REGEX: re.Pattern[str] = re.compile(r'radamsa-\d+-(.*)',
+                                                     re.DOTALL)
 
 
-def get_radamsa_output_filename(initial_filename, i):
+def get_radamsa_output_filename(initial_filename: str, i: int) -> str:
   """Get the name of a file mutated by radamsa."""
   # Don't add the radamsa prefix to a file that already has it to avoid hitting
   # filename/path length limits.
@@ -150,7 +169,8 @@ def get_radamsa_output_filename(initial_filename, i):
 
 
 def generate_new_testcase_mutations_using_radamsa(
-    corpus_directory, new_testcase_mutations_directory, generation_timeout):
+    corpus_directory: str, new_testcase_mutations_directory: str,
+    generation_timeout: float | int) -> None:
   """Generate new testcase mutations based on Radamsa."""
   radamsa_path = get_radamsa_path()
   if not radamsa_path:
@@ -199,7 +219,7 @@ def generate_new_testcase_mutations_using_radamsa(
             (new_corpus_size - old_corpus_size))
 
 
-def get_radamsa_path():
+def get_radamsa_path() -> str | None:
   """Return path to radamsa binary for current platform."""
   bin_directory_path = os.path.join(
       os.path.dirname(os.path.realpath(__file__)), 'bin')
@@ -213,17 +233,17 @@ def get_radamsa_path():
   return None
 
 
-def get_new_testcase_mutations_timeout():
+def get_new_testcase_mutations_timeout() -> float:
   """Get the timeout for new testcase mutations."""
   return get_overridable_timeout(10 * 60, 'MUTATIONS_TIMEOUT_OVERRIDE')
 
 
-def current_timestamp():
+def current_timestamp() -> float:
   """Returns the current timestamp. Needed for mocking."""
   return time.time()
 
 
-def get_strategy_probability(strategy_name, default):
+def get_strategy_probability(strategy_name: str, default: float) -> float:
   """Returns a strategy weight based on env variable |FUZZING_STRATEGIES|"""
   fuzzing_strategies = environment.get_value('FUZZING_STRATEGIES')
   if fuzzing_strategies is None or not isinstance(fuzzing_strategies, dict):
@@ -235,17 +255,18 @@ def get_strategy_probability(strategy_name, default):
   return fuzzing_strategies[strategy_name]
 
 
-def decide_with_probability(probability):
+def decide_with_probability(probability: float) -> bool:
   """Decide if we want to do something with the given probability."""
   return random.SystemRandom().random() < probability
 
 
-def get_probability():
+def get_probability() -> float:
   """Obtain a random number."""
   return random.SystemRandom().random()
 
 
-def get_testcase_run(stats, fuzzer_command):
+def get_testcase_run(stats: dict[str, Any] | None,
+                     fuzzer_command: str) -> fuzzer_stats.TestcaseRun:
   """Get testcase run for stats."""
   build_revision = fuzzer_utils.get_build_revision()
   job = environment.get_value('JOB_NAME')
@@ -259,13 +280,15 @@ def get_testcase_run(stats, fuzzer_command):
   return testcase_run
 
 
-def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
+def dump_big_query_data(stats: dict[str, Any] | None, testcase_file_path: str,
+                        fuzzer_command: str) -> None:
   """Dump BigQuery stats."""
   testcase_run = get_testcase_run(stats, fuzzer_command)
   fuzzer_stats.TestcaseRun.write_to_disk(testcase_run, testcase_file_path)
 
 
-def find_fuzzer_path(build_directory, fuzzer_name):
+def find_fuzzer_path(build_directory: str | None,
+                     fuzzer_name: str) -> str | None:
   """Find the fuzzer path with the given name."""
   if not build_directory:
     # Grey-box fuzzers might not have the build directory for a particular job
@@ -302,23 +325,24 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   return None
 
 
-def get_command_quoted(command):
+def get_command_quoted(command: Sequence[str]) -> str:
   """Return shell quoted command string."""
   return ' '.join(shlex.quote(part) for part in command)
 
 
-def get_overridable_timeout(default_timeout, override_env_var):
+def get_overridable_timeout(default_timeout: float | int | None,
+                            override_env_var: str) -> float:
   """Returns a timeout given a |default_timeout| and the environment variable,
   |override_env_var|, that overrides it. Returns the overriden value if
   |override_env_var| is set, otherwise returns default_timeout. Throws an
   assertion error if the return value is negative."""
   timeout_override = environment.get_value(override_env_var)
-  timeout = float(timeout_override or default_timeout)
+  timeout = float(cast(Any, timeout_override or default_timeout))
   assert timeout >= 0, timeout
   return timeout
 
 
-def get_hard_timeout(total_timeout=None):
+def get_hard_timeout(total_timeout: float | int | None = None) -> float:
   """Get the hard timeout for fuzzing."""
   if total_timeout is None:
     total_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
@@ -326,13 +350,13 @@ def get_hard_timeout(total_timeout=None):
   return get_overridable_timeout(total_timeout, 'HARD_TIMEOUT_OVERRIDE')
 
 
-def get_merge_timeout(default_merge_timeout):
+def get_merge_timeout(default_merge_timeout: float | int) -> float:
   """Get the maximum amount of time that should be spent merging a corpus."""
   return get_overridable_timeout(default_merge_timeout,
                                  'MERGE_TIMEOUT_OVERRIDE')
 
 
-def is_lpm_fuzz_target(fuzzer_path):
+def is_lpm_fuzz_target(fuzzer_path: str) -> bool:
   """Returns True if |fuzzer_path| is a libprotobuf-mutator based fuzz
   target."""
   # TODO(metzman): Use this function to disable running LPM targets with AFL.
@@ -340,7 +364,7 @@ def is_lpm_fuzz_target(fuzzer_path):
     return utils.search_bytes_in_file(b'TestOneProtoInput', file_handle)
 
 
-def get_issue_owners(fuzz_target_path):
+def get_issue_owners(fuzz_target_path: str) -> list[str]:
   """Return list of owner emails given a fuzz target path.
 
   Format of an owners file is described at:
@@ -356,7 +380,7 @@ def get_issue_owners(fuzz_target_path):
   if not os.path.exists(owners_file_path):
     return []
 
-  owners = []
+  owners: list[str] = []
   with open(owners_file_path) as owners_file_handle:
     owners_file_content = owners_file_handle.read()
 
@@ -383,7 +407,7 @@ def get_issue_owners(fuzz_target_path):
   return owners
 
 
-def get_issue_metadata(fuzz_target_path, extension):
+def get_issue_metadata(fuzz_target_path: str, extension: str) -> list[str]:
   """Get issue metadata."""
   metadata_file_path = fuzzer_utils.get_supporting_file(fuzz_target_path,
                                                         extension)
@@ -400,17 +424,17 @@ def get_issue_metadata(fuzz_target_path, extension):
         handle, delimiter='\n', strip=True, remove_empty=True)
 
 
-def get_issue_labels(fuzz_target_path):
+def get_issue_labels(fuzz_target_path: str) -> list[str]:
   """Return list of issue labels given a fuzz target path."""
   return get_issue_metadata(fuzz_target_path, LABELS_FILE_EXTENSION)
 
 
-def get_issue_components(fuzz_target_path):
+def get_issue_components(fuzz_target_path: str) -> list[str]:
   """Return list of issue components given a fuzz target path."""
   return get_issue_metadata(fuzz_target_path, COMPONENTS_FILE_EXTENSION)
 
 
-def get_additional_issue_metadata(fuzz_target_path):
+def get_additional_issue_metadata(fuzz_target_path: str) -> dict[str, Any]:
   """Return the additional metadata fields given a fuzz target path. The data
   will be a JSON-formatted dictionary."""
   metadata_file_path = fuzzer_utils.get_supporting_file(
@@ -431,9 +455,9 @@ def get_additional_issue_metadata(fuzz_target_path):
       return {}
 
 
-def get_all_issue_metadata(fuzz_target_path):
+def get_all_issue_metadata(fuzz_target_path: str) -> dict[str, Any]:
   """Get issue related metadata for a target."""
-  metadata = {}
+  metadata: dict[str, Any] = {}
 
   issue_labels = get_issue_labels(fuzz_target_path)
   if issue_labels:
@@ -454,7 +478,8 @@ def get_all_issue_metadata(fuzz_target_path):
   return metadata
 
 
-def get_fuzz_target_issue_metadata(fuzz_target):
+def get_fuzz_target_issue_metadata(
+    fuzz_target: data_types.FuzzTarget | None) -> dict[str, Any] | None:
   """Get issue related metadata given a testcase."""
   if fuzz_target is None:
     return None
@@ -463,6 +488,7 @@ def get_fuzz_target_issue_metadata(fuzz_target):
     # Not applicable.
     return None
 
+  assert fuzz_target.binary is not None
   build_dir = environment.get_value('BUILD_DIR')
   target_path = find_fuzzer_path(build_dir, fuzz_target.binary)
   if not target_path:
@@ -472,13 +498,14 @@ def get_fuzz_target_issue_metadata(fuzz_target):
   return get_all_issue_metadata(target_path)
 
 
-def get_project_qualified_fuzzer_name(target_path):
+def get_project_qualified_fuzzer_name(target_path: str) -> str:
   """Return project qualified fuzzer name for a given target path."""
   return data_types.fuzz_target_project_qualified_name(
       utils.current_project(), os.path.basename(target_path))
 
 
-def format_fuzzing_strategies(fuzzing_strategies):
+def format_fuzzing_strategies(
+    fuzzing_strategies: list[str] | dict[str, Any] | None) -> str:
   """Format the strategies used for logging purposes."""
   if not fuzzing_strategies:
     return ''
@@ -494,25 +521,25 @@ def format_fuzzing_strategies(fuzzing_strategies):
   return 'cf::fuzzing_strategies: ' + value
 
 
-def random_choice(sequence):
+def random_choice(sequence: Sequence[_T]) -> _T:
   """Return a random element from the non-empty sequence."""
   return random.SystemRandom().choice(sequence)
 
 
-def read_data_from_file(file_path):
+def read_data_from_file(file_path: str) -> bytes:
   """Read data from file."""
   with open(file_path, 'rb') as file_handle:
     return file_handle.read()
 
 
-def recreate_directory(directory_path):
+def recreate_directory(directory_path: str) -> None:
   """Delete directory if exists, create empty directory. Throw an exception if
   either fails."""
   if not shell.remove_directory(directory_path, recreate=True):
     raise OSError('Failed to recreate directory: ' + directory_path)
 
 
-def write_data_to_file(content, file_path):
+def write_data_to_file(content: Any, file_path: str) -> None:
   """Writes data to file."""
   with open(file_path, 'wb') as file_handle:
     file_handle.write(str(content).encode('utf-8'))
@@ -522,7 +549,7 @@ class MinijailEngineFuzzerRunner(minijail.MinijailProcessRunner):
   """Minijail runner for engine fuzzers."""
 
   @contextlib.contextmanager
-  def _chroot_testcase(self, testcase_path):
+  def _chroot_testcase(self, testcase_path: str) -> Iterator[str]:
     """Context manager for testcases.
     Args:
       testcase_path: Host path to testcase.
@@ -543,7 +570,7 @@ class MinijailEngineFuzzerRunner(minijail.MinijailProcessRunner):
     os.remove(copied_testcase_path)
 
 
-def signal_term_handler(sig, frame):  # pylint: disable=unused-argument
+def signal_term_handler(sig: int, frame: types.FrameType | None) -> NoReturn:  # pylint: disable=unused-argument
   try:
     print('SIGTERMed')
   except OSError:  # Pipe may already be closed and we may not be able to print.
@@ -553,7 +580,7 @@ def signal_term_handler(sig, frame):  # pylint: disable=unused-argument
   sys.exit(0)
 
 
-def get_seed_corpus_path(fuzz_target_path):
+def get_seed_corpus_path(fuzz_target_path: str) -> str | None:
   """Returns the path of the seed corpus if one exists. Otherwise returns None.
   Logs an error if multiple seed corpora exist for the same target."""
   archive_path_without_extension = fuzzer_utils.get_supporting_file(
@@ -577,7 +604,7 @@ def get_seed_corpus_path(fuzz_target_path):
   return archive_paths[0]
 
 
-def process_sanitizer_options_overrides(fuzzer_path):
+def process_sanitizer_options_overrides(fuzzer_path: str) -> None:
   """Applies sanitizer option overrides from .options file."""
   fuzzer_options = options.get_fuzz_target_options(fuzzer_path)
   if not fuzzer_options:
@@ -609,11 +636,12 @@ def process_sanitizer_options_overrides(fuzzer_path):
     environment.set_memory_tool_options('HWASAN_OPTIONS', hwasan_options)
 
 
-def unpack_seed_corpus_if_needed(fuzz_target_path,
-                                 corpus_directory,
-                                 max_bytes=float('inf'),
-                                 force_unpack=False,
-                                 max_files_for_unpack=MAX_FILES_FOR_UNPACK):
+def unpack_seed_corpus_if_needed(
+    fuzz_target_path: str,
+    corpus_directory: str,
+    max_bytes: float | int = float('inf'),
+    force_unpack: bool = False,
+    max_files_for_unpack: int = MAX_FILES_FOR_UNPACK) -> None:
   """If seed corpus available, unpack it into the corpus directory if needed,
   ie: if corpus exists and either |force_unpack| is True, or the number of files
   in corpus_directory is less than |max_files_for_unpack|. Uses
@@ -649,7 +677,7 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
       output_filename = '%016d' % idx
       output_file_path = os.path.join(corpus_directory, output_filename)
       with open(output_file_path, 'wb') as file_handle:
-        with reader.open(file.name) as file:
+        with cast(IO[bytes], reader.open(file.name)) as file:
           shutil.copyfileobj(file, file_handle)
 
       idx += 1
@@ -658,13 +686,14 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
             (idx, seed_corpus_archive_path))
 
 
-def get_log_header(command, time_executed):
+def get_log_header(command: Sequence[str],
+                   time_executed: float | int | str) -> str:
   """Get the log header."""
   quoted_command = get_command_quoted(command)
   return f'Command: {quoted_command}\nTime ran: {time_executed}\n'
 
 
-def is_sha1_hash(possible_hash):
+def is_sha1_hash(possible_hash: str) -> bool:
   """Returns True if |possible_hash| looks like a valid sha1 hash."""
   if len(possible_hash) != 40:
     return False
@@ -672,7 +701,7 @@ def is_sha1_hash(possible_hash):
   return all(char in HEXDIGITS_SET for char in possible_hash)
 
 
-def move_mergeable_units(merge_directory, corpus_directory):
+def move_mergeable_units(merge_directory: str, corpus_directory: str) -> None:
   """Move new units in |merge_directory| into |corpus_directory|."""
   initial_units = {
       os.path.basename(filename)
@@ -687,7 +716,7 @@ def move_mergeable_units(merge_directory, corpus_directory):
     shell.move(unit_path, dest_path)
 
 
-def create_temp_fuzzing_dir(name):
+def create_temp_fuzzing_dir(name: str) -> str:
   """Create a temporary directory for fuzzing."""
   new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
   recreate_directory(new_corpus_directory)

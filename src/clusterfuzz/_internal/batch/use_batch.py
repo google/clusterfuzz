@@ -15,14 +15,15 @@
 
 import multiprocessing.pool
 import os
+from typing import Any
 from unittest import mock
 
-from clusterfuzz._internal.google_cloud_utils import batch
+from clusterfuzz._internal.google_cloud_utils import batch  # type: ignore
 
 
-def _create_many():
+def _create_many() -> None:
   """Creates many jobs."""
-  many = [None for _ in range(2000)]
+  many: list[None] = [None for _ in range(2000)]
   with multiprocessing.pool.Pool(120) as pool:
     pool.map(_send_test_job, many)
 
@@ -32,8 +33,12 @@ def _create_many():
     return_value=mock.Mock(platform='LINUX'))
 @mock.patch(
     'clusterfuzz._internal.system.environment.get_config_directory',
-    return_value=os.environ['BATCH_TEST_CONFIG_PATH'])
-def _send_test_job(_=None, get_config_directory=None, get_job=None):
+    return_value=os.environ.get('BATCH_TEST_CONFIG_PATH', ''))
+def _send_test_job(
+    _: Any = None,
+    get_config_directory: Any = None,
+    get_job: Any = None,
+) -> None:
   """Creates a test batch job for local manual testing to ensure job creation
   actually works."""
   del _

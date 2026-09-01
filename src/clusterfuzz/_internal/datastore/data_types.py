@@ -15,6 +15,9 @@
 
 import datetime
 import re
+from typing import Any
+from typing import cast
+from typing import TypeVar
 
 from google.cloud import ndb
 
@@ -27,20 +30,20 @@ from clusterfuzz._internal.system import environment
 # pylint: disable=no-member,arguments-differ
 
 # Prefix used when a large testcase is stored in the blobstore.
-BLOBSTORE_STACK_PREFIX = 'BLOB_KEY='
+BLOBSTORE_STACK_PREFIX: str = 'BLOB_KEY='
 
 # List of builtin fuzzers.
-BUILTIN_FUZZERS = ['afl', 'libFuzzer']
+BUILTIN_FUZZERS: list[str] = ['afl', 'libFuzzer']
 
 # Time to look back to find a corpus backup that is marked public.
-CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS = 90
+CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS: int = 90
 
 # Marker to indicate end of crash stacktrace. Anything after that is excluded
 # from being stored as part of crash stacktrace (e.g. merge content, etc).
-CRASH_STACKTRACE_END_MARKER = 'CRASH OUTPUT ENDS HERE'
+CRASH_STACKTRACE_END_MARKER: str = 'CRASH OUTPUT ENDS HERE'
 
 # Skips using crash state similarity for these types.
-CRASH_TYPES_WITH_UNIQUE_STATE = [
+CRASH_TYPES_WITH_UNIQUE_STATE: list[str] = [
     'Missing-library',
     'Out-of-memory',
     'Overwrites-const-input',
@@ -53,35 +56,35 @@ CRASH_TYPES_WITH_UNIQUE_STATE = [
 
 # Maximum size allowed for an appengine entity type.
 # Explicily kept slightly lower than 1 MB.
-ENTITY_SIZE_LIMIT = 900000
+ENTITY_SIZE_LIMIT: int = 900000
 
 # Minimum number of unreproducible crashes to see before filing it.
-FILE_UNREPRODUCIBLE_TESTCASE_MIN_CRASH_THRESHOLD = 100
+FILE_UNREPRODUCIBLE_TESTCASE_MIN_CRASH_THRESHOLD: int = 100
 
 # Minimum number of unreproducible crashes to see before filing it for android.
-FILE_UNREPRODUCIBLE_TESTCASE_MIN_STARTUP_CRASH_THRESHOLD = 14
+FILE_UNREPRODUCIBLE_TESTCASE_MIN_STARTUP_CRASH_THRESHOLD: int = 14
 
 # Heartbeat wait interval.
-HEARTBEAT_WAIT_INTERVAL = 10 * 60
+HEARTBEAT_WAIT_INTERVAL: int = 10 * 60
 
 # Android device heartbeat wait interval.
-ANDROID_HEARTBEAT_WAIT_INTERVAL = 60
+ANDROID_HEARTBEAT_WAIT_INTERVAL: int = 60
 
 # Time to wait after a report is marked fixed and before filing another similar
 # one (hours).
-MIN_ELAPSED_TIME_SINCE_FIXED = 2 * 24
+MIN_ELAPSED_TIME_SINCE_FIXED: int = 2 * 24
 
 # Time to wait for grouping task to finish, before filing the report (hours).
-MIN_ELAPSED_TIME_SINCE_REPORT = 4
+MIN_ELAPSED_TIME_SINCE_REPORT: int = 4
 
 # Valid name check for fuzzer, job, etc.
-NAME_CHECK_REGEX = re.compile(r'^[a-zA-Z0-9_-]+$')
+NAME_CHECK_REGEX: re.Pattern = re.compile(r'^[a-zA-Z0-9_-]+$')
 
 # Regex to match special chars in project name.
-SPECIAL_CHARS_REGEX = re.compile('[^a-zA-Z0-9_-]')
+SPECIAL_CHARS_REGEX: re.Pattern = re.compile('[^a-zA-Z0-9_-]')
 
 # List of supported platforms.
-PLATFORMS = [
+PLATFORMS: list[str] = [
     'LINUX',
     'ANDROID',
     'CHROMEOS',
@@ -93,48 +96,51 @@ PLATFORMS = [
 
 # Maximum size allowed for an appengine pubsub request.
 # Explicily kept slightly lower than 1 MB.
-PUBSUB_REQUEST_LIMIT = 900000
+PUBSUB_REQUEST_LIMIT: int = 900000
 
 # We store at most 3 stacktraces per Testcase entity (original, second, latest).
-STACKTRACE_LENGTH_LIMIT = ENTITY_SIZE_LIMIT // 3
+STACKTRACE_LENGTH_LIMIT: int = ENTITY_SIZE_LIMIT // 3
 
 # Maximum size allowed for testcase comments.
 # 1MiB (maximum Datastore entity size) - ENTITY_SIZE_LIMIT (our limited entity
 # size with breathing room), divided by 2 to leave room for other things in the
 # entity. This is around 74KB.
-TESTCASE_COMMENTS_LENGTH_LIMIT = (1024 * 1024 - ENTITY_SIZE_LIMIT) // 2
+TESTCASE_COMMENTS_LENGTH_LIMIT: int = (1024 * 1024 - ENTITY_SIZE_LIMIT) // 2
 
 # Maximum number of testcase entities to query in one batch.
-TESTCASE_ENTITY_QUERY_LIMIT = 256
+TESTCASE_ENTITY_QUERY_LIMIT: int = 256
 
 # Deadlines for testcase filing, closures and deletions (in days).
-DUPLICATE_TESTCASE_NO_BUG_DEADLINE = 3
-CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE = 14
-FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE = 14
-NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE = 7
-UNREPRODUCIBLE_TESTCASE_NO_BUG_DEADLINE = 7
-UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE = 14
+DUPLICATE_TESTCASE_NO_BUG_DEADLINE: int = 3
+CLOSE_TESTCASE_WITH_CLOSED_BUG_DEADLINE: int = 14
+FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE: int = 14
+NOTIFY_CLOSED_BUG_WITH_OPEN_TESTCASE_DEADLINE: int = 7
+UNREPRODUCIBLE_TESTCASE_NO_BUG_DEADLINE: int = 7
+UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE: int = 14
 
 # TODO(ochang): Find some way to remove these.
-CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL = 'Test-Predator-Auto-CC'
-CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL = 'Test-Predator-Auto-Components'
-CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL = 'Test-Predator-Auto-Owner'
-CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL = (
+CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL: str = 'Test-Predator-Auto-CC'
+CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL: str = (
+    'Test-Predator-Auto-Components')
+CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL: str = 'Test-Predator-Auto-Owner'
+CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL: str = (
     'Test-Predator-Wrong-Components')
-CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL = 'Test-Predator-Wrong-CLs'
+CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL: str = 'Test-Predator-Wrong-CLs'
 
-MISSING_VALUE_STRING = '---'
+MISSING_VALUE_STRING: str = '---'
 
-COVERAGE_INFORMATION_DATE_FORMAT = '%Y%m%d'
+COVERAGE_INFORMATION_DATE_FORMAT: str = '%Y%m%d'
+
+_ModelT = TypeVar('_ModelT', bound=ndb.Model)
 
 
-def clone_entity(e, **extra_args):
+def clone_entity(e: _ModelT, **extra_args: Any) -> _ModelT:
   """Clones a DataStore entity and returns the clone."""
   ent_class = e.__class__
   # pylint: disable=protected-access,unnecessary-dunder-call
   props = {
       v._code_name: v.__get__(e, ent_class)
-      for v in ent_class._properties.values()
+      for v in cast(Any, ent_class)._properties.values()
       if not isinstance(v, ndb.ComputedProperty)
   }
   props.update(extra_args)
@@ -150,12 +156,12 @@ class SecuritySeverity:
   MISSING = 4
 
   @classmethod
-  def is_valid(cls, security_severity):
+  def is_valid(cls, security_severity: Any) -> bool:
     """Return bool on whether a severity is valid."""
     return (security_severity in [cls.CRITICAL, cls.HIGH, cls.MEDIUM, cls.LOW])
 
   @classmethod
-  def list(cls):
+  def list(cls) -> list[dict[str, Any]]:
     """Return the list of severities for a dropdown menu."""
     return [
         {
@@ -287,7 +293,7 @@ class Fuzzer(Model):
   created_at = ndb.DateTimeProperty()
 
   # Additionally allows '.' and '@' over NAME_CHECK_REGEX.
-  VALID_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_@.-]+$')
+  VALID_NAME_REGEX: re.Pattern = re.compile(r'^[a-zA-Z0-9_@.-]+$')
 
   # Last update time.
   timestamp = ndb.DateTimeProperty()
@@ -385,7 +391,7 @@ class Fuzzer(Model):
   # on disk |FUZZ_INPUTS_DISK|, rather than smaller tmpfs one (FUZZ_INPUTS).
   has_large_testcases = ndb.BooleanProperty(default=False)
 
-  def get_config_dict(self):
+  def get_config_dict(self) -> dict[str, Any]:
     """Returns a dict containing the required config to upload a fuzzer."""
 
     return self.to_dict(exclude=self._EXCLUDED_FIELDS_FOR_CONFIG)
@@ -399,6 +405,7 @@ class BuildCrashStatsJobHistory(Model):
 
 class Testcase(Model):
   """Represents a single testcase."""
+
   # Crash on an invalid read/write.
   crash_type = ndb.StringProperty()
 
@@ -631,39 +638,43 @@ class Testcase(Model):
   # Defaults to false, since most testcases are fuzzer produced.
   analyze_pending = ndb.BooleanProperty(default=False)
 
-  def is_chromium(self):
+  def is_chromium(self) -> bool:
     return self.project_name in ('chromium', 'chromium-testing')
 
-  def has_blame(self):
+  def has_blame(self) -> bool:
     return self.is_chromium()
 
-  def has_impacts(self):
+  def has_impacts(self) -> bool:
     return self.is_chromium() and not self.one_time_crasher_flag
 
-  def impacts_production(self):
+  def impacts_production(self) -> bool:
     return (bool(self.impact_extended_stable_version) or
             bool(self.impact_stable_version) or bool(self.impact_beta_version))
 
-  def is_status_unreproducible(self):
-    return self.status and self.status.startswith('Unreproducible')
+  def is_status_unreproducible(self) -> bool:
+    return cast(
+        bool, self.status and
+        cast(str, self.status).startswith('Unreproducible'))
 
-  def is_crash(self):
+  def is_crash(self) -> bool:
     return bool(self.crash_state)
 
-  def populate_indices(self):
+  def populate_indices(self) -> None:
     """Populate keywords for fast test case list searching."""
     self.keywords = list(
-        search_tokenizer.tokenize(self.crash_state)
-        | search_tokenizer.tokenize(self.crash_type)
-        | search_tokenizer.tokenize(self.fuzzer_name)
-        | search_tokenizer.tokenize(self.overridden_fuzzer_name)
-        | search_tokenizer.tokenize(self.job_type)
-        | search_tokenizer.tokenize(self.platform_id))
+        search_tokenizer.tokenize(cast(str, self.crash_state))
+        | search_tokenizer.tokenize(cast(str, self.crash_type))
+        | search_tokenizer.tokenize(cast(str, self.fuzzer_name))
+        | search_tokenizer.tokenize(cast(str, self.overridden_fuzzer_name))
+        | search_tokenizer.tokenize(cast(str, self.job_type))
+        | search_tokenizer.tokenize(cast(str, self.platform_id)))
 
     self.bug_indices = search_tokenizer.tokenize_bug_information(self)
     self.has_bug_flag = bool(self.bug_indices)
     self.is_a_duplicate_flag = bool(self.duplicate_of)
-    fuzzer_name_indices = list({self.fuzzer_name, self.overridden_fuzzer_name})
+    fuzzer_name_indices = list(
+        {cast(str, self.fuzzer_name),
+         cast(str, self.overridden_fuzzer_name)})
     self.fuzzer_name_indices = [f for f in fuzzer_name_indices if f]
 
     # If the impact task hasn't been run (aka is_impact_set_flag=False) OR
@@ -672,13 +683,16 @@ class Testcase(Model):
     if self.has_impacts() and self.is_impact_set_flag:
       self.impact_extended_stable_version_indices = (
           search_tokenizer.tokenize_impact_version(
-              self.impact_extended_stable_version))
+              cast(str, self.impact_extended_stable_version)))
       self.impact_stable_version_indices = (
-          search_tokenizer.tokenize_impact_version(self.impact_stable_version))
+          search_tokenizer.tokenize_impact_version(
+              cast(str, self.impact_stable_version)))
       self.impact_beta_version_indices = (
-          search_tokenizer.tokenize_impact_version(self.impact_beta_version))
+          search_tokenizer.tokenize_impact_version(
+              cast(str, self.impact_beta_version)))
       self.impact_head_version_indices = (
-          search_tokenizer.tokenize_impact_version(self.impact_head_version))
+          search_tokenizer.tokenize_impact_version(
+              cast(str, self.impact_head_version)))
       self.impact_version_indices = list(
           set(self.impact_extended_stable_version_indices +
               self.impact_stable_version_indices +
@@ -698,10 +712,10 @@ class Testcase(Model):
       self.impact_stable_version_indices = []
       self.impact_beta_version_indices = []
 
-  def _pre_put_hook(self):
+  def _pre_put_hook(self) -> None:
     self.populate_indices()
 
-  def _post_put_hook(self, _):
+  def _post_put_hook(self, future: Any) -> None:
     if not self.key:
       # Failed put. An exception will be thrown automatically afterwards.
       return
@@ -710,39 +724,42 @@ class Testcase(Model):
         f'Updated testcase {self.key.id()} (bug {self.bug_information or "-"}).'
     )
 
-  def set_impacts_as_na(self):
+  def set_impacts_as_na(self) -> None:
     self.impact_stable_version = self.impact_beta_version = None
     self.impact_extended_stable_version = None
     self.impact_stable_version_likely = self.impact_beta_version_likely = False
     self.impact_extended_stable_version_likely = False
     self.is_impact_set_flag = False
 
-  def _ensure_metadata_is_cached(self):
+  def _ensure_metadata_is_cached(self) -> None:
     """Ensure that the metadata for this has been cached."""
     if hasattr(self, 'metadata_cache'):
       return
 
     try:
-      cache = json_utils.loads(self.additional_metadata)
+      cache = json_utils.loads(cast(str, self.additional_metadata))
     except (TypeError, ValueError):
       cache = {}
 
-    setattr(self, 'metadata_cache', cache)
+    # pylint: disable=attribute-defined-outside-init
+    self.metadata_cache = cache
 
   # Returns testcase.created in case it is present, as it is
   # the source of truth for creation time. If missing, returns
   # testcase.timestamp as a proxy for creation time.
-  def get_created_time(self) -> ndb.DateTimeProperty:
-    return self.created if self.created else self.timestamp
+  def get_created_time(self) -> datetime.datetime | None:
+    return cast(datetime.datetime | None, self.created
+                if self.created else self.timestamp)
 
-  def get_age_in_seconds(self):
+  def get_age_in_seconds(self) -> float | None:
     current_time = datetime.datetime.utcnow()
-    if not self.get_created_time():
+    created_time = self.get_created_time()
+    if not created_time:
       return None
-    testcase_age = current_time - self.get_created_time()
+    testcase_age = current_time - created_time
     return testcase_age.total_seconds()
 
-  def get_metadata(self, key=None, default=None):
+  def get_metadata(self, key: str | None = None, default: Any = None) -> Any:
     """Get metadata for a test case. Slow on first access."""
     self._ensure_metadata_is_cached()
 
@@ -755,7 +772,8 @@ class Testcase(Model):
     except KeyError:
       return default
 
-  def set_metadata(self, key, value, update_testcase=True):
+  def set_metadata(self, key: str, value: Any,
+                   update_testcase: bool = True) -> None:
     """Set metadata for a test case."""
     self._ensure_metadata_is_cached()
     self.metadata_cache[key] = value
@@ -764,7 +782,7 @@ class Testcase(Model):
     if update_testcase:
       self.put()
 
-  def delete_metadata(self, key, update_testcase=True):
+  def delete_metadata(self, key: str, update_testcase: bool = True) -> None:
     """Remove metadata key for a test case."""
     self._ensure_metadata_is_cached()
 
@@ -777,17 +795,17 @@ class Testcase(Model):
     if update_testcase:
       self.put()
 
-  def actual_fuzzer_name(self):
+  def actual_fuzzer_name(self) -> str:
     """Actual fuzzer name, uses one from overridden attribute if available."""
-    return self.overridden_fuzzer_name or self.fuzzer_name
+    return cast(str, self.overridden_fuzzer_name or self.fuzzer_name)
 
-  def get_fuzz_target(self):
+  def get_fuzz_target(self) -> 'FuzzTarget | None':
     """Get the associated FuzzTarget entity for this test case."""
     name = self.actual_fuzzer_name()
     if not name:
       return None
 
-    target = ndb.Key(FuzzTarget, name).get()
+    target = cast(FuzzTarget | None, ndb.Key(FuzzTarget, name).get())
     if not target:
       binary = self.get_metadata('fuzzer_binary_name')
       if not binary:
@@ -795,7 +813,9 @@ class Testcase(Model):
         return None
 
       target = FuzzTarget(
-          engine=self.fuzzer_name, project=self.project_name, binary=binary)
+          engine=cast(str, self.fuzzer_name),
+          project=cast(str, self.project_name),
+          binary=binary)
 
     if environment.get_value('ORIGINAL_JOB_NAME'):
       # Overridden engine (e.g. for minimization).
@@ -811,7 +831,7 @@ class TestcaseGroup(Model):
 class DataBundle(Model):
   """Represents a data bundle associated with a fuzzer."""
 
-  VALID_NAME_REGEX = NAME_CHECK_REGEX
+  VALID_NAME_REGEX: re.Pattern = NAME_CHECK_REGEX
 
   # The data bundle's name (important for identifying shared bundles).
   name = ndb.StringProperty()
@@ -987,7 +1007,7 @@ class JobTemplate(Model):
 class Job(Model):
   """Definition of a job type used by the bots."""
 
-  VALID_NAME_REGEX = NAME_CHECK_REGEX
+  VALID_NAME_REGEX: re.Pattern = NAME_CHECK_REGEX
 
   # Job type name.
   name = ndb.StringProperty()
@@ -1030,35 +1050,39 @@ class Job(Model):
   # value here is the subscription used for receiving reproduction updates.
   external_updates_subscription = ndb.StringProperty()
 
-  def is_external(self):
+  def is_external(self) -> bool:
     """Whether this job is external."""
     return (bool(self.external_reproduction_topic) or
             bool(self.external_updates_subscription))
 
-  def get_environment(self):
+  def get_environment(self) -> dict[str, Any]:
     """Get the environment as a dict for this job, including any environment
     variables in its template."""
-    if not self.templates:
-      return environment.parse_environment_definition(self.environment_string)
+    templates = cast(list[str] | None, self.templates)
+    if not templates:
+      return environment.parse_environment_definition(
+          cast(str, self.environment_string))
 
-    job_environment = {}
-    for template_name in self.templates:
-      template = JobTemplate.query(JobTemplate.name == template_name).get()
+    job_environment: dict[str, Any] = {}
+    for template_name in templates:
+      template = cast(
+          JobTemplate | None,
+          JobTemplate.query(JobTemplate.name == template_name).get())
       if not template:
         continue
 
       template_environment = environment.parse_environment_definition(
-          template.environment_string)
+          cast(str, template.environment_string))
 
       job_environment.update(template_environment)
 
     environment_overrides = environment.parse_environment_definition(
-        self.environment_string)
+        cast(str, self.environment_string))
 
     job_environment.update(environment_overrides)
     return job_environment
 
-  def get_environment_string(self):
+  def get_environment_string(self) -> str:
     """Get the environment string for this job, including any environment
     variables in its template. Avoid using this if possible."""
     environment_string = ''
@@ -1068,13 +1092,13 @@ class Job(Model):
 
     return environment_string
 
-  def populate_indices(self):
+  def populate_indices(self) -> None:
     """Populate keywords for fast job searching."""
     self.keywords = list(
-        search_tokenizer.tokenize(self.name)
-        | search_tokenizer.tokenize(self.project))
+        search_tokenizer.tokenize(cast(str, self.name))
+        | search_tokenizer.tokenize(cast(str, self.project)))
 
-  def _pre_put_hook(self):
+  def _pre_put_hook(self) -> None:
     """Pre-put hook."""
     self.project = self.get_environment().get('PROJECT_NAME',
                                               utils.default_project_name())
@@ -1116,13 +1140,13 @@ class Heartbeat(Model):
   # Keywords is used for searching.
   keywords = ndb.StringProperty(repeated=True)
 
-  def populate_indices(self):
+  def populate_indices(self) -> None:
     """Populate keywords for fast job searching."""
     self.keywords = list(
-        search_tokenizer.tokenize(self.bot_name)
-        | search_tokenizer.tokenize(self.task_payload))
+        search_tokenizer.tokenize(cast(str, self.bot_name))
+        | search_tokenizer.tokenize(cast(str, self.task_payload)))
 
-  def _pre_put_hook(self):
+  def _pre_put_hook(self) -> None:
     """Pre-put hook."""
     self.populate_indices()
 
@@ -1205,7 +1229,7 @@ class WindowRateLimitTask(Model):
   it will have a different lifecycle (it's not needed after the window
   completes). This should have a TTL as TASK_RATE_LIMIT_WINDOW in
   task_rate_limiting.py (6 hours)."""
-  TASK_RATE_LIMIT_WINDOW = datetime.timedelta(hours=6)
+  TASK_RATE_LIMIT_WINDOW: datetime.timedelta = datetime.timedelta(hours=6)
 
   timestamp = ndb.DateTimeProperty(auto_now_add=True, indexed=True)
   # Only use this for TTL. It should only be saved to by ClusterFuzz, not read.
@@ -1216,7 +1240,7 @@ class WindowRateLimitTask(Model):
   job_name = ndb.StringProperty(indexed=True)
   status = ndb.StringProperty(choices=[TaskState.ERROR, TaskState.FINISHED])
 
-  def _pre_put_hook(self):
+  def _pre_put_hook(self) -> None:
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.TASK_RATE_LIMIT_WINDOW)
 
@@ -1301,33 +1325,35 @@ class FuzzTarget(Model):
   # Binary name.
   binary = ndb.StringProperty()
 
-  def _pre_put_hook(self):
+  def _pre_put_hook(self) -> None:
     """Pre-put hook."""
     self.key = ndb.Key(FuzzTarget, self.fully_qualified_name())
 
-  def fully_qualified_name(self):
+  def fully_qualified_name(self) -> str:
     """Get the fully qualified name for this fuzz target."""
-    return fuzz_target_fully_qualified_name(self.engine, self.project,
-                                            self.binary)
+    return fuzz_target_fully_qualified_name(
+        cast(str, self.engine), cast(str, self.project), cast(str, self.binary))
 
-  def project_qualified_name(self):
+  def project_qualified_name(self) -> str:
     """Get the name qualified by project."""
-    return fuzz_target_project_qualified_name(self.project, self.binary)
+    return fuzz_target_project_qualified_name(
+        cast(str, self.project), cast(str, self.binary))
 
 
-def fuzz_target_fully_qualified_name(engine, project, binary):
+def fuzz_target_fully_qualified_name(engine: str, project: str | None,
+                                     binary: str) -> str:
   """Get a fuzz target's fully qualified name."""
   return engine + '_' + fuzz_target_project_qualified_name(project, binary)
 
 
-def normalized_name(name):
+def normalized_name(name: str) -> str:
   """Return normalized name with special chars like slash, colon, etc normalized
   to hyphen(-). This is important as otherwise these chars break local and cloud
   storage paths."""
   return SPECIAL_CHARS_REGEX.sub('-', name).strip('-')
 
 
-def fuzz_target_project_qualified_name(project, binary):
+def fuzz_target_project_qualified_name(project: str | None, binary: str) -> str:
   """Get a fuzz target's project qualified name."""
   binary = normalized_name(binary)
   if not project:
@@ -1367,10 +1393,12 @@ class FuzzTargetJob(Model):
   # Approximate last time this target was run.
   last_run = ndb.DateTimeProperty()
 
-  def _pre_put_hook(self):
+  def _pre_put_hook(self) -> None:
     """Pre-put hook."""
-    self.key = ndb.Key(FuzzTargetJob,
-                       fuzz_target_job_key(self.fuzz_target_name, self.job))
+    self.key = ndb.Key(
+        FuzzTargetJob,
+        fuzz_target_job_key(
+            cast(str, self.fuzz_target_name), cast(str, self.job)))
 
 
 class FuzzStrategyProbability(Model):
@@ -1382,7 +1410,7 @@ class FuzzStrategyProbability(Model):
   engine = ndb.StringProperty()
 
 
-def fuzz_target_job_key(fuzz_target_name, job):
+def fuzz_target_job_key(fuzz_target_name: str, job: str) -> str:
   """Return the key for FuzzTargetJob."""
   return f'{fuzz_target_name}/{job}'
 
@@ -1467,18 +1495,21 @@ class CoverageInformation(Model):
   # Link to the HTML report.
   html_report_url = ndb.StringProperty()
 
-  def _pre_put_hook(self):
+  def _pre_put_hook(self) -> None:
     """Pre-put hook."""
-    self.key = ndb.Key(CoverageInformation,
-                       coverage_information_key(self.fuzzer, self.date))
+    self.key = ndb.Key(
+        CoverageInformation,
+        coverage_information_key(cast(str, self.fuzzer), cast(Any, self.date)))
 
 
-def coverage_information_date_to_string(date):
+def coverage_information_date_to_string(
+    date: datetime.date | datetime.datetime) -> str:
   """Returns string representation of the date in a format used for coverage."""
   return date.strftime(COVERAGE_INFORMATION_DATE_FORMAT)
 
 
-def coverage_information_key(project_qualified_fuzzer_name, date):
+def coverage_information_key(project_qualified_fuzzer_name: str,
+                             date: datetime.date | datetime.datetime) -> str:
   """Constructs an ndb key for CoverageInformation entity."""
   date_string = coverage_information_date_to_string(date)
   return project_qualified_fuzzer_name + '-' + date_string
@@ -1545,8 +1576,9 @@ class OssFuzzProjectInfo(Model):
   # Information about CPUs in each cluster.
   clusters = ndb.StructuredProperty(ClusterInfo, repeated=True)
 
-  def get_cluster_info(self, name):
-    return next((info for info in self.clusters if info.cluster == name), None)
+  def get_cluster_info(self, name: str) -> 'ClusterInfo | None':
+    clusters = cast(list[OssFuzzProjectInfo.ClusterInfo], self.clusters)
+    return next((info for info in clusters if info.cluster == name), None)
 
 
 class HostWorkerAssignment(Model):
@@ -1585,9 +1617,9 @@ class FuzzerJob(Model):
   multiplier = ndb.FloatProperty(default=1.0)
 
   @property
-  def actual_weight(self):
+  def actual_weight(self) -> float:
     """Get the actual weight for this job."""
-    return self.weight * self.multiplier
+    return cast(float, self.weight) * cast(float, self.multiplier)
 
 
 class FuzzerJobs(Model):
@@ -1658,7 +1690,7 @@ class TestcaseVariant(Model):
 class TestcaseLifecycleEvent(Model):
   """Represents an event from a testcase lifecycle."""
   # Events' TTL, currently set to ~5Y.
-  TESTCASE_EVENT_TTL = datetime.timedelta(days=1826)
+  TESTCASE_EVENT_TTL: datetime.timedelta = datetime.timedelta(days=1826)
 
   ### Event definition.
   # Event type (testcase_creation, issue_filed, etc).
@@ -1775,7 +1807,7 @@ class TestcaseLifecycleEvent(Model):
   # Task-related fuzzer name.
   task_fuzzer = ndb.StringProperty()
 
-  def _pre_put_hook(self):
+  def _pre_put_hook(self) -> None:
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.TESTCASE_EVENT_TTL)
 
@@ -1790,7 +1822,7 @@ class FuzzerTaskEvent(Model):
   will be used to assist with tracing clusterfuzz execution.
   """
   # Fuzzer task events' TTL, currently set to 2 months.
-  FUZZER_EVENT_TTL = datetime.timedelta(days=60)
+  FUZZER_EVENT_TTL: datetime.timedelta = datetime.timedelta(days=60)
 
   ### Event definition.
   # Event type (mostly task_execution).
@@ -1847,7 +1879,7 @@ class FuzzerTaskEvent(Model):
   # Task-related fuzzer name.
   task_fuzzer = ndb.TextProperty()
 
-  def _pre_put_hook(self):
+  def _pre_put_hook(self) -> None:
     self.ttl_expiry_timestamp = (
         datetime.datetime.now() + self.FUZZER_EVENT_TTL)
 

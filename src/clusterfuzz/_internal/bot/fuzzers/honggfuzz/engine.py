@@ -55,7 +55,7 @@ class HonggfuzzError(Exception):
   """Base exception class."""
 
 
-def _get_runner():
+def _get_runner() -> new_process.UnicodeProcessRunner:
   """Get the honggfuzz runner."""
   honggfuzz_path = os.path.join(environment.get_value('BUILD_DIR'), 'honggfuzz')
   if not os.path.exists(honggfuzz_path):
@@ -68,7 +68,7 @@ def _get_runner():
   return new_process.UnicodeProcessRunner(honggfuzz_path)
 
 
-def _find_sanitizer_stacktrace(reproducers_dir):
+def _find_sanitizer_stacktrace(reproducers_dir: str) -> str | None:
   """Find the sanitizer stacktrace from the reproducers dir."""
   for stacktrace_path in glob.glob(
       os.path.join(reproducers_dir, _HF_SANITIZER_LOG_PREFIX + '*')):
@@ -78,7 +78,7 @@ def _find_sanitizer_stacktrace(reproducers_dir):
   return None
 
 
-def _get_reproducer_path(line):
+def _get_reproducer_path(line: str) -> str | None:
   """Get the reproducer path, if any."""
   crash_match = _CRASH_REGEX.match(line)
   if not crash_match:
@@ -87,7 +87,7 @@ def _get_reproducer_path(line):
   return crash_match.group(1)
 
 
-def _get_stats(line):
+def _get_stats(line: str) -> dict[str, int] | None:
   """Get stats, if any."""
   if not line.startswith(_STATS_PREFIX):
     return None
@@ -108,7 +108,7 @@ def _get_stats(line):
   return stats
 
 
-def _contains_netdriver(target_path):
+def _contains_netdriver(target_path: str) -> bool:
   """Returns whether |target_path| contains netdriver string."""
   with open(target_path, 'rb') as file_handle:
     data = file_handle.read()
@@ -119,10 +119,11 @@ class Engine(engine.Engine):
   """honggfuzz engine implementation."""
 
   @property
-  def name(self):
+  def name(self) -> str:
     return 'honggfuzz'
 
-  def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
+  def prepare(self, corpus_dir: str, target_path: str,
+              build_dir: str) -> engine.FuzzOptions:  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
 
@@ -135,14 +136,15 @@ class Engine(engine.Engine):
       A FuzzOptions object.
     """
     os.chmod(target_path, 0o775)
-    arguments = []
+    arguments: list[str] = []
     dict_path = dictionary_manager.get_default_dictionary_path(target_path)
     if os.path.exists(dict_path):
       arguments.extend(['--dict', dict_path])
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
-  def fuzz(self, target_path, options, reproducers_dir, max_time):
+  def fuzz(self, target_path: str, options: engine.FuzzOptions,
+           reproducers_dir: str, max_time: int) -> engine.FuzzResult:
     """Run a fuzz session.
 
     Args:
@@ -177,10 +179,13 @@ class Engine(engine.Engine):
         additional_args=arguments,
         timeout=max_time + _CLEAN_EXIT_SECS,
         extra_env=honggfuzz_env)
+    assert fuzz_result.output is not None
+    assert fuzz_result.command is not None
+    assert fuzz_result.time_executed is not None
     log_lines = fuzz_result.output.splitlines()
     sanitizer_stacktrace = _find_sanitizer_stacktrace(reproducers_dir)
 
-    crashes = []
+    crashes: list[engine.Crash] = []
     stats = None
     for line in log_lines:
       reproducer_path = _get_reproducer_path(line)
@@ -198,7 +203,8 @@ class Engine(engine.Engine):
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
-  def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
+  def reproduce(self, target_path: str, input_path: str, arguments: list[str],
+                max_time: int) -> engine.ReproduceResult:  # pylint: disable=unused-argument
     """Reproduce a crash given an input.
 
     Args:
@@ -215,11 +221,16 @@ class Engine(engine.Engine):
     with open(input_path, 'rb') as f:
       result = runner.run_and_wait(timeout=max_time, stdin=f)
 
+    assert result.command is not None
+    assert result.return_code is not None
+    assert result.time_executed is not None
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+  def minimize_corpus(self, target_path: str, arguments: list[str],
+                      input_dirs: list[str], output_dir: str,
+                      reproducers_dir: str | None,
+                      max_time: int) -> engine.FuzzResult:
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -267,13 +278,16 @@ class Engine(engine.Engine):
         extra_env=honggfuzz_env)
 
     # TODO(DavidKorczynski): Assign merge_stats output appropriately.
-    merge_stats = {}
+    merge_stats: dict[str, int] = {}
 
+    assert minimise_result.command is not None
+    assert minimise_result.time_executed is not None
     return engine.FuzzResult(minimise_result.output, minimise_result.command,
                              [], merge_stats, minimise_result.time_executed)
 
-  def minimize_testcase(self, target_path, arguments, input_path, output_path,
-                        max_time):
+  def minimize_testcase(self, target_path: str, arguments: list[str],
+                        input_path: str, output_path: str,
+                        max_time: int) -> engine.ReproduceResult:
     """Optional (but recommended): Minimize a testcase.
     Args:
       target_path: Path to the target.
@@ -288,7 +302,8 @@ class Engine(engine.Engine):
     """
     raise NotImplementedError
 
-  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+  def cleanse(self, target_path: str, arguments: list[str], input_path: str,
+              output_path: str, max_time: int) -> engine.ReproduceResult:
     """Optional (but recommended): Cleanse a testcase.
     Args:
       target_path: Path to the target.

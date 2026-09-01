@@ -21,6 +21,7 @@ the task creation logic to a specific implementation.
 
 import collections
 import random
+from typing import Optional
 
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import feature_flags
@@ -38,14 +39,15 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
   allowing for flexible distribution and A/B testing.
   """
 
-  def __init__(self):
+  def __init__(self) -> None:
     # Instantiate and cache the service clients for each defined adapter.
-    self._service_map = {
+    self._service_map: dict[str, remote_task_types.RemoteTaskInterface] = {
         adapter.id: adapter.service()
         for adapter in remote_task_adapters.RemoteTaskAdapters
         if adapter.feature_flag.enabled
     }
-    self._adapters = remote_task_adapters.RemoteTaskAdapters
+    self._adapters: type[remote_task_adapters.RemoteTaskAdapters] = (
+        remote_task_adapters.RemoteTaskAdapters)
 
   def _get_adapter(self) -> str:
     """Performs a weighted random choice to select a remote backend.
@@ -58,21 +60,25 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     weights = list(frequencies.values())
     return random.choices(population, weights)[0]
 
-  def _is_swarming_applicable(self):
+  def _is_swarming_applicable(self) -> bool:
     return feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled
 
-  def _is_swarming_task(self, job_type):
+  def _is_swarming_task(self, job_type: str) -> bool:
     return swarming.is_swarming_task(job_type)
 
-  def _handle_swarming_job(self, module, job_type, input_download_url):
+  def _handle_swarming_job(
+      self, module: str, job_type: str, input_download_url: str
+  ) -> Optional[remote_task_types.RemoteTask] | list[remote_task_types.
+                                                     RemoteTask]:
     return self._service_map['swarming'].create_utask_main_job(
         module, job_type, input_download_url)
 
   def _handle_swarming_jobs(self,
-                            remote_tasks: list[remote_task_types.RemoteTask]):
+                            remote_tasks: list[remote_task_types.RemoteTask]
+                           ) -> list[remote_task_types.RemoteTask]:
     return self._service_map['swarming'].create_utask_main_jobs(remote_tasks)
 
-  def get_job_frequency(self):
+  def get_job_frequency(self) -> dict[str, float]:
     """Returns the frequency distribution for all remote task adapters.
 
     This function calculates the proportion of tasks that should be sent to each
@@ -88,7 +94,9 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
       A dictionary mapping each adapter's ID (e.g., 'gcp_batch') to its
       calculated frequency (a float between 0.0 and 1.0).
     """
-    frequencies = {adapter.id: 0.0 for adapter in self._adapters}
+    frequencies: dict[str, float] = {
+        adapter.id: 0.0 for adapter in self._adapters
+    }
     total_weight = 0.0
 
     for adapter in self._adapters:
@@ -121,7 +129,10 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     logs.info('Job frequencies', frequencies=frequencies)
     return frequencies
 
-  def create_utask_main_job(self, module, job_type, input_download_url):
+  def create_utask_main_job(
+      self, module: str, job_type: str, input_download_url: str
+  ) -> Optional[remote_task_types.RemoteTask] | list[remote_task_types.
+                                                     RemoteTask]:
     """Creates a single remote task, selecting a backend dynamically."""
     if self._is_swarming_applicable() and self._is_swarming_task(job_type):
       return self._handle_swarming_job(module, job_type, input_download_url)
@@ -131,7 +142,8 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     return service.create_utask_main_job(module, job_type, input_download_url)
 
   def create_utask_main_jobs(self,
-                             remote_tasks: list[remote_task_types.RemoteTask]):
+                             remote_tasks: list[remote_task_types.RemoteTask]
+                            ) -> list[remote_task_types.RemoteTask]:
     """Creates a batch of remote tasks, distributing them across backends.
 
     This method manages the distribution of tasks in two stages:
@@ -150,8 +162,9 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
          according to their frequencies. This ensures precise adherence to
          the distribution ratios (e.g., exactly 70/30 split for 100 tasks).
     """
-    tasks_by_adapter = collections.defaultdict(list)
-    unscheduled_tasks = []
+    tasks_by_adapter: dict[str, list[remote_task_types.RemoteTask]] = (
+        collections.defaultdict(list))
+    unscheduled_tasks: list[remote_task_types.RemoteTask] = []
 
     if self._is_swarming_applicable():
       logs.info(f'[Swarming] enabled, pushing {len(remote_tasks)} tasks.')

@@ -14,6 +14,8 @@
 """Fast minimizer that attempts to remove tokens grouped in chunks."""
 
 import functools
+from typing import Any
+from typing import cast
 
 from . import errors
 from . import minimizer
@@ -23,12 +25,14 @@ from . import utils
 class ChunkMinimizer(minimizer.Minimizer):
   """Minimizer to replicate the old ClusterFuzz minimization strategy."""
 
-  def __init__(self, *args, **kwargs):
-    self.chunk_sizes = self._handle_constructor_argument(
-        'chunk_sizes', kwargs, default=[10, 4, 1])
+  def __init__(self, *args: Any, **kwargs: Any) -> None:
+    self.chunk_sizes: list[int] = cast(
+        list[int],
+        self._handle_constructor_argument(
+            'chunk_sizes', kwargs, default=[10, 4, 1]))
     minimizer.Minimizer.__init__(self, *args, **kwargs)
 
-  def _execute(self, data):
+  def _execute(self, data: Any) -> minimizer.Testcase:
     """Minimize |data| using the algorithm from CF (but backwards)."""
     testcase = minimizer.Testcase(data, self)
     if not self.validate_tokenizer(data, testcase):
@@ -46,7 +50,11 @@ class ChunkMinimizer(minimizer.Minimizer):
     return testcase
 
   @staticmethod
-  def run(data, thread_count=minimizer.DEFAULT_THREAD_COUNT, file_extension=''):
+  def run(
+      data: Any,
+      thread_count: int = minimizer.DEFAULT_THREAD_COUNT,
+      file_extension: str = '',
+  ) -> Any:
     """Minimize |data| using the old strategy from CF."""
     minimizer_round_1 = ChunkMinimizer(
         utils.test,
@@ -56,7 +64,7 @@ class ChunkMinimizer(minimizer.Minimizer):
         chunk_sizes=[80, 40, 20],
         file_extension=file_extension)
 
-    full_tokenizer = functools.partial(utils.tokenize, level=1)
+    full_tokenizer = functools.partial(utils.tokenize, level=1)  # type: ignore
     minimizer_round_2 = ChunkMinimizer(
         utils.test,
         max_threads=thread_count,

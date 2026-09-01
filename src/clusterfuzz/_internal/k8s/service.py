@@ -16,6 +16,9 @@ import base64
 import collections
 import ipaddress
 import os
+from typing import Any
+from typing import cast
+from typing import NamedTuple
 import uuid
 
 import google.auth
@@ -23,6 +26,7 @@ from google.auth.transport import requests as google_requests
 from googleapiclient import discovery
 import jinja2
 from kubernetes import client as k8s_client
+from kubernetes.client import rest
 import yaml
 
 from clusterfuzz._internal.base import feature_flags
@@ -36,23 +40,24 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.system import environment
 
-CLUSTER_NAME = project_config = local_config.ProjectConfig().get(
+CLUSTER_NAME: str = local_config.ProjectConfig().get(
     'cluster_name', 'clusterfuzz-cronjobs-gke')
 
-K8S_JOBS_PENDING_LIMIT_DEFAULT = 1000
-
-KubernetesJobConfig = collections.namedtuple('KubernetesJobConfig', [
-    'job_type',
-    'docker_image',
-    'command',
-    'disk_size_gb',
-    'service_account_email',
-    'clusterfuzz_release',
-    'is_kata',
-])
+K8S_JOBS_PENDING_LIMIT_DEFAULT: int = 1000
 
 
-def _get_config_names(remote_tasks: list[remote_task_types.RemoteTask]):
+class KubernetesJobConfig(NamedTuple):
+  job_type: str
+  docker_image: str
+  command: str
+  disk_size_gb: Any
+  service_account_email: str
+  clusterfuzz_release: str
+  is_kata: bool
+
+
+def _get_config_names(remote_tasks: list[remote_task_types.RemoteTask]
+                     ) -> dict[tuple[str, str], tuple[str, Any, str | None]]:
   """Gets the name of the configs for each batch_task. Returns a dict
 
   that is indexed by command and job_type for efficient lookup."""
@@ -134,7 +139,7 @@ def _get_k8s_job_configs(remote_tasks: list[remote_task_types.RemoteTask]
 
 
 def _create_job_body(config: KubernetesJobConfig, input_url: str,
-                     service_account_name: str) -> dict:
+                     service_account_name: str) -> dict[str, Any]:
   """Creates the body of a Kubernetes job."""
 
   job_name = f'cf-job-{str(uuid.uuid4())}'
@@ -161,13 +166,13 @@ def _create_job_body(config: KubernetesJobConfig, input_url: str,
 
   # Render the template and load as YAML.
   rendered_spec = template.render(context)
-  return yaml.safe_load(rendered_spec)
+  return cast(dict[str, Any], yaml.safe_load(rendered_spec))
 
 
 class KubernetesService(remote_task_types.RemoteTaskInterface):
   """A remote task execution client for Kubernetes."""
 
-  def __init__(self, k8s_config_loaded: bool = False):
+  def __init__(self, k8s_config_loaded: bool = False) -> None:
     # In e2e tests, the kubeconfig is already loaded by the test setup.
     if not k8s_config_loaded:
       self._load_gke_credentials()
@@ -175,7 +180,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     self._core_api = k8s_client.CoreV1Api()
     self._batch_api = k8s_client.BatchV1Api()
 
-  def _load_gke_credentials(self):
+  def _load_gke_credentials(self) -> None:
     """Loads GKE credentials and configures the Kubernetes client."""
     credentials, _ = google.auth.default()
     project = environment.get_value('K8S_PROJECT')
@@ -211,7 +216,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
 
     try:
       ipaddress.ip_address(endpoint)
-      configuration.ssl_ca_cert = ca_cert_path
+      cast(Any, configuration).ssl_ca_cert = ca_cert_path
     except ValueError:
       # If the endpoint is a hostname, we assume it's using a public CA or
       # the system trust store should be used.
@@ -220,13 +225,14 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
 
     configuration.verify_ssl = True
 
-    def get_token(creds):
+    def get_token(creds: Any) -> dict[str, str]:
       request = google_requests.Request()
       if not creds.valid or creds.expired:
         creds.refresh(request)
-      return {'authorization': 'Bearer ' + creds.token}
+      return {'authorization': 'Bearer ' + cast(str, creds.token)}
 
-    configuration.refresh_api_key_hook = lambda _: get_token(credentials)
+    cast(Any,
+         configuration).refresh_api_key_hook = lambda _: get_token(credentials)
     configuration.api_key = get_token(credentials)
 
     k8s_client.Configuration.set_default(configuration)
@@ -241,7 +247,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
       self._core_api.read_namespaced_service_account(service_account_name,
                                                      namespace)
       return service_account_name
-    except k8s_client.rest.ApiException as e:
+    except rest.ApiException as e:
       if e.status != 404:
         raise
 
@@ -267,7 +273,7 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
         config.service_account_email)
     job_body = _create_job_body(config, input_url, service_account_name)
     self._batch_api.create_namespaced_job(body=job_body, namespace='default')
-    return job_body['metadata']['name']
+    return cast(str, job_body['metadata']['name'])
 
   def _get_pending_jobs_count(self) -> int:
     """Returns the number of pending jobs."""
@@ -282,8 +288,9 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
       logs.error(f'Failed to list pods: {e}')
       return 0
 
-  def create_utask_main_job(self, module: str, job_type: str,
-                            input_download_url: str):
+  def create_utask_main_job(
+      self, module: str, job_type: str,
+      input_download_url: str) -> list[remote_task_types.RemoteTask]:
     """Creates a single Kubernetes job for a uworker main task."""
 
     command = task_utils.get_command_from_module(module)
@@ -294,7 +301,8 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     return uncreated_tasks
 
   def create_utask_main_jobs(self,
-                             remote_tasks: list[remote_task_types.RemoteTask]):
+                             remote_tasks: list[remote_task_types.RemoteTask]
+                            ) -> list[remote_task_types.RemoteTask]:
     """Creates Kubernetes jobs for a list of uworker main tasks.
 
     This method groups the tasks by their workload specification to efficiently
@@ -315,13 +323,14 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
           f'for k8s.')
       return remote_tasks
 
-    job_specs = collections.defaultdict(list)
+    job_specs: dict[KubernetesJobConfig, list[str]] = collections.defaultdict(
+        list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:
       logs.info(
           f'Scheduling {remote_task.command}, {remote_task.job_type} in K8s.')
       config = configs[(remote_task.command, remote_task.job_type)]
-      job_specs[config].append(remote_task.input_download_url)
+      job_specs[config].append(remote_task.input_download_url)  # type: ignore
     logs.info('Creating Kubernetes jobs.')
     for config, input_urls in job_specs.items():
       for input_url in input_urls:

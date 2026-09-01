@@ -16,11 +16,13 @@ any other module in tasks to prevent circular imports and issues with
 appengine."""
 
 import os
+from typing import Any
+from typing import cast
 
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
-_TESTCASE_BASED_TASKS = {
+_TESTCASE_BASED_TASKS: set[str] = {
     'analyze',
     'blame',
     'impact',
@@ -31,7 +33,7 @@ _TESTCASE_BASED_TASKS = {
     'variant',
 }
 
-_FUZZER_BASED_TASKS = {
+_FUZZER_BASED_TASKS: set[str] = {
     'corpus_pruning',
     'fuzz',
 }
@@ -48,28 +50,30 @@ def is_remotely_executing_utasks() -> bool:
   """Returns True if the utask_main portions of utasks are being remotely
   executed on Google cloud batch."""
   # TODO(metzman): REMOTE_UTASK_EXECUTION should be a config not an env var.
-  return (environment.is_production() and
-          environment.get_value('REMOTE_UTASK_EXECUTION'))
+  return cast(
+      bool,
+      environment.is_production() and
+      environment.get_value('REMOTE_UTASK_EXECUTION'))
 
 
 class UworkerMsgParseError(RuntimeError):
   """Error for parsing UworkerMsgs."""
 
 
-def is_testcase_based_task(task_name: str):
+def is_testcase_based_task(task_name: str) -> bool:
   return task_name in _TESTCASE_BASED_TASKS
 
 
-def is_fuzzer_based_task(task_name: str):
+def is_fuzzer_based_task(task_name: str) -> bool:
   return task_name in _FUZZER_BASED_TASKS
 
 
 def get_task_execution_event_data(
     task_command: str,
     task_argument: str | uworker_msg_pb2.Input | None,  # pylint: disable=no-member
-    job_type: str | None = None) -> dict:
+    job_type: str | None = None) -> dict[str, Any]:
   """Returns a formatted dict with task execution event data."""
-  event_data = {}
+  event_data: dict[str, Any] = {}
   event_data['task_job'] = job_type
   if is_testcase_based_task(task_command):
     testcase_id = (

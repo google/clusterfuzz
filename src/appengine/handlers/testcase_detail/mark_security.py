@@ -13,6 +13,9 @@
 # limitations under the License.
 """Handler for marking a testcase as security-related."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
 from clusterfuzz._internal.base import bisection
@@ -51,11 +54,11 @@ class Handler(base_handler.Handler):
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Mark the testcase as security-related."""
-    testcase_id = request.get('testcaseId')
-    security = request.get('security')
-    severity = request.get('severity')
+    testcase_id = cast(Any, request).get('testcaseId')
+    security = cast(Any, request).get('security')
+    severity = cast(Any, request).get('severity')
     testcase = helpers.get_testcase(testcase_id)
 
     if not access.has_access(

@@ -18,7 +18,9 @@ from abc import abstractmethod
 import collections
 import random
 import time
+from typing import cast
 
+from google.auth import credentials as google_auth_credentials
 from google.cloud import monitoring_v3
 
 from clusterfuzz._internal import swarming
@@ -37,7 +39,11 @@ from clusterfuzz._internal.metrics import logs
 
 
 @memoize.wrap(memoize.InMemory(60))
-def get_queue_size(creds, project_id, subscription_id):
+def get_queue_size(
+    creds: google_auth_credentials.Credentials,
+    project_id: str,
+    subscription_id: str,
+) -> int:
   """Returns the size of the queue (unacked messages)."""
   # TODO(metzman): Not all of these are fuzz_tasks. Deal with that.
   metric = 'pubsub.googleapis.com/subscription/num_undelivered_messages'
@@ -80,19 +86,25 @@ class FuzzTaskCandidate:
   Something like this would probably not be needed if we were using SQL and
   could use joins."""
 
+  job: str
+  project: str
+  fuzzer: str | None
+  weight: float | None
+  base_os_version: str | None
+
   def __init__(self,
-               job,
-               project,
-               fuzzer=None,
-               weight=None,
-               base_os_version=None):
+               job: str,
+               project: str,
+               fuzzer: str | None = None,
+               weight: float | None = None,
+               base_os_version: str | None = None) -> None:
     self.job = job
     self.project = project
     self.fuzzer = fuzzer
     self.weight = weight
     self.base_os_version = base_os_version
 
-  def copy(self):
+  def copy(self) -> 'FuzzTaskCandidate':
     return FuzzTaskCandidate(
         job=self.job,
         project=self.project,
@@ -113,7 +125,7 @@ class OssfuzzFuzzTaskProvider(BaseFuzzTaskProvider):
 
     logs.info(f'Got {len(projects)} projects.')
     total_cpu_weight = sum(project.cpu_weight for project in projects)
-    project_weights = {}
+    project_weights: dict[str, float] = {}
     for project in projects:
       project_weight = project.cpu_weight / total_cpu_weight
       project_weights[project.name] = project_weight
@@ -123,7 +135,7 @@ class OssfuzzFuzzTaskProvider(BaseFuzzTaskProvider):
     # Then get FuzzTaskCandidate weights.
     logs.info('Getting jobs.')
     # TODO(metzman): Handle cases where jobs are fuzzed by multiple fuzzers.
-    candidates_by_job = {}
+    candidates_by_job: dict[str, FuzzTaskCandidate] = {}
     for job in ndb_utils.get_all_from_query(data_types.Job.query()):
       project = projects_by_name.get(job.project)
       base_os_version = None
@@ -132,11 +144,14 @@ class OssfuzzFuzzTaskProvider(BaseFuzzTaskProvider):
       elif job.base_os_version:
         base_os_version = job.base_os_version
 
-      candidates_by_job[job.name] = FuzzTaskCandidate(
-          job=job.name, project=job.project, base_os_version=base_os_version)
+      candidates_by_job[cast(str, job.name)] = FuzzTaskCandidate(
+          job=cast(str, job.name),
+          project=cast(str, job.project),
+          base_os_version=base_os_version)
 
-    fuzzer_job_weight_by_project = collections.defaultdict(int)
-    fuzz_task_candidates = []
+    fuzzer_job_weight_by_project: dict[str, float] = collections.defaultdict(
+        float)
+    fuzz_task_candidates: list[FuzzTaskCandidate] = []
     fuzzer_job_query = ndb_utils.get_all_from_query(
         data_types.FuzzerJob.query())
 
@@ -155,17 +170,17 @@ class OssfuzzFuzzTaskProvider(BaseFuzzTaskProvider):
       if project_weight is None:
         logs.info(f'No project weight for {fuzz_task_candidate.project}.'
                   'Not scheduling.')
-        fuzz_task_candidate.weight = 0
+        fuzz_task_candidate.weight = 0.0
         continue
       total_project_weight = fuzzer_job_weight_by_project[
           fuzz_task_candidate.project]
-      fuzz_task_candidate.weight = (
-          fuzz_task_candidate.weight / total_project_weight) * project_weight
+      fuzz_task_candidate.weight = (cast(float, fuzz_task_candidate.weight) /
+                                    total_project_weight) * project_weight
 
     # Prepare lists for random.choice
-    weights = []
+    weights: list[float] = []
     for fuzz_task_candidate in fuzz_task_candidates:
-      weights.append(fuzz_task_candidate.weight)
+      weights.append(cast(float, fuzz_task_candidate.weight))
 
     logs.info(f'Scheduling {num_tasks} fuzz tasks for OSS-Fuzz.')
 
@@ -189,7 +204,7 @@ class ChromeFuzzTaskProvider(BaseFuzzTaskProvider):
 
   _candidates: list[FuzzTaskCandidate]
 
-  def __init__(self, jobs: list[data_types.Job]):
+  def __init__(self, jobs: list[data_types.Job]) -> None:
     self._candidates = _create_candidates_from_jobs(jobs)
 
   def get_fuzz_tasks(self, num_tasks: int) -> list[tasks.Task]:
@@ -202,7 +217,8 @@ class ChromeFuzzTaskProvider(BaseFuzzTaskProvider):
     if not self._candidates:
       return []
 
-    choices = random.choices(self._candidates, weights=weights, k=num_tasks)
+    choices = random.choices(
+        self._candidates, weights=cast(list[float], weights), k=num_tasks)
     fuzz_tasks = [
         tasks.Task(
             'fuzz',
@@ -219,7 +235,7 @@ def _get_jobs_for_platforms(platforms: list[str]) -> list[data_types.Job]:
   return list(data_types.Job.query(data_types.Job.platform.IN(platforms)))
 
 
-def _get_swarming_jobs():
+def _get_swarming_jobs() -> list[data_types.Job]:
   """Returns all jobs that have swarming environment variables."""
   jobs = _get_jobs_for_platforms(['ANDROID', 'LINUX', 'ANDROID_EMULATOR'])
   return [
@@ -230,7 +246,7 @@ def _get_swarming_jobs():
 
 def _remaining_queue_capacity(queue: PubSubTaskQueue) -> int:
   """Returns the remaining capacity of the given queue."""
-  project = utils.get_application_id()
+  project = cast(str, utils.get_application_id())
   creds = credentials.get_default()[0]
   preprocess_queue_size = get_queue_size(creds, project, queue.name)
 
@@ -243,7 +259,7 @@ def _remaining_queue_capacity(queue: PubSubTaskQueue) -> int:
   return num_tasks
 
 
-def _fill_queue(queue: PubSubTaskQueue, provider: BaseFuzzTaskProvider):
+def _fill_queue(queue: PubSubTaskQueue, provider: BaseFuzzTaskProvider) -> None:
   """Fills the given queue with tasks from the provider."""
   start = time.time()
   num_tasks = _remaining_queue_capacity(queue)
@@ -276,13 +292,13 @@ def _create_candidates_from_jobs(
   fuzzer_job_query = ndb_utils.get_all_from_query(
       data_types.FuzzerJob.query(
           data_types.FuzzerJob.job.IN(list(jobs_by_name.keys()))))
-  fuzz_task_candidates = []
+  fuzz_task_candidates: list[FuzzTaskCandidate] = []
 
   for fuzzer_job in fuzzer_job_query:
     job = jobs_by_name[fuzzer_job.job]
     fuzz_task_candidate = FuzzTaskCandidate(
-        job=job.name,
-        project=job.project,
+        job=cast(str, job.name),
+        project=cast(str, job.project),
         base_os_version=job.base_os_version,
         fuzzer=fuzzer_job.fuzzer,
         weight=fuzzer_job.actual_weight,
@@ -292,7 +308,7 @@ def _create_candidates_from_jobs(
   return fuzz_task_candidates
 
 
-def schedule_chrome_fuzz_tasks():
+def schedule_chrome_fuzz_tasks() -> None:
   """Schedules fuzz tasks for Chrome."""
   default_jobs = _get_jobs_for_platforms(['LINUX'])
   default_provider = ChromeFuzzTaskProvider(default_jobs)
@@ -306,7 +322,7 @@ def schedule_chrome_fuzz_tasks():
   _fill_queue(SWARMING_PREPROCESS_QUEUE, swarming_provider)
 
 
-def schedule_fuzz_tasks():
+def schedule_fuzz_tasks() -> None:
   """Schedules fuzz tasks based on deployment type."""
   if utils.is_oss_fuzz():
     _fill_queue(PREPROCESS_QUEUE, OssfuzzFuzzTaskProvider())
@@ -314,5 +330,5 @@ def schedule_fuzz_tasks():
     schedule_chrome_fuzz_tasks()
 
 
-def main():
+def main() -> None:
   schedule_fuzz_tasks()

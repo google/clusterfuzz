@@ -16,6 +16,10 @@ run.py."""
 
 import hashlib
 import os
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Optional
 
 from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.metrics import logs
@@ -23,22 +27,22 @@ from clusterfuzz._internal.system import environment
 
 # For any given value file, if a file with the same name with this added
 # extension exists, it is not cleared during initialization.
-PERSIST_FILE_EXTENSION = '.persist'
+PERSIST_FILE_EXTENSION: str = '.persist'
 
 
-def initialize():
+def initialize() -> None:
   """Initialize the persistent cache, creating the directory used to store the
   values."""
-  cache_directory_path = environment.get_value('CACHE_DIR')
+  cache_directory_path = cast(str, environment.get_value('CACHE_DIR'))
   if os.path.exists(cache_directory_path):
     clear_values()
   else:
     os.makedirs(cache_directory_path)
 
 
-def clear_values(clear_all=False):
+def clear_values(clear_all: bool = False) -> None:
   """Remove all values."""
-  cache_directory_path = environment.get_value('CACHE_DIR')
+  cache_directory_path = cast(str, environment.get_value('CACHE_DIR'))
   if not os.path.exists(cache_directory_path):
     return
 
@@ -55,14 +59,16 @@ def clear_values(clear_all=False):
       os.remove(file_path)
 
 
-def delete_value(key):
+def delete_value(key: Any) -> None:
   """Removes the value for a key."""
   value_path = get_value_file_path(key)
   if os.path.exists(value_path):
     os.remove(value_path)
 
 
-def get_value(key, default_value=None, constructor=None):
+def get_value(key: Any,
+              default_value: Any = None,
+              constructor: Optional[Callable[[Any], Any]] = None) -> Any:
   """Get the value for a key."""
   value_path = get_value_file_path(key)
 
@@ -95,16 +101,17 @@ def get_value(key, default_value=None, constructor=None):
   return value
 
 
-def get_value_file_path(key):
+def get_value_file_path(key: Any) -> str:
   """Return the full path to the value file for the given key."""
   # Not using utils.string_hash here to avoid a circular dependency.
   # TODO(mbarbella): Avoid this once utils.py is broken into multiple files.
   key_filename = 'cache-%s.json' % hashlib.sha1(str(key).encode()).hexdigest()
-  cache_directory_path = environment.get_value('CACHE_DIR')
+  cache_directory_path = cast(str, environment.get_value('CACHE_DIR'))
   return os.path.join(cache_directory_path, key_filename)
 
 
-def set_value(key, value, persist_across_reboots=False):
+def set_value(key: Any, value: Any,
+              persist_across_reboots: bool = False) -> None:
   """Set the value for a key. If |persist_across_restarts| is set, then the key
   won't be deleted even run.py is restarted. """
   value_path = get_value_file_path(key)

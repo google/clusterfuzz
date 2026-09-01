@@ -13,6 +13,9 @@
 # limitations under the License.
 """Display information for revision ranges."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
 from clusterfuzz._internal.build_management import revisions
@@ -26,11 +29,11 @@ class Handler(base_handler.Handler):
 
   @handler.get(handler.HTML)
   @handler.oauth
-  def get(self):
+  def get(self) -> base_handler.Response:
     """GET handler."""
-    job_type = request.get('job')
-    revision = request.get('revision')
-    revision_range = request.get('range')
+    job_type = cast(Any, request).get('job')
+    revision = cast(Any, request).get('revision')
+    revision_range = cast(Any, request).get('range')
 
     if revision:
       if not revision.isdigit():

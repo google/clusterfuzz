@@ -18,6 +18,14 @@ import functools
 import json
 import threading
 import time
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Mapping
+from typing import Optional
+from typing import ParamSpec
+from typing import Sequence
+from typing import TypeVar
 
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.metrics import logs
@@ -32,8 +40,11 @@ _local = threading.local()
 _DEFAULT_REDIS_HOST = 'localhost'
 _DEFAULT_REDIS_PORT = 6379
 
+_P = ParamSpec('_P')
+_R = TypeVar('_R')
 
-def _redis_client():
+
+def _redis_client() -> Any:
   """Get the redis client."""
   import redis
 
@@ -41,7 +52,7 @@ def _redis_client():
     return _local.redis
 
   host = environment.get_value('REDIS_HOST', _DEFAULT_REDIS_HOST)
-  port = environment.get_value('REDIS_PORT', _DEFAULT_REDIS_PORT)
+  port = cast(int, environment.get_value('REDIS_PORT', _DEFAULT_REDIS_PORT))
 
   _local.redis = redis.Redis(host=host, port=port)
   return _local.redis
@@ -50,20 +61,20 @@ def _redis_client():
 class FifoInMemory:
   """In-memory caching engine."""
 
-  def __init__(self, capacity):
+  def __init__(self, capacity: int) -> None:
     self.capacity = capacity
     self.lock = threading.Lock()
-    self._cache = None
+    self._cache: Optional[collections.OrderedDict[Any, Any]] = None
 
   @property
-  def cache(self):
+  def cache(self) -> Optional[collections.OrderedDict[Any, Any]]:
     """Get the cache backing. None may be returned."""
     if self._cache is None:
       self._cache = collections.OrderedDict()
 
     return self._cache
 
-  def put(self, key, value):
+  def put(self, key: Any, value: Any) -> None:
     """Put (key, value) into cache."""
     if self.cache is None:
       return
@@ -78,14 +89,15 @@ class FifoInMemory:
 
     self.lock.release()
 
-  def get(self, key):
+  def get(self, key: Any) -> Any:
     """Get the value from cache."""
     if self.cache is None:
       return None
 
     return self.cache.get(key)
 
-  def get_key(self, func, args, kwargs):
+  def get_key(self, func: Callable[..., Any], args: Sequence[Any],
+              kwargs: Mapping[str, Any]) -> str:
     """Get a key name based on function, arguments and keyword arguments."""
     return _default_key(func, args, kwargs)
 
@@ -93,15 +105,15 @@ class FifoInMemory:
 class InMemory(FifoInMemory):
   """In-memory caching engine with TTL."""
 
-  def __init__(self, ttl_in_seconds, capacity=1000):
+  def __init__(self, ttl_in_seconds: float, capacity: int = 1000) -> None:
     super().__init__(capacity)
     self.ttl_in_seconds = ttl_in_seconds
 
-  def put(self, key, value):
+  def put(self, key: Any, value: Any) -> None:
     """Put (key, value) into cache."""
     super().put(key, (value, time.time() + self.ttl_in_seconds))
 
-  def get(self, key):
+  def get(self, key: Any) -> Any:
     """Get the value from cache."""
     entry = super().get(key)
     if entry is None:
@@ -117,13 +129,13 @@ class InMemory(FifoInMemory):
 class FifoOnDisk:
   """On-disk caching engine."""
 
-  def __init__(self, capacity):
+  def __init__(self, capacity: int) -> None:
     self.capacity = capacity
-    self.keys = []
+    self.keys: list[str] = []
     self.lock = threading.Lock()
 
   @appengine_noop
-  def put(self, key, value):
+  def put(self, key: str, value: Any) -> None:
     """Put (key, value) into cache."""
     # Lock to avoid race condition in pop.
     self.lock.acquire()
@@ -138,11 +150,12 @@ class FifoOnDisk:
     self.lock.release()
 
   @appengine_noop
-  def get(self, key):
+  def get(self, key: str) -> Any:
     """Get the value from cache."""
     return persistent_cache.get_value(key)
 
-  def get_key(self, func, args, kwargs):
+  def get_key(self, func: Callable[..., Any], args: Sequence[Any],
+              kwargs: Mapping[str, Any]) -> str:
     """Get a key name based on function, arguments and keyword arguments."""
     return _default_key(func, args, kwargs)
 
@@ -150,13 +163,15 @@ class FifoOnDisk:
 class Memcache:
   """Memcache caching engine."""
 
-  def __init__(self, ttl_in_seconds, key_fn=None):
+  def __init__(self,
+               ttl_in_seconds: int,
+               key_fn: Optional[Callable[..., str]] = None) -> None:
     self.ttl_in_seconds = ttl_in_seconds
     self.key_fn = key_fn or _default_key
 
   @local_noop
   @if_redis_available
-  def put(self, key, value):
+  def put(self, key: Any, value: Any) -> None:
     """Put (key, value) into cache."""
     import redis
     try:
@@ -167,7 +182,7 @@ class Memcache:
 
   @local_noop
   @if_redis_available
-  def get(self, key):
+  def get(self, key: Any) -> Any:
     """Get the value from cache."""
     import redis
     try:
@@ -181,34 +196,37 @@ class Memcache:
 
     return json.loads(value_raw)
 
-  def get_key(self, func, args, kwargs):
+  def get_key(self, func: Callable[..., Any], args: Sequence[Any],
+              kwargs: Mapping[str, Any]) -> str:
     return self.key_fn(func, args, kwargs)
 
 
-def _default_key(func, args, kwargs):
+def _default_key(func: Any, args: Sequence[Any],
+                 kwargs: Mapping[str, Any]) -> str:
   """Get a key name based on function, arguments and keyword arguments."""
   # Use unicode instead of str where possible. This makes it less likely to
   # have false misses.
-  args = tuple(arg if not isinstance(arg, str) else str(arg) for arg in args)
+  args_tuple = tuple(
+      arg if not isinstance(arg, str) else str(arg) for arg in args)
 
-  kwargs = {
+  kwargs_dict = {
       key: value if not isinstance(value, str) else str(value)
       for key, value in kwargs.items()
   }
 
-  return 'memoize:%s' % [func.__name__, args, sorted(kwargs.items())]
+  return 'memoize:%s' % [func.__name__, args_tuple, sorted(kwargs_dict.items())]
 
 
-def wrap(engine):
+def wrap(engine: Any) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
   """Decorator for caching the result of method calls. Arguments must
     be hashable. None is not cached because we don't tell the difference
     between having None and not having a key."""
 
-  def decorator(func):
+  def decorator(func: Callable[_P, _R]) -> Callable[_P, _R]:
     """Decorator function."""
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
       """Wrapper function."""
       force_update = kwargs.pop('__memoize_force__', False)
 

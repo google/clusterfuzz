@@ -20,13 +20,13 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 
 
-def schedule(task):
+def schedule(task: str) -> None:
   """Creates tasks for open reproducible testcases."""
   if task == 'impact' and not utils.is_chromium():
     logs.warning('Not creating impact tasks outside of Chrome.')
     return
 
-  testcase_ids = []
+  testcase_ids: list[int | str] = []
   for status in ['Processed', 'Duplicate']:
     for testcase in data_types.Testcase.query(
         ndb_utils.is_true(data_types.Testcase.open),

@@ -13,7 +13,9 @@
 # limitations under the License.
 """Fuzzing engine interface."""
 
-_ENGINES = {}
+from typing import Any
+
+_ENGINES: dict[str, type['Engine']] = {}
 
 
 class Error(Exception):
@@ -24,7 +26,12 @@ class FuzzOptions:
   """Represents options passed to the engine. Can be overridden to provide more
   options."""
 
-  def __init__(self, corpus_dir, arguments, strategies):
+  corpus_dir: str
+  arguments: list[str]
+  strategies: Any
+
+  def __init__(self, corpus_dir: str, arguments: list[str],
+               strategies: Any) -> None:
     self.corpus_dir = corpus_dir
     self.arguments = arguments
     self.strategies = strategies
@@ -33,7 +40,13 @@ class FuzzOptions:
 class Crash:
   """Represents a crash found by the fuzzing engine."""
 
-  def __init__(self, input_path, stacktrace, reproduce_args, crash_time):
+  input_path: str
+  stacktrace: str
+  reproduce_args: list[str]
+  crash_time: float
+
+  def __init__(self, input_path: str, stacktrace: str,
+               reproduce_args: list[str], crash_time: float) -> None:
     self.input_path = input_path
     self.stacktrace = stacktrace
     self.reproduce_args = reproduce_args
@@ -44,13 +57,20 @@ class FuzzResult:
   """Represents a result of a fuzzing session: a list of crashes found and the
   stats generated."""
 
+  logs: str
+  command: Any
+  crashes: list[Crash]
+  stats: Any
+  time_executed: Any
+  timed_out: bool | None
+
   def __init__(self,
-               logs,
-               command,
-               crashes,
-               stats,
-               time_executed,
-               timed_out=None):
+               logs: str,
+               command: Any,
+               crashes: list[Crash],
+               stats: Any,
+               time_executed: Any,
+               timed_out: bool | None = None) -> None:
     self.logs = logs
     self.command = command
     self.crashes = crashes
@@ -62,7 +82,13 @@ class FuzzResult:
 class ReproduceResult:
   """Results from running a testcase against a target."""
 
-  def __init__(self, command, return_code, time_executed, output):
+  command: Any
+  return_code: Any
+  time_executed: Any
+  output: str
+
+  def __init__(self, command: Any, return_code: Any, time_executed: Any,
+               output: str) -> None:
     self.command = command
     self.return_code = return_code
     self.time_executed = time_executed
@@ -72,15 +98,17 @@ class ReproduceResult:
 class Engine:
   """Base interface for a grey box fuzzing engine."""
 
-  def __init__(self):
+  do_strategies: bool
+
+  def __init__(self) -> None:
     self.do_strategies = True
 
   @property
-  def name(self):
+  def name(self) -> str:
     """Get the name of the engine."""
     raise NotImplementedError
 
-  def fuzz_additional_processing_timeout(self, options):
+  def fuzz_additional_processing_timeout(self, options: Any) -> int:
     """Return the maximum additional timeout in seconds for additional
     operations in fuzz() (e.g. merging back new items).
 
@@ -93,7 +121,8 @@ class Engine:
     del options
     return 0
 
-  def prepare(self, corpus_dir, target_path, build_dir):
+  def prepare(self, corpus_dir: str, target_path: str,
+              build_dir: str) -> FuzzOptions:
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
 
@@ -107,7 +136,8 @@ class Engine:
     """
     raise NotImplementedError
 
-  def fuzz(self, target_path, options, reproducers_dir, max_time):
+  def fuzz(self, target_path: str, options: Any, reproducers_dir: str,
+           max_time: Any) -> FuzzResult:
     """Run a fuzz session.
 
     Args:
@@ -122,8 +152,8 @@ class Engine:
     """
     raise NotImplementedError
 
-  def reproduce(self, target_path, input_path, arguments,
-                max_time) -> ReproduceResult:
+  def reproduce(self, target_path: str, input_path: str, arguments: list[str],
+                max_time: Any) -> ReproduceResult:
     """Reproduce a crash given an input.
 
     Args:
@@ -140,8 +170,9 @@ class Engine:
     """
     raise NotImplementedError
 
-  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+  def minimize_corpus(self, target_path: str, arguments: list[str],
+                      input_dirs: list[str], output_dir: str,
+                      reproducers_dir: str, max_time: Any) -> FuzzResult:
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -162,8 +193,9 @@ class Engine:
     """
     raise NotImplementedError
 
-  def minimize_testcase(self, target_path, arguments, input_path, output_path,
-                        max_time):
+  def minimize_testcase(self, target_path: str, arguments: list[str],
+                        input_path: str, output_path: str,
+                        max_time: Any) -> ReproduceResult:
     """Optional (but recommended): Minimize a testcase.
 
     Args:
@@ -181,7 +213,8 @@ class Engine:
     """
     raise NotImplementedError
 
-  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+  def cleanse(self, target_path: str, arguments: list[str], input_path: str,
+              output_path: str, max_time: Any) -> ReproduceResult:
     """Optional (but recommended): Cleanse a testcase.
 
     Args:
@@ -200,7 +233,7 @@ class Engine:
     raise NotImplementedError
 
 
-def register(name, engine_class):
+def register(name: str, engine_class: type[Engine]) -> None:
   """Register a fuzzing engine."""
   if name in _ENGINES:
     raise ValueError('Engine {name} is already registered'.format(name=name))
@@ -208,9 +241,11 @@ def register(name, engine_class):
   _ENGINES[name] = engine_class
 
 
-def get(name):
+def get(name: str | None) -> Engine | None:
   """Gets an implementation of a fuzzing engine, or None if one does not
   exist."""
+  if not name:
+    return None
   engine_class = _ENGINES.get(name)
   if engine_class:
     return engine_class()

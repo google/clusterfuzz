@@ -13,16 +13,20 @@
 # limitations under the License.
 """Handler for removing a testcase from a group."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
 from libs import helpers
 
 
-def remove_group(testcase_id):
+def remove_group(testcase_id: int | str) -> data_types.Testcase:
   """Remove the testcase from a group."""
   testcase = helpers.get_testcase(testcase_id)
   group_id = testcase.group_id
@@ -42,9 +46,10 @@ class Handler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
   @handler.check_admin_access
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Remove the issue from the testcase."""
-    testcase_id = request.get('testcaseId')
+    request_any = cast(Any, request)
+    testcase_id = request_any.get('testcaseId')
 
     updated_testcase = remove_group(testcase_id)
     return self.render_json(show.get_testcase_detail(updated_testcase))

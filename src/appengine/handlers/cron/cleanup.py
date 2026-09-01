@@ -22,5 +22,5 @@ class Handler(base_handler.Handler):
   """Cleanup."""
 
   @handler.cron()
-  def get(self):
+  def get(self) -> None:
     cleanup.main()

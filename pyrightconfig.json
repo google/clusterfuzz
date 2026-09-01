@@ -1,14 +1,62 @@
 {
+  "stubPath": "typings",
   "include": [
-    "src/clusterfuzz"
+    "src/clusterfuzz",
+    "src/appengine"
   ],
   "ignore": [
+    "src/appengine/__init__.py",
+    "src/appengine/clusterfuzz",
+    "src/appengine/handlers/__init__.py",
+    "src/appengine/handlers/cron/__init__.py",
+    "src/appengine/templates",
+    "src/appengine/third_party",
+    "src/clusterfuzz/_internal/bot/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/afl/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/centipede/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/googlefuzztest/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/honggfuzz/__init__.py",
+    "src/clusterfuzz/_internal/bot/fuzzers/libFuzzer/__init__.py",
+    "src/clusterfuzz/_internal/bot/minimizer/__init__.py",
+    "src/clusterfuzz/_internal/bot/tasks/__init__.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/__init__.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/HTMLLexer.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/JavaScriptBaseLexer.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/JavaScriptLexer.py",
+    "src/clusterfuzz/_internal/bot/tokenizer/grammars/__init__.py",
+    "src/clusterfuzz/_internal/bot/untrusted_runner/__init__.py",
+    "src/clusterfuzz/_internal/bot/webserver/__init__.py",
+    "src/clusterfuzz/_internal/config/__init__.py",
+    "src/clusterfuzz/_internal/datastore/__init__.py",
+    "src/clusterfuzz/_internal/fuzzer_utils/__init__.py",
+    "src/clusterfuzz/_internal/google_cloud_utils/__init__.py",
+    "src/clusterfuzz/_internal/metrics/__init__.py",
+    "src/clusterfuzz/_internal/protos",
+    "src/clusterfuzz/_internal/system/__init__.py",
     "src/clusterfuzz/_internal/tests",
+    "src/clusterfuzz/environment/__init__.py",
+    "src/clusterfuzz/fuzz/__init__.py",
     "src/third_party"
   ],
-  "executionEnvironments": [{
-    "root": "src",
-    "extraPaths": [ "src/third_party" ],
-    "pythonVersion": "3.11"
-  }]
+  "executionEnvironments": [
+    {
+      "root": "src/appengine",
+      "extraPaths": [
+        "src/appengine/third_party",
+        "src/appengine/libs",
+        "src",
+        "src/third_party"
+      ],
+      "pythonVersion": "3.11"
+    },
+    {
+      "root": "src",
+      "extraPaths": [
+        "src/appengine",
+        "src/third_party"
+      ],
+      "pythonVersion": "3.11"
+    }
+  ]
 }

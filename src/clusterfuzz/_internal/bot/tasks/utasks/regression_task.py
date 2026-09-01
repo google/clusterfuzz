@@ -16,6 +16,7 @@
 
 import random
 import time
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -40,16 +41,18 @@ from clusterfuzz._internal.system import environment
 # Number of revisions before the maximum to test before doing a bisect. This
 # is also used as a cap for revisions to test near the minimum if the minimum
 # happens to be a bad build.
-EXTREME_REVISIONS_TO_TEST = 3
+EXTREME_REVISIONS_TO_TEST: int = 3
 
 # Number of earlier revisions to check when validating ranges.
-REVISIONS_TO_TEST_FOR_VALIDATION = 2
+REVISIONS_TO_TEST_FOR_VALIDATION: int = 2
 
 # Maximum revisions to look back when validating.
-EARLIER_REVISIONS_TO_CONSIDER_FOR_VALIDATION = 10
+EARLIER_REVISIONS_TO_CONSIDER_FOR_VALIDATION: int = 10
 
 
-def write_to_big_query(testcase, regression_range_start, regression_range_end):
+def write_to_big_query(testcase: data_types.Testcase,
+                       regression_range_start: int,
+                       regression_range_end: int) -> None:
   """Write the regression range to BigQuery."""
   big_query.write_range(
       table_id='regressions',
@@ -60,7 +63,8 @@ def write_to_big_query(testcase, regression_range_start, regression_range_end):
 
 
 def _save_current_regression_range_indices(
-    task_output: uworker_msg_pb2.RegressionTaskOutput, testcase_id: str):  # pylint: disable=no-member
+    task_output: uworker_msg_pb2.RegressionTaskOutput,  # pylint: disable=no-member
+    testcase_id: str) -> None:
   """Save current regression range indices in case we die in middle of task."""
   last_regression_min = None
   if task_output.HasField('last_regression_min'):
@@ -84,7 +88,7 @@ def _save_current_regression_range_indices(
   testcase.put()
 
 
-def save_regression_range(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+def save_regression_range(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   """Saves the regression range and creates blame and impact task if needed."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   regression_range_start = output.regression_task_output.regression_range_start
@@ -114,7 +118,8 @@ def _testcase_reproduces_in_revision(
     fuzz_target: Optional[data_types.FuzzTarget],
     should_log: bool = True,
     min_revision: Optional[int] = None,
-    max_revision: Optional[int] = None):
+    max_revision: Optional[int] = None,
+) -> tuple[Optional[bool], Optional[uworker_msg_pb2.Output]]:  # pylint: disable=no-member
   """Test to see if a test case reproduces in the specified revision.
   Returns a tuple containing the (result, error) depending on whether
   there was an error."""
@@ -149,7 +154,7 @@ def _testcase_reproduces_in_revision(
       testcase,
       testcase_file_path,
       test_timeout,
-      http_flag=testcase.http_flag)
+      http_flag=bool(testcase.http_flag))
   return result.is_crash(), None
 
 
@@ -284,6 +289,7 @@ def find_min_revision(
   # Make sure we account for MIN_REVISION.
   first_revision = revisions.get_first_revision_in_list(revision_list)
   first_index = revisions.find_min_revision_index(revision_list, first_revision)
+  assert first_index is not None
 
   while True:
     # If we fall off the end of the revision list, try the earliest revision.
@@ -585,8 +591,9 @@ def find_regression_range(
       error_message=error_message)
 
 
-def utask_preprocess(testcase_id: str, job_type: str,
-                     uworker_env: Dict) -> Optional[uworker_msg_pb2.Input]:  # pylint: disable=no-member
+def utask_preprocess(
+    testcase_id: str, job_type: str,
+    uworker_env: Dict[str, Any]) -> Optional[uworker_msg_pb2.Input]:  # pylint: disable=no-member
   """Prepares inputs for `utask_main()` to run on an untrusted worker.
 
   Runs on a trusted worker.
@@ -640,13 +647,13 @@ def utask_main(
     return find_regression_range(uworker_input)
 
 
-def handle_revision_list_error(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+def handle_revision_list_error(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.close_testcase_with_error(testcase,
                                          'Failed to fetch revision list')
 
 
-def handle_build_not_found_error(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+def handle_build_not_found_error(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   # If an expected build no longer exists, we can't continue.
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase.regression = 'NA'
@@ -654,7 +661,7 @@ def handle_build_not_found_error(output: uworker_msg_pb2.Output):  # pylint: dis
                                        output.error_message)
 
 
-def handle_regression_build_setup_error(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+def handle_regression_build_setup_error(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   # If we failed to setup a build, it is likely a bot error. We can retry
   # the task in this case.
   uworker_input = output.uworker_input
@@ -672,7 +679,7 @@ def handle_regression_build_setup_error(output: uworker_msg_pb2.Output):  # pyli
 # TODO(https://crbug.com/396344382): Wait for all uworkers to run code past
 # https://github.com/google/clusterfuzz/pull/3934 for a week, then delete this.
 # This error type is obsolete.
-def handle_regression_bad_build_error(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+def handle_regression_bad_build_error(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   # Though bad builds when narrowing the range are recoverable, certain builds
   # being marked as bad may be unrecoverable. Recoverable ones should not
   # reach this point.
@@ -683,7 +690,7 @@ def handle_regression_bad_build_error(output: uworker_msg_pb2.Output):  # pylint
                                        error_message)
 
 
-def handle_regression_no_crash(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+def handle_regression_no_crash(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        output.error_message)
@@ -691,7 +698,7 @@ def handle_regression_no_crash(output: uworker_msg_pb2.Output):  # pylint: disab
   task_creation.mark_unreproducible_if_flaky(testcase, 'regression', True)
 
 
-def handle_regression_timeout(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+def handle_regression_timeout(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        output.error_message)
@@ -699,29 +706,31 @@ def handle_regression_timeout(output: uworker_msg_pb2.Output):  # pylint: disabl
                  output.uworker_input.job_type)
 
 
-def handle_low_confidence_in_regression_range(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+def handle_low_confidence_in_regression_range(
+    output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase.regression = 'NA'
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        output.error_message)
 
 
-_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR:  # pylint: disable=no-member
-        handle_regression_bad_build_error,
-    uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND:  # pylint: disable=no-member
-        handle_build_not_found_error,
-    uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR:  # pylint: disable=no-member
-        handle_regression_build_setup_error,
-    uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE:  # pylint: disable=no-member
-        handle_low_confidence_in_regression_range,
-    uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH:  # pylint: disable=no-member
-        handle_regression_no_crash,
-    uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR:  # pylint: disable=no-member
-        handle_revision_list_error,
-    uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR:  # pylint: disable=no-member
-        handle_regression_timeout,
-}).compose_with(setup.ERROR_HANDLER)
+_ERROR_HANDLER: uworker_handle_errors.CompositeErrorHandler = (
+    uworker_handle_errors.CompositeErrorHandler({
+        uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR:  # pylint: disable=no-member
+            handle_regression_bad_build_error,
+        uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND:  # pylint: disable=no-member
+            handle_build_not_found_error,
+        uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR:  # pylint: disable=no-member
+            handle_regression_build_setup_error,
+        uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE:  # pylint: disable=no-member
+            handle_low_confidence_in_regression_range,
+        uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH:  # pylint: disable=no-member
+            handle_regression_no_crash,
+        uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR:  # pylint: disable=no-member
+            handle_revision_list_error,
+        uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR:  # pylint: disable=no-member
+            handle_regression_timeout,
+    }).compose_with(setup.ERROR_HANDLER))
 
 
 def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
@@ -758,7 +767,8 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
 
 
 def _update_build_metadata(
-    job_type: str, build_data_list: Sequence[uworker_msg_pb2.BuildData]):  # pylint: disable=no-member
+    job_type: str,
+    build_data_list: Sequence[uworker_msg_pb2.BuildData]) -> None:  # pylint: disable=no-member
   """A helper method to update the build metadata corresponding to a
   job_type."""
   for build_data in build_data_list:

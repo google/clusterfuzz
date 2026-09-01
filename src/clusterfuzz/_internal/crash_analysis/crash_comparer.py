@@ -15,8 +15,11 @@
 
 # pylint: disable=consider-using-enumerate
 
+from collections.abc import Sequence
+from typing import cast
 
-def _levenshtein_distance(string_1, string_2):
+
+def _levenshtein_distance(string_1: str, string_2: str) -> int:
   """"Levenshtein_distance calculation: Iterative with two matrix rows,
   based on Wikipedia article and code by Christopher P. Matthews."""
   if string_1 == string_2:
@@ -27,7 +30,7 @@ def _levenshtein_distance(string_1, string_2):
     return len(string_1)
 
   v0 = list(range(len(string_2) + 1))
-  v1 = [None] * (len(string_2) + 1)
+  v1: list[int] = cast(list[int], [None] * (len(string_2) + 1))
 
   for i in range(len(string_1)):
     v1[0] = i + 1
@@ -42,7 +45,7 @@ def _levenshtein_distance(string_1, string_2):
   return v1[len(string_2)]
 
 
-def _similarity_ratio(string_1, string_2):
+def _similarity_ratio(string_1: str, string_2: str) -> float:
   """Return a ratio on how similar two strings are."""
   length_sum = len(string_1) + len(string_2)
   if length_sum == 0:
@@ -52,7 +55,8 @@ def _similarity_ratio(string_1, string_2):
       1.0 * length_sum)
 
 
-def longest_common_subsequence(first_frames, second_frames):
+def longest_common_subsequence(first_frames: Sequence[str],
+                               second_frames: Sequence[str]) -> int:
   """Count number of frames which are the same (taking into account order)."""
   first_len = len(first_frames)
   second_len = len(second_frames)
@@ -75,17 +79,17 @@ class CrashComparer:
   SAME_FRAMES_THRESHOLD = 2
 
   def __init__(self,
-               crash_state_1,
-               crash_state_2,
-               compare_threshold=None,
-               same_frames_threshold=None):
+               crash_state_1: str | None,
+               crash_state_2: str | None,
+               compare_threshold: float | None = None,
+               same_frames_threshold: int | None = None) -> None:
     self.crash_state_1 = crash_state_1
     self.crash_state_2 = crash_state_2
     self.compare_threshold = compare_threshold or self.COMPARE_THRESHOLD
     self.same_frames_threshold = (
         same_frames_threshold or self.SAME_FRAMES_THRESHOLD)
 
-  def is_similar(self):
+  def is_similar(self) -> bool:
     """Return a bool for whether the two crash results are similar."""
     # If one of the crash state is empty, it can't match anything.
     if not self.crash_state_1 or not self.crash_state_2:

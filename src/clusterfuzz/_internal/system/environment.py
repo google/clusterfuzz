@@ -14,6 +14,9 @@
 """Environment functions."""
 
 import ast
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import MutableMapping
 import enum
 import functools
 import os
@@ -21,6 +24,11 @@ import re
 import socket
 import subprocess
 import sys
+from typing import Any
+from typing import cast
+from typing import overload
+from typing import ParamSpec
+from typing import TypeVar
 import uuid
 
 import yaml
@@ -30,12 +38,12 @@ from clusterfuzz._internal import fuzzing
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
-SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
+SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS: list[str] = [
     'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER',
     'MTE'
 ]
 
-SANITIZER_NAME_MAP = {
+SANITIZER_NAME_MAP: dict[str, str] = {
     'ASAN': 'address',
     'CFI': 'cfi',
     'MSAN': 'memory',
@@ -44,7 +52,7 @@ SANITIZER_NAME_MAP = {
     'NOSANITIZER': 'nosanitizer',
 }
 
-COMMON_SANITIZER_OPTIONS = {
+COMMON_SANITIZER_OPTIONS: dict[str, int] = {
     'handle_abort': 1,
     'handle_segv': 1,
     'handle_sigbus': 1,
@@ -53,6 +61,10 @@ COMMON_SANITIZER_OPTIONS = {
     'print_summary': 1,
     'use_sigaltstack': 1,
 }
+
+_P = ParamSpec('_P')
+_R = TypeVar('_R')
+_T = TypeVar('_T')
 
 
 class UtaskMainRuntime(enum.Enum):
@@ -63,7 +75,7 @@ class UtaskMainRuntime(enum.Enum):
   SWARMING = 'swarming'
 
 
-def _eval_value(value_string):
+def _eval_value(value_string: str) -> Any:
   """Returns evaluated value."""
   try:
     return ast.literal_eval(value_string)
@@ -72,13 +84,13 @@ def _eval_value(value_string):
     return value_string
 
 
-def join_memory_tool_options(options):
+def join_memory_tool_options(options: Mapping[str, Any]) -> str:
   """Joins a dict holding memory tool options into a string that can be set in
   the environment."""
   return ':'.join(f'{key}={str(val)}' for key, val in sorted(options.items()))
 
 
-def _maybe_convert_to_int(value):
+def _maybe_convert_to_int(value: str) -> int | str:
   """Returns the int representation contained by string |value| if it contains
   one. Otherwise returns |value|."""
   try:
@@ -89,12 +101,12 @@ def _maybe_convert_to_int(value):
 
 # Matches anything that isn't an unquoted (ie: not between two single or two
 # double quotes) colon.
-UNQUOTED_COLON_REGEX = re.compile('((?:[^\'":]|\'[^\']*\'|"[^"]*")+)')
+UNQUOTED_COLON_REGEX = re.compile(r'((?:[^\'":]|\'[^\']*\'|"[^"]*")+)')
 
 
-def _parse_memory_tool_options(options_str):
+def _parse_memory_tool_options(options_str: str) -> dict[str, Any]:
   """Parses memory tool options into a dict."""
-  parsed = {}
+  parsed: dict[str, Any] = {}
 
   for item in UNQUOTED_COLON_REGEX.split(options_str):
     # Regex split can give us empty strings at the beginning and the end. Skip
@@ -117,7 +129,7 @@ def _parse_memory_tool_options(options_str):
   return parsed
 
 
-def _quote_value_if_needed(value):
+def _quote_value_if_needed(value: str) -> str:
   """Quote environment value as needed for certain platforms like Windows."""
   result = value
   if ' ' in result or ':' in result:
@@ -126,13 +138,13 @@ def _quote_value_if_needed(value):
   return result
 
 
-def copy():
+def copy() -> dict[str, str]:
   """Return a safe copy of the environment."""
   environment_copy = os.environ.copy()
   return environment_copy
 
 
-def disable_lsan():
+def disable_lsan() -> None:
   """Disable leak detection (if enabled)."""
   if get_current_memory_tool_var() != 'ASAN_OPTIONS':
     return
@@ -142,10 +154,12 @@ def disable_lsan():
   set_memory_tool_options('ASAN_OPTIONS', sanitizer_options)
 
 
-def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
-                     bot_platform, leaks, disable_ubsan):
+def get_asan_options(
+    redzone_size: int | float | None, malloc_context_size: int | None,
+    quarantine_size_mb: int | None, bot_platform: str | None,
+    leaks: bool | None, disable_ubsan: bool | None) -> dict[str, Any]:
   """Generates default ASAN options."""
-  asan_options = {}
+  asan_options: dict[str, Any] = {}
 
   # Default options needed for all cases.
   asan_options['alloc_dealloc_mismatch'] = 0
@@ -220,7 +234,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   return asan_options
 
 
-def get_cpu_arch():
+def get_cpu_arch() -> str | None:
   """Return cpu architecture."""
   if is_android():
     # FIXME: Handle this import in a cleaner way.
@@ -231,7 +245,7 @@ def get_cpu_arch():
   return None
 
 
-def get_current_memory_tool_var():
+def get_current_memory_tool_var() -> str | None:
   """Get the environment variable name for the current job type's sanitizer."""
   memory_tool_name = get_memory_tool_name(get_value('JOB_NAME'))
   if not memory_tool_name:
@@ -240,7 +254,19 @@ def get_current_memory_tool_var():
   return memory_tool_name + '_OPTIONS'
 
 
-def get_memory_tool_options(env_var, default_value=None):
+@overload
+def get_memory_tool_options(
+    env_var: str, default_value: None = None) -> dict[str, Any] | None:
+  ...
+
+
+@overload
+def get_memory_tool_options(env_var: str,
+                            default_value: _T) -> dict[str, Any] | _T:
+  ...
+
+
+def get_memory_tool_options(env_var: str, default_value: Any = None) -> Any:
   """Get the current memory tool options as a dict. Returns |default_value| if
   |env_var| isn't set. Otherwise returns a dictionary containing the memory tool
   options and their values."""
@@ -251,7 +277,7 @@ def get_memory_tool_options(env_var, default_value=None):
   return default_value
 
 
-def get_instrumented_libraries_paths():
+def get_instrumented_libraries_paths() -> list[str] | None:
   """Get the instrumented libraries path for the current sanitizer."""
   memory_tool_name = get_memory_tool_name(get_value('JOB_NAME'))
   if not memory_tool_name:
@@ -270,7 +296,7 @@ def get_instrumented_libraries_paths():
   return paths.split(':')
 
 
-def get_default_tool_path(tool_name):
+def get_default_tool_path(tool_name: str) -> str:
   """Get the default tool for this platform (from scripts/ dir)."""
   if is_android():
     # For android devices, we do symbolization on the host machine, which is
@@ -286,7 +312,7 @@ def get_default_tool_path(tool_name):
   return tool_path
 
 
-def get_environment_settings_as_string():
+def get_environment_settings_as_string() -> str:
   """Return environment settings as a string. Includes settings for memory
   debugging tools (e.g. ASAN_OPTIONS for ASAN), application binary revision,
   application command line, etc."""
@@ -337,9 +363,9 @@ def get_environment_settings_as_string():
   return environment_string
 
 
-def get_sanitizer_options_for_display():
+def get_sanitizer_options_for_display() -> list[str]:
   """Return a list of sanitizer options with quoted values."""
-  result = []
+  result: list[str] = []
   for tool in SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS:
     options_variable = tool + '_OPTIONS'
     options_value = os.getenv(options_variable)
@@ -351,7 +377,7 @@ def get_sanitizer_options_for_display():
   return result
 
 
-def get_llvm_symbolizer_path():
+def get_llvm_symbolizer_path() -> str | None:
   """Get the path of the llvm-symbolizer binary."""
   llvm_symbolizer_path = get_value('LLVM_SYMBOLIZER_PATH')
 
@@ -382,17 +408,17 @@ def get_llvm_symbolizer_path():
   return llvm_symbolizer_path
 
 
-def get_root_directory():
+def get_root_directory() -> str:
   """Return root directory."""
   return get_value('ROOT_DIR')
 
 
-def get_startup_scripts_directory():
+def get_startup_scripts_directory() -> str:
   """Return path to startup scripts."""
   return os.path.join(get_value('ROOT_DIR'), 'src', 'python', 'bot', 'startup')
 
 
-def get_config_directory():
+def get_config_directory() -> str:
   """Return the path to the configs directory."""
   config_dir = get_value('CONFIG_DIR_OVERRIDE')
   if config_dir:
@@ -406,22 +432,23 @@ def get_config_directory():
   return os.path.join(get_root_directory(), 'src', 'appengine', 'config')
 
 
-def get_gae_config_directory():
+def get_gae_config_directory() -> str:
   """Return the path to the google appengine configs directory."""
   return os.path.join(get_config_directory(), 'gae')
 
 
-def get_gce_config_directory():
+def get_gce_config_directory() -> str:
   """Return the path to the google compute engine configs directory."""
   return os.path.join(get_config_directory(), 'gce')
 
 
-def get_resources_directory():
+def get_resources_directory() -> str:
   """Return the path to the resources directory."""
   return os.path.join(get_root_directory(), 'resources')
 
 
-def get_platform_resources_directory(platform_override=None):
+def get_platform_resources_directory(
+    platform_override: str | None = None) -> str:
   """Return the path to platform-specific resources directory."""
   plt = platform_override or platform()
 
@@ -432,12 +459,13 @@ def get_platform_resources_directory(platform_override=None):
   return os.path.join(get_resources_directory(), 'platform', plt.lower())
 
 
-def get_suppressions_directory():
+def get_suppressions_directory() -> str:
   """Return the path to the suppressions directory."""
   return os.path.join(get_config_directory(), 'suppressions')
 
 
-def get_suppressions_file(sanitizer, suffix='suppressions'):
+def get_suppressions_file(sanitizer: str,
+                          suffix: str = 'suppressions') -> str | None:
   """Return the path to sanitizer suppressions file, if exists."""
   sanitizer_suppressions_filename = '{sanitizer}_{suffix}.txt'.format(
       sanitizer=sanitizer, suffix=suffix)
@@ -453,10 +481,10 @@ def get_suppressions_file(sanitizer, suffix='suppressions'):
   return sanitizer_suppressions_file_path
 
 
-def get_lsan_options():
+def get_lsan_options() -> dict[str, Any]:
   """Generates default LSAN options."""
   lsan_suppressions_path = get_suppressions_file('lsan')
-  lsan_options = {
+  lsan_options: dict[str, Any] = {
       'print_suppressions': 0,
   }
 
@@ -469,9 +497,9 @@ def get_lsan_options():
   return lsan_options
 
 
-def get_kasan_options():
+def get_kasan_options() -> dict[str, Any]:
   """Generates default KASAN options."""
-  kasan_options = {'symbolize': 0}
+  kasan_options: dict[str, Any] = {'symbolize': 0}
 
   # Add common sanitizer options.
   kasan_options.update(COMMON_SANITIZER_OPTIONS)
@@ -479,9 +507,9 @@ def get_kasan_options():
   return kasan_options
 
 
-def get_msan_options():
+def get_msan_options() -> dict[str, Any]:
   """Generates default MSAN options."""
-  msan_options = {'symbolize': 0}
+  msan_options: dict[str, Any] = {'symbolize': 0}
 
   # Add common sanitizer options.
   msan_options.update(COMMON_SANITIZER_OPTIONS)
@@ -489,7 +517,7 @@ def get_msan_options():
   return msan_options
 
 
-def get_platform_id():
+def get_platform_id() -> str:
   """Return a platform id as a lowercase string."""
   bot_platform = platform()
   if is_android_cuttlefish():
@@ -504,7 +532,7 @@ def get_platform_id():
   return bot_platform.lower()
 
 
-def get_platform_group():
+def get_platform_group() -> str:
   """Return the platform group (specified via QUEUE_OVERRIDE) if it
   exists, otherwise platform()."""
   platform_group = get_value('QUEUE_OVERRIDE')
@@ -514,7 +542,7 @@ def get_platform_group():
   return platform()
 
 
-def get_memory_tool_name(job_name):
+def get_memory_tool_name(job_name: str | None) -> str:
   """Figures out name of memory debugging tool."""
   for tool in SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS:
     if tool_matches(tool, job_name):
@@ -524,7 +552,7 @@ def get_memory_tool_name(job_name):
   return 'ASAN'
 
 
-def get_memory_tool_display_string(job_name):
+def get_memory_tool_display_string(job_name: str | None) -> str:
   """Return memory tool string for a testcase."""
   memory_tool_name = get_memory_tool_name(job_name)
   sanitizer_name = SANITIZER_NAME_MAP.get(memory_tool_name)
@@ -534,7 +562,7 @@ def get_memory_tool_display_string(job_name):
   return 'Sanitizer: %s (%s)' % (sanitizer_name, memory_tool_name)
 
 
-def get_executable_filename(executable_name):
+def get_executable_filename(executable_name: str) -> str:
   """Return the filename for the given executable."""
   if platform() != 'WINDOWS':
     return executable_name
@@ -546,11 +574,11 @@ def get_executable_filename(executable_name):
   return executable_name + extension
 
 
-def get_tsan_options():
+def get_tsan_options() -> dict[str, Any]:
   """Generates default TSAN options."""
   tsan_suppressions_path = get_suppressions_file('tsan')
 
-  tsan_options = {
+  tsan_options: dict[str, Any] = {
       'atexit_sleep_ms': 200,
       'flush_memory_ms': 2000,
       'history_size': 3,
@@ -570,12 +598,12 @@ def get_tsan_options():
   return tsan_options
 
 
-def get_ubsan_options():
+def get_ubsan_options() -> dict[str, Any]:
   """Generates default UBSAN options."""
   # Note that UBSAN can work together with ASAN as well.
   ubsan_suppressions_path = get_suppressions_file('ubsan')
 
-  ubsan_options = {
+  ubsan_options: dict[str, Any] = {
       'halt_on_error': 1,
       'print_stacktrace': 1,
       'print_suppressions': 0,
@@ -597,7 +625,7 @@ def get_ubsan_options():
   return ubsan_options
 
 
-def get_ubsan_disabled_options():
+def get_ubsan_disabled_options() -> dict[str, Any]:
   """Generates ubsan options """
   return {
       'halt_on_error': 0,
@@ -606,12 +634,31 @@ def get_ubsan_disabled_options():
   }
 
 
-def get_value_string(environment_variable, default_value=None):
+@overload
+def get_value_string(environment_variable: str,
+                     default_value: None = None) -> str | None:
+  ...
+
+
+@overload
+def get_value_string(environment_variable: str, default_value: str) -> str:
+  ...
+
+
+@overload
+def get_value_string(environment_variable: str, default_value: _T) -> str | _T:
+  ...
+
+
+def get_value_string(environment_variable: str,
+                     default_value: Any = None) -> Any:
   """Get environment variable (as a string)."""
   return os.getenv(environment_variable, default_value)
 
 
-def get_value(environment_variable, default_value=None, env=None):
+def get_value(environment_variable: str,
+              default_value: Any = None,
+              env: Mapping[str, str] | None = None) -> Any:
   """Return an environment variable value."""
   if env is None:
     env = os.environ
@@ -630,7 +677,7 @@ def get_value(environment_variable, default_value=None, env=None):
   return _eval_value(value_string)
 
 
-def _job_substring_match(search_string, job_name):
+def _job_substring_match(search_string: str, job_name: str | None) -> bool:
   """Return a bool on whether a string exists in a provided job name or
   use from environment if available (case insensitive)."""
   job_name = job_name or get_value('JOB_NAME')
@@ -640,56 +687,59 @@ def _job_substring_match(search_string, job_name):
   return search_string in job_name.lower()
 
 
-def is_afl_job(job_name=None):
+def is_afl_job(job_name: str | None = None) -> bool:
   """Return True if the current job uses AFL."""
   return get_engine_for_job(job_name) == 'afl'
 
 
-def is_ios_job(job_name=None):
+def is_ios_job(job_name: str | None = None) -> bool:
   """Return True if the current job is for iOS."""
   return _job_substring_match('ios_', job_name)
 
 
-def is_chromeos_job(job_name=None):
+def is_chromeos_job(job_name: str | None = None) -> bool:
   """Return True if the current job is for ChromeOS."""
   return _job_substring_match('chromeos', job_name)
 
 
-def is_lkl_job(job_name=None):
+def is_lkl_job(job_name: str | None = None) -> bool:
   """Return True if the current job is for ChromeOS."""
   return _job_substring_match('lkl', job_name)
 
 
-def is_chromeos_system_job(job_name=None):
+def is_chromeos_system_job(job_name: str | None = None) -> bool:
   """Return True if the current job is for ChromeOS system (i.e. not libFuzzer
   or entire Chrome browser for Chrome on ChromeOS)."""
   return is_chromeos_job(job_name) and get_value('CHROMEOS_SYSTEM')
 
 
-def is_libfuzzer_job(job_name=None):
+def is_libfuzzer_job(job_name: str | None = None) -> bool:
   """Return True if the current job uses libFuzzer."""
   return get_engine_for_job(job_name) == 'libFuzzer'
 
 
-def is_honggfuzz_job(job_name=None):
+def is_honggfuzz_job(job_name: str | None = None) -> bool:
   """Return True if the current job uses honggfuzz."""
   return get_engine_for_job(job_name) == 'honggfuzz'
 
 
-def is_centipede_fuzzer_job(job_name=None):
+def is_centipede_fuzzer_job(job_name: str | None = None) -> bool:
   """Return True if the current job uses Centipede."""
   return get_engine_for_job(job_name) == 'centipede'
 
 
-def is_engine_fuzzer_job(job_name=None):
+def is_engine_fuzzer_job(job_name: str | None = None) -> bool:
   """Return True if this is an engine fuzzer."""
   return bool(get_engine_for_job(job_name))
 
 
-def get_engine_for_job(job_name=None):
+def get_engine_for_job(job_name: str | None = None) -> str | None:
   """Get the engine for the given job."""
   if not job_name:
     job_name = get_value('JOB_NAME')
+
+  if not job_name:
+    return None
 
   for engine in fuzzing.ENGINES:
     if engine.lower() in job_name:
@@ -698,7 +748,7 @@ def get_engine_for_job(job_name=None):
   return None
 
 
-def is_minimization_supported():
+def is_minimization_supported() -> bool:
   """Return True if the current job supports minimization.
 
   Currently blackbox-fuzzer jobs or libfuzzer support minimization, unless
@@ -708,18 +758,18 @@ def is_minimization_supported():
   return not skipped and (not is_engine_fuzzer_job() or is_libfuzzer_job())
 
 
-def is_posix():
+def is_posix() -> bool:
   """Return True if we are on a posix platform (linux/unix and mac os)."""
   return os.name == 'posix'
 
 
-def is_trusted_host(ensure_connected=True):
+def is_trusted_host(ensure_connected: bool = True) -> bool:
   """Return whether or not the current bot is a trusted host."""
   return get_value('TRUSTED_HOST') and (not ensure_connected or
                                         get_value('WORKER_BOT_NAME'))
 
 
-def is_untrusted_worker():
+def is_untrusted_worker() -> bool:
   """Return whether or not the current bot is an untrusted worker."""
   return get_value('UNTRUSTED_WORKER')
 
@@ -756,31 +806,33 @@ def is_running_on_swarming() -> bool:
   return get_value('SWARMING_BOT') is True
 
 
-def is_running_on_app_engine():
+def is_running_on_app_engine() -> bool:
   """Return True if we are running on appengine (local or production)."""
-  return (os.getenv('GAE_ENV') or is_running_on_app_engine_development() or
-          os.getenv('SERVER_SOFTWARE', '').startswith('Google App Engine/'))
+  return bool(
+      os.getenv('GAE_ENV') or is_running_on_app_engine_development() or
+      os.getenv('SERVER_SOFTWARE', '').startswith('Google App Engine/'))
 
 
-def is_running_on_app_engine_development():
+def is_running_on_app_engine_development() -> bool:
   """Return True if running on the local development appengine server."""
   return (os.getenv('GAE_ENV') == 'dev' or
           os.getenv('SERVER_SOFTWARE', '').startswith('Development/'))
 
 
-def parse_environment_definition(environment_string):
+def parse_environment_definition(
+    environment_string: str | None) -> dict[str, str]:
   """Parses a job's environment definition."""
   if not environment_string:
     return {}
 
   definitions = [environment_string.splitlines()]
-  values = {}
+  values: dict[str, str] = {}
   for definition in definitions:
     for line in definition:
       if line.startswith('#') or not line.strip():
         continue
 
-      m = re.match('([^ =]+)[ ]*=[ ]*(.*)', line)
+      m = re.match(r'([^ =]+)[ ]*=[ ]*(.*)', line)
       if m:
         key = m.group(1).strip()
         value = m.group(2).strip()
@@ -797,16 +849,16 @@ def is_running_on_k8s() -> bool:
   return bool(env_value)
 
 
-def base_platform(override):
+def base_platform(override: str) -> str:
   """Return the base platform when an override is provided."""
   return override.split(':')[0]
 
 
-def platform():
+def platform() -> str:
   """Return the operating system type, unless an override is provided."""
   environment_override = get_value('OS_OVERRIDE')
   if environment_override:
-    return environment_override.upper()
+    return str(environment_override).upper()
 
   if sys.platform.startswith('win'):
     return 'WINDOWS'
@@ -818,7 +870,7 @@ def platform():
   raise ValueError('Unsupported platform "%s".' % sys.platform)
 
 
-def remove_key(key_name):
+def remove_key(key_name: str | None) -> None:
   """Remove environment |key| and its associated value."""
   if not key_name:
     return
@@ -830,10 +882,10 @@ def remove_key(key_name):
 
 
 # Used by reset_environment to store the initial environment.
-_initial_environment = None
+_initial_environment: dict[str, str] | None = None
 
 
-def reset_environment():
+def reset_environment() -> None:
   """Resets environment variables to their initial state. Saves the initial
     state on first call."""
   global _initial_environment
@@ -853,7 +905,7 @@ def reset_environment():
     untrusted_env.reset_environment()
 
 
-def set_common_environment_variables():
+def set_common_environment_variables() -> None:
   """Sets environment variables common for different memory debugging tools."""
   # G_SLICE = always-malloc: make glib use system malloc.
   # NSS_DISABLE_UNLOAD = 1: make nss skip dlclosing dynamically loaded modules,
@@ -865,12 +917,14 @@ def set_common_environment_variables():
   set_value('NACL_DANGEROUS_SKIP_QUALIFICATION_TEST', 1)
 
 
-def set_memory_tool_options(env_var, options_dict):
+def set_memory_tool_options(env_var: str,
+                            options_dict: Mapping[str, Any]) -> None:
   """Set current memory tool options."""
   set_value(env_var, join_memory_tool_options(options_dict))
 
 
-def update_symbolizer_options(tool_options, symbolize_inline_frames=False):
+def update_symbolizer_options(tool_options: dict[str, Any],
+                              symbolize_inline_frames: bool = False) -> None:
   """Checks and updates the necessary symbolizer options such as
   `external_symbolizer_path` and `symbolize_inline_frames`."""
   if 'external_symbolizer_path' not in tool_options:
@@ -886,12 +940,13 @@ def update_symbolizer_options(tool_options, symbolize_inline_frames=False):
     })
 
 
-def reset_current_memory_tool_options(redzone_size=0,
-                                      malloc_context_size=0,
-                                      leaks=True,
-                                      symbolize_inline_frames=False,
-                                      quarantine_size_mb=None,
-                                      disable_ubsan=False):
+def reset_current_memory_tool_options(
+    redzone_size: int | float | None = 0,
+    malloc_context_size: int | None = 0,
+    leaks: bool | None = True,
+    symbolize_inline_frames: bool = False,
+    quarantine_size_mb: int | None = None,
+    disable_ubsan: bool | None = False) -> None:
   """Resets environment variables for memory debugging tool to default
   values."""
   # FIXME: Handle these imports in a cleaner way.
@@ -906,7 +961,7 @@ def reset_current_memory_tool_options(redzone_size=0,
   set_value('MEMORY_TOOL', tool_name)
 
   bot_platform = platform()
-  tool_options = {}
+  tool_options: dict[str, Any] = {}
 
   # Default options for memory debuggin tool used.
   if tool_name in ['ASAN', 'HWASAN']:
@@ -948,19 +1003,19 @@ def reset_current_memory_tool_options(redzone_size=0,
     android.sanitizer.set_options(tool_name, joined_tool_options)
 
 
-def set_default_vars():
+def set_default_vars() -> None:
   """Set default environment vars and values."""
   env_file_path = os.path.join(get_value('ROOT_DIR'), 'bot', 'env.yaml')
   with open(env_file_path) as file_handle:
     env_file_contents = file_handle.read()
 
   env_vars_and_values = yaml.safe_load(env_file_contents)
-  for variable, value in env_vars_and_values.items():
+  for variable, value in env_vars_and_values.items():  # pyright: ignore
     # We cannot call set_value here.
-    os.environ[variable] = str(value)
+    os.environ[str(variable)] = str(value)
 
 
-def set_bot_environment():
+def set_bot_environment() -> bool:
   """Set environment for the bots."""
   root_dir = get_value('ROOT_DIR')
 
@@ -1036,7 +1091,7 @@ def set_bot_environment():
   return True
 
 
-def set_local_log_only():
+def set_local_log_only() -> None:
   """Force logs to be local-only."""
 
   # We set this to an empty string because currently the logs
@@ -1046,7 +1101,7 @@ def set_local_log_only():
   set_value('LOG_TO_CONSOLE', 'True')
 
 
-def set_tsan_max_history_size():
+def set_tsan_max_history_size() -> None:
   """Sets maximum history size for TSAN tool."""
   tsan_options = get_value('TSAN_OPTIONS')
   if not tsan_options:
@@ -1061,7 +1116,8 @@ def set_tsan_max_history_size():
   set_value('TSAN_OPTIONS', tsan_options)
 
 
-def set_task_id_vars(task_name, task_id=None):
+def set_task_id_vars(task_name: str,
+                     task_id: uuid.UUID | str | None = None) -> None:
   """Sets environment vars for task name and ID."""
   if not task_id:
     task_id = uuid.uuid4()
@@ -1069,7 +1125,9 @@ def set_task_id_vars(task_name, task_id=None):
   set_value('CF_TASK_NAME', task_name)
 
 
-def set_value(environment_variable, value, env=None):
+def set_value(environment_variable: Any,
+              value: Any,
+              env: MutableMapping[str, str] | None = None) -> None:
   """Set an environment variable."""
   if env is None:
     env = os.environ
@@ -1085,7 +1143,7 @@ def set_value(environment_variable, value, env=None):
                                                value_str)
 
 
-def get_initial_task_name():
+def get_initial_task_name() -> str | None:
   """Returns the name of the task that this task (postprocess or utask_main) is
   part of."""
   initial_task_payload = get_value('INITIAL_TASK_PAYLOAD')
@@ -1094,18 +1152,19 @@ def get_initial_task_name():
   return initial_task_payload.split(' ')[0]
 
 
-def tool_matches(tool_name, job_name):
+def tool_matches(tool_name: str, job_name: str | None) -> bool:
   """Return if the memory debugging tool is used in this job."""
   match_prefix = '(.*[^a-zA-Z]|^)%s'
-  matches_tool = re.match(match_prefix % tool_name.lower(), job_name.lower())
+  matches_tool = re.match(match_prefix % tool_name.lower(),
+                          job_name.lower())  # type: ignore
   return bool(matches_tool)
 
 
-def appengine_noop(func):
+def appengine_noop(func: Callable[_P, _R]) -> Callable[_P, _R | None]:
   """Wrap a function into no-op and return None if running on App Engine."""
 
   @functools.wraps(func)
-  def wrapper(*args, **kwargs):
+  def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R | None:
     if is_running_on_app_engine():
       return None
 
@@ -1114,11 +1173,11 @@ def appengine_noop(func):
   return wrapper
 
 
-def bot_noop(func):
+def bot_noop(func: Callable[_P, _R]) -> Callable[_P, _R | None]:
   """Wrap a function into no-op and return None if running on bot."""
 
   @functools.wraps(func)
-  def wrapper(*args, **kwargs):
+  def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R | None:
     is_bot = not is_running_on_app_engine()
     if is_bot:
       return None
@@ -1128,25 +1187,25 @@ def bot_noop(func):
   return wrapper
 
 
-def is_local_development():
+def is_local_development() -> bool:
   """Return True if running in local development environment (e.g. running
   a bot locally, excludes tests)."""
   return bool(get_value('LOCAL_DEVELOPMENT') and not get_value('PY_UNITTESTS'))
 
 
-def is_production():
+def is_production() -> bool:
   """Returns True if there are no environmental indicators
   of local development ocurring."""
   return not (is_local_development() or get_value('UNTRUSTED_RUNNER_TESTS') or
               get_value('LOCAL_DEVELOPMENT') or get_value('UTASK_TESTS'))
 
 
-def local_noop(func):
+def local_noop(func: Callable[_P, _R]) -> Callable[_P, _R | None]:
   """Wrap a function into no-op and return None if running in local
   development environment."""
 
   @functools.wraps(func)
-  def wrapper(*args, **kwargs):
+  def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R | None:
     if (is_local_development() or is_running_on_app_engine_development()):
       return None
 
@@ -1155,50 +1214,50 @@ def local_noop(func):
   return wrapper
 
 
-def is_ephemeral():
+def is_ephemeral() -> bool:
   """Return whether or not we are an ephemeral bot."""
   return get_value('EPHEMERAL')
 
 
-def is_android(plt=None):
+def is_android(plt: str | None = None) -> bool:
   """Return True if we are on android platform."""
   return 'ANDROID' in (plt or platform())
 
 
-def is_android_auto(plt=None):
+def is_android_auto(plt: str | None = None) -> bool:
   """Return True if we are on automotive platform."""
   return 'ANDROID_AUTO' in (plt or platform())
 
 
-def is_android_cuttlefish(plt=None):
+def is_android_cuttlefish(plt: str | None = None) -> bool:
   """Return True if we are on android cuttlefish platform."""
   return 'ANDROID_X86' in (plt or platform())
 
 
-def is_android_emulator():
+def is_android_emulator() -> bool:
   """Return True if we are on android emulator platform."""
   return 'ANDROID_EMULATOR' in get_platform_group()
 
 
-def is_android_real_device():
+def is_android_real_device() -> bool:
   """Return True if we are on a real android device."""
   return base_platform(platform()) == 'ANDROID'
 
 
-def is_lib():
+def is_lib() -> bool:
   """Whether or not we're in libClusterFuzz."""
   return get_value('LIB_CF')
 
 
-def is_i386(job_type):
+def is_i386(job_type: str) -> bool:
   return '_i386' in job_type
 
 
-def if_redis_available(func):
+def if_redis_available(func: Callable[_P, _R]) -> Callable[_P, _R | None]:
   """Wrap a function if redis is available and return None if not."""
 
   @functools.wraps(func)
-  def wrapper(*args, **kwargs):
+  def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R | None:
     if get_value('REDIS_HOST'):
       return func(*args, **kwargs)
 
@@ -1207,11 +1266,10 @@ def if_redis_available(func):
   return wrapper
 
 
-def is_testcase_deprecated(platform_id=None):
+def is_testcase_deprecated(platform_id: str | None = None) -> bool:
   """Whether or not the device or branch is deprecated."""
-
-  if is_android(
-      platform_id.upper()) and not is_android_cuttlefish(platform_id.upper()):
+  if is_android(cast(str, platform_id).upper()) and not is_android_cuttlefish(
+      cast(str, platform_id).upper()):
     # FIXME: Handle these imports in a cleaner way.
     from clusterfuzz._internal.platforms import android
 
@@ -1220,7 +1278,8 @@ def is_testcase_deprecated(platform_id=None):
   return False
 
 
-def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
+def can_testcase_run_on_platform(testcase_platform_id: str,
+                                 current_platform_id: str) -> bool:
   """Whether or not the testcase can run on the current platform."""
   if not is_android(testcase_platform_id.upper()) or not is_android(
       current_platform_id.upper()):
@@ -1241,7 +1300,7 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
   return False
 
 
-def is_tworker():
+def is_tworker() -> bool:
   return get_value('TWORKER', False)
 
 
