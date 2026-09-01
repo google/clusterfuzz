@@ -66,7 +66,9 @@ steps:
     
     # Install required deps for performing butler deploy
     bash ./local/install_deps.bash
-    
+
+    export PATH="$$PATH:$$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$$HOME/.local/bin")"
+
     # Get into the venv
     source .venv/bin/activate
 
