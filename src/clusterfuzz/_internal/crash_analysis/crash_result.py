@@ -24,18 +24,25 @@ from clusterfuzz.stacktraces import CrashInfo
 class CrashResult:
   """Represents a crash result from a test run."""
 
-  def __init__(self, return_code, crash_time, output, unexpected_crash=False):
-    self.return_code = return_code
-    self.crash_time = crash_time
-    self.output = utils.decode_to_unicode(output) if output else 'No output!'
+  def __init__(
+      self,
+      return_code: int | None,
+      crash_time: float | None,
+      output: str | bytes | None,
+      unexpected_crash: bool = False,
+  ) -> None:
+    self.return_code: int | None = return_code
+    self.crash_time: float | None = crash_time
+    self.output: str = (
+        utils.decode_to_unicode(output) if output else 'No output!')
     # For crashes against an expected state, this indicates whether if there
     # was a crash that didn't match.
-    self.unexpected_crash = unexpected_crash
+    self.unexpected_crash: bool = unexpected_crash
 
-    self._symbolized_crash_data = None
-    self._unsymbolized_crash_data = None
+    self._symbolized_crash_data: CrashInfo | None = None
+    self._unsymbolized_crash_data: CrashInfo | None = None
 
-  def get_crash_time(self):
+  def get_crash_time(self) -> float | None:
     """Return the crash time."""
     return self.crash_time
 
@@ -57,7 +64,7 @@ class CrashResult:
         self.output, symbolize_flag=False)
     return self._unsymbolized_crash_data
 
-  def get_state(self, symbolized=True):
+  def get_state(self, symbolized: bool = True) -> str:
     """Return the crash state."""
     if symbolized:
       state = self.get_symbolized_data()
@@ -66,7 +73,7 @@ class CrashResult:
 
     return state.crash_state
 
-  def get_stacktrace(self, symbolized=True):
+  def get_stacktrace(self, symbolized: bool = True) -> str:
     """Return the crash stacktrace."""
     if symbolized:
       state = self.get_symbolized_data()
@@ -75,13 +82,13 @@ class CrashResult:
 
     return state.crash_stacktrace
 
-  def get_type(self):
+  def get_type(self) -> str:
     """Return the crash type."""
     # It does not matter whether we use symbolized or unsymbolized data.
     state = self.get_unsymbolized_data()
     return state.crash_type
 
-  def is_crash(self, ignore_state=False):
+  def is_crash(self, ignore_state: bool = False) -> bool:
     """Return True if this result was a crash."""
     crashed = crash_analyzer.is_crash(self.return_code, self.output)
     if not crashed:
@@ -92,12 +99,12 @@ class CrashResult:
       return False
     return True
 
-  def should_ignore(self):
+  def should_ignore(self) -> bool:
     """Return True if this crash should be ignored."""
     state = self.get_symbolized_data()
     return crash_analyzer.ignore_stacktrace(state.crash_stacktrace)
 
-  def is_security_issue(self):
+  def is_security_issue(self) -> bool:
     """Return True if this crash is a security issue."""
     state = self.get_unsymbolized_data()
     return crash_analyzer.is_security_issue(

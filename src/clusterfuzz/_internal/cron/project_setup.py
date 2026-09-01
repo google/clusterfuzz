@@ -14,10 +14,18 @@
 """Handler used for setting up oss-fuzz and android jobs."""
 
 import base64
-import collections
 import copy
 import json
 import re
+from typing import Any
+from typing import cast
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import NamedTuple
+from typing import Optional
+from typing import Set
+from typing import Tuple
 
 from google.cloud import ndb
 import requests
@@ -38,42 +46,49 @@ from clusterfuzz._internal.metrics import logs
 
 from . import service_accounts
 
-BUILD_BUCKET_PATH_TEMPLATE = (
+BUILD_BUCKET_PATH_TEMPLATE: str = (
     'gs://%BUCKET%/%PROJECT%/%PROJECT%-%SANITIZER%-([0-9]+).zip')
 
-BACKUPS_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=100)
-LOGS_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=14)
-QUARANTINE_LIFECYCLE = storage.generate_life_cycle_config('Delete', age=90)
+BACKUPS_LIFECYCLE: Dict[str, Any] = storage.generate_life_cycle_config(
+    'Delete', age=100)
+LOGS_LIFECYCLE: Dict[str, Any] = storage.generate_life_cycle_config(
+    'Delete', age=14)
+QUARANTINE_LIFECYCLE: Dict[str, Any] = storage.generate_life_cycle_config(
+    'Delete', age=90)
 
-JOB_TEMPLATE = ('{build_type} = {build_bucket_path}\n'
-                'PROJECT_NAME = {project_name}\n'
-                'SUMMARY_PREFIX = {project_name}\n'
-                'MANAGED = True\n'
-                'DISK_SIZE_GB = {disk_size_gb}\n')
+JOB_TEMPLATE: str = ('{build_type} = {build_bucket_path}\n'
+                     'PROJECT_NAME = {project_name}\n'
+                     'SUMMARY_PREFIX = {project_name}\n'
+                     'MANAGED = True\n'
+                     'DISK_SIZE_GB = {disk_size_gb}\n')
 
-OBJECT_VIEWER_IAM_ROLE = 'roles/storage.objectViewer'
-OBJECT_ADMIN_IAM_ROLE = 'roles/storage.objectAdmin'
+OBJECT_VIEWER_IAM_ROLE: str = 'roles/storage.objectViewer'
+OBJECT_ADMIN_IAM_ROLE: str = 'roles/storage.objectAdmin'
 
-VALID_PROJECT_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_-]+$')
+VALID_PROJECT_NAME_REGEX: re.Pattern = re.compile(r'^[a-zA-Z0-9_-]+$')
 
-REVISION_URL = ('https://commondatastorage.googleapis.com/'
-                '{bucket}/{project}/{project}-{sanitizer}-%s.srcmap.json')
+REVISION_URL: str = ('https://commondatastorage.googleapis.com/'
+                     '{bucket}/{project}/{project}-{sanitizer}-%s.srcmap.json')
 
-REQUEST_TIMEOUT = 60
+REQUEST_TIMEOUT: int = 60
 
-ALLOWED_VIEW_RESTRICTIONS = ['none', 'security', 'all']
+ALLOWED_VIEW_RESTRICTIONS: List[str] = ['none', 'security', 'all']
 
-PUBSUB_PLATFORMS = ['linux']
+PUBSUB_PLATFORMS: List[str] = ['linux']
 
-MEMORY_UNSAFE_LANGUAGES = {'c++', 'c'}
-OSS_FUZZ_DEFAULT_PROJECT_CPU_WEIGHT = 1.0
-OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT = 0.2
+MEMORY_UNSAFE_LANGUAGES: Set[str] = {'c++', 'c'}
+OSS_FUZZ_DEFAULT_PROJECT_CPU_WEIGHT: float = 1.0
+OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT: float = 0.2
 
-SetupResult = collections.namedtuple('SetupResult', 'project_names job_names')
 
-HTTP_TIMEOUT_SECONDS = 30
+class SetupResult(NamedTuple):
+  project_names: List[str]
+  job_names: List[str]
 
-PROJECTS_USING_SUBQUEUES = {'android'}
+
+HTTP_TIMEOUT_SECONDS: int = 30
+
+PROJECTS_USING_SUBQUEUES: Set[str] = {'android'}
 
 
 class ProjectSetupError(Exception):
@@ -83,14 +98,22 @@ class ProjectSetupError(Exception):
 class JobInfo:
   """Job information."""
 
+  prefix: str
+  engine: str
+  memory_tool: str
+  architecture: str
+  cf_job_templates: List[str]
+  experimental: bool
+  minimize_job_override: Optional['JobInfo']
+
   def __init__(self,
-               prefix,
-               engine,
-               memory_tool,
-               cf_job_templates,
-               architecture='x86_64',
-               experimental=False,
-               minimize_job_override=None):
+               prefix: str,
+               engine: str,
+               memory_tool: str,
+               cf_job_templates: List[str],
+               architecture: str = 'x86_64',
+               experimental: bool = False,
+               minimize_job_override: Optional['JobInfo'] = None) -> None:
     self.prefix = prefix
     self.engine = engine
     self.memory_tool = memory_tool
@@ -99,7 +122,7 @@ class JobInfo:
     self.experimental = experimental
     self.minimize_job_override = minimize_job_override
 
-  def job_name(self, project_name, config_suffix):
+  def job_name(self, project_name: str, config_suffix: str) -> str:
     return (
         self.prefix + data_types.normalized_name(project_name) + config_suffix)
 
@@ -156,7 +179,7 @@ LIBFUZZER_NONE_I386_JOB = JobInfo(
     'none', ['libfuzzer', 'prune'],
     architecture='i386')
 
-JOB_MAP = {
+JOB_MAP: Dict[str, Dict[str, Dict[str, JobInfo]]] = {
     'libfuzzer': {
         'x86_64': {
             'address': LIBFUZZER_ASAN_JOB,
@@ -207,18 +230,18 @@ JOB_MAP = {
     },
 }
 
-DEFAULT_ARCHITECTURES = ['x86_64']
-DEFAULT_SANITIZERS = ['address', 'undefined']
-DEFAULT_ENGINES = ['libfuzzer', 'afl', 'honggfuzz']
+DEFAULT_ARCHITECTURES: List[str] = ['x86_64']
+DEFAULT_SANITIZERS: List[str] = ['address', 'undefined']
+DEFAULT_ENGINES: List[str] = ['libfuzzer', 'afl', 'honggfuzz']
 
 
-def _to_experimental_job(job_info):
+def _to_experimental_job(job_info: JobInfo) -> JobInfo:
   job_info = copy.copy(job_info)
   job_info.experimental = True
   return job_info
 
 
-def get_github_url(url):
+def get_github_url(url: str) -> Any:
   """Return contents of URL."""
   github_credentials = db_config.get_value('github_credentials')
   if not github_credentials:
@@ -235,7 +258,8 @@ def get_github_url(url):
   return json.loads(response.text)
 
 
-def find_github_item_url(github_json, name):
+def find_github_item_url(github_json: Dict[str, Any],
+                         name: str) -> Optional[str]:
   """Get url of a blob/tree from a github json response."""
   for item in github_json['tree']:
     if item['path'] == name:
@@ -244,7 +268,7 @@ def find_github_item_url(github_json, name):
   return None
 
 
-def get_oss_fuzz_projects():
+def get_oss_fuzz_projects() -> List[Tuple[str, Dict[str, Any]]]:
   """Return list of projects for oss-fuzz."""
   ossfuzz_tree_url = ('https://api.github.com/repos/google/oss-fuzz/'
                       'git/trees/master')
@@ -267,7 +291,8 @@ def get_oss_fuzz_projects():
       continue
 
     projects_yaml = get_github_url(project_yaml_url)
-    info = yaml.safe_load(base64.b64decode(projects_yaml['content']))
+    info = cast(Dict[str, Any],
+                yaml.safe_load(base64.b64decode(projects_yaml['content'])))
 
     has_dockerfile = (
         find_github_item_url(item_json, 'Dockerfile') or 'dockerfile' in info)
@@ -279,7 +304,7 @@ def get_oss_fuzz_projects():
   return projects
 
 
-def get_projects_from_gcs(gcs_url):
+def get_projects_from_gcs(gcs_url: str) -> List[Tuple[str, Dict[str, Any]]]:
   """Get projects from GCS path."""
   try:
     data = json.loads(storage.read_data(gcs_url))
@@ -289,7 +314,8 @@ def get_projects_from_gcs(gcs_url):
   return [(project['name'], project) for project in data['projects']]
 
 
-def _process_sanitizers_field(sanitizers):
+def _process_sanitizers_field(
+    sanitizers: Any) -> Optional[Dict[str, Dict[str, Any]]]:
   """Pre-process sanitizers field into a map from sanitizer name -> dict of
   options."""
   processed_sanitizers = {}
@@ -314,7 +340,7 @@ def _process_sanitizers_field(sanitizers):
   return processed_sanitizers
 
 
-def get_jobs_for_project(project, info):
+def get_jobs_for_project(project: str, info: Dict[str, Any]) -> List[JobInfo]:
   """Return jobs for the project."""
   sanitizers = _process_sanitizers_field(
       info.get('sanitizers', DEFAULT_SANITIZERS))
@@ -348,7 +374,7 @@ def get_jobs_for_project(project, info):
   return jobs
 
 
-def convert_googlemail_to_gmail(email):
+def convert_googlemail_to_gmail(email: str) -> str:
   """Convert @googlemail.com to @gmail.com."""
   # TODO(ochang): Investiate if we can/need to do this in general, and not just
   # for cloud storage bucket IAMs.
@@ -358,7 +384,9 @@ def convert_googlemail_to_gmail(email):
   return email
 
 
-def _add_users_to_bucket(info, client, bucket_name, iam_policy):
+def _add_users_to_bucket(
+    info: Dict[str, Any], client: Any, bucket_name: str,
+    iam_policy: Dict[str, Any]) -> Optional[Dict[str, Any]]:
   """Add user account to bucket."""
   ccs = sorted(
       ['user:' + convert_googlemail_to_gmail(cc) for cc in ccs_from_info(info)])
@@ -378,13 +406,16 @@ def _add_users_to_bucket(info, client, bucket_name, iam_policy):
     if len(filtered_members) != len(binding['members']):
       # Remove old members.
       binding['members'] = filtered_members
-      iam_policy = storage.set_bucket_iam_policy(client, bucket_name,
-                                                 iam_policy)
+      modified_policy = storage.set_bucket_iam_policy(client, bucket_name,
+                                                      iam_policy)
+      if modified_policy:
+        iam_policy = modified_policy
 
   # We might have no binding either from start or after filtering members above.
   # Create a new one in those cases.
   binding = storage.get_or_create_bucket_iam_binding(iam_policy,
                                                      OBJECT_VIEWER_IAM_ROLE)
+  assert binding is not None
 
   for cc in ccs:
     if cc in binding['members']:
@@ -397,9 +428,12 @@ def _add_users_to_bucket(info, client, bucket_name, iam_policy):
         client, iam_policy, OBJECT_VIEWER_IAM_ROLE, bucket_name, cc)
     if modified_iam_policy:
       iam_policy = modified_iam_policy
-      binding = storage.get_bucket_iam_binding(iam_policy,
-                                               OBJECT_VIEWER_IAM_ROLE)
+      new_binding = storage.get_bucket_iam_binding(iam_policy,
+                                                   OBJECT_VIEWER_IAM_ROLE)
+      if new_binding:
+        binding = new_binding
 
+  assert binding is not None
   if not binding['members']:
     # Check that the final binding has members. Empty bindings are not valid.
     storage.remove_bucket_iam_binding(iam_policy, OBJECT_VIEWER_IAM_ROLE)
@@ -407,12 +441,14 @@ def _add_users_to_bucket(info, client, bucket_name, iam_policy):
   return iam_policy
 
 
-def _set_bucket_service_account(service_account, client, bucket_name,
-                                iam_policy):
+def _set_bucket_service_account(
+    service_account: Dict[str, Any], client: Any, bucket_name: str,
+    iam_policy: Dict[str, Any]) -> Optional[Dict[str, Any]]:
   """Set service account for a bucket."""
   # Add service account as objectAdmin.
   binding = storage.get_or_create_bucket_iam_binding(iam_policy,
                                                      OBJECT_ADMIN_IAM_ROLE)
+  assert binding is not None
 
   members = ['serviceAccount:' + service_account['email']]
   if members == binding['members']:
@@ -423,23 +459,29 @@ def _set_bucket_service_account(service_account, client, bucket_name,
   return storage.set_bucket_iam_policy(client, bucket_name, iam_policy)
 
 
-def add_bucket_iams(info, client, bucket_name, service_account):
+def add_bucket_iams(info: Dict[str, Any], client: Any, bucket_name: str,
+                    service_account: Dict[str, Any]) -> None:
   """Add CC'ed users to storage bucket IAM."""
   iam_policy = storage.get_bucket_iam_policy(client, bucket_name)
   if not iam_policy:
     return
 
   iam_policy = _add_users_to_bucket(info, client, bucket_name, iam_policy)
-  _set_bucket_service_account(service_account, client, bucket_name, iam_policy)
+  if iam_policy:
+    _set_bucket_service_account(service_account, client, bucket_name,
+                                iam_policy)
 
 
-def add_service_account_to_bucket(client, bucket_name, service_account, role):
+def add_service_account_to_bucket(client: Any, bucket_name: str,
+                                  service_account: Dict[str, Any],
+                                  role: str) -> None:
   """Add service account to the gcr.io images bucket."""
   iam_policy = storage.get_bucket_iam_policy(client, bucket_name)
   if not iam_policy:
     return
 
   binding = storage.get_or_create_bucket_iam_binding(iam_policy, role)
+  assert binding is not None
 
   member = 'serviceAccount:' + service_account['email']
   if member in binding['members']:
@@ -450,15 +492,15 @@ def add_service_account_to_bucket(client, bucket_name, service_account, role):
   storage.set_bucket_iam_policy(client, bucket_name, iam_policy)
 
 
-def has_maintainer(info):
+def has_maintainer(info: Dict[str, Any]) -> Any:
   """Return whether or not a project has at least one maintainer."""
   return info.get('primary_contact') or info.get('auto_ccs')
 
 
-def ccs_from_info(info):
+def ccs_from_info(info: Dict[str, Any]) -> List[str]:
   """Get list of CC's from project info."""
 
-  def _get_ccs(field_name, allow_list=True):
+  def _get_ccs(field_name: str, allow_list: bool = True) -> List[str]:
     """Return list of emails to cc given a field name."""
     if field_name not in info:
       return []
@@ -481,7 +523,7 @@ def ccs_from_info(info):
   return [utils.normalize_email(cc) for cc in ccs]
 
 
-def update_fuzzer_jobs(job_names):
+def update_fuzzer_jobs(job_names: Iterable[str]) -> None:
   """Update fuzzer job mappings."""
   to_delete = {}
 
@@ -494,20 +536,21 @@ def update_fuzzer_jobs(job_names):
     if not utils.string_is_true(job_environment.get('MANAGED', 'False')):
       continue
 
-    if job.name in job_names:
+    if cast(str, job.name) in job_names:
       continue
 
     logs.info(f'Deleting job {job.name}')
 
     print(f'Deleting job {job.name}')
-    to_delete[job.name] = job.key
+    to_delete[cast(str, job.name)] = job.key
 
   # Clean up job references from all fuzzer entities
   for fuzzer in data_types.Fuzzer.query():
     # modified = False
+    fuzzer_jobs = fuzzer.jobs
     for job_name in to_delete:
       try:
-        fuzzer.jobs.remove(job_name)
+        fuzzer_jobs.remove(job_name)
         # modified = True
       except ValueError:
         pass
@@ -520,12 +563,12 @@ def update_fuzzer_jobs(job_names):
     ndb_utils.delete_multi(to_delete.values())
 
 
-def cleanup_old_projects_settings(project_names):
+def cleanup_old_projects_settings(project_names: Iterable[str]) -> None:
   """Delete old projects that are no longer used or disabled."""
   to_delete = []
 
   for project in data_types.OssFuzzProject.query():
-    if project.name not in project_names:
+    if cast(str, project.name) not in project_names:
       logs.info(f'Deleting project {project.name}.')
       to_delete.append(project.key)
 
@@ -533,7 +576,8 @@ def cleanup_old_projects_settings(project_names):
     ndb_utils.delete_multi(to_delete)
 
 
-def create_project_settings(project, info, service_account):
+def create_project_settings(project: str, info: Dict[str, Any],
+                            service_account: Dict[str, Any]) -> None:
   """Setup settings for ClusterFuzz (such as CPU distribution)."""
   key = ndb.Key(data_types.OssFuzzProject, project)
   oss_fuzz_project = key.get()
@@ -577,20 +621,20 @@ def create_project_settings(project, info, service_account):
         base_os_version=base_os_version).put()
 
 
-def _create_pubsub_topic(name, client):
+def _create_pubsub_topic(name: str, client: pubsub.PubSubClient) -> None:
   """Create a pubsub topic and subscription if needed."""
   application_id = utils.get_application_id()
 
-  topic_name = pubsub.topic_name(application_id, name)
+  topic_name = pubsub.topic_name(cast(str, application_id), name)
   if client.get_topic(topic_name) is None:
     client.create_topic(topic_name)
 
-  subscription_name = pubsub.subscription_name(application_id, name)
+  subscription_name = pubsub.subscription_name(cast(str, application_id), name)
   if client.get_subscription(subscription_name) is None:
     client.create_subscription(subscription_name, topic_name)
 
 
-def create_pubsub_topics_for_untrusted(project):
+def create_pubsub_topics_for_untrusted(project: str) -> None:
   """Create pubsub topics from untrusted sources for tasks."""
   client = pubsub.PubSubClient()
   for platform in PUBSUB_PLATFORMS:
@@ -598,7 +642,7 @@ def create_pubsub_topics_for_untrusted(project):
     _create_pubsub_topic(name, client)
 
 
-def create_pubsub_topics_for_queue_id(platform):
+def create_pubsub_topics_for_queue_id(platform: str) -> None:
   """Create pubsub topics from project configs for tasks."""
   platform, queue_id = platform.split(tasks.SUBQUEUE_IDENTIFIER)
   name = untrusted.queue_name(platform, queue_id)
@@ -606,7 +650,7 @@ def create_pubsub_topics_for_queue_id(platform):
   _create_pubsub_topic(name, client)
 
 
-def cleanup_pubsub_topics(project_names):
+def cleanup_pubsub_topics(project_names: Iterable[str]) -> None:
   """Delete old pubsub topics and subscriptions."""
   client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
@@ -619,7 +663,8 @@ def cleanup_pubsub_topics(project_names):
   pubsub_config = local_config.Config('pubsub.queues')
   unmanaged_queues = [queue['name'] for queue in pubsub_config.get('resources')]
 
-  for topic in client.list_topics(pubsub.project_name(application_id)):
+  for topic in client.list_topics(
+      pubsub.project_name(cast(str, application_id))):
     _, name = pubsub.parse_name(topic)
 
     if (not name.startswith(tasks.JOBS_PREFIX) and
@@ -642,19 +687,32 @@ def cleanup_pubsub_topics(project_names):
 class ProjectSetup:
   """Project setup."""
 
+  _build_type: Optional[str]
+  _config_suffix: str
+  _external_config: Any
+  _build_bucket_path_template: str
+  _revision_url_template: str
+  _segregate_projects: bool
+  _experimental_sanitizers: Optional[List[str]]
+  _engine_build_buckets: Optional[Dict[str, Any]]
+  _fuzzer_entities: Optional[Dict[str, Any]]
+  _add_info_labels: bool
+  _add_revision_mappings: bool
+  _additional_vars: Optional[Dict[str, Any]]
+
   def __init__(self,
-               build_bucket_path_template,
-               revision_url_template,
-               build_type,
-               config_suffix='',
-               external_config=None,
-               segregate_projects=False,
-               experimental_sanitizers=None,
-               engine_build_buckets=None,
-               fuzzer_entities=None,
-               add_info_labels=False,
-               add_revision_mappings=False,
-               additional_vars=None):
+               build_bucket_path_template: str,
+               revision_url_template: str,
+               build_type: Optional[str],
+               config_suffix: str = '',
+               external_config: Any = None,
+               segregate_projects: bool = False,
+               experimental_sanitizers: Optional[List[str]] = None,
+               engine_build_buckets: Optional[Dict[str, Any]] = None,
+               fuzzer_entities: Optional[Dict[str, Any]] = None,
+               add_info_labels: bool = False,
+               add_revision_mappings: bool = False,
+               additional_vars: Optional[Dict[str, Any]] = None) -> None:
     self._build_type = build_type
     self._config_suffix = config_suffix
     self._external_config = external_config
@@ -668,38 +726,40 @@ class ProjectSetup:
     self._add_revision_mappings = add_revision_mappings
     self._additional_vars = additional_vars
 
-  def _get_build_bucket(self, engine, architecture):
+  def _get_build_bucket(self, engine: str, architecture: str) -> str:
     """Return the bucket for the given |engine| and |architecture|."""
     if architecture != 'x86_64':
       engine += '-' + architecture
 
-    bucket = self._engine_build_buckets.get(engine)
+    bucket = cast(Dict[str, Any], self._engine_build_buckets).get(engine)
     if not bucket:
       raise ProjectSetupError('Invalid fuzzing engine ' + engine)
 
     return bucket
 
-  def _deployment_bucket_name(self):
+  def _deployment_bucket_name(self) -> str:
     """Deployment bucket name."""
     return f'{utils.get_application_id()}-deployment'
 
-  def _backup_bucket_name(self, project_name):
+  def _backup_bucket_name(self, project_name: str) -> str:
     """Return the backup_bucket_name."""
     return project_name + '-backup.' + data_handler.bucket_domain_suffix()
 
-  def _corpus_bucket_name(self, project_name):
+  def _corpus_bucket_name(self, project_name: str) -> str:
     """Return the corpus_bucket_name."""
     return project_name + '-corpus.' + data_handler.bucket_domain_suffix()
 
-  def _quarantine_bucket_name(self, project_name):
+  def _quarantine_bucket_name(self, project_name: str) -> str:
     """Return the quarantine_bucket_name."""
     return project_name + '-quarantine.' + data_handler.bucket_domain_suffix()
 
-  def _logs_bucket_name(self, project_name):
+  def _logs_bucket_name(self, project_name: str) -> str:
     """Return the logs bucket name."""
     return project_name + '-logs.' + data_handler.bucket_domain_suffix()
 
-  def _create_service_accounts_and_buckets(self, project, info):
+  def _create_service_accounts_and_buckets(
+      self, project: str,
+      info: Dict[str, Any]) -> Tuple[Dict[str, Any], str, str, str, str]:
     """Create per-project service account and buckets."""
     service_account, exists = service_accounts.get_or_create_service_account(
         project)
@@ -732,10 +792,8 @@ class ProjectSetup:
     # Grant the service account read access to deployment bucket.
     add_service_account_to_bucket(client, self._deployment_bucket_name(),
                                   service_account, OBJECT_VIEWER_IAM_ROLE)
-    data_bundles = {
-        fuzzer_entity.get().data_bundle_name
-        for fuzzer_entity in self._fuzzer_entities.values()
-    }
+    data_bundles = {(fuzzer_entity.get()).data_bundle_name for fuzzer_entity in
+                    cast(Dict[str, Any], self._fuzzer_entities).values()}
     for data_bundle in data_bundles:
       if not data_bundle:
         continue
@@ -749,8 +807,9 @@ class ProjectSetup:
     return (service_account, backup_bucket_name, corpus_bucket_name,
             logs_bucket_name, quarantine_bucket_name)
 
-  def _get_build_bucket_path(self, project_name, info, engine, memory_tool,
-                             architecture):
+  def _get_build_bucket_path(self, project_name: str, info: Dict[str, Any],
+                             engine: str, memory_tool: str,
+                             architecture: str) -> str:
     """Returns the build bucket path for the |project|, |engine|, |memory_tool|,
     and |architecture|."""
     build_path = info.get('build_path')
@@ -764,15 +823,18 @@ class ProjectSetup:
     build_path = build_path.replace('%SANITIZER%', memory_tool)
     return build_path
 
-  def _get_base_project_name(self, project):
+  def _get_base_project_name(self, project: str) -> str:
     """Returns the base project if subqueues are being used."""
     for base_project in PROJECTS_USING_SUBQUEUES:
       if project.startswith(base_project):
         return base_project
     return project
 
-  def _sync_job(self, project, info, corpus_bucket_name, quarantine_bucket_name,
-                logs_bucket_name, backup_bucket_name):
+  def _sync_job(self, project: str, info: Dict[str, Any],
+                corpus_bucket_name: Optional[str],
+                quarantine_bucket_name: Optional[str],
+                logs_bucket_name: Optional[str],
+                backup_bucket_name: Optional[str]) -> List[str]:
     """Sync the config with ClusterFuzz."""
     # Create/update ClusterFuzz jobs.
     job_names = []
@@ -788,7 +850,10 @@ class ProjectSetup:
         # Get fuzzers specified for this project
         fuzzers = info.get('fuzzers', [])
       else:
-        fuzzer_entity = self._fuzzer_entities.get(template.engine).get()
+        fuzzer_entity = cast(
+            Any,
+            cast(Dict[str, Any],
+                 self._fuzzer_entities).get(template.engine)).get()
         if not fuzzer_entity:
           raise ProjectSetupError('Invalid fuzzing engine ' + template.engine)
         fuzzers = []
@@ -941,7 +1006,8 @@ class ProjectSetup:
                             'LINUX').upper() + ':' + queue_id.upper()
         job.platform = platform
         if platform.startswith('ANDROID'):
-          job.templates.append('android')
+          job_templates = job.templates
+          job_templates.append('android')
 
         create_pubsub_topics_for_queue_id(job.platform)
 
@@ -970,7 +1036,7 @@ class ProjectSetup:
     print(project, job_names)
     return job_names
 
-  def sync_user_permissions(self, project, info):
+  def sync_user_permissions(self, project: str, info: Dict[str, Any]) -> None:
     """Sync permissions of project based on project.yaml."""
     ccs = ccs_from_info(info)
 
@@ -1006,10 +1072,11 @@ class ProjectSetup:
             is_prefix=False,
             auto_cc=data_types.AutoCCType.ALL).put()
 
-  def set_up(self, projects):
+  def set_up(self, projects: List[Tuple[str, Dict[str, Any]]]) -> SetupResult:
     """Do project setup. Return a list of all the project names that were set
     up."""
     job_names = []
+    service_account: Dict[str, Any] = {}
     for project, info in projects:
       logs.info(f'Syncing configs for {project}.')
 
@@ -1048,7 +1115,9 @@ class ProjectSetup:
     return SetupResult(enabled_projects, job_names)
 
 
-def cleanup_stale_projects(project_names, job_names, segregate_projects):
+def cleanup_stale_projects(project_names: Iterable[str],
+                           job_names: Iterable[str],
+                           segregate_projects: bool) -> None:
   """Clean up stale projects."""
   update_fuzzer_jobs(job_names)
   cleanup_old_projects_settings(project_names)
@@ -1057,7 +1126,7 @@ def cleanup_stale_projects(project_names, job_names, segregate_projects):
     cleanup_pubsub_topics(project_names)
 
 
-def main():
+def main() -> bool:
   """Setup ClusterFuzz jobs for projects."""
   libfuzzer = data_types.Fuzzer.query(
       data_types.Fuzzer.name == 'libFuzzer').get()

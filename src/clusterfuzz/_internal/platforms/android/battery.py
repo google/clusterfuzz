@@ -25,19 +25,23 @@ from clusterfuzz._internal.system import environment
 from . import adb
 from . import settings
 
-BATTERY_CHARGE_INTERVAL = 30 * 60  # 0.5 hour.
-BATTERY_CHECK_INTERVAL = 15 * 60  # 15 minutes.
-EXPECTED_BATTERY_LEVEL = 60  # A percentage.
-EXPECTED_BATTERY_TEMPERATURE = 35.0  # Degrees Celsius.
-LOW_BATTERY_LEVEL_THRESHOLD = 30  # A percentage.
-MAX_BATTERY_TEMPERATURE_THRESHOLD = 37.0  # Don't change this or battery swells.
+BATTERY_CHARGE_INTERVAL: int = 30 * 60  # 0.5 hour.
+BATTERY_CHECK_INTERVAL: int = 15 * 60  # 15 minutes.
+EXPECTED_BATTERY_LEVEL: int = 60  # A percentage.
+EXPECTED_BATTERY_TEMPERATURE: float = 35.0  # Degrees Celsius.
+LOW_BATTERY_LEVEL_THRESHOLD: int = 30  # A percentage.
+# Don't change this or battery swells.
+MAX_BATTERY_TEMPERATURE_THRESHOLD: float = 37.0
 
-LAST_BATTERY_CHECK_TIME_KEY = 'android_last_battery_check'
+LAST_BATTERY_CHECK_TIME_KEY: str = 'android_last_battery_check'
 
 
-def get_battery_level_and_temperature():
+def get_battery_level_and_temperature() -> dict[str, float] | None:
   """Return device's battery and temperature levels."""
   output = adb.run_shell_command(['dumpsys', 'battery'])
+  if not output:
+    logs.error('Error occurred while getting battery status.')
+    return None
 
   # Get battery level.
   m_battery_level = re.match(r'.*\n[\t ]*level: (\d+).*', output, re.DOTALL)
@@ -56,7 +60,7 @@ def get_battery_level_and_temperature():
   return {'level': level, 'temperature': temperature}
 
 
-def wait_until_good_state():
+def wait_until_good_state() -> None:
   """Check battery and make sure it is charged beyond minimum level and
   temperature thresholds."""
   # Battery levels are not applicable on GCE.
@@ -76,11 +80,11 @@ def wait_until_good_state():
     return
 
   # Initialize variables.
-  battery_level_threshold = environment.get_value('LOW_BATTERY_LEVEL_THRESHOLD',
-                                                  LOW_BATTERY_LEVEL_THRESHOLD)
-  battery_temperature_threshold = environment.get_value(
+  battery_level_threshold: float = environment.get_value(
+      'LOW_BATTERY_LEVEL_THRESHOLD', LOW_BATTERY_LEVEL_THRESHOLD)
+  battery_temperature_threshold: float = environment.get_value(
       'MAX_BATTERY_TEMPERATURE_THRESHOLD', MAX_BATTERY_TEMPERATURE_THRESHOLD)
-  device_restarted = False
+  device_restarted: bool = False
 
   while True:
     battery_information = get_battery_level_and_temperature()

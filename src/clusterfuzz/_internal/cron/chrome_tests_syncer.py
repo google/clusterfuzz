@@ -37,18 +37,20 @@ from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
-ENGINE_FUZZER_NAMES = ['afl', 'centipede', 'googlefuzztest', 'libFuzzer']
-MAX_TESTCASE_DIRECTORY_SIZE = 10 * 1024 * 1024  # in bytes.
-MAX_TESTCASES = 25000
-TESTCASES_REPORT_INTERVAL = 2500
-STORED_TESTCASES_LIST = []
+ENGINE_FUZZER_NAMES: list[str] = [
+    'afl', 'centipede', 'googlefuzztest', 'libFuzzer'
+]
+MAX_TESTCASE_DIRECTORY_SIZE: int = 10 * 1024 * 1024  # in bytes.
+MAX_TESTCASES: int = 25000
+TESTCASES_REPORT_INTERVAL: int = 2500
+STORED_TESTCASES_LIST: list[int | str] = []
 
-NUMBER_OF_FUZZILLI_ARCHIVES = 9
-NUMBER_OF_FUZZILLI_IMPORT_ARCHIVES = 9
-NUMBER_OF_FUZZILLI_DIFF_FUZZ_ARCHIVES = 5
+NUMBER_OF_FUZZILLI_ARCHIVES: int = 9
+NUMBER_OF_FUZZILLI_IMPORT_ARCHIVES: int = 9
+NUMBER_OF_FUZZILLI_DIFF_FUZZ_ARCHIVES: int = 5
 
 
-def unpack_crash_testcases(crash_testcases_directory):
+def unpack_crash_testcases(crash_testcases_directory: str) -> None:
   """Unpacks the old crash testcases in the provided directory."""
   count = 0
   # Make sure that it is a unique crash testcase. Ignore duplicates,
@@ -80,11 +82,12 @@ def unpack_crash_testcases(crash_testcases_directory):
 
     # Existing IPC testcases are un-interesting and unused in further
     # mutations. Due to size bloat, ignoring these for now.
-    if testcase.absolute_path.endswith(testcase_manager.IPCDUMP_EXTENSION):
+    if (testcase.absolute_path or
+        '').endswith(testcase_manager.IPCDUMP_EXTENSION):
       continue
 
     # Ignore testcases that are archives (e.g. Langfuzz fuzzer tests).
-    if archive.get_archive_type(testcase.absolute_path):
+    if archive.get_archive_type(testcase.absolute_path or ''):
       continue
 
     # Skip in-process fuzzer testcases, since these are only applicable to
@@ -129,7 +132,8 @@ def unpack_crash_testcases(crash_testcases_directory):
   shell.remove_empty_directories(crash_testcases_directory)
 
 
-def clone_git_repository(tests_directory, name, repo_url):
+def clone_git_repository(tests_directory: str, name: str,
+                         repo_url: str) -> None:
   """Clone a git repo."""
   logs.info('Syncing %s tests.' % name)
 
@@ -144,8 +148,8 @@ def clone_git_repository(tests_directory, name, repo_url):
     raise RuntimeError(f'Unable to checkout {name} tests.')
 
 
-def create_symbolic_link(tests_directory, source_subdirectory,
-                         target_subdirectory):
+def create_symbolic_link(tests_directory: str, source_subdirectory: str,
+                         target_subdirectory: str) -> None:
   """Create symbolic link."""
   source_directory = os.path.join(tests_directory, source_subdirectory)
   target_directory = os.path.join(tests_directory, target_subdirectory)
@@ -165,8 +169,9 @@ def create_symbolic_link(tests_directory, source_subdirectory,
   subprocess.check_call(['ln', '-s', source_directory, target_directory])
 
 
-def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
-                                 gecko_tests_subdirectory):
+def create_gecko_tests_directory(tests_directory: str,
+                                 gecko_checkout_subdirectory: str,
+                                 gecko_tests_subdirectory: str) -> None:
   """Create Gecko tests directory from a Gecko source checkout using links."""
   gecko_checkout_directory = os.path.join(tests_directory,
                                           gecko_checkout_subdirectory)
@@ -194,7 +199,7 @@ def create_gecko_tests_directory(tests_directory, gecko_checkout_subdirectory,
                            target_subdirectory)
 
 
-def create_fuzzilli_tests_directory(tests_directory):
+def create_fuzzilli_tests_directory(tests_directory: str) -> None:
   """Create Fuzzilli tests directory from the autozilli GCS archives."""
   logs.info('Syncing fuzzilli tests.')
   fuzzilli_tests_directory = os.path.join(tests_directory, 'fuzzilli')
@@ -210,10 +215,12 @@ def create_fuzzilli_tests_directory(tests_directory):
     process_fuzzilli_archive(fuzzilli_tests_directory, f'diff-fuzz-{i}')
 
 
-def process_fuzzilli_archive(fuzzilli_tests_directory, archive_suffix):
+def process_fuzzilli_archive(fuzzilli_tests_directory: str,
+                             archive_suffix: str | int) -> None:
   """Download, extract and copy one archive from Fuzzilli."""
 
-  def filter_members(member, path):
+  def filter_members(member: tarfile.TarInfo,
+                     path: str) -> tarfile.TarInfo | None:
     # We only need JS files and the settings.json from the archive.
     if member.name.endswith('fzil') or member.name.startswith('fuzzdir/stats'):
       return None
@@ -236,7 +243,7 @@ def process_fuzzilli_archive(fuzzilli_tests_directory, archive_suffix):
   shell.remove_file(local_archive)
 
 
-def rename_testcase_files(directory):
+def rename_testcase_files(directory: str) -> None:
   """Rename files with the 'fuzz-' prefix to avoid picking them up for fuzzing
   without modifying them with a fuzzer.
   """
@@ -257,7 +264,7 @@ def rename_testcase_files(directory):
         raise RuntimeError(f'Failed to rename testcase {file_path}') from e
 
 
-def clean_up_filenames(tests_directory, test_folders):
+def clean_up_filenames(tests_directory: str, test_folders: list[str]) -> None:
   """Rename files with the 'fuzz-' prefix in all test folders."""
   for folder in test_folders:
     logs.info(f'Renaming testcase files in {folder}')
@@ -265,7 +272,7 @@ def clean_up_filenames(tests_directory, test_folders):
 
 
 def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
-               tests_directory: str):
+               tests_directory: str) -> None:
   """Main sync routine."""
   shell.create_directory(tests_directory)
 
@@ -356,7 +363,7 @@ def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
   monitoring_metrics.CHROME_TEST_SYNCER_SUCCESS.increment()
 
 
-def main():
+def main() -> bool:
   # Make sure environment is correctly configured.
   logs.configure('run_bot')
   environment.set_bot_environment()

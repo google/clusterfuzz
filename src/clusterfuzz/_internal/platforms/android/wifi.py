@@ -28,17 +28,17 @@ WIFI_UTIL_PACKAGE_NAME = 'com.android.tradefed.utils.wifi'
 WIFI_UTIL_CALL_PATH = '%s/.WifiUtil' % WIFI_UTIL_PACKAGE_NAME
 
 
-def disable():
+def disable() -> None:
   """Disable wifi."""
   adb.run_shell_command(['svc', 'wifi', 'disable'])
 
 
-def enable():
+def enable() -> None:
   """Enable wifi."""
   adb.run_shell_command(['svc', 'wifi', 'enable'])
 
 
-def disable_airplane_mode():
+def disable_airplane_mode() -> None:
   """Disable airplane mode."""
   adb.run_shell_command(['settings', 'put', 'global', 'airplane_mode_on', '0'])
   adb.run_shell_command([
@@ -47,7 +47,7 @@ def disable_airplane_mode():
   ])
 
 
-def configure(force_enable=False):
+def configure(force_enable: bool = False) -> None:
   """Configure airplane mode and wifi on device."""
   # Short-circuit: UWORKERs do not have Datastore access for Wi-Fi credentials.
   if environment.is_uworker():
@@ -83,6 +83,7 @@ def configure(force_enable=False):
     wifi_password = ''
   else:
     config = db_config.get()
+    assert config is not None
     if not config.wifi_ssid:
       logs.info('No wifi ssid is set, skipping wifi config.')
       return
@@ -100,5 +101,6 @@ def configure(force_enable=False):
           ssid=shlex.quote(wifi_ssid),
           password=shlex.quote(wifi_password),
           call_path=WIFI_UTIL_CALL_PATH))
+  assert output is not None
   if 'result=true' not in output:
     logs.warning('Failed to connect to wifi.', output=output)

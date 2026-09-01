@@ -13,6 +13,9 @@
 # limitations under the License.
 """Manage corpora."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 from google.cloud import ndb
 
@@ -32,7 +35,7 @@ class Handler(base_handler.Handler):
   @handler.oauth
   @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=False)
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Handle a get request."""
     data_bundles = list(data_types.DataBundle.query().order(
         data_types.DataBundle.name))
@@ -54,9 +57,9 @@ class CreateHandler(base_handler.Handler):
   @handler.post(handler.FORM, handler.HTML)
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Handle a post request."""
-    name = request.get('name')
+    name = cast(Any, request).get('name')
     if not name:
       raise helpers.EarlyExitError('Please give this corpus a name!', 400)
 
@@ -100,7 +103,7 @@ class DeleteHandler(base_handler.Handler):
   @handler.post(handler.FORM, handler.HTML)
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Handle a post request."""
     key = helpers.get_integer_key(request)
 

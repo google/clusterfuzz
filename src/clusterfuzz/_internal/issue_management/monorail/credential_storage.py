@@ -22,7 +22,7 @@ from clusterfuzz._internal.config import db_config
 class CredentialStorage(Storage):
   """Instead of reading a file, just parse a config entry."""
 
-  def locked_get(self):
+  def locked_get(self) -> Credentials | None:
     """Return Credentials."""
     content = db_config.get_value('client_credentials')
     if not content:
@@ -36,8 +36,8 @@ class CredentialStorage(Storage):
 
     return credentials
 
-  def locked_put(self, credentials):  # pylint: disable=unused-argument
+  def locked_put(self, credentials: Credentials) -> None:  # pylint: disable=unused-argument
     pass
 
-  def locked_delete(self):
+  def locked_delete(self) -> None:
     pass

@@ -19,6 +19,7 @@ import datetime
 import random
 import string
 import time
+from typing import Any
 
 from googleapiclient.errors import HttpError
 import httplib2
@@ -30,23 +31,26 @@ from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import fuzzer_stats_schema
 from clusterfuzz._internal.metrics import logs
 
-STATS_KINDS = [fuzzer_stats.JobRun, fuzzer_stats.TestcaseRun]
+STATS_KINDS: list[type[fuzzer_stats.JobRun | fuzzer_stats.TestcaseRun]] = [
+    fuzzer_stats.JobRun,
+    fuzzer_stats.TestcaseRun,
+]
 
-NUM_THREADS = 4
-NUM_RETRIES = 2
-RETRY_SLEEP_TIME = 5
-POLL_INTERVAL = 5
+NUM_THREADS: int = 4
+NUM_RETRIES: int = 2
+RETRY_SLEEP_TIME: int = 5
+POLL_INTERVAL: int = 5
 
 # Ignore the repeated uppercase digits.
-_HEX_DIGITS = string.hexdigits[:-6]
+_HEX_DIGITS: str = string.hexdigits[:-6]
 
 
-def _utc_now():
+def _utc_now() -> datetime.datetime:
   """Return datetime.datetime.utcnow()."""
   return datetime.datetime.utcnow()
 
 
-def _execute_insert_request(request):
+def _execute_insert_request(request: Any) -> bool:
   """Executes a table/dataset insert request, retrying on transport errors."""
   for i in range(NUM_RETRIES + 1):
     try:
@@ -68,7 +72,7 @@ def _execute_insert_request(request):
   return False
 
 
-def _create_dataset_if_needed(bigquery, dataset_id):
+def _create_dataset_if_needed(bigquery: Any, dataset_id: str) -> bool:
   """Create a new dataset if necessary."""
   project_id = utils.get_application_id()
   dataset_body = {
@@ -83,10 +87,11 @@ def _create_dataset_if_needed(bigquery, dataset_id):
   return _execute_insert_request(dataset_insert)
 
 
-def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
+def _create_table_if_needed(bigquery: Any, dataset_id: str, table_id: str,
+                            schema: Any) -> bool:
   """Create a new table if needed."""
   project_id = utils.get_application_id()
-  table_body = {
+  table_body: dict[str, Any] = {
       'tableReference': {
           'datasetId': dataset_id,
           'projectId': project_id,
@@ -105,7 +110,8 @@ def _create_table_if_needed(bigquery, dataset_id, table_id, schema):
   return _execute_insert_request(table_insert)
 
 
-def _poll_completion(bigquery, project_id, job_id):
+def _poll_completion(bigquery: Any, project_id: str | None,
+                     job_id: str) -> dict[str, Any]:
   """Poll for completion."""
   response = bigquery.jobs().get(
       projectId=project_id, jobId=job_id).execute(num_retries=NUM_RETRIES)
@@ -117,7 +123,7 @@ def _poll_completion(bigquery, project_id, job_id):
   return response
 
 
-def _load_data(fuzzer, target_date):
+def _load_data(fuzzer: str, target_date: datetime.date) -> None:
   """Load stats into BigQuery."""
   bigquery = big_query.get_api_client()
   project_id = utils.get_application_id()
@@ -145,6 +151,8 @@ def _load_data(fuzzer, target_date):
       continue
 
     gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
+    if not gcs_path:
+      continue
     # Shard loads by prefix to avoid causing BigQuery to run out of memory.
     first_write = True
     for prefix in _HEX_DIGITS:
@@ -193,7 +201,7 @@ def _load_data(fuzzer, target_date):
         logs.error(f'Failed to load: {str(e)}')
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> bool:
   """Load bigquery stats from GCS."""
   parser = argparse.ArgumentParser(prog='load_bigquery_stats')
   parser.add_argument(
@@ -221,6 +229,8 @@ def main(argv=None):
   # Retrieve list of fuzzers before iterating them, since the query can expire
   # as we create the load jobs.
   for fuzzer in list(data_types.Fuzzer.query()):
+    if not fuzzer.name:
+      continue
     logs.info('Loading stats to BigQuery for %s.' % fuzzer.name)
     thread_pool.submit(_load_data, fuzzer.name, target_date)
 

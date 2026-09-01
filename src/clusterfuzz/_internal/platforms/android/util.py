@@ -20,14 +20,14 @@ from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
 
 
-def get_device_path(local_path):
+def get_device_path(local_path: str) -> str:
   """Returns device path for the given local path."""
   root_directory = environment.get_root_directory()
   return os.path.join(android.constants.DEVICE_FUZZING_DIR,
                       os.path.relpath(local_path, root_directory))
 
 
-def get_local_path(device_path):
+def get_local_path(device_path: str) -> str | None:
   """Returns local path for the given device path."""
   if not device_path.startswith(android.constants.DEVICE_FUZZING_DIR + '/'):
     logs.error('Bad device path: ' + device_path)
@@ -39,8 +39,10 @@ def get_local_path(device_path):
       os.path.relpath(device_path, android.constants.DEVICE_FUZZING_DIR))
 
 
-def is_testcase_deprecated(platform_id=None):
+def is_testcase_deprecated(platform_id: str | None = None) -> bool:
   """Whether or not the Android device is deprecated."""
+  if not platform_id:
+    return False
 
   # Platform ID for Android is of the form as shown below
   # |android:{codename}_{sanitizer}:{build_version}|
@@ -64,7 +66,8 @@ def is_testcase_deprecated(platform_id=None):
   return False
 
 
-def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
+def can_testcase_run_on_platform(testcase_platform_id: str | None,
+                                 current_platform_id: str) -> bool:
   """Whether or not the testcase can run on the current Android device."""
 
   del testcase_platform_id  # Unused argument for now

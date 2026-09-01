@@ -25,7 +25,6 @@ import argparse
 import datetime
 from enum import StrEnum
 import os
-from typing import cast
 from typing import NamedTuple
 
 from google.cloud import ndb  # pylint: disable=no-name-in-module
@@ -37,8 +36,8 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import logs
 
-RETRY_ATTEMPT_COUNT_KEY = 'retry_stuck_task_attempt_count'
-RETRY_LAST_ATTEMPT_TIME_KEY = 'retry_stuck_task_last_attempt_time'
+RETRY_ATTEMPT_COUNT_KEY: str = 'retry_stuck_task_attempt_count'
+RETRY_LAST_ATTEMPT_TIME_KEY: str = 'retry_stuck_task_last_attempt_time'
 
 
 class StuckReason(StrEnum):
@@ -176,8 +175,7 @@ def _get_testcase_id(testcase: data_types.Testcase) -> str:
   Returns:
     The string representation of the testcase ID.
   """
-  key = cast(ndb.Key, testcase.key)
-  return str(key.id())
+  return str(testcase.key.id())
 
 
 def _is_job_valid(testcase: data_types.Testcase) -> bool:
@@ -381,7 +379,8 @@ def filter_and_categorize_candidates(
   return categorized
 
 
-def _log_verbose_summary(total_from_query: int, results: CategorizedTestcases):
+def _log_verbose_summary(total_from_query: int,
+                         results: CategorizedTestcases) -> None:
   """Prints a detailed, verbose summary of the filtering phase.
 
   This function provides a clear, human-readable summary of the script's
@@ -409,7 +408,7 @@ def _log_verbose_summary(total_from_query: int, results: CategorizedTestcases):
 
 
 @logs.cron_log_context()
-def main(args: list[str] | None = None):
+def main(args: list[str] | None = None) -> None:
   """Finds, filters, and restarts stuck testcases in a three-phase process.
 
   The workflow is designed for clarity, safety, and observability:

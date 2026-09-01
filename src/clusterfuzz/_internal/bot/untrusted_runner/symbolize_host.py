@@ -13,19 +13,21 @@
 # limitations under the License.
 """Stacktrace symbolization (host side)."""
 
+from typing import cast
+
 from clusterfuzz._internal.protos import untrusted_runner_pb2
+from clusterfuzz._internal.protos import untrusted_runner_pb2_grpc
 
 from . import host
-from . import protobuf_utils
 
 
-def symbolize_stacktrace(unsymbolized_crash_stacktrace,
-                         enable_inline_frames=True):
+def symbolize_stacktrace(unsymbolized_crash_stacktrace: str,
+                         enable_inline_frames: bool = True) -> str:
   """Symbolize stacktrace."""
   request = untrusted_runner_pb2.SymbolizeStacktraceRequest(  # pylint: disable=no-member
-      unsymbolized_crash_stacktrace=protobuf_utils.encode_utf8_if_unicode(
-          unsymbolized_crash_stacktrace),
+      unsymbolized_crash_stacktrace=unsymbolized_crash_stacktrace,
       enable_inline_frames=enable_inline_frames)
 
-  response = host.stub().SymbolizeStacktrace(request)
+  stub = cast(untrusted_runner_pb2_grpc.UntrustedRunnerStub, host.stub())
+  response = stub.SymbolizeStacktrace(request)
   return response.symbolized_stacktrace

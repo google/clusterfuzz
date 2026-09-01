@@ -19,10 +19,10 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 
-SCRIPT_DIR = os.path.join('bot', 'init')
+SCRIPT_DIR: str = os.path.join('bot', 'init')
 
 
-def _extension(platform):
+def _extension(platform: str) -> str:
   """Get the init extension for a platform."""
   if platform == 'windows':
     return '.ps1'
@@ -30,7 +30,7 @@ def _extension(platform):
   return '.bash'
 
 
-def run():
+def run() -> None:
   """Run custom platform specific init scripts."""
   platform = environment.platform().lower()
   platform = environment.base_platform(platform)

@@ -13,10 +13,13 @@
 # limitations under the License.
 """Run command based on the current task."""
 
+from collections.abc import Callable
 import functools
 import os
 import sys
 import time
+import types
+from typing import Any
 import uuid
 
 from clusterfuzz._internal.base import errors
@@ -45,9 +48,9 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
-TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
+TASK_RETRY_WAIT_LIMIT: int = 5 * 60  # 5 minutes.
 
-_COMMAND_MODULE_MAP = {
+_COMMAND_MODULE_MAP: dict[str, types.ModuleType | None] = {
     'analyze': analyze_task,
     'blame': blame_task,
     'corpus_pruning': corpus_pruning_task,
@@ -64,7 +67,7 @@ _COMMAND_MODULE_MAP = {
 }
 
 assert set(_COMMAND_MODULE_MAP.keys()) == set(task_types.COMMAND_TYPES.keys())
-COMMAND_MAP = {
+COMMAND_MAP: dict[str, task_types.BaseTask] = {
     command: task_cls(_COMMAND_MODULE_MAP[command])
     for command, task_cls in task_types.COMMAND_TYPES.items()
 }
@@ -78,7 +81,7 @@ class AlreadyRunningError(Error):
   """Exception raised for a task that is already running on another bot."""
 
 
-def cleanup_task_state():
+def cleanup_task_state() -> None:
   """Cleans state before and after a task is executed."""
   # Cleanup stale processes.
   if environment.is_tworker():
@@ -100,7 +103,7 @@ def cleanup_task_state():
   utils.python_gc()
 
 
-def is_supported_cpu_arch_for_job():
+def is_supported_cpu_arch_for_job() -> bool:
   """Return true if the current cpu architecture can run this job."""
   cpu_arch = environment.get_cpu_arch()
   if not cpu_arch:
@@ -118,7 +121,7 @@ def is_supported_cpu_arch_for_job():
   return cpu_arch in supported_cpu_arch_list
 
 
-def update_environment_for_job(environment_string):
+def update_environment_for_job(environment_string: str) -> dict[str, Any]:
   """Process the environment variable string included with a job."""
   # Now parse the job's environment definition.
   env = environment.parse_environment_definition(environment_string)
@@ -148,11 +151,12 @@ def update_environment_for_job(environment_string):
   return uworker_env
 
 
-def set_task_payload(func):
+def set_task_payload(func: Callable[..., Any]) -> Callable[..., Any]:
   """Set TASK_PAYLOAD and unset TASK_PAYLOAD."""
 
   @functools.wraps(func)
-  def wrapper(task_name, task_argument, job_name, *args, **kwargs):
+  def wrapper(task_name: str, task_argument: str, job_name: str, *args: Any,
+              **kwargs: Any) -> Any:
     """Wrapper."""
     payload = tasks.construct_payload(task_name, task_argument, job_name)
     environment.set_value('TASK_PAYLOAD', payload)
@@ -160,7 +164,8 @@ def set_task_payload(func):
       return func(task_name, task_argument, job_name, *args, **kwargs)
     except:  # Truly catch *all* exceptions.
       e = sys.exc_info()[1]
-      e.extras = {'task_payload': environment.get_value('TASK_PAYLOAD')}
+      setattr(e, 'extras',
+              {'task_payload': environment.get_value('TASK_PAYLOAD')})
       raise
     finally:
       environment.remove_key('TASK_PAYLOAD')
@@ -168,7 +173,7 @@ def set_task_payload(func):
   return wrapper
 
 
-def should_update_task_status(task_name):
+def should_update_task_status(task_name: str) -> bool:
   """Whether the task status should be automatically handled."""
   return task_name not in [
       # Multiple fuzz tasks are expected to run in parallel.
@@ -182,7 +187,7 @@ def should_update_task_status(task_name):
   ]
 
 
-def start_web_server_if_needed():
+def start_web_server_if_needed() -> None:
   """Start web server for blackbox fuzzer jobs (non-engine fuzzer jobs)."""
   if environment.is_engine_fuzzer_job():
     return
@@ -193,7 +198,7 @@ def start_web_server_if_needed():
     logs.error('Failed to start web server, skipping.')
 
 
-def get_command_object(task_name):
+def get_command_object(task_name: str) -> task_types.BaseTask | None:
   """Returns the command object that execute can be called on."""
   task = COMMAND_MAP.get(task_name)
   if not environment.is_tworker():
@@ -210,7 +215,8 @@ def get_command_object(task_name):
   return task_types.UTask(_COMMAND_MODULE_MAP[task_name])
 
 
-def run_command(task_name, task_argument, job_name, uworker_env):
+def run_command(task_name: str, task_argument: str, job_name: str,
+                uworker_env: dict[str, Any] | None) -> Any:
   """Runs the command."""
   task = get_command_object(task_name)
   if not task:
@@ -267,7 +273,7 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   return result
 
 
-def process_command(task):
+def process_command(task: tasks.Task) -> Any:
   """Figures out what to do with the given task and executes the command."""
   logs.info(f'Executing command "{task.payload()}"')
   if not task.payload().strip():
@@ -282,21 +288,21 @@ def process_command(task):
 # pylint: disable=too-many-nested-blocks
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
-def process_command_impl(task_name,
-                         task_argument,
-                         job_name,
-                         high_end,
-                         is_command_override,
-                         queue=None):
+def process_command_impl(task_name: str,
+                         task_argument: str,
+                         job_name: str,
+                         high_end: bool,
+                         is_command_override: bool,
+                         queue: str | None = None) -> Any:
   """Implementation of process_command."""
-  uworker_env = {}
+  uworker_env: dict[str, Any] = {}
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
   environment.set_value('JOB_NAME', job_name)
   if task_name in {'uworker_main', 'postprocess'}:
     # We want the id of the task we are processing, not "uworker_main", or
     # "postprocess".
-    task_id = None
+    task_id: uuid.UUID | None = None
   else:
     task_id = uuid.uuid4()
   environment.set_value('CF_TASK_ID', task_id)
@@ -358,7 +364,7 @@ def process_command_impl(task_name,
       time.sleep(environment.get_value('FAIL_WAIT'))
       return None
 
-    testcase = None
+    testcase: data_types.Testcase | None = None
     if task_utils.is_testcase_based_task(task_name):
       testcase = data_handler.get_entity_by_type_and_id(data_types.Testcase,
                                                         task_argument)

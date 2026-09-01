@@ -13,6 +13,8 @@
 # limitations under the License.
 """Minimizer based on the delta debugging algorithm."""
 
+from typing import Any
+
 from . import errors
 from . import minimizer
 from . import utils
@@ -21,7 +23,8 @@ from . import utils
 class DeltaTestcase(minimizer.Testcase):
   """Test case for the delta minimizer."""
 
-  def _process_test_result(self, test_passed, hypothesis):
+  def _process_test_result(self, test_passed: bool,
+                           hypothesis: list[int]) -> None:
     """Update state based on test_passed and hypothesis."""
     # If we crashed or cannot split the test into smaller chunks, we're done.
     if not test_passed or len(hypothesis) <= 1:
@@ -40,7 +43,7 @@ class DeltaTestcase(minimizer.Testcase):
 class DeltaMinimizer(minimizer.Minimizer):
   """Minimizer based on the delta algorithm."""
 
-  def _execute(self, data):
+  def _execute(self, data: Any) -> DeltaTestcase:
     """Prepare tests for delta minimization and process."""
     testcase = DeltaTestcase(data, self)
     if not self.validate_tokenizer(data, testcase):
@@ -58,7 +61,11 @@ class DeltaMinimizer(minimizer.Minimizer):
     return testcase
 
   @staticmethod
-  def run(data, thread_count=minimizer.DEFAULT_THREAD_COUNT, file_extension=''):
+  def run(
+      data: Any,
+      thread_count: int = minimizer.DEFAULT_THREAD_COUNT,
+      file_extension: str = '',
+  ) -> Any:
     """Try to minimize |data| using a simple line tokenizer."""
     delta_minimizer = DeltaMinimizer(
         utils.test, max_threads=thread_count, file_extension=file_extension)

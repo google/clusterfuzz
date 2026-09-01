@@ -22,6 +22,6 @@ class Handler(base_handler.Handler):
   """Handler to periodically gather new results from Predator requests."""
 
   @handler.cron()
-  def get(self):
+  def get(self) -> None:
     """Process a GET request."""
     predator_pull.main()

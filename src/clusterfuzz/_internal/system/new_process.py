@@ -13,43 +13,47 @@
 # limitations under the License.
 """Process handling utilities."""
 
+from collections.abc import Callable
+from collections.abc import Sequence
 import os
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+from typing import Any
+from typing import cast
 import urllib.request
 
 try:
   import psutil
 except ImportError:
-  psutil = None
+  psutil = None  # type: ignore
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-TOOL_ARGS = {
+TOOL_ARGS: dict[str, list[str]] = {
     'unshare': [
         '-c',  # Map current user to same user in user namespace.
         '-n',  # Enter network namespace.
     ],
 }
 
-TOOL_URLS = {
+TOOL_URLS: dict[str, str] = {
     'extra_sanitizers':
         'https://storage.googleapis.com/oss-fuzz-sanitizers/latest'
 }
 
 
-def _end_process(terminate_function, process_result):
+def _end_process(terminate_function: Callable[[], Any],
+                 process_result: 'ProcessResult') -> None:
   """Ends a running process.
 
   Ignores exceptions.
 
   Args:
-    process: A subprocess.Popen object.
     terminate_function: The function to terminate the process.
     process_result: A ProcessResult object where timeout information will be
         written to.
@@ -62,15 +66,17 @@ def _end_process(terminate_function, process_result):
   process_result.timed_out = True
 
 
-def wait_process(process,
-                 timeout,
-                 input_data=None,
-                 terminate_before_kill=False,
-                 terminate_wait_time=None):
+def wait_process(
+    process: 'ChildProcess',
+    timeout: float,
+    input_data: str | bytes | None = None,
+    terminate_before_kill: bool = False,
+    terminate_wait_time: float | None = None,
+) -> 'ProcessResult':
   """Waits until either the process exits or times out.
 
   Args:
-    process: A subprocess.Popen object.
+    process: A ChildProcess object.
     timeout: Maximum number of seconds to wait for before sending a signal.
     input_data: Input to be sent to the process.
     terminate_before_kill: A bool indicating that SIGTERM should be sent to
@@ -84,7 +90,11 @@ def wait_process(process,
   result = ProcessResult()
   is_windows = environment.platform() == 'WINDOWS'
 
-  def create_timeout_timer(interval, function, args):
+  def create_timeout_timer(
+      interval: float,
+      function: Callable[..., Any],
+      args: Sequence[Any],
+  ) -> threading.Timer:
     """Helper to create a timer that logs timeout info.
 
     This function takes the same arguments as threading.Timer.
@@ -98,7 +108,7 @@ def wait_process(process,
       A threading.Timer object.
     """
 
-    def target():
+    def target() -> None:
       binary_name = os.path.basename(process.command[0])
       action_fn = args[0]
       logs.info(f"TIMEOUT: Terminating {binary_name} after {interval} seconds "
@@ -113,8 +123,10 @@ def wait_process(process,
     first_timeout_function = process.terminate
 
     # Use a second timer to send the process kill.
+    terminate_wait = (
+        terminate_wait_time if terminate_wait_time is not None else 0.0)
     second_timer = create_timeout_timer(
-        timeout + terminate_wait_time,
+        timeout + terminate_wait,
         _end_process,
         [process.kill, result],
     )
@@ -149,8 +161,12 @@ def wait_process(process,
   return result
 
 
-def kill_process_tree(root_pid):
+def kill_process_tree(root_pid: int) -> None:
   """Kill process tree."""
+  if psutil is None:
+    logs.warning('psutil is not available.')
+    return
+
   try:
     parent = psutil.Process(root_pid)
     children = parent.children(recursive=True)
@@ -173,12 +189,14 @@ def kill_process_tree(root_pid):
 class ChildProcess:
   """A class representing a process that's running."""
 
-  def __init__(self,
-               popen,
-               command,
-               max_stdout_len=None,
-               stdout_file=None,
-               interactive=False):
+  def __init__(
+      self,
+      popen: subprocess.Popen,
+      command: list[str],
+      max_stdout_len: int | None = None,
+      stdout_file: Any = None,
+      interactive: bool = False,
+  ) -> None:
     self._popen = popen
     self._command = command
     self._max_stdout_len = max_stdout_len
@@ -186,23 +204,28 @@ class ChildProcess:
     self._interactive = interactive
 
   @property
-  def command(self):
+  def command(self) -> list[str]:
     return self._command
 
   @property
-  def popen(self):
+  def popen(self) -> subprocess.Popen:
     return self._popen
 
-  def communicate(self, input=None):  # pylint: disable=redefined-builtin
+  def communicate(
+      self,
+      input: str | bytes | None = None,  # pylint: disable=redefined-builtin
+  ) -> tuple[Any, Any]:
     """subprocess.Popen.communicate."""
     stdout = b''
     stderr = b''
 
     if self._interactive:
-      if input:
+      if input and self._popen.stdin:
         self._popen.stdin.write(input)
 
       while True:
+        if not self._popen.stdout:
+          break
         line = self._popen.stdout.readline()
         if not line:
           break
@@ -218,22 +241,22 @@ class ChildProcess:
     else:
       stdout, stderr = self._popen.communicate(input)
 
-    if not self._max_stdout_len:
+    if not self._max_stdout_len or self._stdout_file is None:
       return stdout, stderr
 
     with self._stdout_file:
       return utils.read_from_handle_truncated(self._stdout_file,
                                               self._max_stdout_len), stderr
 
-  def poll(self):
+  def poll(self) -> int | None:
     """subprocess.Popen.poll."""
     return self._popen.poll()
 
-  def kill(self):
+  def kill(self) -> None:
     """Kills running process and all of its associated children."""
     kill_process_tree(self._popen.pid)
 
-  def terminate(self):
+  def terminate(self) -> None:
     """subprocess.Popen.terminate."""
     try:
       self._popen.terminate()
@@ -254,12 +277,20 @@ class ProcessResult:
     timed_out: Whether or not the process timed out.
   """
 
-  def __init__(self,
-               command=None,
-               return_code=None,
-               output=None,
-               time_executed=None,
-               timed_out=False):
+  command: list[str] | None
+  return_code: int | None
+  output: Any
+  time_executed: float | None
+  timed_out: bool
+
+  def __init__(
+      self,
+      command: list[str] | None = None,
+      return_code: int | None = None,
+      output: Any = None,
+      time_executed: float | None = None,
+      timed_out: bool = False,
+  ) -> None:
     """Inits the ProcessResult."""
     self.command = command
     self.return_code = return_code
@@ -278,24 +309,32 @@ class ProcessRunner:
     cwd: Optional current working directory for the process.
   """
 
-  def __init__(self, executable_path, default_args=None, cwd=None):
+  def __init__(
+      self,
+      executable_path: str,
+      default_args: Sequence[str] | None = None,
+      cwd: str | None = None,
+  ) -> None:
     """Inits ProcessRunner."""
     self._executable_path = executable_path
-    self._default_args = []
+    self._default_args: list[str] = []
     self.cwd = cwd
 
     if default_args:
       self.default_args.extend(default_args)
 
   @property
-  def executable_path(self):
+  def executable_path(self) -> str:
     return self._executable_path
 
   @property
-  def default_args(self):
+  def default_args(self) -> list[str]:
     return self._default_args
 
-  def get_command(self, additional_args=None):
+  def get_command(
+      self,
+      additional_args: Sequence[str] | None = None,
+  ) -> list[str]:
     """Returns the command line for running the executable.
 
     Args:
@@ -313,14 +352,16 @@ class ProcessRunner:
 
     return command
 
-  def run(self,
-          additional_args=None,
-          max_stdout_len=None,
-          extra_env=None,
-          stdin=subprocess.PIPE,
-          stdout=subprocess.PIPE,
-          stderr=subprocess.STDOUT,
-          **popen_args):
+  def run(
+      self,
+      additional_args: Sequence[str] | None = None,
+      max_stdout_len: int | None = None,
+      extra_env: dict[str, str] | None = None,
+      stdin: Any = subprocess.PIPE,
+      stdout: Any = subprocess.PIPE,
+      stderr: Any = subprocess.STDOUT,
+      **popen_args: Any,
+  ) -> ChildProcess:
     """Runs the executable.
 
     Does not block the caller.
@@ -386,18 +427,20 @@ class ProcessRunner:
 
   # Note: changes to this function may require changes to
   # untrusted_runner.proto.
-  def run_and_wait(self,
-                   additional_args=None,
-                   timeout=None,
-                   terminate_before_kill=False,
-                   terminate_wait_time=None,
-                   input_data=None,
-                   max_stdout_len=None,
-                   extra_env=None,
-                   stdin=subprocess.PIPE,
-                   stdout=subprocess.PIPE,
-                   stderr=subprocess.STDOUT,
-                   **popen_args) -> ProcessResult:
+  def run_and_wait(
+      self,
+      additional_args: Sequence[str] | None = None,
+      timeout: float | None = None,
+      terminate_before_kill: bool = False,
+      terminate_wait_time: float | None = None,
+      input_data: str | bytes | None = None,
+      max_stdout_len: int | None = None,
+      extra_env: dict[str, str] | None = None,
+      stdin: Any = subprocess.PIPE,
+      stdout: Any = subprocess.PIPE,
+      stderr: Any = subprocess.STDOUT,
+      **popen_args: Any,
+  ) -> ProcessResult:
     """Runs the executable.
 
     Blocks the caller until the process exits.
@@ -453,9 +496,10 @@ class ProcessRunner:
 class UnicodeProcessRunnerMixin:
   """Mixin for process runner subclasses to output unicode output."""
 
-  def run_and_wait(self, *args, **kwargs) -> ProcessResult:  # pylint: disable=arguments-differ
+  def run_and_wait(self, *args: Any, **kwargs: Any) -> ProcessResult:  # pylint: disable=arguments-differ
     """Overridden run_and_wait which always decodes the output."""
-    result = ProcessRunner.run_and_wait(self, *args, **kwargs)
+    result = ProcessRunner.run_and_wait(
+        cast(ProcessRunner, self), *args, **kwargs)
     if result.output is not None:
       result.output = utils.decode_to_unicode(result.output)
 
@@ -469,7 +513,10 @@ class UnicodeProcessRunner(UnicodeProcessRunnerMixin, ProcessRunner):
 class ModifierProcessRunnerMixin:
   """ProcessRunner mixin with modifiers."""
 
-  def tool_prefix(self, tool):
+  _executable_path: str
+  _default_args: list[str]
+
+  def tool_prefix(self, tool: str) -> list[str]:
     """Prefix the command with a tool and its args"""
     if not environment.get_value(f'USE_{tool.upper()}'):
       return []
@@ -479,7 +526,7 @@ class ModifierProcessRunnerMixin:
 
     tool_path = environment.get_default_tool_path(tool)
     if not os.path.exists(tool_path) and tool in TOOL_URLS:
-      urllib.request.urlretrieve(TOOL_URLS.get(tool), tool_path)
+      urllib.request.urlretrieve(TOOL_URLS[tool], tool_path)
     if os.path.exists(tool_path):
       os.chmod(tool_path, 0o755)
     if not os.path.exists(tool_path):
@@ -487,7 +534,10 @@ class ModifierProcessRunnerMixin:
 
     return [tool_path] + TOOL_ARGS.get(tool, [])
 
-  def get_command(self, additional_args=None):
+  def get_command(
+      self,
+      additional_args: Sequence[str] | None = None,
+  ) -> list[str]:
     """Overridden get_command."""
     command = [self._executable_path]
     command.extend(self._default_args)

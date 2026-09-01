@@ -19,6 +19,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import google_groups
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
@@ -26,11 +27,11 @@ from libs import auth
 from libs import helpers
 from libs import request_cache
 
-PRIVILEGED_USER_CACHE_CAPACITY = 10
+PRIVILEGED_USER_CACHE_CAPACITY: int = 10
 
 
 @request_cache.wrap(PRIVILEGED_USER_CACHE_CAPACITY)
-def _is_privileged_user(email):
+def _is_privileged_user(email: str) -> bool:
   """Check if an email is in the privileged users list."""
   if local_config.AuthConfig().get('all_users_privileged'):
     return True
@@ -66,7 +67,7 @@ def _is_privileged_user(email):
   return False
 
 
-def _is_blacklisted_user(email):
+def _is_blacklisted_user(email: str) -> bool:
   """Check if an email is in the privileged users list."""
   blacklisted_user_emails = (db_config.get_value('blacklisted_users') or
                              '').splitlines()
@@ -75,7 +76,7 @@ def _is_blacklisted_user(email):
       for blacklisted_user_email in blacklisted_user_emails)
 
 
-def get_user_job_type():
+def get_user_job_type() -> str | None:
   """Return the job_type that is assigned to the current user. None means one
     can access any job type. You might want to invoke get_access(..) with
     the job type afterward."""
@@ -92,7 +93,7 @@ def get_user_job_type():
   return None
 
 
-def _is_domain_allowed(email):
+def _is_domain_allowed(email: str) -> bool:
   """Check if the email's domain is allowed."""
   domains = local_config.AuthConfig().get('whitelisted_domains', default=[])
   for domain in domains:
@@ -102,7 +103,7 @@ def _is_domain_allowed(email):
   return False
 
 
-def _is_trusted_domain_user(user):
+def _is_trusted_domain_user(user: auth.User | None) -> bool:
   """Check if a user should be trusted based on their email domain.
 
   Domain-allowlist trust requires a verified email: a self-assertable
@@ -112,10 +113,16 @@ def _is_trusted_domain_user(user):
 
 
 class UserAccess:
-  Allowed, Denied, Redirected = list(range(3))  # pylint: disable=invalid-name
+  # pylint: disable=invalid-name
+  Allowed: int
+  Denied: int
+  Redirected: int
+  Allowed, Denied, Redirected = list(range(3))
 
 
-def has_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
+def has_access(need_privileged_access: bool = False,
+               job_type: str | None = None,
+               fuzzer_name: str | None = None) -> bool:
   """Check if the user has access."""
   result = get_access(
       need_privileged_access=need_privileged_access,
@@ -125,7 +132,9 @@ def has_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
   return result == UserAccess.Allowed
 
 
-def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
+def get_access(need_privileged_access: bool = False,
+               job_type: str | None = None,
+               fuzzer_name: str | None = None) -> int:
   """Return 'allowed', 'redirected', or 'failed'."""
   if auth.is_current_user_admin():
     return UserAccess.Allowed
@@ -154,11 +163,12 @@ def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
   return UserAccess.Denied
 
 
-def can_user_access_testcase(testcase):
+def can_user_access_testcase(testcase: data_types.Testcase) -> bool:
   """Checks if the current user can access the testcase."""
   config = db_config.get()
-  need_privileged_access = (
-      testcase.security_flag and not config.relax_security_bug_restrictions)
+  need_privileged_access = bool(
+      testcase.security_flag and
+      not (config and config.relax_security_bug_restrictions))
 
   if has_access(
       fuzzer_name=testcase.actual_fuzzer_name(),
@@ -176,6 +186,8 @@ def can_user_access_testcase(testcase):
     return False
 
   issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+  if not issue_tracker:
+    return False
   associated_issue = issue_tracker.get_issue(issue_id)
   if not associated_issue:
     return False
@@ -188,9 +200,8 @@ def can_user_access_testcase(testcase):
     if original_issue:
       issues_to_check.append(original_issue)
 
-  relaxed_restrictions = (
-      config.relax_testcase_restrictions or
-      _is_trusted_domain_user(auth.get_current_user()))
+  relaxed_restrictions = bool((config and config.relax_testcase_restrictions) or
+                              _is_trusted_domain_user(auth.get_current_user()))
   for issue in issues_to_check:
     if relaxed_restrictions:
       if (any(utils.emails_equal(user_email, cc) for cc in issue.ccs) or
@@ -204,7 +215,8 @@ def can_user_access_testcase(testcase):
   return False
 
 
-def check_access_and_get_testcase(testcase_id):
+def check_access_and_get_testcase(
+    testcase_id: int | str) -> data_types.Testcase:
   """Check the failed attempt count and get the testcase."""
   if not helpers.get_user_email():
     raise helpers.UnauthorizedError()

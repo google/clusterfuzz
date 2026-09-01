@@ -17,10 +17,13 @@ import stat
 
 from clusterfuzz._internal.bot.fuzzers.afl import launcher
 from clusterfuzz._internal.bot.fuzzers.afl import stats
+from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
 
-def _run_single_testcase(fuzzer_runner, testcase_file_path):
+def _run_single_testcase(
+    fuzzer_runner: launcher.AflRunner | launcher.AflAndroidRunner,
+    testcase_file_path: str) -> new_process.ProcessResult:
   """Loads a crash testcase if it exists."""
   # To ensure that we can run the fuzzer.
   os.chmod(fuzzer_runner.executable_path, stat.S_IRWXU | stat.S_IRGRP
@@ -33,10 +36,11 @@ class Engine(engine.Engine):
   """AFL engine implementation."""
 
   @property
-  def name(self):
+  def name(self) -> str:
     return 'afl'
 
-  def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
+  def prepare(self, corpus_dir: str, target_path: str,
+              build_dir: str) -> engine.FuzzOptions:  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options.
 
     Returns a FuzzOptions object.
@@ -60,7 +64,8 @@ class Engine(engine.Engine):
 
     return engine.FuzzOptions(corpus_dir, arguments, strategies)
 
-  def fuzz(self, target_path, options, reproducers_dir, max_time):
+  def fuzz(self, target_path: str, options: engine.FuzzOptions,
+           reproducers_dir: str, max_time: int) -> engine.FuzzResult:
     """Run a fuzz session.
 
     Args:
@@ -86,6 +91,8 @@ class Engine(engine.Engine):
         strategy_dict=options.strategies)
 
     fuzz_result = runner.fuzz()
+    assert fuzz_result is not None
+    assert fuzz_result.time_executed is not None
 
     command = fuzz_result.command
     time_executed = fuzz_result.time_executed
@@ -103,7 +110,7 @@ class Engine(engine.Engine):
                            new_units_added, corpus_size, runner.strategies,
                            runner.fuzzer_stderr, fuzz_result.output)
 
-    crashes = []
+    crashes: list[engine.Crash] = []
     if os.path.exists(testcase_file_path):
       crash = engine.Crash(testcase_file_path, runner.fuzzer_stderr, [],
                            fuzz_result.time_executed)
@@ -112,7 +119,8 @@ class Engine(engine.Engine):
     return engine.FuzzResult(fuzzing_logs, command, crashes, stats_getter.stats,
                              time_executed)
 
-  def reproduce(self, target_path, input_path, arguments, max_time):
+  def reproduce(self, target_path: str, input_path: str, arguments: list[str],
+                max_time: int) -> engine.ReproduceResult:
     """Reproduce a crash given an input.
 
     Args:
@@ -140,8 +148,10 @@ class Engine(engine.Engine):
 
     return engine.ReproduceResult(command, return_code, time_executed, output)
 
-  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+  def minimize_corpus(self, target_path: str, arguments: list[str],
+                      input_dirs: list[str], output_dir: str,
+                      reproducers_dir: str | None,
+                      max_time: int) -> engine.FuzzResult:
     """Optional (but recommended): run corpus minimization.
 
     Args:

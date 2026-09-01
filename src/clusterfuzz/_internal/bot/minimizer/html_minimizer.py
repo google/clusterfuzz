@@ -14,7 +14,12 @@
 """Minimizer that attempts to use specialized minimizers on different parts of
    an HTML test case."""
 
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Sequence
 import functools
+from typing import Any
+from typing import cast
 
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.HTMLLexer import HTMLLexer
@@ -27,8 +32,8 @@ from . import js_minimizer
 from . import minimizer
 from . import utils
 
-SCRIPT_START_STRING = b'<script'
-SCRIPT_END_STRING = b'</script>'
+SCRIPT_START_STRING: bytes = b'<script'
+SCRIPT_END_STRING: bytes = b'</script>'
 
 
 class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
@@ -40,34 +45,37 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
 
   class Token:
     """Helper class to represent a single token."""
-    TYPE_HTML = 0
-    TYPE_SCRIPT = 1
+    TYPE_HTML: int = 0
+    TYPE_SCRIPT: int = 1
 
-    def __init__(self, data, token_type):
-      self.data = data
-      self.token_type = token_type
+    def __init__(self, data: bytes, token_type: int) -> None:
+      self.data: bytes = data
+      self.token_type: int = token_type
 
   class TokenizerState:
     """Enum for tokenizer states."""
-    SEARCHING_FOR_SCRIPT = 0
-    SEARCHING_FOR_TAG_END = 1
-    SEARCHING_FOR_CLOSE_SCRIPT = 2
+    SEARCHING_FOR_SCRIPT: int = 0
+    SEARCHING_FOR_TAG_END: int = 1
+    SEARCHING_FOR_CLOSE_SCRIPT: int = 2
 
-  HTMLTOKENIZER = AntlrTokenizer(HTMLLexer).tokenize
-  JSTOKENIZER = AntlrTokenizer(JavaScriptLexer).tokenize
+  HTMLTOKENIZER: Callable[[bytes], list[str]] = AntlrTokenizer(
+      HTMLLexer).tokenize
+  JSTOKENIZER: Callable[[bytes], list[str]] = AntlrTokenizer(
+      JavaScriptLexer).tokenize
 
-  TOKENIZER_MAP = {
+  TOKENIZER_MAP: dict[int, list[Callable[[bytes], list[str]]]] = {
       Token.TYPE_HTML: [HTMLTOKENIZER, HTMLTOKENIZER, HTMLTOKENIZER],
       Token.TYPE_SCRIPT: [JSTOKENIZER, JSTOKENIZER],
   }
 
-  CHUNK_SIZES = [
+  CHUNK_SIZES: list[list[int]] = [
       [400, 100, 20, 5],
       [400, 100, 20, 5, 2],
       [400, 100, 20, 5, 1],
   ]
 
-  def __init__(self, test_function, *args, **kwargs):
+  def __init__(self, test_function: Callable[..., Any], *args: Any,
+               **kwargs: Any) -> None:
     # The HTML minimizer will not be used directly. Instead, preserve its
     # arguments and pass them along when creating subminimizers.
     super().__init__(lambda: False)
@@ -76,10 +84,10 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     assert 'tokenizer' not in kwargs, 'Custom tokenizers not supported.'
     assert 'token_combiner' not in kwargs, 'Custom tokenizers not supported.'
 
-    self.test_function = test_function
-    self.kwargs = kwargs
+    self.test_function: Callable[..., Any] = test_function
+    self.kwargs: dict[str, Any] = kwargs
 
-  def minimize(self, data):
+  def minimize(self, data: bytes) -> bytes:
     """Wrapper to perform common tasks and call |_execute|."""
     # Do an initial line-by-line minimization to filter out noise.
     line_minimizer = delta_minimizer.DeltaMinimizer(self.test_function,
@@ -87,7 +95,7 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     # Do two line minimizations to make up for the fact that minimzations on
     # bots don't always minimize as much as they can.
     for _ in range(2):
-      data = line_minimizer.minimize(data)
+      data = cast(bytes, line_minimizer.minimize(data))
 
     tokens = self.get_tokens_and_metadata(data)
     for index, token in enumerate(tokens):
@@ -103,12 +111,13 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
         # portions of the test to the combined tokens.
 
         if token.token_type == HTMLMinimizer.Token.TYPE_HTML:
-          current_minimizer = chunk_minimizer.ChunkMinimizer(
-              self.test_function,
-              chunk_sizes=HTMLMinimizer.CHUNK_SIZES[level],
-              token_combiner=token_combiner,
-              tokenizer=current_tokenizer,
-              **self.kwargs)
+          current_minimizer: minimizer.Minimizer = (
+              chunk_minimizer.ChunkMinimizer(
+                  self.test_function,
+                  chunk_sizes=HTMLMinimizer.CHUNK_SIZES[level],
+                  token_combiner=token_combiner,
+                  tokenizer=current_tokenizer,
+                  **self.kwargs))
         else:
           current_minimizer = js_minimizer.JSMinimizer(
               self.test_function,
@@ -116,7 +125,7 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
               tokenizer=current_tokenizer,
               **self.kwargs)
 
-        result_data = current_minimizer.minimize(token.data)
+        result_data = cast(bytes, current_minimizer.minimize(token.data))
         start = len(prefix)
         end = len(result_data) - len(suffix)
         token.data = result_data[start:end]
@@ -124,12 +133,12 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     # TODO(mbarbella): Remove this once other minimizers are improved.
     # Do a final line-by-line minimization pass.
     data = self.combine_tokens(tokens)
-    return line_minimizer.minimize(data)
+    return cast(bytes, line_minimizer.minimize(data))
 
   @staticmethod
-  def get_tokens_and_metadata(data):
+  def get_tokens_and_metadata(data: bytes) -> list['HTMLMinimizer.Token']:
     """Get the token list with associated metadata."""
-    tokens = []
+    tokens: list[HTMLMinimizer.Token] = []
     state = HTMLMinimizer.TokenizerState.SEARCHING_FOR_SCRIPT
     current_token_start = 0
     current_token_type = HTMLMinimizer.Token.TYPE_HTML
@@ -182,7 +191,9 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     return tokens
 
   @staticmethod
-  def combine_worker_tokens(tokens, prefix=b'', suffix=b''):
+  def combine_worker_tokens(tokens: Iterable[str | bytes],
+                            prefix: bytes = b'',
+                            suffix: bytes = b'') -> bytes:
     """Combine tokens for a worker minimizer."""
     # The Antlr tokenizer decodes the bytes objects we originally pass to it.
     encoded_tokens = [
@@ -191,14 +202,14 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
     return prefix + b''.join(encoded_tokens) + suffix
 
   @staticmethod
-  def combine_tokens(tokens):
+  def combine_tokens(tokens: Sequence['HTMLMinimizer.Token']) -> bytes:
     """Combine tokens into a usable format, stripping metadata."""
     return b''.join([t.data for t in tokens])
 
   @staticmethod
-  def run(data,
-          thread_count=minimizer.DEFAULT_THREAD_COUNT,
-          file_extension='.html'):
+  def run(data: bytes,
+          thread_count: int = minimizer.DEFAULT_THREAD_COUNT,
+          file_extension: str = '.html') -> bytes:
     """Attempt to minimize an html test case."""
     html_minimizer = HTMLMinimizer(
         utils.test, max_threads=thread_count, file_extension=file_extension)

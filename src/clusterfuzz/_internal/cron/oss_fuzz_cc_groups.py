@@ -13,6 +13,8 @@
 # limitations under the License.
 """Cron to sync OSS-Fuzz projects groups used as CC in the issue tracker."""
 
+from typing import cast
+
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
@@ -25,7 +27,7 @@ _CC_GROUP_DESC = 'External CCs in OSS-Fuzz issue tracker for project'
 _API_DELAY = 3  # 3s delay to avoid cloud identity api rate limits.
 
 
-def normalize_email_for_group(email):
+def normalize_email_for_group(email: str) -> str | None:
   """Normalize an email address for google groups."""
   email = email.strip().lower()
 
@@ -54,7 +56,7 @@ def normalize_email_for_group(email):
     delay=_API_DELAY,
     function='cron.oss_fuzz_cc_groups._add_member_with_retry',
     retry_on_false=True)
-def _add_member_with_retry(group_id, member):
+def _add_member_with_retry(group_id: str, member: str) -> bool:
   """Add a member to a group with retry."""
   return google_groups.add_member_to_group(group_id, member)
 
@@ -64,13 +66,14 @@ def _add_member_with_retry(group_id, member):
     delay=_API_DELAY,
     function='cron.oss_fuzz_cc_groups._delete_member_with_retry',
     retry_on_false=True)
-def _delete_member_with_retry(group_id, member, membership_name):
+def _delete_member_with_retry(group_id: str, member: str,
+                              membership_name: str) -> bool:
   """Delete a member from a group with retry."""
   return google_groups.delete_google_group_membership(group_id, member,
                                                       membership_name)
 
 
-def sync_project_cc_group(project_name: str, ccs: list[str]):
+def sync_project_cc_group(project_name: str, ccs: list[str]) -> None:
   """Sync the project's google group used for CCing in the issue tracker."""
   group_name = f'{project_name}{_CC_GROUP_SUFFIX}'
 
@@ -122,14 +125,14 @@ def sync_project_cc_group(project_name: str, ccs: list[str]):
     _delete_member_with_retry(group_id, member, membership_name)
 
 
-def main():
+def main() -> bool:
   """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
   logs.info('OSS-Fuzz CC groups sync started.')
 
   for project in ndb_utils.get_all_from_model(data_types.OssFuzzProject):
     project_name = project.name
     ccs = project.ccs
-    sync_project_cc_group(project_name, ccs)
+    sync_project_cc_group(cast(str, project_name), cast(list[str], ccs))
 
   logs.info('OSS-Fuzz CC groups sync succeeded.')
   return True

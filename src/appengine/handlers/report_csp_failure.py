@@ -13,6 +13,9 @@
 # limitations under the License.
 """Log incoming reports of CSP violations."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
 from clusterfuzz._internal.metrics import logs
@@ -26,9 +29,9 @@ class ReportCspFailureHandler(base_handler.Handler):
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_user_access(need_privileged_access=False)
-  def post(self):
+  def post(self) -> str:
     """Handle a POST request."""
-    report = request.get('csp-report')
+    report = cast(Any, request).get('csp-report')
     if not report:
       raise helpers.EarlyExitError('No CSP report.', 400)
 

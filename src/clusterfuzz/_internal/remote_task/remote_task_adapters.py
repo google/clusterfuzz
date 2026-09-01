@@ -18,6 +18,7 @@ from enum import Enum
 from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.k8s import service as k8s_service
+from clusterfuzz._internal.remote_task import remote_task_types
 from clusterfuzz._internal.swarming.service import SwarmingService
 
 
@@ -41,8 +42,11 @@ class RemoteTaskAdapters(Enum):
   SWARMING = ('swarming', SwarmingService,
               feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION, 0.0)
 
-  def __init__(self, adapter_id, service, feature_flag, default_weight):
-    self.id = adapter_id
-    self.feature_flag = feature_flag
-    self.default_weight = default_weight
-    self.service = service
+  def __init__(self, adapter_id: str,
+               service: type[remote_task_types.RemoteTaskInterface],
+               feature_flag: feature_flags.FeatureFlags,
+               default_weight: float) -> None:
+    self.id: str = adapter_id
+    self.feature_flag: feature_flags.FeatureFlags = feature_flag
+    self.default_weight: float = default_weight
+    self.service: type[remote_task_types.RemoteTaskInterface] = service

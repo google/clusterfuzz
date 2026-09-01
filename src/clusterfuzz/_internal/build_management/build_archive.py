@@ -14,13 +14,11 @@
 """Build Archive manager."""
 
 import abc
+from collections.abc import Callable
 import json
 import os
-from typing import BinaryIO
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import cast
+from typing import IO
 
 from typing_extensions import override
 
@@ -29,12 +27,12 @@ from clusterfuzz._internal.system import archive
 
 # Extensions to exclude when unarchiving a fuzz target. Note that fuzz target
 # own files like seed corpus, options, etc are covered by its own regex.
-FUZZ_TARGET_EXCLUDED_EXTENSIONS = [
+FUZZ_TARGET_EXCLUDED_EXTENSIONS: list[str] = [
     'exe', 'options', 'txt', 'zip', 'exe.pdb', 'par'
 ]
 
 # File prefixes to explicitly include when unarchiving a fuzz target.
-FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
+FUZZ_TARGET_ALLOWLISTED_PREFIXES: list[str] = [
     'afl-cmin',
     'afl-fuzz',
     'afl-showmap',
@@ -57,7 +55,7 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
 
 # Manifest file present in Chrome build archives. Specifies the archive
 # schema version along with optional build metadata (e.g., fuzz targets).
-CHROME_MANIFEST_FILENAME = 'clusterfuzz_manifest.json'
+CHROME_MANIFEST_FILENAME: str = 'clusterfuzz_manifest.json'
 
 
 class BuildArchive(archive.ArchiveReader):
@@ -67,26 +65,33 @@ class BuildArchive(archive.ArchiveReader):
   class archive management features.
   """
 
-  def __init__(self, reader: archive.ArchiveReader):
+  _reader: archive.ArchiveReader
+  _fuzz_targets: dict[str, str] | None
+
+  def __init__(self, reader: archive.ArchiveReader) -> None:
     self._reader = reader
     self._fuzz_targets = None
 
-  def list_members(self) -> List[archive.ArchiveMemberInfo]:
+  @override
+  def list_members(self) -> list[archive.ArchiveMemberInfo]:
     return self._reader.list_members()
 
+  @override
   def extract(self,
               member: str,
-              path: Union[str, os.PathLike],
-              trusted: bool = False) -> str:
+              path: str | os.PathLike[str],
+              trusted: bool = False) -> str | None:
     return self._reader.extract(member=member, path=path, trusted=trusted)
 
-  def open(self, member: str) -> BinaryIO:
+  @override
+  def open(self, member: str) -> IO[bytes] | None:
     return self._reader.open(member)
 
+  @override
   def close(self) -> None:
     self._reader.close()
 
-  def list_fuzz_targets(self) -> List[str]:
+  def list_fuzz_targets(self) -> list[str]:
     """Lists fuzzing targets in the archive.
 
     Guarantees that self._fuzz_targets is populated with a dict mapping
@@ -107,7 +112,7 @@ class BuildArchive(archive.ArchiveReader):
     return list(self._fuzz_targets.keys())
 
   @abc.abstractmethod
-  def find_fuzz_targets(self) -> List[str]:
+  def find_fuzz_targets(self) -> list[str]:
     """Finds fuzzing targets in the archive.
 
     Returns:
@@ -117,7 +122,7 @@ class BuildArchive(archive.ArchiveReader):
 
   @abc.abstractmethod
   def get_target_dependencies(
-      self, fuzz_target: str) -> List[archive.ArchiveMemberInfo]:
+      self, fuzz_target: str) -> list[archive.ArchiveMemberInfo]:
     """Gets the target dependencies. This returns all the necessary files in
     order for the fuzzer to run correctly.
 
@@ -130,7 +135,7 @@ class BuildArchive(archive.ArchiveReader):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def unpacked_size(self, fuzz_target: Optional[str] = None) -> int:
+  def unpacked_size(self, fuzz_target: str | None = None) -> int:
     """Gets the total extracted size for the files returned by
     `get_target_dependencies`. In other words this returns the necessary space
     needed in order for the fuzz_target to run correctly.
@@ -147,8 +152,8 @@ class BuildArchive(archive.ArchiveReader):
 
   @abc.abstractmethod
   def unpack(self,
-             build_dir: str,
-             fuzz_target: Optional[str] = None,
+             build_dir: str | os.PathLike[str],
+             fuzz_target: str | None = None,
              trusted: bool = False) -> bool:
     """Unpacks the build to build_dir. During this operation, all the
     fuzz_target dependencies will be computed in order to unpack all the
@@ -167,7 +172,7 @@ class DefaultBuildArchive(BuildArchive):
   """Default class for handling builds. This should work with everything.
   """
 
-  def get_path_for_target(self, fuzz_target: str) -> str:
+  def get_path_for_target(self, fuzz_target: str) -> str | None:
     """Returns the path in the archive of the fuzz_target if found.
     This is needed because target name normalization means we're losing
     information about the actual file reprensenting the fuzz_target.
@@ -175,15 +180,17 @@ class DefaultBuildArchive(BuildArchive):
     if self._fuzz_targets is None:
       self.list_fuzz_targets()
 
+    assert self._fuzz_targets is not None
     return self._fuzz_targets.get(fuzz_target)
 
+  @override
   def get_target_dependencies(
-      self, fuzz_target: str) -> List[archive.ArchiveMemberInfo]:
+      self, fuzz_target: str) -> list[archive.ArchiveMemberInfo]:
     allowlisted_names = tuple([fuzz_target] + FUZZ_TARGET_ALLOWLISTED_PREFIXES)
     blocklisted_extensions = tuple(
         '.' + extension for extension in FUZZ_TARGET_EXCLUDED_EXTENSIONS)
 
-    to_extract = []
+    to_extract: list[archive.ArchiveMemberInfo] = []
     for file in self.list_members():
       filepath = file.name
       path_components = os.path.normpath(filepath).split(os.sep)
@@ -206,7 +213,7 @@ class DefaultBuildArchive(BuildArchive):
     return to_extract
 
   @override
-  def find_fuzz_targets(self) -> List[str]:
+  def find_fuzz_targets(self) -> list[str]:
     # Import here as this path is not available in App Engine context.
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
@@ -216,16 +223,18 @@ class DefaultBuildArchive(BuildArchive):
         if fuzzer_utils.is_fuzz_target(member.name, self.open)
     ]
 
-  def unpacked_size(self, fuzz_target: Optional[str] = None) -> int:
+  @override
+  def unpacked_size(self, fuzz_target: str | None = None) -> int:
     if not fuzz_target:
       return self.extracted_size()
 
     files = self.get_target_dependencies(fuzz_target=fuzz_target)
     return sum(f.size_bytes for f in files)
 
+  @override
   def unpack(self,
-             build_dir: str,
-             fuzz_target: Optional[str] = None,
+             build_dir: str | os.PathLike[str],
+             fuzz_target: str | None = None,
              trusted: bool = False) -> bool:
     if not fuzz_target:
       return self.extract_all(build_dir, trusted=trusted)
@@ -300,9 +309,13 @@ class ChromeBuildArchive(DefaultBuildArchive):
   # etc. for other deps
   """
 
+  _manifest_fuzz_targets: list[str] | None
+  _archive_schema_version: int
+  _root_dir: str
+
   def __init__(self,
                reader: archive.ArchiveReader,
-               default_archive_schema_version: int = 0):
+               default_archive_schema_version: int = 0) -> None:
     """Initializes a `ChromiumBuildArchive` with the given reader.
 
     Arguments:
@@ -319,7 +332,9 @@ class ChromeBuildArchive(DefaultBuildArchive):
       self._archive_schema_version = default_archive_schema_version
       return
 
-    with self.open(manifest_path) as f:
+    manifest_file = self.open(manifest_path)
+    assert manifest_file is not None
+    with manifest_file as f:
       manifest = json.load(f)
     self._archive_schema_version = manifest.get('archive_schema_version')
     if self._archive_schema_version is None:
@@ -334,6 +349,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     self._manifest_fuzz_targets = (
         fuzzer_utils.extract_fuzz_targets_from_manifest(manifest))
 
+  @override
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
       self._root_dir = super().root_dir()  # pylint: disable=attribute-defined-outside-init
@@ -344,7 +360,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return self._archive_schema_version
 
   @override
-  def find_fuzz_targets(self) -> List[str]:
+  def find_fuzz_targets(self) -> list[str]:
     if self._manifest_fuzz_targets is not None:
       return self._manifest_fuzz_targets
     return super().find_fuzz_targets()
@@ -402,15 +418,15 @@ class ChromeBuildArchive(DefaultBuildArchive):
   def _get_filename_matcher(self, file: str) -> Callable[[str], bool]:
     return lambda f: os.path.basename(f) == file
 
-  def _match_files(self, matchers: List[Callable[[str], bool]]
-                  ) -> List[archive.ArchiveMemberInfo]:
-    res = []
+  def _match_files(self, matchers: list[Callable[[str], bool]]
+                  ) -> list[archive.ArchiveMemberInfo]:
+    res: list[archive.ArchiveMemberInfo] = []
     for member in self.list_members():
       if any(matcher(member.name) for matcher in matchers):
         res.append(member)
     return res
 
-  def _get_common_files(self) -> List[str]:
+  def _get_common_files(self) -> list[str]:
     """Those files are always to be extracted.
     """
     return [
@@ -419,8 +435,9 @@ class ChromeBuildArchive(DefaultBuildArchive):
         'clusterfuzz_manifest.json',
     ]
 
+  @override
   def get_target_dependencies(
-      self, fuzz_target: str) -> List[archive.ArchiveMemberInfo]:
+      self, fuzz_target: str) -> list[archive.ArchiveMemberInfo]:
     target_path = self.get_path_for_target(fuzz_target)
     if not target_path:
       logs.warning(f'Target path not found for {fuzz_target}')
@@ -437,9 +454,11 @@ class ChromeBuildArchive(DefaultBuildArchive):
       logs.warning(f'runtime_deps file not found for {target_path}')
       return super().get_target_dependencies(fuzz_target)
 
-    res = []
-    matchers = []
-    with self.open(deps_file) as f:
+    res: list[archive.ArchiveMemberInfo] = []
+    matchers: list[Callable[[str], bool]] = []
+    deps_file_obj = self.open(deps_file)
+    assert deps_file_obj is not None
+    with deps_file_obj as f:
       deps = [
           self.get_dependency_path(l.decode(), deps_file)
           for l in f.read().splitlines()
@@ -486,7 +505,7 @@ def open_with_reader(reader: archive.ArchiveReader) -> BuildArchive:
   return DefaultBuildArchive(reader)
 
 
-def open(archive_path: str) -> BuildArchive:  # pylint: disable=redefined-builtin
+def open(archive_path: str | os.PathLike[str]) -> BuildArchive:  # pylint: disable=redefined-builtin
   """Opens the archive and gets the appropriate build archive based on the
   `archive_path`. The resulting object is usable as a normal archive reader,
   but provides additional feature related to build handling.
@@ -514,7 +533,7 @@ def open_uri(uri: str) -> BuildArchive:
   Returns:
       The build archive.
   """
-  reader = archive.ZipArchiveReader(archive.HttpZipFile(uri))
+  reader = archive.ZipArchiveReader(cast(IO[bytes], archive.HttpZipFile(uri)))
   return open_with_reader(reader)
 
 

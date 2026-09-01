@@ -387,8 +387,8 @@ class JsonFormatterTest(unittest.TestCase):
         func='test_func',
         sinfo=None,
     )
-    self.log_record.created = datetime.datetime(2023, 10, 26, 12, 0,
-                                                0).timestamp()
+    self.log_record.created = datetime.datetime(
+        2023, 10, 26, 12, 0, 0, tzinfo=datetime.timezone.utc).timestamp()
 
     self.original_env = dict(os.environ)
 

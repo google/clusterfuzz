@@ -13,6 +13,10 @@
 # limitations under the License.
 """server.py initialises the appengine server for ClusterFuzz."""
 
+from typing import Any
+from typing import Callable
+from typing import Sequence
+
 from flask import Flask
 from flask import redirect
 from flask import request
@@ -67,20 +71,22 @@ from handlers.testcase_detail import testcase_variants
 from handlers.testcase_detail import update_from_trunk
 from handlers.testcase_detail import update_issue
 
-ndb_client = ndb.Client()
+ndb_client: ndb.Client = ndb.Client()
 
 
-def ndb_wsgi_middleware(wsgi_app):
+def ndb_wsgi_middleware(wsgi_app: Callable[..., Any]) -> Any:
   """WSGI middleware for ndb_datastore context allocation to the app."""
 
-  def middleware(environ, start_response):
+  def middleware(environ: dict[str, Any],
+                 start_response: Callable[..., Any]) -> Any:
     with ndb_client.context():
       return wsgi_app(environ, start_response)
 
   return middleware
 
 
-def register_routes(flask_app, routes):
+def register_routes(flask_app: Flask,
+                    routes: Sequence[tuple[str, Any]]) -> None:
   """Utility function to register all routes to the flask app."""
   for route, handler in routes:
     flask_app.add_url_rule(route, view_func=handler.as_view(route))
@@ -92,8 +98,8 @@ base_handler.add_menu('Fuzzer Statistics', '/fuzzer-stats')
 base_handler.add_menu('Crash Statistics', '/crash-stats')
 base_handler.add_menu('Upload Testcase', '/upload-testcase')
 
-_is_chromium = utils.is_chromium()
-_is_oss_fuzz = utils.is_oss_fuzz()
+_is_chromium: bool = utils.is_chromium()
+_is_oss_fuzz: bool = utils.is_oss_fuzz()
 
 if _is_chromium:
   base_handler.add_menu('Crashes by range', '/commit-range')
@@ -109,7 +115,7 @@ base_handler.add_menu('Report Bug', '/report-bug')
 base_handler.add_menu('Documentation', '/docs')
 
 # We need to separate routes for cron to avoid redirection.
-cron_routes = [
+cron_routes: list[tuple[str, Any]] = [
     ('/cleanup', cleanup.Handler),
     ('/external-update', external_update.Handler),
     ('/fuzzer-stats/cache', fuzzer_stats.RefreshCacheHandler),
@@ -120,7 +126,7 @@ cron_routes = [
     ('/triage', triage.Handler),
 ]
 
-handlers = [
+handlers: list[tuple[str, Any]] = [
     ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
     ('/__/auth/<path:extra>', auth.Handler),
     ('/add-external-user-permission', configuration.AddExternalUserPermission),
@@ -205,12 +211,12 @@ handlers = [
 ]
 
 logs.configure('appengine')
-config = local_config.GAEConfig()
-main_domain = config.get('domains.main')
-redirect_domains = config.get('domains.redirects')
+config: local_config.GAEConfig = local_config.GAEConfig()
+main_domain: Any = config.get('domains.main')
+redirect_domains: Any = config.get('domains.redirects')
 
 
-def redirect_handler():
+def redirect_handler() -> Any:
   """Redirection handler."""
   if not redirect_domains:
     return None
@@ -221,7 +227,7 @@ def redirect_handler():
   return None
 
 
-app = Flask(__name__)
+app: Flask = Flask(__name__)
 # To also process trailing slash urls.
 app.url_map.strict_slashes = False
 app.before_request(redirect_handler)

@@ -18,6 +18,9 @@ dependencies)."""
 import json
 import os
 import re
+from typing import Any
+from typing import cast
+from typing import Dict
 from typing import List
 from typing import Optional
 
@@ -32,26 +35,26 @@ from clusterfuzz._internal.platforms.android.android_build_v4_api import \
 from clusterfuzz._internal.system import environment
 
 # Maximum number of retries for artifact access.
-MAX_RETRIES = 5
+MAX_RETRIES: int = 5
 
-ANDROID_BUILD_API_SCOPES = [
+ANDROID_BUILD_API_SCOPES: list[str] = [
     'https://www.googleapis.com/auth/androidbuild.internal',
     'https://www.googleapis.com/auth/cloud-platform'
 ]
 
-STABLE_CUTTLEFISH_BUILD = {
+STABLE_CUTTLEFISH_BUILD: dict[str, str] = {
     'bid': '11655237',
     'branch': 'git_main',
     'target': 'cf_x86_64_phone-next-userdebug'
 }
 
-DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = (
+DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO: str = (
     "gs://android-haiku/target-cuttlefish/stable_build_info.json")
 
-API_VERSION = 'V4'
+API_VERSION: str = 'V4'
 
 
-def _call_android_api_enabled():
+def _call_android_api_enabled() -> bool:
   """Return True if we should call the Android Build API, enabled by default,
   Disabled always if invoked in a uworker
   """
@@ -60,11 +63,12 @@ def _call_android_api_enabled():
     return False
 
   flag = feature_flags.FeatureFlags.CALL_ANDROID_API.flag
-  return flag.enabled if flag else True
+  return cast(bool, flag.enabled) if flag else True
 
 
-def _download_artifact(client, bid, target, attempt_id, name, output_directory,
-                       output_filename):
+def _download_artifact(client: Any, bid: str, target: str, attempt_id: str,
+                       name: str, output_directory: str,
+                       output_filename: str | None) -> str | None:
   """Download one artifact."""
   logs.info('reached download_artifact')
   logs.info('artifact to download: %s' % name)
@@ -172,11 +176,12 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
   return output_path
 
 
-def _get_artifacts_for_build(client,
-                             bid: str,
-                             target: str,
-                             attempt_id: str = 'latest',
-                             regexp: Optional[str] = None) -> List[str]:
+def _get_artifacts_for_build(
+    client: Any,
+    bid: str,
+    target: str,
+    attempt_id: str = 'latest',
+    regexp: Optional[str] = None) -> List[Dict[str, Any]]:
   """Return list of artifacts for a given build."""
   if not regexp:
     logs.warning(
@@ -213,7 +218,7 @@ def _get_artifacts_for_build(client,
   return artifacts
 
 
-def _get_client():
+def _get_client() -> Optional[Any]:
   """Return client with connection to build apiary."""
   # Connect using build apiary service account credentials.
   build_apiary_service_account_private_key = db_config.get_value(
@@ -239,7 +244,7 @@ def _get_client():
   return client
 
 
-def _get_stable_build_info():
+def _get_stable_build_info() -> Dict[str, Any]:
   """Return stable artifact for cuttlefish branch and target."""
   logs.info('Reached get_stable_build_info')
   stable_build_info = STABLE_CUTTLEFISH_BUILD
@@ -257,7 +262,11 @@ def _get_stable_build_info():
   return stable_build_info
 
 
-def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
+def get_latest_artifact_info(branch: str,
+                             target: str,
+                             signed: bool = False,
+                             stable_build: bool = False
+                            ) -> Optional[Dict[str, Any]]:
   """Return latest artifact for a branch and target."""
   if not _call_android_api_enabled():
     logs.warning(
@@ -316,7 +325,11 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
   return {'bid': bid, 'branch': branch, 'target': target}
 
 
-def get(bid, target, regex, output_directory, output_filename=None):
+def get(bid: str,
+        target: str,
+        regex: str,
+        output_directory: str,
+        output_filename: Optional[str] = None) -> Optional[List[str]]:
   """Return artifact for a given build id, target and file regex."""
   if not _call_android_api_enabled():
     logs.warning(
@@ -337,7 +350,9 @@ def get(bid, target, regex, output_directory, output_filename=None):
       output_filename=output_filename)
 
 
-def _run_script(client, bid, target, regex, output_directory, output_filename):
+def _run_script(client: Any, bid: str, target: str, regex: str,
+                output_directory: str,
+                output_filename: Optional[str]) -> Optional[List[str]]:
   """Download artifacts as specified."""
   artifacts = _get_artifacts_for_build(
       client=client, bid=bid, target=target, attempt_id='latest', regexp=regex)
@@ -346,7 +361,7 @@ def _run_script(client, bid, target, regex, output_directory, output_filename):
                f'build id {bid}.')
     return None
 
-  regex = re.compile(regex)
+  compiled_regex = re.compile(regex)
   result = []
 
   for artifact in artifacts:
@@ -356,7 +371,7 @@ def _run_script(client, bid, target, regex, output_directory, output_filename):
     if artifact_name.endswith('.SIGN_INFO'):
       continue
 
-    if regex.match(artifact_name):
+    if compiled_regex.match(artifact_name):
       loop_result = _download_artifact(
           client=client,
           bid=bid,

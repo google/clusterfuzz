@@ -14,19 +14,27 @@
 """Request specific caching.."""
 
 import collections
+from typing import Any
+from typing import Callable
+from typing import Optional
+from typing import ParamSpec
+from typing import TypeVar
 
 import flask
 
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.metrics import logs
 
+_P = ParamSpec('_P')
+_R = TypeVar('_R')
 
-def get_current_request():
+
+def get_current_request() -> Any:
   """Get the current request."""
   return flask.request
 
 
-def get_cache_backing():
+def get_cache_backing() -> Any:
   """Get the cache backing for saving current context data."""
   return flask.g
 
@@ -34,12 +42,12 @@ def get_cache_backing():
 class _FifoRequestCache(memoize.FifoInMemory):
   """In memory caching engine scoped to a request."""
 
-  def __init__(self, cache_key, capacity):
+  def __init__(self, cache_key: Any, capacity: int) -> None:
     super().__init__(capacity)
     self._cache_key = str(cache_key)
 
   @property
-  def cache(self):
+  def cache(self) -> Optional[collections.OrderedDict[Any, Any]]:
     """Get the cache backing."""
     cache_backing = get_cache_backing()
     if not cache_backing:
@@ -57,10 +65,10 @@ class _FifoRequestCache(memoize.FifoInMemory):
     return backing
 
 
-def wrap(capacity):
+def wrap(capacity: int) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
   """Wraps a function to use the per request cache."""
 
-  def decorator(func):
+  def decorator(func: Callable[_P, _R]) -> Callable[_P, _R]:
     """Decorator function."""
     engine = _FifoRequestCache(id(func), capacity)
     return memoize.wrap(engine)(func)

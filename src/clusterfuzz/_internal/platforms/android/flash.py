@@ -16,6 +16,9 @@ import datetime
 import os
 import socket
 import time
+from typing import Any
+from typing import cast
+from typing import Sequence
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
@@ -33,15 +36,15 @@ from . import constants
 from . import fetch_artifact
 from . import settings
 
-FLASH_IMAGE_REGEXES = [
+FLASH_IMAGE_REGEXES: list[str] = [
     r'.*[.]img',
     r'.*-img-.*[.]zip',
 ]
-FLASH_CUTTLEFISH_REGEXES = [
+FLASH_CUTTLEFISH_REGEXES: list[str] = [
     r'.*-img-.*[.]zip',
     r'cvd-host_package.tar.gz',
 ]
-FLASH_IMAGE_FILES = [
+FLASH_IMAGE_FILES: list[tuple[str, str]] = [
     # Order is important here.
     ('bootloader', 'bootloader*.img'),
     ('radio', 'radio*.img'),
@@ -54,16 +57,18 @@ FLASH_IMAGE_FILES = [
     ('dtbo', 'dtbo.img'),
     ('userdata', 'userdata.img'),
 ]
-FLASH_DEFAULT_BUILD_TARGET = '-next-userdebug'
-FLASH_DEFAULT_IMAGES_DIR = os.path.join(
+FLASH_DEFAULT_BUILD_TARGET: str = '-next-userdebug'
+FLASH_DEFAULT_IMAGES_DIR: str = os.path.join(
     environment.get_value('ROOT_DIR', ''), 'bot', 'inputs', 'images')
-FLASH_INTERVAL = 1 * 24 * 60 * 60
-FLASH_RETRIES = 3
-FLASH_REBOOT_BOOTLOADER_WAIT = 15
-FLASH_REBOOT_WAIT = 5 * 60
+FLASH_INTERVAL: int = 1 * 24 * 60 * 60
+FLASH_RETRIES: int = 3
+FLASH_REBOOT_BOOTLOADER_WAIT: int = 15
+FLASH_REBOOT_WAIT: int = 5 * 60
 
 
-def download_latest_build(build_info, image_regexes, image_directory):
+def download_latest_build(build_info: dict[str, Any],
+                          image_regexes: Sequence[str],
+                          image_directory: str) -> None:
   """Download the latest build artifact for the given branch and target."""
   # Check if our local build matches the latest build. If not, we will
   # download it.
@@ -87,13 +92,15 @@ def download_latest_build(build_info, image_regexes, image_directory):
                                                build_info['branch'], target))
       adb.bad_state_reached()
 
+    assert image_file_paths is not None
     for file_path in image_file_paths:
       if file_path.endswith('.zip') or file_path.endswith('.tar.gz'):
         with archive.open(file_path) as reader:
           reader.extract_all(image_directory)
 
 
-def boot_stable_build_cuttlefish(branch, target, image_directory):
+def boot_stable_build_cuttlefish(branch: str, target: str,
+                                 image_directory: str) -> None:
   """Boot cuttlefish instance using stable build id fetched from gcs."""
   build_info = fetch_artifact.get_latest_artifact_info(
       branch, target, stable_build=True)
@@ -105,7 +112,7 @@ def boot_stable_build_cuttlefish(branch, target, image_directory):
   adb.connect_to_cuttlefish_device()
 
 
-def flash_to_latest_build_if_needed():
+def flash_to_latest_build_if_needed() -> None:
   """Wipes user data, resetting the device to original factory state."""
   if environment.get_value('LOCAL_DEVELOPMENT'):
     # Don't reimage local development devices.
@@ -155,10 +162,11 @@ def flash_to_latest_build_if_needed():
     if build_params:
       logs.info('build_params found on device: %s.' % build_params)
       if environment.is_android_cuttlefish():
-        target = build_params.get('target') + FLASH_DEFAULT_BUILD_TARGET
+        target = cast(str,
+                      build_params.get('target')) + FLASH_DEFAULT_BUILD_TARGET
         logs.info('is_android_cuttlefish() returned True. Target: %s.' % target)
       else:
-        target = build_params.get('target') + '-userdebug'
+        target = cast(str, build_params.get('target')) + '-userdebug'
         logs.info(
             'is_android_cuttlefish() returned False. Target: %s.' % target)
 

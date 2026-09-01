@@ -17,18 +17,25 @@ import contextlib
 import functools
 import os
 import threading
+from typing import Any
+from typing import Callable
+from typing import cast
+from typing import Generator
+from typing import TypeVar
 
 from google.cloud import ndb
 from google.cloud.ndb import context as context_module
 
 from clusterfuzz._internal.base import utils
 
-_ndb_client = None
+_ndb_client: ndb.Client | None = None
 _ndb_client_lock = threading.Lock()
-_initial_pid = None
+_initial_pid: int | None = None
+
+_FuncT = TypeVar('_FuncT', bound=Callable[..., Any])
 
 
-def _client():
+def _client() -> ndb.Client:
   """Get or initialize the NDB client."""
   global _ndb_client
   global _initial_pid
@@ -43,7 +50,7 @@ def _client():
 
 
 @contextlib.contextmanager
-def context():
+def context() -> Generator[context_module.Context, None, None]:
   """Get the NDB context."""
   if _initial_pid != os.getpid():
     # Forked, clear the existing context to avoid issues.
@@ -68,13 +75,13 @@ def context():
       yield ndb_context
 
 
-def thread_wrapper(func):
+def thread_wrapper(func: _FuncT) -> _FuncT:
   """Wrapper for thread targets to initialize an NDB context, since contexts are
   thread local."""
 
   @functools.wraps(func)
-  def _wrapper(*args, **kwargs):
+  def _wrapper(*args: Any, **kwargs: Any) -> Any:
     with context():
       return func(*args, **kwargs)
 
-  return _wrapper
+  return cast(_FuncT, _wrapper)

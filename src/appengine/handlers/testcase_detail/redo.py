@@ -13,9 +13,13 @@
 # limitations under the License.
 """Handler for redoing."""
 
+from typing import Any
+from typing import cast
+
 from flask import request
 
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.datastore.data_types import Testcase
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
@@ -26,7 +30,7 @@ class Handler(base_handler.Handler):
   """Handler that redo tasks."""
 
   @staticmethod
-  def redo(testcase, testcase_tasks, user_email):
+  def redo(testcase: Testcase, testcase_tasks: Any, user_email: str) -> None:
     """Redo tasks."""
     try:
       tasks.redo_testcase(testcase, testcase_tasks, user_email)
@@ -39,9 +43,9 @@ class Handler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
   @handler.check_testcase_access
-  def post(self, testcase):
+  def post(self, testcase: Testcase) -> base_handler.Response:
     """Queue redo tasks."""
-    testcase_tasks = request.get('tasks')
+    testcase_tasks = cast(Any, request).get('tasks')
     user_email = helpers.get_user_email()
 
     self.redo(testcase, testcase_tasks, user_email)

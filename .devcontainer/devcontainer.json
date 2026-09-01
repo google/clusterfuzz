@@ -23,6 +23,6 @@
       }
     }
   },
-  "postCreateCommand": "python --version && java --version && pip install --upgrade pip && pip install pipenv && bash local/install_deps.bash",
+  "postCreateCommand": "python --version && java --version && bash local/install_deps.bash",
   "remoteUser": "vscode"
 }

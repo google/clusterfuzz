@@ -13,6 +13,9 @@
 # limitations under the License.
 """Shell related functions."""
 
+from collections.abc import Callable
+from collections.abc import Iterator
+from collections.abc import Sequence
 import contextlib
 import os
 import re
@@ -21,6 +24,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from typing import Any
 import uuid
 
 from clusterfuzz._internal.base import persistent_cache
@@ -30,7 +34,7 @@ from clusterfuzz._internal.system import environment
 try:
   import psutil
 except ImportError:
-  psutil = None
+  psutil = None  # type: ignore
 
 _DEFAULT_LOW_DISK_SPACE_THRESHOLD = 5 * 1024 * 1024 * 1024  # 5 GB.
 _TRUSTED_HOST_LOW_DISK_SPACE_THRESHOLD = 2 * 1024 * 1024  # 2 GB.
@@ -38,10 +42,10 @@ FILE_COPY_BUFFER_SIZE = 10 * 1024 * 1024  # 10 MB.
 HANDLE_OUTPUT_FILE_TYPE_REGEX = re.compile(
     br'.*pid:\s*(\d+)\s*type:\s*File\s*([a-fA-F0-9]+):\s*(.*)')
 
-_system_temp_dir = None
+_system_temp_dir: str | None = None
 
 
-def _low_disk_space_threshold():
+def _low_disk_space_threshold() -> int:
   """Get the low disk space threshold."""
   if environment.is_trusted_host(ensure_connected=False):
     # Trusted hosts can run with less free space as they do not store builds or
@@ -51,7 +55,7 @@ def _low_disk_space_threshold():
   return _DEFAULT_LOW_DISK_SPACE_THRESHOLD
 
 
-def copy_file(source_file_path, destination_file_path):
+def copy_file(source_file_path: str, destination_file_path: str) -> bool:
   """Faster version of shutil.copy with buffer size."""
   if not os.path.exists(source_file_path):
     logs.error('Source file %s for copy not found.' % source_file_path)
@@ -77,12 +81,12 @@ def copy_file(source_file_path, destination_file_path):
   return True
 
 
-def clear_build_directory():
+def clear_build_directory() -> None:
   """Clears the build directory."""
   remove_directory(environment.get_value('BUILDS_DIR'), recreate=True)
 
 
-def clear_build_urls_directory():
+def clear_build_urls_directory() -> None:
   """Clears the build url directory."""
   remove_directory(environment.get_value('BUILD_URLS_DIR'), recreate=True)
 
@@ -91,23 +95,23 @@ def clear_build_urls_directory():
     file_host.clear_build_urls_directory()
 
 
-def clear_crash_stacktraces_directory():
+def clear_crash_stacktraces_directory() -> None:
   """Clears the crash stacktraces directory."""
   remove_directory(
       environment.get_value('CRASH_STACKTRACES_DIR'), recreate=True)
 
 
-def clear_common_data_bundles_directory():
+def clear_common_data_bundles_directory() -> None:
   """Clear the common data bundle directory."""
   remove_directory(environment.get_value('FUZZ_DATA'), recreate=True)
 
 
-def clear_data_bundles_directory():
+def clear_data_bundles_directory() -> None:
   """Clears the data bundles directory."""
   remove_directory(environment.get_value('DATA_BUNDLES_DIR'), recreate=True)
 
 
-def clear_data_directories():
+def clear_data_directories() -> None:
   """Clear all data directories."""
   clear_build_directory()
   clear_build_urls_directory()
@@ -121,7 +125,7 @@ def clear_data_directories():
   persistent_cache.clear_values(clear_all=True)
 
 
-def clear_data_directories_on_low_disk_space():
+def clear_data_directories_on_low_disk_space() -> None:
   """Clear all data directories on low disk space. This should ideally never
   happen, but when it does, we do this to keep the bot working in sane state."""
   free_disk_space = get_free_disk_space()
@@ -138,19 +142,19 @@ def clear_data_directories_on_low_disk_space():
   clear_data_directories()
 
 
-def clear_device_temp_directories():
+def clear_device_temp_directories() -> None:
   """Clear device specific temp directories."""
   if environment.is_android():
     from clusterfuzz._internal.platforms import android
     android.device.clear_temp_directories()
 
 
-def clear_fuzzers_directories():
+def clear_fuzzers_directories() -> None:
   """Clears the fuzzers directory."""
   remove_directory(environment.get_value('FUZZERS_DIR'), recreate=True)
 
 
-def clear_temp_directory(clear_user_profile_directories=True):
+def clear_temp_directory(clear_user_profile_directories: bool = True) -> None:
   """Clear the temporary directories."""
   temp_directory = environment.get_value('BOT_TMPDIR')
   remove_directory(temp_directory, recreate=True)
@@ -174,12 +178,12 @@ def clear_temp_directory(clear_user_profile_directories=True):
 
 
 @environment.local_noop
-def clear_system_temp_directory():
+def clear_system_temp_directory() -> None:
   """Clear system specific temp directory."""
   if environment.get_value('DEBUG_TASK'):
     return
 
-  def _delete_object(path, delete_func):
+  def _delete_object(path: str, delete_func: Callable[[str], Any]) -> None:
     """Delete a object with its delete function, ignoring any error."""
     try:
       delete_func(path)
@@ -209,7 +213,7 @@ def clear_system_temp_directory():
   logs.info('Cleared system temp directory: %s' % _system_temp_dir)
 
 
-def clear_testcase_directories():
+def clear_testcase_directories() -> None:
   """Clears the testcase directories."""
   remove_directory(environment.get_value('FUZZ_INPUTS'), recreate=True)
   remove_directory(environment.get_value('FUZZ_INPUTS_DISK'), recreate=True)
@@ -222,7 +226,7 @@ def clear_testcase_directories():
     file_host.clear_testcase_directories()
 
 
-def close_open_file_handles_if_needed(path):
+def close_open_file_handles_if_needed(path: str) -> None:
   """Try to close all open file handle for a specific path."""
   if environment.platform() != 'WINDOWS':
     # Handle closing is only applicable on Windows platform.
@@ -247,7 +251,9 @@ def close_open_file_handles_if_needed(path):
                     (handle_executable_path, file_handle_id, process_id))
 
 
-def create_directory(directory, create_intermediates=False, recreate=False):
+def create_directory(directory: str,
+                     create_intermediates: bool = False,
+                     recreate: bool = False) -> bool:
   """Creates |directory|. Create intermediate directories if
   |create_intermediates|. Ignore if it already exists and |recreate| is
    False."""
@@ -269,7 +275,7 @@ def create_directory(directory, create_intermediates=False, recreate=False):
   return True
 
 
-def execute_command(shell_command):
+def execute_command(shell_command: str) -> bytes:
   """Run a command, returning its output."""
   try:
     process_handle = subprocess.Popen(
@@ -281,12 +287,12 @@ def execute_command(shell_command):
     output, _ = process_handle.communicate()
   except:
     logs.error('Error while executing command %s.' % shell_command)
-    return ''
+    return b''
 
   return output
 
 
-def get_command(command_line):
+def get_command(command_line: str) -> str | list[str]:
   """Get the command to pass to subprocess."""
   if environment.platform() == 'WINDOWS':
     return command_line
@@ -294,12 +300,12 @@ def get_command(command_line):
   return shlex.split(command_line, posix=True)
 
 
-def get_command_line_from_argument_list(argument_list):
+def get_command_line_from_argument_list(argument_list: Sequence[str]) -> str:
   """Convert a list of arguments to a string."""
   return subprocess.list2cmdline(argument_list)
 
 
-def get_directory_file_count(directory_path):
+def get_directory_file_count(directory_path: str) -> int:
   """Returns number of files within a directory (recursively)."""
   file_count = 0
   for (root, _, files) in walk(directory_path):
@@ -312,7 +318,7 @@ def get_directory_file_count(directory_path):
   return file_count
 
 
-def get_directory_size(directory_path):
+def get_directory_size(directory_path: str) -> int:
   """Returns size of a directory (in bytes)."""
   directory_size = 0
   for (root, _, files) in walk(directory_path):
@@ -323,7 +329,7 @@ def get_directory_size(directory_path):
   return directory_size
 
 
-def get_files_list(directory_path):
+def get_files_list(directory_path: str) -> list[str]:
   """Returns a list of files in a directory (recursively)."""
   files_list = []
   for (root, _, files) in walk(directory_path):
@@ -336,7 +342,7 @@ def get_files_list(directory_path):
   return files_list
 
 
-def get_free_disk_space(path='/'):
+def get_free_disk_space(path: str = '/') -> int | None:
   """Return free disk space."""
   if not os.path.exists(path):
     return None
@@ -348,7 +354,7 @@ def get_free_disk_space(path='/'):
   return psutil.disk_usage(path).free
 
 
-def get_interpreter(file_to_execute):
+def get_interpreter(file_to_execute: str) -> str | None:
   """Gives the interpreter needed to execute |file_to_execute|."""
   interpreters = {
       '.bash': 'bash',
@@ -368,7 +374,7 @@ def get_interpreter(file_to_execute):
   return interpreter
 
 
-def get_execute_command(file_to_execute):
+def get_execute_command(file_to_execute: str) -> str:
   """Return command to execute |file_to_execute|."""
   interpreter_path = get_interpreter(file_to_execute)
 
@@ -383,7 +389,7 @@ def get_execute_command(file_to_execute):
   return command
 
 
-def move(src, dst):
+def move(src: str, dst: str) -> bool:
   """Wrapper around shutil.move(src, dst). If shutil.move throws an shutil.Error
   the exception is caught, an error is logged, and False is returned."""
   try:
@@ -394,7 +400,7 @@ def move(src, dst):
     return False
 
 
-def remove_empty_files(root_path):
+def remove_empty_files(root_path: str) -> None:
   """Removes empty files in a path recursively"""
   for directory, _, filenames in walk(root_path):
     for filename in filenames:
@@ -409,7 +415,7 @@ def remove_empty_files(root_path):
                    (path, sys.exc_info()[0]))
 
 
-def remove_empty_directories(path):
+def remove_empty_directories(path: str) -> None:
   """Removes empty folder in a path recursively."""
   if not os.path.isdir(path):
     return
@@ -430,7 +436,7 @@ def remove_empty_directories(path):
       logs.error('Unable to remove empty folder %s.' % path)
 
 
-def remove_file(file_path):
+def remove_file(file_path: str) -> None:
   """Removes a file, ignoring any error if it occurs."""
   try:
     if os.path.exists(file_path):
@@ -439,12 +445,12 @@ def remove_file(file_path):
     pass
 
 
-def _get_random_filename():
+def _get_random_filename() -> str:
   return str(uuid.uuid4()).lower()
 
 
 @contextlib.contextmanager
-def get_tempfile(prefix='', suffix=''):
+def get_tempfile(prefix: str = '', suffix: str = '') -> Iterator[str]:
   """Returns path to a temporary file."""
   tempdir = environment.get_value('BOT_TMPDIR', '/tmp')
   os.makedirs(tempdir, exist_ok=True)
@@ -456,12 +462,14 @@ def get_tempfile(prefix='', suffix=''):
     os.remove(filepath)
 
 
-def remove_directory(directory, recreate=False, ignore_errors=False):
+def remove_directory(directory: str,
+                     recreate: bool = False,
+                     ignore_errors: bool = False) -> bool:
   """Removes a directory tree."""
   # Log errors as warnings if |ignore_errors| is set.
   log_error_func = logs.warning if ignore_errors else logs.error
 
-  def clear_read_only(func, path, _):
+  def clear_read_only(func: Callable[[str], Any], path: str, _: Any) -> None:
     """Clear the read-only bit and reattempt the removal again.
     This is needed on Windows."""
 
@@ -521,6 +529,7 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
   return True
 
 
-def walk(directory, **kwargs):
+def walk(directory: str,
+         **kwargs: Any) -> Iterator[tuple[str, list[str], list[str]]]:
   """Wrapper around walk to resolve compatibility issues."""
   return os.walk(directory, **kwargs)

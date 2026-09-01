@@ -17,7 +17,8 @@ Decides the set strategies to be considered by the launcher. Note
 that because of compatibility issues, the exact set of strategies
 generated here may be modified in the launcher before being launched."""
 
-from collections import namedtuple
+from collections.abc import Sequence
+from typing import NamedTuple
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -25,35 +26,37 @@ from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-GENERATORS = [
+GENERATORS: list[strategy.Strategy] = [
     strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
 ]
 
-StrategyCombination = namedtuple('StrategyCombination',
-                                 'strategy_name probability')
+
+class StrategyCombination(NamedTuple):
+  strategy_name: str
+  probability: float
 
 
 class StrategyPool:
   """Object used to keep track of which strategies the launcher should attempt
   to enable."""
 
-  def __init__(self):
+  def __init__(self) -> None:
     """Empty set representing empty strategy pool."""
-    self.strategy_names = set()
+    self.strategy_names: set[str] = set()
 
-  def add_strategy(self, strategy_tuple):
+  def add_strategy(self, strategy_tuple: strategy.Strategy) -> None:
     """Add a strategy into our existing strategy pool unless it is disabled."""
     if strategy_tuple.name not in environment.get_value('DISABLED_STRATEGIES',
                                                         '').split(','):
       self.strategy_names.add(strategy_tuple.name)
 
-  def do_strategy(self, strategy_tuple):
+  def do_strategy(self, strategy_tuple: strategy.Strategy) -> bool:
     """Boolean value representing whether or not a strategy is in our strategy
     pool."""
     return strategy_tuple.name in self.strategy_names
 
 
-def choose_generator(strategy_pool):
+def choose_generator(strategy_pool: StrategyPool) -> None:
   """Chooses whether to use radamsa or no generator and updates the strategy
   pool."""
 
@@ -65,14 +68,15 @@ def choose_generator(strategy_pool):
     strategy_pool.add_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY)
 
 
-def do_strategy(strategy_tuple):
+def do_strategy(strategy_tuple: strategy.Strategy) -> bool:
   """Return whether or not to use a given strategy."""
   return engine_common.decide_with_probability(
       engine_common.get_strategy_probability(strategy_tuple.name,
                                              strategy_tuple.probability))
 
 
-def generate_default_strategy_pool(strategy_list, use_generator):
+def generate_default_strategy_pool(strategy_list: Sequence[strategy.Strategy],
+                                   use_generator: bool) -> StrategyPool:
   """Return a strategy pool representing a selection of strategies for launcher
   to consider.
 
@@ -98,7 +102,9 @@ def generate_default_strategy_pool(strategy_list, use_generator):
   return pool
 
 
-def generate_weighted_strategy_pool(strategy_list, use_generator, engine_name):
+def generate_weighted_strategy_pool(strategy_list: Sequence[strategy.Strategy],
+                                    use_generator: bool,
+                                    engine_name: str) -> StrategyPool:
   """Generate a strategy pool based on probability distribution from multi armed
   bandit experimentation."""
 

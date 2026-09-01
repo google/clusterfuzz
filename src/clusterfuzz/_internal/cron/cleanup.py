@@ -13,9 +13,10 @@
 # limitations under the License.
 """Cleanup task for cleaning up unneeded testcases."""
 
-import collections
 import datetime
 import json
+from typing import Any
+from typing import NamedTuple
 
 from googleapiclient.errors import HttpError
 
@@ -60,10 +61,18 @@ UNUSED_HEARTBEAT_THRESHOLD = 15
 VRP_UPLOAD_COMPONENT_ID = 1600865
 CHROMIUM_COMPONENT_ID = 1363614
 
-ProjectMap = collections.namedtuple('ProjectMap', 'jobs platforms')
+
+class ProjectMap(NamedTuple):
+  jobs: set[str]
+  platforms: set[str]
 
 
-def _get_predator_result_item(testcase, key, default=None):
+TopCrashesMap = dict[str, dict[str, list[dict[str, Any]]]]
+
+
+def _get_predator_result_item(testcase: data_types.Testcase,
+                              key: str,
+                              default: Any = None) -> Any:
   """Return the suspected components for a test case."""
   predator_result = testcase.get_metadata('predator_result')
   if not predator_result:
@@ -72,7 +81,9 @@ def _get_predator_result_item(testcase, key, default=None):
   return predator_result['result'].get(key, default)
 
 
-def _append_generic_incorrect_comment(comment, policy, issue, suffix):
+def _append_generic_incorrect_comment(
+    comment: str, policy: issue_tracker_policy.IssueTrackerPolicy, issue: Any,
+    suffix: str) -> str:
   """Get the generic incorrect comment."""
   wrong_label = policy.label('wrong')
   if not wrong_label:
@@ -82,7 +93,8 @@ def _append_generic_incorrect_comment(comment, policy, issue, suffix):
       label_text=issue.issue_tracker.label_text(wrong_label)) + suffix
 
 
-def _emit_issue_closing_event(testcase, issue, closing_reason):
+def _emit_issue_closing_event(testcase: data_types.Testcase, issue: Any,
+                              closing_reason: str) -> None:
   """Helper function to emit issue closing events."""
   issue_tracker_name = data_handler.get_issue_tracker_name(testcase.job_type)
   events.emit(
@@ -93,7 +105,7 @@ def _emit_issue_closing_event(testcase, issue, closing_reason):
           closing_reason=closing_reason))
 
 
-def job_platform_to_real_platform(job_platform):
+def job_platform_to_real_platform(job_platform: str) -> str:
   """Get real platform from job platform."""
   for platform in data_types.PLATFORMS:
     if platform in job_platform:
@@ -102,7 +114,7 @@ def job_platform_to_real_platform(job_platform):
   raise ValueError('Unknown platform: ' + job_platform)
 
 
-def cleanup_reports_metadata():
+def cleanup_reports_metadata() -> None:
   """Delete ReportMetadata for uploaded reports."""
   uploaded_reports = ndb_utils.get_all_from_query(
       data_types.ReportMetadata.query(
@@ -111,9 +123,11 @@ def cleanup_reports_metadata():
   ndb_utils.delete_multi(uploaded_reports)
 
 
-def _cleanup_testcases_and_issues(testcase, jobs,
-                                  top_crashes_by_project_and_platform_map,
-                                  empty_issue_tracker_policy):
+def _cleanup_testcases_and_issues(
+    testcase: data_types.Testcase, jobs: list[str],
+    top_crashes_by_project_and_platform_map: TopCrashesMap,
+    empty_issue_tracker_policy: issue_tracker_policy.IssueTrackerPolicy
+) -> None:
   """Clean up unneeded open testcase and its associated issues."""
   testcase_id = testcase.key.id()
   logs.info(f'Processing testcase {testcase_id}.')
@@ -165,7 +179,7 @@ def _cleanup_testcases_and_issues(testcase, jobs,
     logs.error(f'Failed to process testcase {testcase_id}.')
 
 
-def cleanup_testcases_and_issues():
+def cleanup_testcases_and_issues() -> None:
   """Clean up unneeded open testcases and their associated issues."""
   logs.info('Getting all job type names.')
   jobs = data_handler.get_all_job_type_names()
@@ -200,7 +214,7 @@ def cleanup_testcases_and_issues():
       utils.python_gc()
 
 
-def cleanup_unused_fuzz_targets_and_jobs():
+def cleanup_unused_fuzz_targets_and_jobs() -> None:
   """Clean up unused FuzzTarget and FuzzTargetJob entities."""
   last_run_cutoff = utils.utcnow() - datetime.timedelta(
       days=FUZZ_TARGET_UNUSED_THRESHOLD)
@@ -232,12 +246,15 @@ def cleanup_unused_fuzz_targets_and_jobs():
       f'{len(valid_target_jobs)} valid FuzzTargetJob entities remain.')
 
 
-def get_jobs_and_platforms_for_project():
+def get_jobs_and_platforms_for_project() -> dict[str, ProjectMap]:
   """Return a map of projects to jobs and platforms map to use for picking top
   crashes."""
   all_jobs = ndb_utils.get_all_from_model(data_types.Job)
-  projects_to_jobs_and_platforms = {}
+  projects_to_jobs_and_platforms: dict[str, ProjectMap] = {}
   for job in all_jobs:
+    if not job.project or not job.name or not job.platform:
+      continue
+
     job_environment = job.get_environment()
 
     # Skip experimental jobs.
@@ -265,7 +282,8 @@ def get_jobs_and_platforms_for_project():
 
 @memoize.wrap(memoize.Memcache(12 * 60 * 60))
 def _get_crash_occurrence_platforms_from_crash_parameters(
-    crash_type, crash_state, security_flag, project_name, lookbehind_days):
+    crash_type: str | None, crash_state: str | None, security_flag: bool | None,
+    project_name: str | None, lookbehind_days: int) -> list[str]:
   """Get platforms from crash stats based on crash parameters."""
   last_hour = crash_stats.get_last_successful_hour()
   if not last_hour:
@@ -296,7 +314,8 @@ def _get_crash_occurrence_platforms_from_crash_parameters(
   return list(platforms)
 
 
-def get_platforms_from_testcase_variants(testcase):
+def get_platforms_from_testcase_variants(
+    testcase: data_types.Testcase) -> set[str]:
   """Get platforms from crash stats based on crash parameters."""
   variant_query = data_types.TestcaseVariant.query(
       data_types.TestcaseVariant.testcase_id == testcase.key.id())
@@ -308,7 +327,8 @@ def get_platforms_from_testcase_variants(testcase):
   return platforms
 
 
-def get_crash_occurrence_platforms(testcase, lookbehind_days=1):
+def get_crash_occurrence_platforms(testcase: data_types.Testcase,
+                                   lookbehind_days: int = 1) -> set[str]:
   """Get platforms from crash stats for a testcase."""
   return set(
       _get_crash_occurrence_platforms_from_crash_parameters(
@@ -316,7 +336,8 @@ def get_crash_occurrence_platforms(testcase, lookbehind_days=1):
           testcase.project_name, lookbehind_days))
 
 
-def get_top_crashes_for_all_projects_and_platforms(limit=TOP_CRASHES_LIMIT):
+def get_top_crashes_for_all_projects_and_platforms(
+    limit: int = TOP_CRASHES_LIMIT) -> TopCrashesMap:
   """Return top crashes for all projects and platforms."""
   last_hour = crash_stats.get_last_successful_hour()
   if not last_hour:
@@ -324,7 +345,7 @@ def get_top_crashes_for_all_projects_and_platforms(limit=TOP_CRASHES_LIMIT):
     return {}
 
   projects_to_jobs_and_platforms = get_jobs_and_platforms_for_project()
-  top_crashes_by_project_and_platform_map = {}
+  top_crashes_by_project_and_platform_map: TopCrashesMap = {}
 
   for project_name, project_map in projects_to_jobs_and_platforms.items():
     top_crashes_by_project_and_platform_map[project_name] = {}
@@ -362,7 +383,9 @@ def get_top_crashes_for_all_projects_and_platforms(limit=TOP_CRASHES_LIMIT):
   return top_crashes_by_project_and_platform_map
 
 
-def get_top_crash_platforms(testcase, top_crashes_by_project_and_platform_map):
+def get_top_crash_platforms(
+    testcase: data_types.Testcase,
+    top_crashes_by_project_and_platform_map: TopCrashesMap) -> list[str]:
   """Return list of platforms where this testcase is a top crasher."""
   if testcase.project_name not in top_crashes_by_project_and_platform_map:
     return []
@@ -388,7 +411,8 @@ def get_top_crash_platforms(testcase, top_crashes_by_project_and_platform_map):
   return sorted(list(top_crash_platforms))
 
 
-def delete_unreproducible_testcase_with_no_issue(testcase):
+def delete_unreproducible_testcase_with_no_issue(
+    testcase: data_types.Testcase) -> None:
   """Delete an unreproducible testcase if it has no associated issue and has
   been open for a certain time interval."""
   # Make sure that this testcase is an unreproducible bug. If not, bail out.
@@ -423,7 +447,8 @@ def delete_unreproducible_testcase_with_no_issue(testcase):
           CLEANUP_UNREPRODUCIBLE_NO_ISSUE))
 
 
-def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
+def mark_duplicate_testcase_as_closed_with_no_issue(
+    testcase: data_types.Testcase) -> None:
   """Closes a duplicate testcase if it has no associated issue and has been open
   for a certain time interval."""
   # Make sure that this testcase is a duplicate bug. If not, bail out.
@@ -450,7 +475,9 @@ def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
           rejection_reason=events.RejectionReason.CLEANUP_DUPLICATE_NO_ISSUE))
 
 
-def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
+def mark_issue_as_closed_if_testcase_is_fixed(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Mark an issue as fixed if all of its associated reproducible testcase are
   fixed."""
   verified_label = policy.label('verified')
@@ -552,7 +579,8 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
     raise e
 
 
-def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
+def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Mark an unreproducible testcase as fixed if the associated issue is
   closed."""
   # If the testcase is already closed, no more work to do.
@@ -584,7 +612,8 @@ def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
 
 
 def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
-    policy, testcase, issue):
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Closes an unreproducible testcase and its associated issue after a certain
   time period."""
   # If the testcase is already closed, no more work to do.
@@ -681,7 +710,9 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
                             events.ClosingReason.TESTCASE_UNREPRO)
 
 
-def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
+def mark_na_testcase_issues_as_wontfix(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Mark issues for testcases with fixed == 'NA' as fixed."""
   # Check for for closed, NA testcases.
   if testcase.open or testcase.fixed != 'NA':
@@ -728,7 +759,8 @@ def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
                             events.ClosingReason.TESTCASE_INVALID)
 
 
-def mark_testcase_as_triaged_if_needed(testcase, issue):
+def mark_testcase_as_triaged_if_needed(testcase: data_types.Testcase,
+                                       issue: Any) -> None:
   """Mark testcase as triage complete if both testcase and associated issue
   are closed."""
   # Check if testcase is open. If yes, bail out.
@@ -739,14 +771,16 @@ def mark_testcase_as_triaged_if_needed(testcase, issue):
   if issue:
     # Get latest issue object to ensure our update went through.
     issue = issue_tracker_utils.get_issue_for_testcase(testcase)
-    if issue.is_open:
+    if issue and issue.is_open:
       return
 
   testcase.triaged = True
   testcase.put()
 
 
-def mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue):
+def mark_testcase_as_closed_if_issue_is_closed(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Mark testcase as closed if the associated issue is closed."""
   # If the testcase is already closed, no more work to do.
   if not testcase.open:
@@ -781,7 +815,8 @@ def mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue):
           rejection_reason=events.RejectionReason.CLEANUP_ISSUE_CLOSED))
 
 
-def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
+def mark_testcase_as_closed_if_job_is_invalid(testcase: data_types.Testcase,
+                                              jobs: list[str]) -> None:
   """Mark testcase as closed if the associated job type does not exist."""
   # If the testcase is already closed, no more work to do.
   if not testcase.open:
@@ -801,7 +836,9 @@ def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
           rejection_reason=events.RejectionReason.CLEANUP_INVALID_JOB))
 
 
-def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
+def notify_closed_issue_if_testcase_is_open(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Notify closed issue if associated testcase is still open after a certain
   time period."""
   needs_feedback_label = policy.label('needs_feedback')
@@ -875,7 +912,9 @@ def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
   logs.info(f'Notified closed issue for open testcase {testcase.key.id()}.')
 
 
-def notify_issue_if_testcase_is_invalid(policy, testcase, issue):
+def notify_issue_if_testcase_is_invalid(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Leave comments on associated issues when test cases are no longer valid."""
   invalid_fuzzer_label = policy.label('invalid_fuzzer')
   if not invalid_fuzzer_label:
@@ -909,7 +948,8 @@ def notify_issue_if_testcase_is_invalid(policy, testcase, issue):
             f'invalid testcase {testcase.key.id()}.')
 
 
-def _send_email_to_uploader(testcase_id, to_email, content):
+def _send_email_to_uploader(testcase_id: int | str, to_email: str,
+                            content: str) -> None:
   """Send email to uploader when all the testcase tasks are finished."""
   subject = f'Your testcase upload {testcase_id} analysis is complete.'
   content_with_footer = (f'{content.strip()}\n\n'
@@ -920,7 +960,7 @@ def _send_email_to_uploader(testcase_id, to_email, content):
   mail.send(to_email, subject, html_content)
 
 
-def _get_severity_from_labels(security_severity_label, labels):
+def _get_severity_from_labels(security_severity_label: str, labels: Any) -> Any:
   """Get the severity from the label list."""
   pattern = issue_filer.get_label_pattern(security_severity_label)
   for label in labels:
@@ -931,7 +971,9 @@ def _get_severity_from_labels(security_severity_label, labels):
   return data_types.SecuritySeverity.MISSING
 
 
-def _update_issue_security_severity_and_get_comment(policy, testcase, issue):
+def _update_issue_security_severity_and_get_comment(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> str:
   """Apply a new security severity label if none exists on issue already
   and return a comment on this addition. If a label already exists and does
   not match security severity label on issue, then just return a comment on
@@ -966,7 +1008,9 @@ def _update_issue_security_severity_and_get_comment(policy, testcase, issue):
 
 
 def _update_issue_when_uploaded_testcase_is_processed(
-    policy, testcase, issue, description, update_bug_summary, notify):
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any, description: str,
+    update_bug_summary: bool | None, notify: bool) -> None:
   """Add issue comment when uploaded testcase is processed."""
   if update_bug_summary and testcase.is_crash():
     issue.title = data_handler.get_issue_summary(testcase)
@@ -982,13 +1026,19 @@ def _update_issue_when_uploaded_testcase_is_processed(
 
   # Testcase is a data_types.Testcase
   testcase_id = testcase.key.id()
+  if not testcase_id:
+    return
   testcase_utils.emit_testcase_triage_duration_metric(
       testcase_id, testcase_utils.TESTCASE_TRIAGE_DURATION_ISSUE_UPDATED_STEP)
 
 
-def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
+def notify_uploader_when_testcase_is_processed(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Notify uploader by email when all the testcase tasks are finished."""
   testcase_id = testcase.key.id()
+  if not testcase_id:
+    return
 
   # Check if this is a user upload. If not, bail out.
   upload_metadata = data_types.TestcaseUploadMetadata.query(
@@ -1033,7 +1083,8 @@ def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
   data_handler.create_notification_entry(testcase_id, to_email)
 
 
-def update_os_labels(policy, testcase, issue):
+def update_os_labels(policy: issue_tracker_policy.IssueTrackerPolicy,
+                     testcase: data_types.Testcase, issue: Any) -> None:
   """Add OS labels to issue."""
   os_label = policy.label('os')
   if not os_label:
@@ -1056,8 +1107,10 @@ def update_os_labels(policy, testcase, issue):
   logs.info(f'Updated labels of issue {issue.id}.', labels=issue.labels)
 
 
-def update_fuzz_blocker_label(policy, testcase, issue,
-                              top_crashes_by_project_and_platform_map):
+def update_fuzz_blocker_label(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any,
+    top_crashes_by_project_and_platform_map: TopCrashesMap) -> None:
   """Add top crash label to issue."""
   fuzz_blocker_label = policy.label('fuzz_blocker')
   if not fuzz_blocker_label:
@@ -1100,15 +1153,18 @@ def update_fuzz_blocker_label(policy, testcase, issue,
   issue.save(new_comment=update_message, notify=True)
 
 
-def _should_update_component_id(issue, component_id):
+def _should_update_component_id(issue: Any,
+                                component_id: int | str | None) -> bool:
   """Check whether updating the issue component id is needed."""
   if not hasattr(issue, 'component_id'):
     return False
 
-  return component_id and issue.component_id != component_id
+  return bool(component_id and issue.component_id != component_id)
 
 
-def update_component_labels_and_id(policy, testcase, issue):
+def update_component_labels_and_id(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Add components to the issue if needed."""
   if not issue:
     return
@@ -1187,7 +1243,7 @@ def update_component_labels_and_id(policy, testcase, issue):
   issue.save(new_comment=issue_comment, notify=True)
 
 
-def _sanitize_ccs_list(ccs_list):
+def _sanitize_ccs_list(ccs_list: list[str]) -> list[str]:
   """Remove and log all entries with trailing comments.
 
   Eg: Do not add "xyz@test.com #{LAST_RESORT_SUGGESTION}".
@@ -1201,7 +1257,9 @@ def _sanitize_ccs_list(ccs_list):
   return ret_list
 
 
-def update_issue_ccs_from_owners_file(policy, testcase, issue):
+def update_issue_ccs_from_owners_file(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Add cc to an issue based on owners list from owners file. This is
   currently applicable to fuzz targets only."""
   auto_cc_label = policy.label('auto_cc_from_owners')
@@ -1269,7 +1327,9 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
   issue.save(new_comment=issue_comment, notify=True)
 
 
-def update_issue_labels_for_flaky_testcase(policy, testcase, issue):
+def update_issue_labels_for_flaky_testcase(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase, issue: Any) -> None:
   """Update issue reproducibility label when testcase becomes flaky or
   unreproducible."""
   if not issue or not issue.is_open:
@@ -1304,10 +1364,11 @@ def update_issue_labels_for_flaky_testcase(policy, testcase, issue):
   issue.save(new_comment=comment)
 
 
-def update_issue_owner_and_ccs_from_predator_results(policy,
-                                                     testcase,
-                                                     issue,
-                                                     only_allow_ccs=False):
+def update_issue_owner_and_ccs_from_predator_results(
+    policy: issue_tracker_policy.IssueTrackerPolicy,
+    testcase: data_types.Testcase,
+    issue: Any,
+    only_allow_ccs: bool = False) -> None:
   """Assign the issue to an appropriate owner if possible."""
   logs.info(f'{update_issue_owner_and_ccs_from_predator_results}')
   if not issue or not issue.is_open:
@@ -1454,7 +1515,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
         policy, testcase, issue, only_allow_ccs=True)
 
 
-def cleanup_unused_heartbeats():
+def cleanup_unused_heartbeats() -> None:
   """Clean up unused heartbeat entities."""
   cutoff_time = utils.utcnow() - datetime.timedelta(
       days=UNUSED_HEARTBEAT_THRESHOLD)
@@ -1467,7 +1528,7 @@ def cleanup_unused_heartbeats():
 
 
 @logs.cron_log_context()
-def main():
+def main() -> bool:
   """Cleaning up unneeded testcases"""
   cleanup_testcases_and_issues()
   cleanup_reports_metadata()

@@ -110,20 +110,20 @@ gcloud auth login
 [set up ClusterFuzz in production]: {{ "/production-setup/" | relative_url }}
 [running ClusterFuzz locally]: {{ "/getting-started/local-instance/" | relative_url }}
 
-## Loading pipenv
+## Loading the Virtual Environment
 
-After you run the `local/install_deps.bash` script, activate pipenv by running the following command:
+After you run the `local/install_deps.bash` script, activate the virtual environment by running:
 
 ```bash
-pipenv shell
+source .venv/bin/activate
 ```
 
-This loads all the Python dependencies in the current environment.
+This loads all the Python dependencies in the current environment. You can also run commands directly without activation using `uv run butler.py <command>`.
 
 You can verify that everything works by running:
 
 ```bash
-python butler.py --help
+uv run butler.py --help
 ```
 
 ### Debugging Common Dependency Issues
@@ -137,31 +137,15 @@ $ PYTHON=python3.11 ./local/install_deps.bash
 Then run:
 
 ```
-$ pipenv shell
+$ source .venv/bin/activate
 $ python --version
-```
-
-The version should be the one you built from source and used to build your dependencies. If it is not, set the pipenv shell version of Python:
-
-```
-$ pipenv install --python 3.11
 ```
 
 Assuming your shell has the expected version of Python assigned, the following command should run all appengine tests:
 
 ```
-python3.11 butler.py py_unittest -t appengine
+uv run butler.py py_unittest -t appengine
 ```
-
-If, at this point, you see an error to the effect that the config.yaml is missing, sync the pipenv environment’s dependencies with the outer environment’s dependencies:
-
-```
-$ cd src; pipenv sync
-```
-
-#### Refreshing the Python Environment
-
-You might get stuck in a mode where the python version is the global value, rather than the version you set for the pipenv environment - even when apparently leaving the virtual environment through the `exit`command. If this happens, you may still be in a virtual environment (especially if you see `(clusterfuzz)`before the command prompt). To escape this virtual environment, use the command `deactivate`, then run `python3.11 -m pipenv shell` again to start the pipenv shell with the correct python version.
 
 ## ClusterFuzz Development Tips
 

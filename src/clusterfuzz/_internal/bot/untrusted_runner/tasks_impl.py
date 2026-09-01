@@ -13,8 +13,13 @@
 # limitations under the License.
 """Tasks RPC implementations."""
 
+# pyright: reportAttributeAccessIssue=none
+
+from collections.abc import Mapping
+
+from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
-from google.protobuf.any_pb2 import Any  # pylint: disable=no-name-in-module
+import grpc
 
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
@@ -24,14 +29,14 @@ from clusterfuzz.fuzz import engine
 # pylint:disable=no-member
 
 
-def _pack_values(values):
+def _pack_values(values: Mapping[str, object] | None) -> dict[str, any_pb2.Any]:
   """Pack protobuf values."""
-  packed = {}
+  packed: dict[str, any_pb2.Any] = {}
   if values is None:
     return packed
 
   for key, value in values.items():
-    packed_value = Any()
+    packed_value = any_pb2.Any()
     if isinstance(value, float):
       packed_value.Pack(wrappers_pb2.DoubleValue(value=value))
     elif isinstance(value, int):
@@ -46,9 +51,13 @@ def _pack_values(values):
   return packed
 
 
-def engine_fuzz(request, _):
+def engine_fuzz(
+    request: untrusted_runner_pb2.EngineFuzzRequest,
+    _: grpc.ServicerContext,
+) -> untrusted_runner_pb2.EngineFuzzResponse:
   """Run engine fuzzer."""
   engine_impl = engine.get(request.engine)
+  assert engine_impl is not None
   result, fuzzer_metadata, strategies = fuzz_task.run_engine_fuzzer(
       engine_impl, request.target_name, request.sync_corpus_directory,
       request.testcase_directory)
@@ -74,9 +83,13 @@ def engine_fuzz(request, _):
       strategies=packed_strategies)
 
 
-def engine_reproduce(request, _):
+def engine_reproduce(
+    request: untrusted_runner_pb2.EngineReproduceRequest,
+    _: grpc.ServicerContext,
+) -> untrusted_runner_pb2.EngineReproduceResult:
   """Run engine reproduce."""
   engine_impl = engine.get(request.engine)
+  assert engine_impl is not None
   result = testcase_manager.engine_reproduce(engine_impl, request.target_name,
                                              request.testcase_path,
                                              request.arguments, request.timeout)

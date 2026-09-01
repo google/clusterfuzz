@@ -14,6 +14,7 @@
 """External tasks."""
 
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.metrics import logs
@@ -23,7 +24,8 @@ from clusterfuzz._internal.system import environment
 _NUM_TRIALS = 3
 
 
-def add_external_task(command, testcase_id, job):
+def add_external_task(command: str, testcase_id: int | str,
+                      job: data_types.Job) -> None:
   """Add external task."""
   if command != 'progression':
     # Only progression is supported.
@@ -54,7 +56,7 @@ def add_external_task(command, testcase_id, job):
   logs.info(f'Publishing external reproduction task for {testcase_id}.')
   attributes = {
       'project': job.project,
-      'target': fuzz_target.binary,
+      'target': fuzz_target.binary,  # type: ignore
       'fuzzer': testcase.fuzzer_name,
       'sanitizer': sanitizer,
       'job': job.name,

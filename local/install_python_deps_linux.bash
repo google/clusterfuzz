@@ -14,16 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Setup pipenv and install python dependencies.
-echo If this fails, you may need to build older Python from source
-if $PYTHON -m pipenv --venv > /dev/null 2>&1; then
-  # Remove existing pipenv virtual environment.
-  $PYTHON -m pipenv --rm
+# Setup uv and install python dependencies.
+if ! command -v uv &> /dev/null; then
+  pipx install uv==0.12.3
 fi
+export PATH="$PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")"
 
-$PYTHON -m pipenv --python $PYTHON
-$PYTHON -m pipenv sync --dev
-source "$(${PYTHON} -m pipenv --venv)/bin/activate"
+uv sync
+source .venv/bin/activate
+ln -sf "$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")/uv" .venv/bin/uv
 
 if [ $install_android_emulator ]; then
   ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
@@ -54,9 +53,7 @@ fi
 
 # Install other dependencies (e.g. bower).
 nodeenv -p --prebuilt
-# Re-activate virtual environment after nodeenv modifies activate scripts and PATH
-# so that global node npm packages (like bower) install into the virtual environment bin directory.
-source "$(${PYTHON} -m pipenv --venv)/bin/activate"
+source .venv/bin/activate
 # Unsafe perm flag allows bower and polymer-bundler install for root users as well.
 npm install --unsafe-perm -g bower polymer-bundler
 bower --allow-root install
@@ -68,6 +65,6 @@ set +x
 echo "
 
 Installation succeeded!
-Please load environment by running "$PYTHON -m pipenv shell".
+Please load environment by running \"source .venv/bin/activate\".
 
 "

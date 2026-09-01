@@ -18,15 +18,16 @@ import time
 from . import adb
 
 
-def clear_notifications():
+def clear_notifications() -> None:
   """Clear all pending notifications."""
   adb.run_shell_command(['service', 'call', 'notification', '1'])
 
 
-def unlock_screen():
+def unlock_screen() -> None:
   """Unlocks the screen if it is locked."""
   window_dump_output = adb.run_shell_command(['dumpsys', 'window'])
-  if 'mShowingLockscreen=true' not in window_dump_output:
+  if (not window_dump_output or
+      'mShowingLockscreen=true' not in window_dump_output):
     # Screen is not locked, no work to do.
     return
 

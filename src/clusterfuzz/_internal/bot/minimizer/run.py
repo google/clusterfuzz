@@ -25,7 +25,7 @@ from . import minimizer
 from . import utils
 
 
-def main():
+def main() -> None:
   """Minimize a file."""
   minimizers = {
       'chunk': chunk_minimizer.ChunkMinimizer,

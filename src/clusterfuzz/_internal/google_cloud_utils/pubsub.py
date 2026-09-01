@@ -14,11 +14,16 @@
 """Pub/Sub helpers."""
 
 import base64
-import collections
+from collections.abc import Iterator
+from collections.abc import Mapping
+from collections.abc import Sequence
 import json
 import threading
+from typing import Any
+from typing import NamedTuple
 
-import googleapiclient
+import googleapiclient.discovery
+import googleapiclient.errors
 import httplib2
 
 from clusterfuzz._internal.base import retry
@@ -30,15 +35,25 @@ _DEFAULT_MAX_MESSAGES = 1000  # Arbitrary reasonably large limit.
 _PUBSUB_FAIL_RETRIES = 5
 _PUBSUB_FAIL_WAIT = 2
 
-Topic = collections.namedtuple('Topic', ['name', 'labels'])
-Subscription = collections.namedtuple(
-    'Subsciption', ['name', 'topic', 'ack_deadline', 'labels'])
+
+class Topic(NamedTuple):
+  name: str
+  labels: dict[str, str] | None
+
+
+class Subscription(NamedTuple):
+  name: str
+  topic: str
+  ack_deadline: int
+  labels: dict[str, str] | None
 
 
 class Message:
   """Pubsub message."""
 
-  def __init__(self, data=None, attributes=None):
+  def __init__(self,
+               data: bytes | None = None,
+               attributes: Mapping[str, Any] | None = None):
     self.data = data
     self.attributes = attributes
 
@@ -46,8 +61,9 @@ class Message:
 class ReceivedMessage(Message):
   """Received pubsub message."""
 
-  def __init__(self, client, subscription, data, attributes, message_id,
-               publish_time, ack_id):
+  def __init__(self, client: 'PubSubClient', subscription: str,
+               data: bytes | None, attributes: Mapping[str, Any] | None,
+               message_id: str, publish_time: str, ack_id: str):
     super().__init__(data, attributes)
     self._client = client
     self.ack_id = ack_id
@@ -55,11 +71,11 @@ class ReceivedMessage(Message):
     self.subscription = subscription
     self.publish_time = publish_time
 
-  def ack(self):
+  def ack(self) -> None:
     """Acknowledge the message."""
     self._client.ack(self.subscription, [self.ack_id])
 
-  def modify_ack_deadline(self, seconds):
+  def modify_ack_deadline(self, seconds: int | float) -> None:
     """Modify the acknowledgement deadline."""
     self._client.modify_ack_deadline(self.subscription, [self.ack_id], seconds)
 
@@ -67,7 +83,7 @@ class ReceivedMessage(Message):
 class PubSubClient:
   """Helper class that provides wrappers around some Pub/Sub functionality."""
 
-  def __init__(self, emulator_host=None):
+  def __init__(self, emulator_host: str | None = None):
     self._local = threading.local()
     self._emulator_host = emulator_host
 
@@ -75,7 +91,7 @@ class PubSubClient:
       retries=_PUBSUB_FAIL_RETRIES,
       delay=_PUBSUB_FAIL_WAIT,
       function='google_cloud_utils.pubsub._api_client')
-  def _api_client(self):
+  def _api_client(self) -> Any:
     """Get the client for the current thread."""
     if hasattr(self._local, 'api_client'):
       return self._local.api_client
@@ -102,7 +118,7 @@ class PubSubClient:
       retries=_PUBSUB_FAIL_RETRIES,
       delay=_PUBSUB_FAIL_WAIT,
       function='google_cloud_utils.pubsub._execute_with_retry')
-  def _execute_with_retry(self, request):
+  def _execute_with_retry(self, request: Any) -> Any:
     """Execute a request (with retries)."""
     try:
       return request.execute()
@@ -112,14 +128,15 @@ class PubSubClient:
 
       raise
 
-  def ack(self, subscription, ack_ids):
+  def ack(self, subscription: str, ack_ids: Sequence[str]) -> None:
     """Acknowledge messages."""
     ack_body = {'ackIds': ack_ids}
     request = self._api_client().projects().subscriptions().acknowledge(
         subscription=subscription, body=ack_body)
     self._execute_with_retry(request)
 
-  def modify_ack_deadline(self, subscription, ack_ids, seconds):
+  def modify_ack_deadline(self, subscription: str, ack_ids: Sequence[str],
+                          seconds: int | float) -> None:
     """Modify acknowledgement deadline of messages."""
     body = {
         'ackIds': ack_ids,
@@ -130,7 +147,7 @@ class PubSubClient:
         subscription=subscription, body=body)
     self._execute_with_retry(request)
 
-  def publish(self, topic, messages):
+  def publish(self, topic: str, messages: Sequence[Message]) -> list[str]:
     """Publish a message to a topic."""
     request_body = {
         'messages': [_message_to_dict(message) for message in messages]
@@ -144,10 +161,11 @@ class PubSubClient:
 
     return sorted(response.get('messageIds'))
 
-  def pull_from_subscription(self,
-                             subscription,
-                             max_messages=_DEFAULT_MAX_MESSAGES,
-                             acknowledge=False):
+  def pull_from_subscription(
+      self,
+      subscription: str,
+      max_messages: int = _DEFAULT_MAX_MESSAGES,
+      acknowledge: bool = False) -> list[ReceivedMessage]:
     """Pull messages from a subscription to a topic."""
     request_body = {
         'returnImmediately': True,
@@ -174,9 +192,10 @@ class PubSubClient:
         for message in received_messages
     ]
 
-  def create_topic(self, name, labels=None):
+  def create_topic(self, name: str,
+                   labels: dict[str, str] | None = None) -> None:
     """Create a new topic."""
-    body = {
+    body: dict[str, Any] = {
         'labels': {},
     }
 
@@ -187,12 +206,12 @@ class PubSubClient:
         name=name, body=body)
     self._execute_with_retry(request)
 
-  def delete_topic(self, name):
+  def delete_topic(self, name: str) -> None:
     """Deletes a topic."""
     request = self._api_client().projects().topics().delete(topic=name)
     self._execute_with_retry(request)
 
-  def get_topic(self, name):
+  def get_topic(self, name: str) -> Topic | None:
     """Get a topic, or None if it does not exist."""
     request = self._api_client().projects().topics().get(topic=name)
     response = self._execute_with_retry(request)
@@ -202,12 +221,16 @@ class PubSubClient:
     return Topic(response['name'], response.get('labels'))
 
   def create_subscription(self,
-                          name,
-                          topic,
-                          ack_deadline=MAX_ACK_DEADLINE,
-                          labels=None):
+                          name: str,
+                          topic: str,
+                          ack_deadline: int = MAX_ACK_DEADLINE,
+                          labels: dict[str, str] | None = None) -> None:
     """Create a new subscription."""
-    body = {'topic': topic, 'ackDeadlineSeconds': ack_deadline, 'labels': {}}
+    body: dict[str, Any] = {
+        'topic': topic,
+        'ackDeadlineSeconds': ack_deadline,
+        'labels': {}
+    }
 
     if labels:
       body['labels'] = labels
@@ -216,13 +239,13 @@ class PubSubClient:
         name=name, body=body)
     self._execute_with_retry(request)
 
-  def delete_subscription(self, name):
+  def delete_subscription(self, name: str) -> None:
     """Delete a subscription."""
     request = self._api_client().projects().subscriptions().delete(
         subscription=name)
     self._execute_with_retry(request)
 
-  def get_subscription(self, name):
+  def get_subscription(self, name: str) -> Subscription | None:
     """Get a subscription, or None if it does not exist."""
     request = self._api_client().projects().subscriptions().get(
         subscription=name)
@@ -233,7 +256,7 @@ class PubSubClient:
     return Subscription(response['name'], response['topic'],
                         response['ackDeadlineSeconds'], response.get('labels'))
 
-  def list_topics(self, project, page_size=1000):
+  def list_topics(self, project: str, page_size: int = 1000) -> Iterator[str]:
     """List topics."""
     request = self._api_client().projects().topics().list(
         project=project, pageSize=page_size)
@@ -251,7 +274,8 @@ class PubSubClient:
           project=project, pageToken=next_page_token, pageSize=page_size)
       response = self._execute_with_retry(request)
 
-  def list_topic_subscriptions(self, topic, page_size=1000):
+  def list_topic_subscriptions(self, topic: str,
+                               page_size: int = 1000) -> Iterator[str]:
     """List topic subscriptions."""
     request = self._api_client().projects().topics().subscriptions().list(
         topic=topic, pageSize=page_size)
@@ -269,22 +293,22 @@ class PubSubClient:
       response = self._execute_with_retry(request)
 
 
-def project_name(project):
+def project_name(project: str) -> str:
   return 'projects/' + project
 
 
-def subscription_name(project, name):
+def subscription_name(project: str | None, name: str) -> str:
   """Get subscription name."""
   return 'projects/{project}/subscriptions/{name}'.format(
       project=project, name=name)
 
 
-def topic_name(project, name):
+def topic_name(project: str | None, name: str) -> str:
   """Get topic name."""
   return 'projects/{project}/topics/{name}'.format(project=project, name=name)
 
 
-def parse_name(name):
+def parse_name(name: str) -> tuple[str, str]:
   """Parse the topic or subscription name."""
   components = name.split('/')
   if len(components) != 4:
@@ -295,20 +319,21 @@ def parse_name(name):
   return project, name
 
 
-def _decode_data(raw_message):
+def _decode_data(raw_message: dict[str, Any]) -> bytes | None:
   """Decode Pub/Sub data."""
   return (base64.b64decode(raw_message['data'])
           if 'data' in raw_message else None)
 
 
-def raw_message_to_message(raw_message_response):
+def raw_message_to_message(raw_message_response: dict[str, Any]) -> Message:
   """Convert a raw message response to a Message."""
   raw_message = raw_message_response['message']
   return Message(_decode_data(raw_message), raw_message.get('attributes'))
 
 
-def _raw_message_to_received_message(client, subscription,
-                                     raw_message_response):
+def _raw_message_to_received_message(
+    client: PubSubClient, subscription: str,
+    raw_message_response: dict[str, Any]) -> ReceivedMessage:
   """Convert a raw message response to a Message."""
   raw_message = raw_message_response['message']
   return ReceivedMessage(client, subscription, _decode_data(raw_message),
@@ -317,9 +342,9 @@ def _raw_message_to_received_message(client, subscription,
                          raw_message_response['ackId'])
 
 
-def _message_to_dict(message):
+def _message_to_dict(message: Message) -> dict[str, Any]:
   """Convert the message to a dict."""
-  result = {}
+  result: dict[str, Any] = {}
 
   if message.data:
     result['data'] = base64.b64encode(message.data).decode('utf-8')

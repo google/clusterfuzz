@@ -29,7 +29,7 @@ TEMP_DIRECTORIES = [
 ]
 
 
-def clean_temp_directories():
+def clean_temp_directories() -> None:
   """Clean temporary directories."""
   for temp_directory in TEMP_DIRECTORIES:
     temp_directory_full_path = os.path.abspath(
@@ -38,7 +38,7 @@ def clean_temp_directories():
         temp_directory_full_path, recreate=True, ignore_errors=True)
 
 
-def run():
+def run() -> None:
   """Run the initialization for Windows."""
   init_runner.run()
   clean_temp_directories()

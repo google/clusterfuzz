@@ -13,18 +13,25 @@
 # limitations under the License.
 """Fuzzing strategies for fuzzing engines like libFuzzer, AFL, etc."""
 
-from collections import namedtuple
+from typing import NamedTuple
+
 
 # Named tuple for each strategy. The manually_enable field signifies whether a
 # given strategy should be considered separately from the multi-armed bandit
 # strategy seleciton process. Strategies with this field enabled are not
 # included in the multi-armed bandit cron job query.
-Strategy = namedtuple('Strategy', 'name probability manually_enable')
+class Strategy(NamedTuple):
+  name: str
+  probability: float
+  manually_enable: bool
+
 
 # Number of testcases to use for the corpus subset strategy.
 # See https://crbug.com/682311 for more information.
 # Size 100 has a slightly higher chance as it seems to be the best one so far.
-CORPUS_SUBSET_NUM_TESTCASES = [10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150]
+CORPUS_SUBSET_NUM_TESTCASES: list[int] = [
+    10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150
+]
 
 # Supported fuzzing strategies.
 CORPUS_MUTATION_RADAMSA_STRATEGY = Strategy(
@@ -41,7 +48,7 @@ USE_EXTRA_SANITIZERS_STRATEGY = Strategy(
 
 # Keep this strategy order for strategy combination tracking as strategy
 # combinations are tracked as strings.
-LIBFUZZER_STRATEGY_LIST = [
+LIBFUZZER_STRATEGY_LIST: list[Strategy] = [
     CORPUS_MUTATION_RADAMSA_STRATEGY,
     RANDOM_MAX_LENGTH_STRATEGY,
     VALUE_PROFILE_STRATEGY,
@@ -50,23 +57,23 @@ LIBFUZZER_STRATEGY_LIST = [
     USE_EXTRA_SANITIZERS_STRATEGY,
 ]
 
-AFL_STRATEGY_LIST = [
+AFL_STRATEGY_LIST: list[Strategy] = [
     CORPUS_MUTATION_RADAMSA_STRATEGY,
     CORPUS_SUBSET_STRATEGY,
 ]
 
 # Lists of prefix and boolean strategies maintained for libFuzzer stats.
-LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE = [
+LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE: list[Strategy] = [
     CORPUS_SUBSET_STRATEGY,
     FORK_STRATEGY,
 ]
 
-LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE = {
+LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE: dict[str, type] = {
     'corpus_subset': int,
     'fork': int,
 }
 
-LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
+LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE: list[Strategy] = [
     CORPUS_MUTATION_RADAMSA_STRATEGY,
     RANDOM_MAX_LENGTH_STRATEGY,
     VALUE_PROFILE_STRATEGY,

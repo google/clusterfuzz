@@ -21,7 +21,8 @@ combined strategies. In the upload_bandit_weights function, we can change
 metric to be for edges, crash, features, or units. Currently based on new
 edges."""
 
-from collections import namedtuple
+from typing import Any
+from typing import NamedTuple
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -36,19 +37,24 @@ TEMPERATURE_PARAMETER = .15
 # Maintain a list of strategies to include in query for each fuzzing engine.
 # Keep this strategy order for strategy combination tracking as strategy
 # combinations are tracked as strings.
-libfuzzer_query_strategy_list = [
+libfuzzer_query_strategy_list: list[strategy.Strategy] = [
     strategy_tuple for strategy_tuple in strategy.LIBFUZZER_STRATEGY_LIST
     if not strategy_tuple.manually_enable
 ]
 
-afl_query_strategy_list = [
+afl_query_strategy_list: list[strategy.Strategy] = [
     strategy_tuple for strategy_tuple in strategy.AFL_STRATEGY_LIST
     if not strategy_tuple.manually_enable
 ]
 
+
 # A tuple of engine name and corresponding strategies to include in multi-armed
 # bandit query.
-Engine = namedtuple('Engine', 'name query_strategy_list performance_metric')
+class Engine(NamedTuple):
+  name: str
+  query_strategy_list: list[strategy.Strategy]
+  performance_metric: str
+
 
 LIBFUZZER_ENGINE = Engine(
     name='libFuzzer',
@@ -125,7 +131,8 @@ IF
 """
 
 
-def _query_multi_armed_bandit_probabilities(engine):
+def _query_multi_armed_bandit_probabilities(
+    engine: Engine) -> list[dict[str, Any]]:
   """Get query results.
 
   Queries above BANDIT_PROBABILITY_QUERY and yields results
@@ -149,7 +156,8 @@ def _query_multi_armed_bandit_probabilities(engine):
   return client.query(query=formatted_query).rows
 
 
-def _store_probabilities_in_bigquery(engine, data):
+def _store_probabilities_in_bigquery(engine: Engine,
+                                     data: list[dict[str, Any]]) -> None:
   """Update a bigquery table containing the daily updated
   probability distribution over strategies."""
   bigquery_data = []
@@ -173,7 +181,7 @@ def _store_probabilities_in_bigquery(engine, data):
               'BigQuery.')
 
 
-def _query_and_upload_strategy_probabilities(engine):
+def _query_and_upload_strategy_probabilities(engine: Engine) -> None:
   """Uploads queried data into datastore.
 
   Calls query functions and uploads query results
@@ -203,7 +211,7 @@ def _query_and_upload_strategy_probabilities(engine):
       engine.name))
 
 
-def main():
+def main() -> bool:
   """Periodically update fuzz strategy bandit probabilities
   based on a performance metric (currently based on new_edges)."""
   for engine in ENGINE_LIST:

@@ -14,6 +14,9 @@
 """Handlers for the bot list."""
 
 import datetime
+from typing import Any
+from typing import cast
+from typing import Sequence
 
 from flask import request
 
@@ -27,15 +30,15 @@ from libs import handler
 from libs import helpers
 from libs.query import datastore_query
 
-PAGE_SIZE = 10
-MORE_LIMIT = 50 - PAGE_SIZE  # exactly 5 pages
+PAGE_SIZE: int = 10
+MORE_LIMIT: int = 50 - PAGE_SIZE  # exactly 5 pages
 
-FILTERS = [
+FILTERS: list[filters.Filter] = [
     filters.Keyword([], 'keywords', 'q'),
 ]
 
 
-def _get_alive_cutoff():
+def _get_alive_cutoff() -> datetime.datetime:
   """Get the time before which we consider bots to be dead."""
   seconds_to_wait_for_dead_bot = (
       tasks.TASK_LEASE_SECONDS + tasks.TASK_COMPLETION_BUFFER +
@@ -45,11 +48,13 @@ def _get_alive_cutoff():
   return alive_cutoff
 
 
-def _convert_heartbeats_to_dicts(heartbeats):
+def _convert_heartbeats_to_dicts(
+    heartbeats: Sequence[data_types.Heartbeat]) -> list[dict[str, Any]]:
   """Format heartbeats for template."""
   alive_cutoff = _get_alive_cutoff()
-  result = []
+  result: list[dict[str, Any]] = []
   for heartbeat in heartbeats:
+    last_beat_time = cast(datetime.datetime, heartbeat.last_beat_time)
     result.append({
         'bot_name':
             heartbeat.bot_name,
@@ -66,27 +71,28 @@ def _convert_heartbeats_to_dicts(heartbeats):
             utils.utc_datetime_to_timestamp(heartbeat.last_beat_time)
             if heartbeat.last_beat_time else '',
         'alive':
-            'alive' if heartbeat.last_beat_time > alive_cutoff else 'dead'
+            'alive' if last_beat_time > alive_cutoff else 'dead'
     })
 
   return result
 
 
-def get_results():
+def get_results() -> tuple[dict[str, Any], dict[str, Any]]:
   """Get results for the bots page."""
   # Return bots sorted alphabetically by bot_name
   query = datastore_query.Query(data_types.Heartbeat)
   query.order('bot_name', is_desc=False)
-  params = dict(request.iterparams())
+  request_any = cast(Any, request)
+  params = dict(request_any.iterparams())
   filters.add(query, params, FILTERS)
 
-  page = helpers.cast(request.get('page', 1), int, "'page' is not an int.")
+  page = helpers.cast(request_any.get('page', 1), int, "'page' is not an int.")
   items, total_pages, total_items, has_more = query.fetch_page(
       page=page, page_size=PAGE_SIZE, projection=None, more_limit=MORE_LIMIT)
   items = _convert_heartbeats_to_dicts(items)
   helpers.log('Bots', helpers.VIEW_OPERATION)
 
-  result = {
+  result: dict[str, Any] = {
       'hasMore': has_more,
       'items': items,
       'page': page,
@@ -104,7 +110,7 @@ class Handler(base_handler.Handler):
   @handler.oauth
   @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=False)
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Render the bot list HTML."""
     result, params = get_results()
     return self.render('bots.html', {
@@ -119,7 +125,7 @@ class JsonHandler(base_handler.Handler):
   @handler.post(handler.JSON, handler.JSON)
   @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=False)
-  def post(self):
+  def post(self) -> base_handler.Response:
     """Get and render the bots in JSON."""
     result, _ = get_results()
     return self.render_json(result)
@@ -129,7 +135,7 @@ class DeadBotsHandler(base_handler.Handler):
   """Output dead bots as json."""
 
   @handler.get(handler.JSON)
-  def get(self):
+  def get(self) -> base_handler.Response:
     """Render dead bots as json (used by automated scripts)."""
 
     # This a publicly exposed chromium-specific page.
@@ -138,10 +144,12 @@ class DeadBotsHandler(base_handler.Handler):
     else:
       raise helpers.EarlyExitError('Dead bots list unavailable.', 400)
 
-    result = {}
+    result: dict[str, str] = {}
     alive_cutoff = _get_alive_cutoff()
     for heartbeat in heartbeats:
-      if heartbeat.last_beat_time <= alive_cutoff:
-        result[heartbeat.bot_name] = 'dead'
+      last_beat_time = cast(datetime.datetime, heartbeat.last_beat_time)
+      bot_name = cast(str, heartbeat.bot_name)
+      if last_beat_time <= alive_cutoff:
+        result[bot_name] = 'dead'
 
     return self.render_json(result)

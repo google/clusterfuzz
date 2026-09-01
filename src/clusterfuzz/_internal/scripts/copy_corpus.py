@@ -20,17 +20,17 @@ import subprocess
 import sys
 import time
 
-GCLOUD_STORAGE_CMD = ['gcloud', 'storage']
-RETRY_COUNT = 5
-SLEEP_WAIT = 60
+GCLOUD_STORAGE_CMD: list[str] = ['gcloud', 'storage']
+RETRY_COUNT: int = 5
+SLEEP_WAIT: int = 60
 
-USAGE_REMINDER_MESSAGE = """If you set up two or more experimental jobs,
+USAGE_REMINDER_MESSAGE: str = """If you set up two or more experimental jobs,
 remember to copy production buckets only once. For creating two or more buckets
 with the same content, copy the first experimental bucket over to the others to
 make sure that contents of the buckets will be exactly the same."""
 
 
-def _run_command(command):
+def _run_command(command: list[str]) -> str:
   """Runs a command and prints it."""
   print(
       'Running command [{time}]:'.format(
@@ -39,7 +39,8 @@ def _run_command(command):
 
   for _ in range(RETRY_COUNT):
     try:
-      return subprocess.check_output(command, stderr=subprocess.STDOUT)
+      return subprocess.check_output(
+          command, stderr=subprocess.STDOUT, text=True)
     except subprocess.CalledProcessError as e:
       print('Command failed with non-zero exit code. Output:\n%s' % e.output)
 
@@ -50,9 +51,12 @@ def _run_command(command):
   sys.exit(-1)
 
 
-def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
+def _copy_corpus(source_bucket: str, source_project: str | None,
+                 target_bucket: str, target_project: str | None) -> None:
   """Copy corpus from a source bucket to target bucket, keeping their project
-  names into account."""
+
+  names into account.
+  """
   # Ensure that gcloud is installed.
   subprocess.check_call([GCLOUD_STORAGE_CMD[0], '-v'])
 
@@ -88,7 +92,7 @@ def _copy_corpus(source_bucket, source_project, target_bucket, target_project):
   print('Copy corpus finished successfully.')
 
 
-def main():
+def main() -> None:
   arg_parser = argparse.ArgumentParser(description='Corpus copier. %s' %
                                        USAGE_REMINDER_MESSAGE)
   arg_parser.add_argument(

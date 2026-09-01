@@ -14,8 +14,11 @@
 """Analyze task for handling user uploads."""
 
 import json
+from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import Sequence
+from typing import Tuple
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -30,6 +33,7 @@ from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.common import testcase_utils
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
@@ -38,10 +42,12 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
+from clusterfuzz.stacktraces import CrashInfo
 
 
-def _add_default_issue_metadata(testcase: data_types.Testcase,
-                                fuzz_target_metadata: Dict):
+def _add_default_issue_metadata(
+    testcase: data_types.Testcase,
+    fuzz_target_metadata: Optional[Dict[str, Any]]) -> None:
   """Adds the default issue metadata (e.g. components, labels) to testcase."""
   if fuzz_target_metadata is None:
     return
@@ -74,15 +80,19 @@ def _add_default_issue_metadata(testcase: data_types.Testcase,
     testcase.set_metadata(key, new_value)
 
 
-def handle_analyze_no_revisions_list_error(output):
+def handle_analyze_no_revisions_list_error(
+    output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        'Failed to fetch revision list')
   handle_build_setup_error(output)
 
 
-def setup_build(testcase: data_types.Testcase, bad_revisions,
-                fuzz_target) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
+def setup_build(
+    testcase: data_types.Testcase,
+    bad_revisions: Optional[Sequence[int]],
+    fuzz_target: Optional[data_types.FuzzTarget],
+) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
   closest revision <= provided revision."""
@@ -91,7 +101,9 @@ def setup_build(testcase: data_types.Testcase, bad_revisions,
   if revision and not build_manager.is_custom_binary():
     build_bucket_path = build_manager.get_primary_bucket_path()
     revision_list = build_manager.get_revisions_list(
-        build_bucket_path, bad_revisions, testcase=testcase)
+        build_bucket_path,
+        bad_revisions,  # type: ignore
+        testcase=testcase)
     if not revision_list:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)  # pylint: disable=no-member
@@ -102,14 +114,14 @@ def setup_build(testcase: data_types.Testcase, bad_revisions,
           error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)  # pylint: disable=no-member
     revision = revision_list[revision_index]
 
-  fuzz_target = fuzz_target.binary if fuzz_target else None
-  if not build_manager.setup_build(revision, fuzz_target):
+  fuzz_target_binary = fuzz_target.binary if fuzz_target else None
+  if not build_manager.setup_build(revision, fuzz_target_binary):
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
   return None
 
 
-def handle_analyze_no_revision_index(output):
+def handle_analyze_no_revision_index(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(
       testcase, data_types.TaskState.ERROR,
@@ -118,15 +130,18 @@ def handle_analyze_no_revision_index(output):
   handle_build_setup_error(output)
 
 
-def handle_analyze_close_invalid_uploaded(output):
+def handle_analyze_close_invalid_uploaded(
+    output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
+  assert testcase_upload_metadata is not None
   data_handler.close_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Irrelevant')
 
 
-def prepare_env_for_main(testcase_upload_metadata):
+def prepare_env_for_main(
+    testcase_upload_metadata: data_types.TestcaseUploadMetadata) -> None:
   """Prepares the environment for execute_task."""
   # Reset redzones.
   environment.reset_current_memory_tool_options(redzone_size=128)
@@ -144,8 +159,12 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 
 def setup_testcase_and_build(
-    testcase, job_type, setup_input, bad_revisions,
-    fuzz_target) -> (Optional[str], Optional[uworker_msg_pb2.Output]):  # pylint: disable=no-member
+    testcase: data_types.Testcase,
+    job_type: str,
+    setup_input: uworker_msg_pb2.SetupInput,  # pylint: disable=no-member
+    bad_revisions: Optional[Sequence[int]],
+    fuzz_target: Optional[data_types.FuzzTarget],
+) -> Tuple[Optional[str], Optional[uworker_msg_pb2.Output]]:  # pylint: disable=no-member
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
@@ -171,7 +190,7 @@ def setup_testcase_and_build(
   return testcase_file_path, None
 
 
-def update_testcase_after_build_setup(testcase):
+def update_testcase_after_build_setup(testcase: data_types.Testcase) -> None:
   """Updates the testcase entity with values from global state that was set
   during build setup."""
   # NOTE: This must be done after setting up the build, which also sets
@@ -191,7 +210,8 @@ def update_testcase_after_build_setup(testcase):
     testcase.minimized_arguments = minimized_arguments
 
 
-def initialize_testcase_for_main(testcase, job_type):
+def initialize_testcase_for_main(testcase: data_types.Testcase,
+                                 job_type: str) -> None:
   """Initializes a testcase for the crash testing phase."""
   # Update initial testcase information.
   testcase.job_type = job_type
@@ -200,13 +220,17 @@ def initialize_testcase_for_main(testcase, job_type):
   testcase.put()
 
 
-def test_for_crash_with_retries(fuzz_target, testcase, testcase_file_path,
-                                test_timeout):
+def test_for_crash_with_retries(
+    fuzz_target: Optional[data_types.FuzzTarget],
+    testcase: data_types.Testcase,
+    testcase_file_path: str,
+    test_timeout: int | float,
+) -> Tuple[CrashResult, bool]:
   """Tests for a crash with retries. Tries with HTTP (with retries) if initial
   attempts fail. Returns the most recent crash result and the possibly updated
   HTTP flag."""
   # Get the crash output.
-  http_flag = testcase.http_flag
+  http_flag = bool(testcase.http_flag)
   result = testcase_manager.test_for_crash_with_retries(
       fuzz_target,
       testcase,
@@ -236,11 +260,11 @@ def test_for_crash_with_retries(fuzz_target, testcase, testcase_file_path,
   return result, http_flag
 
 
-def is_first_analyze_attempt(testcase):
+def is_first_analyze_attempt(testcase: data_types.Testcase) -> bool:
   return data_handler.is_first_attempt_for_task('analyze', testcase)
 
 
-def handle_noncrash(output):
+def handle_noncrash(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   """Handles a non-crashing testcase. Either deletes the testcase or schedules
   another, final analysis."""
   # Could not reproduce the crash.
@@ -266,6 +290,7 @@ def handle_noncrash(output):
     return
   testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
+  assert testcase_upload_metadata is not None
   rejection_event = events.TestcaseRejectionEvent(
       testcase=testcase,
       rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO)
@@ -274,8 +299,10 @@ def handle_noncrash(output):
   events.emit(rejection_event)
 
 
-def update_testcase_after_crash(testcase, state, job_type, http_flag,
-                                analyze_task_output):
+def update_testcase_after_crash(
+    testcase: data_types.Testcase, state: CrashInfo, job_type: str,
+    http_flag: bool,
+    analyze_task_output: uworker_msg_pb2.AnalyzeTaskOutput) -> None:  # pylint: disable=no-member
   """Updates |testcase| based on |state|."""
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
@@ -302,7 +329,9 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag,
       analyze_task_output.security_severity = testcase.security_severity
 
 
-def _utask_preprocess(testcase_id, job_type, uworker_env):
+def _utask_preprocess(
+    testcase_id: str, job_type: str,
+    uworker_env: Dict[str, Any]) -> Optional[uworker_msg_pb2.Input]:  # pylint: disable=no-member
   """Runs preprocessing for analyze task."""
   # Get the testcase from the database and mark it as started.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -344,7 +373,9 @@ def _utask_preprocess(testcase_id, job_type, uworker_env):
   return uworker_input
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def utask_preprocess(
+    testcase_id: str, job_type: str,
+    uworker_env: Dict[str, Any]) -> Optional[uworker_msg_pb2.Input]:  # pylint: disable=no-member
   """Sets logs context and runs preprocessing for analyze task."""
   # Get the testcase from the database.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -352,7 +383,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     return _utask_preprocess(testcase_id, job_type, uworker_env)
 
 
-def get_analyze_task_input():
+def get_analyze_task_input() -> uworker_msg_pb2.AnalyzeTaskInput:  # pylint: disable=no-member
   return uworker_msg_pb2.AnalyzeTaskInput(  # pylint: disable=no-member
       bad_revisions=build_manager.get_job_bad_revisions())
 
@@ -362,9 +393,9 @@ def _build_task_output(
   """Copies the testcase updated fields to analyze_task_output to be updated in
   postprocess."""
   analyze_task_output = uworker_msg_pb2.AnalyzeTaskOutput()  # pylint: disable=no-member
-  analyze_task_output.crash_revision = int(testcase.crash_revision)
-  analyze_task_output.absolute_path = testcase.absolute_path
-  analyze_task_output.minimized_arguments = testcase.minimized_arguments
+  analyze_task_output.crash_revision = int(testcase.crash_revision or 0)
+  analyze_task_output.absolute_path = testcase.absolute_path or ''
+  analyze_task_output.minimized_arguments = (testcase.minimized_arguments or '')
   if testcase.get_metadata('build_key'):
     analyze_task_output.build_key = testcase.get_metadata('build_key')
   if testcase.get_metadata('build_url'):
@@ -378,7 +409,8 @@ def _build_task_output(
   return analyze_task_output
 
 
-def _utask_main(uworker_input):
+def _utask_main(
+    uworker_input: uworker_msg_pb2.Input) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Executes the untrusted part of analyze_task."""
   testcase_upload_metadata = uworker_io.entity_from_protobuf(
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
@@ -459,7 +491,8 @@ def _utask_main(uworker_input):
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
 
-  analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
+  analyze_task_output.one_time_crasher_flag = bool(
+      testcase.one_time_crasher_flag)
 
   monitoring_metrics.ANALYZE_TASK_REPRODUCIBILITY.increment(
       labels={
@@ -480,7 +513,8 @@ def _utask_main(uworker_input):
       issue_metadata=json.dumps(fuzz_target_metadata))
 
 
-def utask_main(uworker_input):
+def utask_main(
+    uworker_input: uworker_msg_pb2.Input) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Sets logs context and runs the untrusted part of analyze_task."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
@@ -489,16 +523,18 @@ def utask_main(uworker_input):
     return _utask_main(uworker_input)
 
 
-def test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
-                             test_timeout):
+def test_for_reproducibility(fuzz_target: Optional[data_types.FuzzTarget],
+                             testcase: data_types.Testcase,
+                             testcase_file_path: str, state: CrashInfo,
+                             test_timeout: int | float) -> None:
   one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
-      fuzz_target, testcase_file_path, state.crash_type, state.crash_state,
-      testcase.security_flag, test_timeout, testcase.http_flag,
-      testcase.gestures)
+      fuzz_target, testcase_file_path, state.crash_type,
+      state.crash_state, testcase.security_flag, test_timeout,
+      bool(testcase.http_flag), testcase.gestures)
   testcase.one_time_crasher_flag = one_time_crasher_flag
 
 
-def handle_build_setup_error(output):
+def handle_build_setup_error(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   """Handles errors for scenarios where build setup fails."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
@@ -515,28 +551,30 @@ def handle_build_setup_error(output):
     return
   testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
+  assert testcase_upload_metadata is not None
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Build setup failed')
 
 
-_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:  # pylint: disable=no-member
-        handle_build_setup_error,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:  # pylint: disable=no-member
-        handle_noncrash,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX:  # pylint: disable=no-member
-        handle_analyze_no_revision_index,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:  # pylint: disable=no-member
-        handle_analyze_no_revisions_list_error,
-    uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED:  # pylint: disable=no-member
-        handle_analyze_close_invalid_uploaded,
-}).compose_with(
-    setup.ERROR_HANDLER,
-    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
-)
+_ERROR_HANDLER: uworker_handle_errors.CompositeErrorHandler = (
+    uworker_handle_errors.CompositeErrorHandler({
+        uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:  # pylint: disable=no-member
+            handle_build_setup_error,
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:  # pylint: disable=no-member
+            handle_noncrash,
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX:  # pylint: disable=no-member
+            handle_analyze_no_revision_index,
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:  # pylint: disable=no-member
+            handle_analyze_no_revisions_list_error,
+        uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED:  # pylint: disable=no-member
+            handle_analyze_close_invalid_uploaded,
+    }).compose_with(
+        setup.ERROR_HANDLER,
+        uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
+    ))
 
 
-def _update_testcase(output):
+def _update_testcase(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   """Updates the testcase using the info passed from utask_main."""
   if not output.HasField('analyze_task_output'):
     return
@@ -583,7 +621,7 @@ def _update_testcase(output):
   testcase.put()
 
 
-def _utask_postprocess(output):
+def _utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase_utils.emit_testcase_triage_duration_metric(
@@ -597,6 +635,7 @@ def _utask_postprocess(output):
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase_upload_metadata = testcase_utils.get_testcase_upload_metadata(
       output.uworker_input.testcase_id)
+  assert testcase_upload_metadata is not None
 
   if output.analyze_task_output.one_time_crasher_flag:
     one_time_crasher_message = ', but is flaky'
@@ -657,7 +696,7 @@ def _utask_postprocess(output):
   task_creation.create_tasks(testcase)
 
 
-def utask_postprocess(output):
+def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disable=no-member
   """Sets logs context and runs postprocess of the analyze_task."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):

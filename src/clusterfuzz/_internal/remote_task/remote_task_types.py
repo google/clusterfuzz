@@ -14,19 +14,29 @@
 """Remote task types."""
 
 import abc
+from typing import Optional
 
 from clusterfuzz._internal.base import tasks
 
 
 class RemoteTask(tasks.Task):
   """Represents a single ClusterFuzz task to be executed on a remote worker.
-  
+
   This class holds the necessary information to execute a ClusterFuzz command,
   such as 'fuzz' or 'progression', in a remote environment like GCP Batch. It
   is used to enqueue tasks and track their state.
   """
 
-  def __init__(self, command, job_type, input_download_url, pubsub_task=None):
+  command: str
+  job_type: str
+  input_download_url: Optional[str]
+  pubsub_task: Optional[tasks.Task]
+
+  def __init__(self,
+               command: str,
+               job_type: str,
+               input_download_url: Optional[str],
+               pubsub_task: Optional[tasks.Task] = None) -> None:
     super().__init__(command, input_download_url, job_type)
     self.command = command
     self.job_type = job_type
@@ -36,15 +46,16 @@ class RemoteTask(tasks.Task):
 
 class RemoteTaskInterface(abc.ABC):
   """Interface for a remote task execution client.
-  
+
   This interface defines the contract for a client that can create and manage
   remote jobs. Each client is responsible for translating a ClusterFuzz task
   specification into a job that can be executed in its target environment.
   """
 
   @abc.abstractmethod
-  def create_utask_main_job(self, module: str, job_type: str,
-                            input_download_url: str):
+  def create_utask_main_job(
+      self, module: str, job_type: str,
+      input_download_url: str) -> Optional[RemoteTask] | list[RemoteTask]:
     """Creates a single remote task for a uworker main task.
        Returns the task that couldn't be created.
     """

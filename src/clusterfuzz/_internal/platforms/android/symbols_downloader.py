@@ -14,6 +14,7 @@
 """Used to download Android symbols."""
 
 import os
+from typing import Any
 import zipfile
 
 from clusterfuzz._internal.base import utils
@@ -29,22 +30,23 @@ from clusterfuzz._internal.system import shell
 from . import constants
 
 
-def get_repo_prop_archive_filename(build_id, target):
+def get_repo_prop_archive_filename(build_id: str, target: str) -> str:
   return f'{target}-{build_id}-repo.prop'
 
 
-def should_download_symbols():
+def should_download_symbols() -> bool:
   """Return True if we should continue to download symbols."""
   # For local testing, we do not have access to the cloud storage bucket with
   # the symbols. In this case, just bail out. We have archived symbols for
   # google builds only.
-  return (not environment.get_value('LOCAL_DEVELOPMENT') and
-          settings.is_google_device())
+  return bool(not environment.get_value('LOCAL_DEVELOPMENT') and
+              settings.is_google_device())
 
 
 def download_artifact_if_needed(
-    build_id, artifact_directory, artifact_archive_path,
-    targets_with_type_and_san, artifact_file_name, output_filename_override):
+    build_id: str, artifact_directory: str, artifact_archive_path: str,
+    targets_with_type_and_san: list[str], artifact_file_name: str,
+    output_filename_override: str | None) -> None:
   """Downloads artifact to actifacts_archive_path if needed"""
   # Delete existing symbols directory first.
   shell.remove_directory(artifact_directory, recreate=True)
@@ -57,15 +59,17 @@ def download_artifact_if_needed(
       break
 
 
-def check_symbols_cached(build_params_check_path, build_params):
+def check_symbols_cached(build_params_check_path: str,
+                         build_params: dict[str, Any] | None) -> bool:
   # Check if we already have the symbols locally.
   cached_build_params = utils.read_data_from_file(
       build_params_check_path, eval_data=True)
-  return cached_build_params and cached_build_params == build_params
+  return bool(cached_build_params and cached_build_params == build_params)
 
 
-def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
-                                 targets_with_type_and_san, cache_type):
+def download_repo_prop_if_needed(
+    symbols_directory: str, build_id: str, cache_target: str,
+    targets_with_type_and_san: list[str], cache_type: str) -> None:
   """Downloads the repo.prop for a branch"""
   artifact_file_name = 'repo.prop'
   symbols_archive_filename = get_repo_prop_archive_filename(
@@ -95,7 +99,7 @@ def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
   utils.write_data_to_file(build_params, build_params_check_path)
 
 
-def download_kernel_repo_prop_if_needed(symbols_directory):
+def download_kernel_repo_prop_if_needed(symbols_directory: str) -> None:
   """Downloads the repo.prop for the kernel of a device"""
   if not should_download_symbols():
     return
@@ -122,7 +126,7 @@ def download_kernel_repo_prop_if_needed(symbols_directory):
                                targets_with_type_and_san, 'kernel')
 
 
-def download_system_symbols_if_needed(symbols_directory):
+def download_system_symbols_if_needed(symbols_directory: str) -> None:
   """Download system libraries from |SYMBOLS_URL| and cache locally."""
   if not should_download_symbols():
     return
@@ -141,6 +145,8 @@ def download_system_symbols_if_needed(symbols_directory):
   build_id = build_params.get('build_id')
   target = build_params.get('target')
   build_type = build_params.get('type')
+
+  assert build_id is not None and target is not None and build_type is not None
 
   if environment.is_android() and \
   target not in constants.NO_RELEASE_CONFIGURATION_TARGET_LIST and \
@@ -183,10 +189,14 @@ def download_system_symbols_if_needed(symbols_directory):
   utils.write_data_to_file(build_params, build_params_check_path)
 
 
-def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
+def download_trusty_symbols_if_needed(symbols_directory: str, app_name: str,
+                                      bid: str | None) -> None:
   """Downloads and extracts Trusted App ELF files"""
   ab_target = ''
-  device = settings.get_build_parameters().get('target')
+  build_params = settings.get_build_parameters()
+  assert build_params is not None
+  device = build_params.get('target')
+  assert device is not None
   if 'cheetah' in device or 'panther' in device:
     ab_target = 'cloudripper-fuzz-test-debug'
   elif 'oriole' in device or 'raven' in device or 'bluejay' in device:
@@ -201,7 +211,9 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
       logs.error(f'Unable to fetch build info for branch {branch} '
                  f'and target {ab_target}.')
       return
-    bid = build_info['bid']
+    bid = str(build_info['bid'])
+
+  assert bid is not None
 
   artifact_filename = f'{ab_target}-{bid}.syms.zip'
   symbols_archive_path = os.path.join(symbols_directory, artifact_filename)
@@ -223,7 +235,7 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
         symbols_zipfile.extract(filepath, symbols_directory)
 
 
-def _get_binary_from_build_or_device(binary_path):
+def _get_binary_from_build_or_device(binary_path: str) -> str | None:
   """Look for binary on build server or on device."""
   # Initialize some helper variables.
   symbols_directory = environment.get_value('SYMBOLS_DIR')
@@ -246,7 +258,7 @@ def _get_binary_from_build_or_device(binary_path):
   return None
 
 
-def filter_binary_path(binary_path):
+def filter_binary_path(binary_path: str) -> str:
   """Filter binary path to provide local copy."""
   # LKL fuzzer name is not full path.
   if environment.is_android():
