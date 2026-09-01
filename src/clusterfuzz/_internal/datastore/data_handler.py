@@ -59,6 +59,20 @@ MEMCACHE_TTL_IN_SECONDS = 30 * 60
 NUM_TESTCASE_QUALITY_BITS = 3
 MAX_TESTCASE_QUALITY = 2**NUM_TESTCASE_QUALITY_BITS - 1
 
+# Testcase metadata keys that must hold an integer revision. These end up
+# interpolated into the admin-configured REVISION_VARS_URL template (see
+# revisions.get_component_revisions_dict) and rendered on the testcase detail
+# page, so untrusted workers must never be able to store arbitrary strings in
+# them.
+NUMERIC_METADATA_KEYS = frozenset({
+    'last_progression_max',
+    'last_progression_min',
+    'last_regression_max',
+    'last_regression_min',
+    'last_tested_crash_revision',
+    'last_tested_revision',
+})
+
 # Value and dimension map for some crash types (timeout, ooms).
 CRASH_TYPE_VALUE_REGEX_MAP = {
     'Timeout': r'.*-timeout=(\d+)',
@@ -1919,6 +1933,29 @@ def clear_progression_pending(testcase):
     return
 
   testcase.delete_metadata('progression_pending', update_testcase=False)
+
+
+def sanitize_issue_metadata(metadata):
+  """Return |metadata| with entries an untrusted worker must not control
+  dropped. Revision keys are coerced to int, and entries that cannot be coerced
+  are dropped."""
+  sanitized = {}
+  for key, value in metadata.items():
+    if not isinstance(key, str):
+      logs.warning(f'Ignoring non-string issue metadata key: {key!r}')
+      continue
+
+    if key in NUMERIC_METADATA_KEYS:
+      try:
+        value = int(value)
+      except (TypeError, ValueError):
+        logs.warning(
+            f'Ignoring non-integer issue metadata for {key}: {value!r}')
+        continue
+
+    sanitized[key] = value
+
+  return sanitized
 
 
 def update_progression_completion_metadata(testcase,
