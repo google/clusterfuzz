@@ -100,6 +100,7 @@ def install(package_apk_path: str, **kwargs):
     package_apk_path: Path to the apk file to install.
     **kwargs: Additional arguments to pass to the install command.
   """
+  logs.info('Installing APK: %s with options: %s' % (package_apk_path, kwargs))
   cmd = ['install', '-r']
   for key, value in kwargs.items():
     if not value:
@@ -132,6 +133,7 @@ def reset():
   if not is_installed(package_name):
     return
 
+  logs.info('Resetting application state for package: %s' % package_name)
   # Clean package state.
   adb.run_shell_command(['pm', 'clear', package_name])
 
@@ -149,6 +151,7 @@ def stop():
   if not package_name:
     return
 
+  logs.info('Stopping application package: %s' % package_name)
   # Device can get silently restarted in case of OOM. So, we would need to
   # restart our shell as root in order to kill the application.
   adb.run_as_root()
@@ -166,6 +169,7 @@ def stop():
 
 def uninstall(package_name):
   """Uninstall a package given a name."""
+  logs.info('Uninstalling package: %s' % package_name)
   return adb.run_command(['uninstall', package_name])
 
 

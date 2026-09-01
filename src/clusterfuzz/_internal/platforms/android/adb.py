@@ -674,7 +674,7 @@ def run_as_root():
   wait_for_device()
 
 
-def run_command(cmd, log_output=False, timeout=None, recover=True):
+def run_command(cmd, log_output=True, timeout=None, recover=True):
   """Run a command in adb shell."""
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
@@ -720,7 +720,7 @@ def run_command(cmd, log_output=False, timeout=None, recover=True):
 
 
 def run_shell_command(cmd,
-                      log_output=False,
+                      log_output=True,
                       root=False,
                       timeout=None,
                       recover=True):
@@ -882,6 +882,8 @@ def write_command_line_file(command_line, app_path):
   command_line_file_contents = 'chrome %s' % (
       command_line_without_app_path.strip())
 
+  logs.info('Writing command line file %s with contents: %s' %
+            (command_line_path, command_line_file_contents))
   write_data_to_file(command_line_file_contents, command_line_path)
 
 
@@ -895,6 +897,7 @@ def write_data_to_file(contents, file_path, should_reboot=True):
         Only applies if `file_path` is under `/system`, since we need to
         remount that partition as read-write first.
   """
+  logs.info('Writing data to %s on device:\n%s' % (file_path, contents))
   # If this is a file in /system, we need to remount /system as read-write and
   # after file is written, revert it back to read-only.
   is_system_file = file_path.startswith('/system')

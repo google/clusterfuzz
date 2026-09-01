@@ -332,6 +332,10 @@ def run_testcase(thread_index, file_path, gestures, env_copy):
     app_directory = environment.get_value('APP_DIR')
     environment.set_value('PIDS', '[]')
 
+    logs.info(
+        'Running testcase (thread %s): file_path=%s, needs_http=%s, gestures=%s'
+        % (str(thread_index), file_path, needs_http, str(gestures)))
+
     # Get command line options.
     command = get_command_line_for_application(
         file_path, user_profile_index=thread_index, needs_http=needs_http)
@@ -1137,8 +1141,10 @@ def get_command_line_for_application(file_to_run='',
     if write_command_line_file:
       android.adb.write_command_line_file(command, app_path)
 
-    return android.app.get_launch_command(all_app_args, testcase_path,
-                                          testcase_file_url)
+    launch_command = android.app.get_launch_command(all_app_args, testcase_path,
+                                                    testcase_file_url)
+    logs.info('Resolved Android launch command: %s' % launch_command)
+    return launch_command
 
   # Decide which directory we will run the application from.
   # We are using |app_directory| since it helps to locate pdbs
@@ -1273,11 +1279,18 @@ def check_for_bad_build(job_type: str,
   process_handler.terminate_stale_application_instances()
 
   # Check if the build is bad.
+  logs.info(
+      'Starting bad build check for %s at r%s with command: %s (timeout=%s)' %
+      (job_type, crash_revision, command, fast_warmup_timeout))
   return_code, crash_time, output = process_handler.run_process(
       command,
       timeout=fast_warmup_timeout,
       current_working_directory=app_directory)
   crash_result = CrashResult(return_code, crash_time, output)
+  logs.info(
+      'Bad build check run_process completed: return_code=%s, is_crash=%s, '
+      'crash_type=%s' % (return_code, crash_result.is_crash(ignore_state=True),
+                         crash_result.get_type()))
 
   # 1. Need to account for startup crashes with no crash state. E.g. failed to
   #    load shared library. So, ignore state for comparison.

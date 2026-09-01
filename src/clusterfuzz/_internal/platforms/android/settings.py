@@ -14,6 +14,7 @@
 """Settings change related functions."""
 import re
 
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 from . import adb
@@ -27,6 +28,7 @@ BUILD_FINGERPRINT_REGEX = re.compile(
 def change_se_linux_to_permissive_mode():
   """Switch SELinux to permissive mode for working around local file access and
   other issues."""
+  logs.info('Switching SELinux to permissive mode (setenforce 0).')
   adb.run_shell_command(['setenforce', '0'])
 
 
@@ -206,6 +208,7 @@ def set_content_setting(table, key, value):
     # Default to string.
     return 's'
 
+  logs.info('Setting content setting for %s: %s=%s' % (table, key, value))
   content_setting_command = (
       'content insert --uri content://%s --bind name:s:%s --bind value:%s:%s' %
       (table, key, _get_type_binding(value), str(value)))
@@ -216,6 +219,8 @@ def set_content_setting(table, key, value):
 def set_database_setting(database_path, table, key, value):
   """Update a key in a database. The input is not sanitized, so make sure to use
   with trusted input key and value pair only."""
+  logs.info('Setting database setting in %s (%s): %s=%s' % (database_path,
+                                                            table, key, value))
   sql_command_string = ('"UPDATE %s SET value=\'%s\' WHERE name=\'%s\'"') % (
       table, str(value), key)
   adb.run_shell_command(['sqlite3', database_path, sql_command_string])

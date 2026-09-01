@@ -118,6 +118,7 @@ def add_test_accounts_if_needed():
 
 def clear_temp_directories():
   """Clear temp directories."""
+  logs.info('Clearing device temporary directories.')
   adb.remove_directory(constants.DEVICE_DOWNLOAD_DIR, recreate=True)
   adb.remove_directory(constants.DEVICE_TMP_DIR, recreate=True)
   adb.remove_directory(constants.DEVICE_FUZZING_DIR, recreate=True)
@@ -125,6 +126,7 @@ def clear_temp_directories():
 
 def clear_testcase_directory():
   """Clears testcase directory."""
+  logs.info('Clearing device testcases directory.')
   adb.remove_directory(constants.DEVICE_TESTCASES_DIR, recreate=True)
 
 
@@ -306,6 +308,8 @@ def initialize_device():
     # brick a device on trying to configure device build settings.
     return
 
+  logs.info('Initializing Android device: setting up ADB, build '
+            'properties, and settings.')
   adb.setup_adb()
 
   # General device configuration settings.
@@ -331,6 +335,7 @@ def initialize_device():
   app.wait_until_optimization_complete()
   ui.clear_notifications()
   ui.unlock_screen()
+  logs.info('Android device initialization complete.')
 
   # FIXME: Should we should revert back to regular user permission ?
 
@@ -467,6 +472,7 @@ def setup_host_and_device_forwarder_if_needed():
   http_port_2 = environment.get_value('HTTP_PORT_2', 8080)
   ports = [http_port_1, http_port_2]
 
+  logs.info('Setting up reverse port forwarding for ports: %s' % str(ports))
   # Reverse map socket connections from device to host machine.
   for port in ports:
     port_string = 'tcp:%d' % port
@@ -475,6 +481,9 @@ def setup_host_and_device_forwarder_if_needed():
 
 def update_build(apk_path, force_update=True, should_initialize_device=True):
   """Prepares the device and updates the build if necessary."""
+  logs.info('update_build called for apk_path: %s (force_update=%s, '
+            'should_initialize_device=%s)' % (apk_path, force_update,
+                                              should_initialize_device))
   # Prepare device for app install.
   if should_initialize_device:
     initialize_device()
