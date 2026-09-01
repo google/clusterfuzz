@@ -125,7 +125,7 @@ RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
     | apt-key add - && \
     apt-get update -y && \
-    apt-get install -y google-cloud-sdk
+    apt-get install -y google-cloud-cli
 
 # Common environment variables.
 ENV USER=clusterfuzz
