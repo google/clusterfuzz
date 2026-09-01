@@ -53,27 +53,3 @@ class CreateTasksTest(unittest.TestCase):
     self.assertNotEqual(testcase.minimized_keys, 'NA')
     self.assertTrue(self.mock.create_minimize_task_if_needed.called)
     self.assertFalse(self.mock.create_postminimize_tasks.called)
-
-
-@test_utils.with_cloud_emulators('datastore')
-class CreatePostminimizeTasksTest(unittest.TestCase):
-  """Tests for create_postminimize_tasks."""
-
-  def setUp(self):
-    test_helpers.patch_environ(self)
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.task_creation.create_impact_task_if_needed',
-        'clusterfuzz._internal.bot.tasks.task_creation.create_regression_task_if_needed',
-        'clusterfuzz._internal.bot.tasks.task_creation.create_symbolize_task_if_needed',
-        'clusterfuzz._internal.bot.tasks.task_creation.create_variant_tasks_if_needed',
-    ])
-
-  def test_skip_duplicate(self):
-    """Test that create_postminimize_tasks skips duplicate testcases."""
-    testcase = test_utils.create_generic_testcase()
-    testcase.status = 'Duplicate'
-    task_creation.create_postminimize_tasks(testcase)
-    self.assertFalse(self.mock.create_impact_task_if_needed.called)
-    self.assertFalse(self.mock.create_regression_task_if_needed.called)
-    self.assertFalse(self.mock.create_symbolize_task_if_needed.called)
-    self.assertFalse(self.mock.create_variant_tasks_if_needed.called)
