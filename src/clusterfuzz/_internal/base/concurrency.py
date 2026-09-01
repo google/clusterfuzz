@@ -27,7 +27,9 @@ def make_pool(pool_size=POOL_SIZE, max_pool_size=None, use_threads=False):
   if max_pool_size is not None:
     pool_size = min(pool_size, max_pool_size)
 
-  # Don't use processes on Windows and unittests to avoid hangs.
+  # Use threads if explicitly requested (e.g. for I/O bound tasks like GCS ops
+  # to avoid multiprocessing memory overhead), or on Windows/unittests to
+  # avoid hangs.
   if (use_threads or environment.get_value('PY_UNITTESTS') or
       environment.platform() == 'WINDOWS'):
     yield futures.ThreadPoolExecutor(pool_size)
