@@ -1,1 +1,15 @@
+# All files are owned by the ClusterFuzz team.
 * @google/clusterfuzz
+
+# The following files and directories are owned by the Chrome Fuzzing team.
+/docker/chromium/                                             @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/bot/fuzzers/centipede/             @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/bot/tasks/blame_task.py            @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/bot/tasks/impact_task.py           @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/bot/tasks/utasks/symbolize_task.py @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/chrome/                            @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/cron/chrome_tests_syncer.py        @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/platforms/chromeos/                @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/swarming/                          @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/tests/core/bot/fuzzers/centipede/  @google/chrome-clusterfuzz
+/src/clusterfuzz/_internal/tests/core/chrome/                 @google/chrome-clusterfuzz
