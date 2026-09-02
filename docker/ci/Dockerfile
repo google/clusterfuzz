@@ -19,12 +19,12 @@ RUN apt-get update && \
         gettext-base \
         git \
         golang-go \
-        google-cloud-sdk-app-engine-go \
-        google-cloud-sdk-app-engine-python \
-        google-cloud-sdk-app-engine-python-extras \
-        google-cloud-sdk-datastore-emulator \
-        google-cloud-sdk-gke-gcloud-auth-plugin \
-        google-cloud-sdk-pubsub-emulator \
+        google-cloud-cli-app-engine-go \
+        google-cloud-cli-app-engine-python \
+        google-cloud-cli-app-engine-python-extras \
+        google-cloud-cli-datastore-emulator \
+        google-cloud-cli-gke-gcloud-auth-plugin \
+        google-cloud-cli-pubsub-emulator \
         kubectl \
         liblzma-dev \
         openjdk-21-jdk
