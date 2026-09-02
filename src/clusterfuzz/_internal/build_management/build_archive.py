@@ -96,7 +96,10 @@ class BuildArchive(archive.ArchiveReader):
         The list of fuzz targets.
     """
     if self._fuzz_targets is None:
-      # Import here as this path is not available in App Engine context.
+      # `clusterfuzz._internal.bot` has to be imported locally since it is not
+      # uploaded to GCP with App Engine context.
+      # See:
+      # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
       from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
       self._fuzz_targets = {
@@ -207,7 +210,10 @@ class DefaultBuildArchive(BuildArchive):
 
   @override
   def find_fuzz_targets(self) -> List[str]:
-    # Import here as this path is not available in App Engine context.
+    # `clusterfuzz._internal.bot` has to be imported locally since it is not
+    # uploaded to GCP with App Engine context.
+    # See:
+    # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
     return [
@@ -328,7 +334,10 @@ class ChromeBuildArchive(DefaultBuildArchive):
           'archive_schema_version field')
       self._archive_schema_version = default_archive_schema_version
 
-    # Import here as this path is not available in App Engine context.
+    # `clusterfuzz._internal.bot` has to be imported locally since it is not
+    # uploaded to GCP with App Engine context.
+    # See:
+    # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
     self._manifest_fuzz_targets = (
