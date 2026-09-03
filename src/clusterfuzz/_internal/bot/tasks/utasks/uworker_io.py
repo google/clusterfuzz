@@ -26,7 +26,6 @@ from google.protobuf import any_pb2
 from google.protobuf import timestamp_pb2
 import google.protobuf.message
 
-from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -233,24 +232,17 @@ def entity_from_protobuf(entity_proto: any_pb2.Any, model_type: Type[T]) -> T:  
   return entity
 
 
-def is_untrusted_testcase_allowed_on_bot(testcase) -> bool:
-  """Returns True if the untrusted testcase's job platform is allowed on
-  long-lived bots via feature flag."""
-  enable_untrusted_flag = (
-      feature_flags.FeatureFlags.ENABLE_UNTRUSTED_TESTCASES_FOR_BOTS)
-  if not enable_untrusted_flag.enabled:
-    return False
+PLATFORMS_SUPPORTING_UNTRUSTED_WORKLOADS = {'linux'}
 
+
+def is_untrusted_testcase_allowed_on_bot(testcase) -> bool:
+  """Returns True if the untrusted testcase is on a platform that does not
+  support the untrusted execution model (so it must run on a long-lived bot)."""
   job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
   if not job or not job.platform:
     return False
 
-  allowed_platforms = [
-      p.strip().lower()
-      for p in enable_untrusted_flag.string_value.split(',')
-      if p.strip()
-  ]
-  return job.platform.lower() in allowed_platforms
+  return job.platform.lower() not in PLATFORMS_SUPPORTING_UNTRUSTED_WORKLOADS
 
 
 def check_handling_testcase_safe(testcase):
