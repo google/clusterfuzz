@@ -35,8 +35,6 @@ chmod 0755 "resources/platform/${OS}/llvm-symbolizer"
 # 4. Clean up temporary files
 rm -rf /tmp/clang
 
-# 5. Verify stack symbolizer tests
-python3 butler.py py_unittest -t core -p stack_symbolizer_test.py
 ```
 
 To list available package instances:
