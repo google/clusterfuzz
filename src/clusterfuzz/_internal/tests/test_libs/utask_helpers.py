@@ -64,7 +64,7 @@ class UtaskIntegrationTest(unittest.TestCase):
     self.uworker_env = commands.update_environment_for_job(environment_string)
     job.put()
     self.fuzz_target = 'test_fuzzer'
-    self.testcase = data_types.Testcase(job_type=self.job_type)
+    self.testcase = data_types.Testcase(job_type=self.job_type, trusted=True)
     self.testcase.fuzzed_keys = blobs.write_blob(
         os.path.join(TEST_LIBS_DATA_DIR,
                      'crash-adc83b19e793491b1c6ea0fd8b46cd9f32e592fc'))

@@ -368,11 +368,6 @@ def process_command_impl(task_name,
             f'task {task_name}.')
         return None
 
-      if testcase.status == 'Duplicate' or testcase.duplicate_of:
-        logs.info(f'Testcase {task_argument} is a duplicate, short-circuiting '
-                  f'task {task_name}.')
-        return None
-
       # Make sure that our platform id matches that of the testcase (for
       # non-fuzz tasks).
       current_platform_id = environment.get_platform_id()

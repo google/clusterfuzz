@@ -1164,3 +1164,48 @@ class FuzzerRunOutputDataTest(fake_filesystem_unittest.TestCase):
     """Tests that get_output returns None when neither output nor file path is set."""
     output_data = testcase_manager.FuzzerRunOutputData()
     self.assertIsNone(output_data.get_output())
+
+
+class CheckForBadBuildTest(unittest.TestCase):
+  """Tests for check_for_bad_build."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.bot.testcase_manager.get_command_line_for_application',
+        'clusterfuzz._internal.platforms.android.app.get_package_name',
+        'clusterfuzz._internal.platforms.android.adb.get_process_and_child_pids',
+        'clusterfuzz._internal.system.process_handler.run_process',
+        'clusterfuzz._internal.system.process_handler.terminate_stale_application_instances',
+    ])
+    self.mock.get_command_line_for_application.return_value = 'adb shell am start ...'
+    environment.set_value('BAD_BUILD_CHECK', True)
+    environment.set_value('APP_NAME', 'chrome.apk')
+    environment.set_value('APP_PATH', '/path/to/chrome.apk')
+
+  def test_android_invalid_apk_not_running(self):
+    """Test that an Android APK that dies on launch is detected as a bad build."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (
+        0, 1.0, 'Starting: Intent ...\nProcess org.chromium.chrome has died')
+    self.mock.get_package_name.return_value = 'org.chromium.chrome'
+    self.mock.get_process_and_child_pids.return_value = []
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='aluminium_asan_chrome_public', crash_revision=123)
+
+    self.assertTrue(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)
+
+  def test_android_valid_apk_running(self):
+    """Test that a working Android APK that is running is not marked as a bad build."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
+    self.mock.get_package_name.return_value = 'org.chromium.chrome'
+    self.mock.get_process_and_child_pids.return_value = [2155]
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='aluminium_asan_chrome_public', crash_revision=123)
+
+    self.assertFalse(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)

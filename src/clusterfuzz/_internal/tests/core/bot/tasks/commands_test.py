@@ -231,24 +231,6 @@ class RunCommandTest(unittest.TestCase):
     self.assertIsNone(result)
     self.assertEqual(0, self.mock.progression_utask_preprocess.call_count)
 
-  def test_process_command_impl_short_circuit_duplicate_testcase(self):
-    """Test process_command_impl short-circuits for a duplicate testcase."""
-    testcase = test_utils.create_generic_testcase()
-    testcase.status = 'Duplicate'
-    testcase.put()
-    job_name = 'job'
-    data_types.Job(name=job_name, platform='LINUX').put()
-
-    result = commands.process_command_impl(
-        task_name='progression',
-        task_argument=str(testcase.key.id()),
-        job_name=job_name,
-        high_end=False,
-        is_command_override=False)
-
-    self.assertIsNone(result)
-    self.assertEqual(0, self.mock.progression_utask_preprocess.call_count)
-
   def test_process_command_impl_corpus_pruning_not_short_circuited(self):
     """Test process_command_impl does not short-circuit for corpus_pruning."""
     job_name = 'job'
