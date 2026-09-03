@@ -129,4 +129,3 @@ def log_output_before_last_reboot():
 def log_activity_manager_output():
   """Return activity manager log output."""
   return adb.run_command(['logcat', '-d', '-s', 'ActivityManager:I'])
-
