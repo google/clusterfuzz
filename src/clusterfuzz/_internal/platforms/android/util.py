@@ -13,11 +13,23 @@
 # limitations under the License.
 """Utility functions for Android device."""
 
+from dataclasses import dataclass
 import os
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
+
+
+@dataclass(frozen=True)
+class ProcessExitInfo:
+  """DTO representing process exit metadata from dumpsys activity exit-info."""
+
+  reason: int
+  reason_name: str  # e.g., 'APP CRASH(NATIVE)', 'SIGNALED'
+  subreason: int
+  subreason_name: str  # e.g., 'UNKNOWN', 'ISOLATED NOT NEEDED'
+  status: int
 
 
 def get_device_path(local_path):

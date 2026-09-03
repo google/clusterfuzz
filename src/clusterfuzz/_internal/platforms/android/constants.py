@@ -86,3 +86,33 @@ DEPRECATED_DEVICE_LIST = [
 # Restrict pixel6 from picking up generic Android jobs to avoid
 # Binary Mismatch: Hence, 'ANDROID:PIXEL6' is added to the list.
 DEVICES_WITH_NO_FALLBACK_QUEUE_LIST = ['ANDROID:PIXEL6']
+
+
+class ExitReason:
+  """Android process exit reasons from ApplicationExitInfo."""
+
+  EXIT_SELF = 1
+  SIGNALED = 2
+  LOW_MEMORY = 3
+  CRASH = 4
+  CRASH_NATIVE = 5
+  ANR = 6
+  INITIALIZATION_FAILURE = 7
+  PERMISSION_CHANGE = 8
+  EXCESSIVE_RESOURCE_USAGE = 9
+  USER_REQUESTED = 10
+  USER_STOPPED = 11
+  DEPENDENCY_DIED = 12
+  OTHER_KILLS_BY_SYSTEM = 13
+  FREEZER = 14
+  PACKAGE_STATE_CHANGE = 15
+  PACKAGE_UPDATED = 16
+
+
+class ExitStatus:
+  """Process exit signal statuses."""
+
+  SIGILL = 4
+  SIGABRT = 6
+  SIGKILL = 9
+  SIGSEGV = 11
