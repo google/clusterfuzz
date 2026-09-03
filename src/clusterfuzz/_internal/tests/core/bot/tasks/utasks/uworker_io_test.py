@@ -22,6 +22,7 @@ from unittest import mock
 
 from google.cloud import ndb
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -418,6 +419,7 @@ class TestCheckRunningFuzzerSafe(unittest.TestCase):
       uworker_io.check_running_fuzzer_safe(self.fuzzer)
 
 
+@test_utils.with_cloud_emulators('datastore')
 class TestCheckRunningTestcaseSafe(unittest.TestCase):
   """Tests check_handling_testcase_safe."""
 
@@ -425,8 +427,9 @@ class TestCheckRunningTestcaseSafe(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.system.environment.is_uworker',
     ])
-    self.testcase = mock.MagicMock(spec=data_types.Testcase)
-    self.testcase.name = 'test_testcase'
+    self.testcase = data_types.Testcase()
+    self.testcase.job_type = 'test_job'
+    self.testcase.put()
 
   def test_trusted_testcase(self):
     """Test that trusted testcase passes without checks."""
@@ -440,8 +443,55 @@ class TestCheckRunningTestcaseSafe(unittest.TestCase):
     self.assertTrue(uworker_io.check_handling_testcase_safe(self.testcase))
 
   def test_untrusted_testcase_not_uworker_raises(self):
-    """Test that untrusted testcase not on uworker raises SystemExit."""
+    """Test that untrusted testcase not on uworker raises SystemExit when flag is not set."""
     self.testcase.trusted = False
     self.mock.is_uworker.return_value = False
+    with self.assertRaises(SystemExit):
+      uworker_io.check_handling_testcase_safe(self.testcase)
+
+  def test_untrusted_testcase_flag_disabled(self):
+    """Test that untrusted testcase raises when feature flag is disabled."""
+    self.testcase.trusted = False
+    self.mock.is_uworker.return_value = False
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.ENABLE_UNTRUSTED_TESTCASES_FOR_BOTS.value,
+        enabled=False,
+        string_value='windows,mac').put()
+    data_types.Job(name='test_job', platform='WINDOWS').put()
+    with self.assertRaises(SystemExit):
+      uworker_io.check_handling_testcase_safe(self.testcase)
+
+  def test_untrusted_testcase_allowed_platform(self):
+    """Test that untrusted testcase passes on long-lived bot when platform is allowed."""
+    self.testcase.trusted = False
+    self.mock.is_uworker.return_value = False
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.ENABLE_UNTRUSTED_TESTCASES_FOR_BOTS.value,
+        enabled=True,
+        string_value='windows,mac').put()
+    data_types.Job(name='test_job', platform='WINDOWS').put()
+    self.assertTrue(uworker_io.check_handling_testcase_safe(self.testcase))
+
+  def test_untrusted_testcase_disallowed_platform(self):
+    """Test that untrusted testcase raises on long-lived bot when platform is not allowed."""
+    self.testcase.trusted = False
+    self.mock.is_uworker.return_value = False
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.ENABLE_UNTRUSTED_TESTCASES_FOR_BOTS.value,
+        enabled=True,
+        string_value='windows,mac').put()
+    data_types.Job(name='test_job', platform='LINUX').put()
+    with self.assertRaises(SystemExit):
+      uworker_io.check_handling_testcase_safe(self.testcase)
+
+  def test_untrusted_testcase_job_not_found(self):
+    """Test that untrusted testcase raises when job is not found."""
+    self.testcase.trusted = False
+    self.testcase.job_type = 'nonexistent_job'
+    self.mock.is_uworker.return_value = False
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.ENABLE_UNTRUSTED_TESTCASES_FOR_BOTS.value,
+        enabled=True,
+        string_value='windows,mac').put()
     with self.assertRaises(SystemExit):
       uworker_io.check_handling_testcase_safe(self.testcase)
