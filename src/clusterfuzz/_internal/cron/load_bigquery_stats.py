@@ -200,7 +200,7 @@ def _load_data(fuzzer, target_date):
 
 
 def main(argv=None):
-  """Loads bigquery stats from GCS. Returns True if all loads succeeded."""
+  """Load bigquery stats from GCS. Returns True if all loads succeeded."""
   parser = argparse.ArgumentParser(prog='load_bigquery_stats')
   parser.add_argument(
       '--date',
