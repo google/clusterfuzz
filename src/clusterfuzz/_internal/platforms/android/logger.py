@@ -124,3 +124,9 @@ def log_output(additional_flags=''):
 def log_output_before_last_reboot():
   """Return log data from last reboot without noise and some normalization."""
   return log_output(additional_flags='-L')
+
+
+def log_activity_manager_output():
+  """Return activity manager log output."""
+  return adb.run_command(['logcat', '-d', '-s', 'ActivityManager:I'])
+
