@@ -929,4 +929,3 @@ def get_activity_exit_info(app_package: str) -> str:
   dumpsys_output = run_shell_command(
       ['dumpsys', 'activity', 'exit-info', app_package])
   return dumpsys_output
-

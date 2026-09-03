@@ -123,10 +123,6 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
   return False
 
 
-# Matching: "pid=<PID>" in dumpsys activity exit-info
-_PID_REGEX = r"\bpid=(\d+)"
-
-
 def get_latest_pid_for_package(app_package: str) -> int | None:
   """Gets the latest PID for an application package from logcat.
 
@@ -176,22 +172,24 @@ def get_exit_info_for_pid(app_package: str,
 
   current_pid = None
   for line in dumpsys_output.splitlines():
-    pid_match = re.search(_PID_REGEX, line)
+    pid_match = re.search(r"\bpid=(\d+)", line)
     if pid_match:
       current_pid = int(pid_match.group(1))
 
-    if current_pid == target_pid:
-      reason_match = re.search(_REASON_STATUS_REGEX, line)
-      if reason_match:
-        reason, reason_name, subreason, subreason_name, status = (
-            reason_match.groups())
-        return ProcessExitInfo(
-            reason=int(reason),
-            reason_name=reason_name or '',
-            subreason=int(subreason),
-            subreason_name=subreason_name or '',
-            status=int(status),
-        )
+    if current_pid is None or current_pid != target_pid:
+      continue
+
+    reason_match = re.search(_REASON_STATUS_REGEX, line)
+    if reason_match:
+      reason, reason_name, subreason, subreason_name, status = (
+          reason_match.groups())
+      return ProcessExitInfo(
+          reason=int(reason),
+          reason_name=reason_name or '',
+          subreason=int(subreason),
+          subreason_name=subreason_name or '',
+          status=int(status),
+      )
 
   return None
 
