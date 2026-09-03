@@ -89,7 +89,9 @@ DEVICES_WITH_NO_FALLBACK_QUEUE_LIST = ['ANDROID:PIXEL6']
 
 
 class ExitReason:
-  """Android process exit reasons from ApplicationExitInfo."""
+  """Android process exit reasons from ApplicationExitInfo. Taken from
+  https://developer.android.com/reference/android/app/ApplicationExitInfo
+  """
 
   EXIT_SELF = 1
   SIGNALED = 2
@@ -110,7 +112,9 @@ class ExitReason:
 
 
 class ExitStatus:
-  """Process exit signal statuses."""
+  """Process exit signal statuses. Taken from 
+  https://developer.android.com/reference/android/app/ApplicationExitInfo
+  """
 
   SIGILL = 4
   SIGABRT = 6
