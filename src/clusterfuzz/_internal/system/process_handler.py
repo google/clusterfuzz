@@ -174,6 +174,7 @@ def run_process(cmdline,
   if is_android:
     # Clear the log upfront.
     android.logger.clear_log()
+    initial_uptime = android.adb.time_since_last_reboot()
 
     # Run the app.
     adb_output = android.adb.run_command(
@@ -253,15 +254,26 @@ def run_process(cmdline,
     # waits for device to be online.
     time.sleep(ANDROID_CRASH_LOGCAT_WAIT_TIME)
     output = android.logger.log_output()
+    app_package = android.app.get_package_name()
+    process_pid = android.util.get_latest_pid_for_package(app_package)
+    exit_info = android.util.get_exit_info_for_pid(app_package, process_pid)
 
-    if android.constants.LOW_MEMORY_REGEX.search(output):
+    if android.util.activity_crashed(exit_info):
+      logs.warning(f'Activity Crashed with: {exit_info}')
+      return_code = exit_info.reason
+
+    elif android.constants.LOW_MEMORY_REGEX.search(output):
       # If the device is low on memory, we should force reboot and bail out to
       # prevent device from getting in a frozen state.
       logs.info('Device is low on memory, rebooting.', output=output)
       android.adb.hard_reset()
       android.adb.wait_for_device()
 
-    elif android.adb.time_since_last_reboot() < time.time() - start_time:
+    elif android.adb.time_since_last_reboot() < initial_uptime:
+      logs.info(
+          'Device rebooted mid-run',
+          output=f'initial uptime: {initial_uptime}, '
+          f'current uptime: {android.adb.time_since_last_reboot()}')
       # Check if a reboot has happened, if yes, append log output before reboot
       # and kernel logs content to output.
       log_before_last_reboot = android.logger.log_output_before_last_reboot()
