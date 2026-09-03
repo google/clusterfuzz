@@ -915,3 +915,18 @@ def write_data_to_file(contents, file_path, should_reboot=True):
     else:
       # Manually revert /system to read-only since we aren't rebooting.
       run_shell_command('mount -o ro,remount /system', root=True)
+
+
+def get_activity_exit_info(app_package: str) -> str:
+  """Get dumpsys activity exit-info output for the given application package.
+
+  Args:
+    app_package: Name of the application package.
+
+  Returns:
+    Dumpsys output for the application package.
+  """
+  dumpsys_output = run_shell_command(
+      ['dumpsys', 'activity', 'exit-info', app_package])
+  return dumpsys_output
+

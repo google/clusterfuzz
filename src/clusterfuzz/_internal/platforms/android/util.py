@@ -15,10 +15,25 @@
 
 from dataclasses import dataclass
 import os
+import re
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
+
+from . import adb
+from . import constants
+from . import logger
+
+# Matching: "Start proc <PID>:<PROCESS_NAME>/"
+_START_PROC_REGEX = r"Start proc (\d+):(\S+?)/"
+
+# Matching: "reason=<REASON> (<REASON_NAME>) subreason=<SUBREASON>"
+# "(<SUBREASON_NAME>) status=<STATUS>"
+# e.g.: "reason=5 (APP_CRASH(NATIVE)) subreason=0 (UNKNOWN) status=11" or
+# "reason=2 (SIGNALED) subreason=0 (UNKNOWN) status=9"
+_REASON_STATUS_REGEX = (r"reason=(\d+)(?:\s*\((.*)\))?\s+subreason=(\d+)"
+                        r"(?:\s*\((.*)\))?\s+status=(\d+)")
 
 
 @dataclass(frozen=True)
@@ -106,3 +121,122 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
     return True
 
   return False
+
+
+# Matching: "pid=<PID>" in dumpsys activity exit-info
+_PID_REGEX = r"\bpid=(\d+)"
+
+
+def get_latest_pid_for_package(app_package: str) -> int | None:
+  """Gets the latest PID for an application package from logcat.
+
+  Args:
+    app_package: Name of the target application package.
+
+  Returns:
+    PID of the package's latest process if found, None otherwise.
+  """
+  if not app_package:
+    return None
+
+  logcat_output = logger.log_activity_manager_output()
+  if not logcat_output:
+    return None
+
+  for line in reversed(logcat_output.splitlines()):
+    match = re.search(_START_PROC_REGEX, line)
+    if not match:
+      continue
+
+    pid, process_name = match.groups()
+    if process_name == app_package or process_name.startswith(
+        f'{app_package}:'):
+      return int(pid)
+  return None
+
+
+def get_exit_info_for_pid(app_package: str,
+                          target_pid: int) -> ProcessExitInfo | None:
+  """Parses dumpsys activity exit-info output for target_pid.
+
+  Args:
+    app_package: Name of the application package.
+    target_pid: Process ID to extract exit metadata for.
+
+  Returns:
+    ProcessExitInfo object if metadata for target_pid is found and parsed,
+    None otherwise.
+  """
+  if not app_package or target_pid is None:
+    return None
+
+  dumpsys_output = adb.get_activity_exit_info(app_package)
+  if not dumpsys_output:
+    return None
+
+  current_pid = None
+  for line in dumpsys_output.splitlines():
+    pid_match = re.search(_PID_REGEX, line)
+    if pid_match:
+      current_pid = int(pid_match.group(1))
+
+    if current_pid == target_pid:
+      reason_match = re.search(_REASON_STATUS_REGEX, line)
+      if reason_match:
+        reason, reason_name, subreason, subreason_name, status = (
+            reason_match.groups())
+        return ProcessExitInfo(
+            reason=int(reason),
+            reason_name=reason_name or '',
+            subreason=int(subreason),
+            subreason_name=subreason_name or '',
+            status=int(status),
+        )
+
+  return None
+
+
+def activity_crashed(exit_info: ProcessExitInfo | None) -> bool:
+  """Evaluates whether process exit info corresponds to an activity crash.
+
+  Args:
+    exit_info: ProcessExitInfo instance or None.
+
+  Returns:
+    True if exit_info indicates an activity crash, False otherwise.
+  """
+  if not exit_info:
+    return False
+
+  if exit_info.reason in (constants.ExitReason.CRASH_NATIVE,
+                          constants.ExitReason.SIGNALED):
+    return exit_info.status in (
+        constants.ExitStatus.SIGSEGV,
+        constants.ExitStatus.SIGKILL,
+        constants.ExitStatus.SIGABRT,
+        constants.ExitStatus.SIGILL,
+    )
+  if exit_info.reason == constants.ExitReason.CRASH:
+    return True
+  return False
+
+
+def activity_crashed_by_package(app_package: str) -> bool:
+  """Checks whether the latest process for a package crashed.
+
+
+  Args:
+    app_package: Name of the application package to check.
+
+  Returns:
+    True if the package's latest process crashed, False otherwise.
+  """
+  if not app_package:
+    return False
+
+  pid = get_latest_pid_for_package(app_package)
+  if not pid:
+    return False
+
+  exit_info = get_exit_info_for_pid(app_package, pid)
+  return activity_crashed(exit_info)
