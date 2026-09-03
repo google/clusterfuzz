@@ -483,6 +483,9 @@ def file_issue(testcase,
       testcase.one_time_crasher_flag and policy.unreproducible_component):
     issue.components.add(policy.unreproducible_component)
 
+  # Set the reporter to the fuzzer's primary owner if configured (e.g. for VRP
+  # rewards). Note: Overriding the reporter may have side effects on downstream
+  # workflows expecting the standard ClusterFuzz reporter email.
   if fuzzer and fuzzer.primary_owner:
     issue.reporter = fuzzer.primary_owner
   else:
