@@ -1,0 +1,63 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Publish Casp CLI to TestPyPI
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'cli/casp/**'
+  
+
+jobs:
+  publish-testpypi:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install build dependencies
+        run: python -m pip install build --user
+
+      - name: Bump version for TestPyPI
+        working-directory: cli/casp
+        run: |
+          # Get the latest tag and strip the leading 'v' (e.g., v1.0.0 -> 1.0.0)
+          LAST_TAG=$(git describe --tags --abbrev=0)
+          VERSION=${LAST_TAG#v}
+          TIMESTAMP=$(date +%s)
+          
+          # Set version to <last_tag>.<timestamp> (e.g., 1.0.0.1701234567)
+          echo "Updating version in pyproject.toml to $VERSION.$TIMESTAMP"
+          sed -i "s/^version = \".*\"/version = \"$VERSION.$TIMESTAMP\"/" pyproject.toml
+
+      - name: Build package
+        working-directory: cli/casp
+        run: python -m build
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.CASP_TEST_PYPI_API_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: cli/casp/dist/
+          skip-existing: true
