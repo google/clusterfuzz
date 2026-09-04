@@ -109,11 +109,13 @@ class ExitReason:
   FREEZER = 14
   PACKAGE_STATE_CHANGE = 15
   PACKAGE_UPDATED = 16
+  REASON_MEMORY_LIMITER = 17
+  REASON_ANOMALY = 18
 
 
 class ExitStatus:
-  """Process exit signal statuses. Taken from 
-  https://developer.android.com/reference/android/app/ApplicationExitInfo
+  """Process exit signal statuses. Taken from:
+  https://cs.android.com/android/platform/superproject/+/android-latest-release:frameworks/base/core/java/android/os/Process.java?q=content:SIGNAL_KILL
   """
 
   SIGILL = 4
