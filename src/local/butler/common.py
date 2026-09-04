@@ -23,7 +23,6 @@ import shutil
 import stat
 import subprocess
 import sys
-import tempfile
 import urllib.request
 import zipfile
 
@@ -237,17 +236,15 @@ def _install_chromedriver():
   print(f'Installed chromedriver at: {chromedriver_path}')
 
 
-def _pip():
-  """Get the pip binary name."""
-  return 'pip3'
-
-
 def _install_third_party(target_path, extra):
   """Directly install packages for an extra into target_path."""
   if os.path.exists(target_path):
     shutil.rmtree(target_path)
 
-  root_dir = os.environ.get('ROOT_DIR', '.')
+  root_dir = os.environ.get('ROOT_DIR')
+  if not root_dir or not os.path.exists(
+      os.path.join(root_dir, 'pyproject.toml')):
+    root_dir = '.'
   execute(
       f'uv export --extra {extra} --no-dev --no-hashes | '
       f'uv pip install --target {target_path} -r /dev/stdin '
@@ -257,43 +254,24 @@ def _install_third_party(target_path, extra):
 
 def _install_platform_pip(target_path, platform_name):
   """Install platform specific pip packages."""
-  pip_platform = constants.PLATFORMS.get(platform_name)
-  if not pip_platform:
+  uv_platform = constants.PLATFORMS.get(platform_name)
+  if not uv_platform:
     raise OSError(f'Unknown platform: {platform_name}.')
 
-  # Some platforms can specify multiple pip platforms (e.g. macOS has multiple
-  # SDK versions).
-  if isinstance(pip_platform, str):
-    pip_platforms = (pip_platform,)
-  else:
-    assert isinstance(pip_platform, tuple)
-    pip_platforms = pip_platform
+  if not isinstance(uv_platform, str):
+    uv_platform = uv_platform[0]
 
-  pip_abi = constants.ABIS[platform_name]
-  root_dir = os.environ.get('ROOT_DIR', '.')
-
-  for pip_platform in pip_platforms:
-    temp_dir = tempfile.mkdtemp()
-    return_code, _ = execute(
-        'uv export --extra platform-specific --no-dev --no-hashes '
-        '--no-header | '
-        f'{_pip()} download --no-deps --only-binary=:all: '
-        f'--platform={pip_platform} --abi={pip_abi} -r /dev/stdin '
-        f'-d {temp_dir}',
-        cwd=root_dir,
-        exit_on_error=False)
-
-    if return_code != 0:
-      print(f'Did not find package for platform: {pip_platform}')
-      continue
-
-    execute(f'unzip -o -d {target_path} "{temp_dir}/*.whl"')
-    shutil.rmtree(temp_dir, ignore_errors=True)
-    break
-
-  if return_code != 0:
-    raise RuntimeError(
-        f'Failed to find package in supported platforms: {pip_platforms}')
+  root_dir = os.environ.get('ROOT_DIR')
+  if not root_dir or not os.path.exists(
+      os.path.join(root_dir, 'pyproject.toml')):
+    root_dir = '.'
+  execute(
+      'uv export --extra platform-specific --no-dev --no-hashes '
+      '--no-header | '
+      f'uv pip install --target {target_path} '
+      f'--python-platform {uv_platform} --python-version 3.11 '
+      '--only-binary :all: --upgrade -r /dev/stdin',
+      cwd=root_dir)
 
 
 def _remove_invalid_files():

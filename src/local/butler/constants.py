@@ -36,9 +36,9 @@ PACKAGE_TARGET_MANIFEST_PATH = os.path.join('src', 'appengine', 'resources',
 
 # Supported Platforms and ABIS (newer to older order).
 PLATFORMS = collections.OrderedDict([
-    ('windows', 'win_amd64'),
-    ('macos', ('macosx_10_14_x86_64', 'macosx_10_12_x86_64')),
-    ('linux', ('manylinux2014_x86_64')),
+    ('windows', 'x86_64-pc-windows-msvc'),
+    ('macos', 'x86_64-apple-darwin'),
+    ('linux', 'x86_64-manylinux2014'),
 ])
 
 # Additional required packages when deploying to prod.

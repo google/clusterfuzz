@@ -113,9 +113,8 @@ appengine = [
     "werkzeug==2.2.2",
 ]
 
-# Note: platform-specific dependencies are binary wheels downloaded via `pip download`
-# for target platform/ABI (see common.py `_install_platform_pip`) rather than vendored
-# via `uv pip install --target`.
+# Note: platform-specific dependencies are binary wheels installed via
+# `uv pip install --target ... --python-platform ...` (see common.py `_install_platform_pip`).
 platform-specific = [
     # Platform-specific packages (replacing src/platform_requirements.txt)
     "grpcio==1.62.2",
