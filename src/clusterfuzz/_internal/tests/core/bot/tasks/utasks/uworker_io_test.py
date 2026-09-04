@@ -418,6 +418,7 @@ class TestCheckRunningFuzzerSafe(unittest.TestCase):
       uworker_io.check_running_fuzzer_safe(self.fuzzer)
 
 
+@test_utils.with_cloud_emulators('datastore')
 class TestCheckRunningTestcaseSafe(unittest.TestCase):
   """Tests check_handling_testcase_safe."""
 
@@ -425,8 +426,9 @@ class TestCheckRunningTestcaseSafe(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.system.environment.is_uworker',
     ])
-    self.testcase = mock.MagicMock(spec=data_types.Testcase)
-    self.testcase.name = 'test_testcase'
+    self.testcase = data_types.Testcase()
+    self.testcase.job_type = 'test_job'
+    self.testcase.put()
 
   def test_trusted_testcase(self):
     """Test that trusted testcase passes without checks."""
@@ -439,9 +441,31 @@ class TestCheckRunningTestcaseSafe(unittest.TestCase):
     self.mock.is_uworker.return_value = True
     self.assertTrue(uworker_io.check_handling_testcase_safe(self.testcase))
 
-  def test_untrusted_testcase_not_uworker_raises(self):
-    """Test that untrusted testcase not on uworker raises SystemExit."""
+  def test_untrusted_testcase_non_linux_platform(self):
+    """Test that untrusted testcase passes on long-lived bot for non-Linux platforms."""
     self.testcase.trusted = False
+    self.mock.is_uworker.return_value = False
+    data_types.Job(name='test_job', platform='WINDOWS').put()
+    self.assertTrue(uworker_io.check_handling_testcase_safe(self.testcase))
+
+    data_types.Job(name='test_job', platform='MAC').put()
+    self.assertTrue(uworker_io.check_handling_testcase_safe(self.testcase))
+
+    data_types.Job(name='test_job', platform='ANDROID').put()
+    self.assertTrue(uworker_io.check_handling_testcase_safe(self.testcase))
+
+  def test_untrusted_testcase_linux_platform_raises(self):
+    """Test that untrusted testcase raises on long-lived bot for Linux platform."""
+    self.testcase.trusted = False
+    self.mock.is_uworker.return_value = False
+    data_types.Job(name='test_job', platform='LINUX').put()
+    with self.assertRaises(SystemExit):
+      uworker_io.check_handling_testcase_safe(self.testcase)
+
+  def test_untrusted_testcase_job_not_found(self):
+    """Test that untrusted testcase raises when job is not found."""
+    self.testcase.trusted = False
+    self.testcase.job_type = 'nonexistent_job'
     self.mock.is_uworker.return_value = False
     with self.assertRaises(SystemExit):
       uworker_io.check_handling_testcase_safe(self.testcase)
