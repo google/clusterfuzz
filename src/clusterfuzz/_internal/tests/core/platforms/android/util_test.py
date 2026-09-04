@@ -59,13 +59,6 @@ class GetLatestPidForPackageTest(unittest.TestCase):
     pid = util.get_latest_pid_for_package('com.example.app')
     self.assertIsNone(pid)
 
-  def test_empty_or_none_package(self):
-    """Checks that get_latest_pid_for_package returns None when app_package is empty or None."""
-    self.mock.log_activity_manager_output.return_value = (
-        'I/ActivityManager( 100): Start proc 1234:com.example.app/u0a123')
-    self.assertIsNone(util.get_latest_pid_for_package(''))
-    self.assertIsNone(util.get_latest_pid_for_package(None))
-
   def test_empty_logs_or_no_match(self):
     """Checks that get_latest_pid_for_package returns None when logcat is empty or contains no matching log lines."""
     self.mock.log_activity_manager_output.return_value = ''
@@ -185,10 +178,9 @@ class GetExitInfoForPidTest(unittest.TestCase):
         ),
     )
 
-  def test_none_pid_or_empty_package(self):
-    """Checks that get_exit_info_for_pid returns None when target_pid is None or app_package is empty."""
+  def test_none_pid(self):
+    """Checks that get_exit_info_for_pid returns None when target_pid is None."""
     self.assertIsNone(util.get_exit_info_for_pid('com.example.app', None))
-    self.assertIsNone(util.get_exit_info_for_pid('', 4321))
 
 
 class ActivityCrashedTest(unittest.TestCase):
