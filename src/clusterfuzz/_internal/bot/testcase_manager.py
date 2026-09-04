@@ -1296,6 +1296,8 @@ def check_for_bad_build(job_type: str,
   #    load shared library. So, ignore state for comparison.
   # 2. Ignore leaks as they don't block a build from reporting regular crashes
   #    and also don't impact regression range calculations.
+  # 3. On Android, if the application process is not running after startup,
+  #    the build is bad.
   if environment.is_android():
     package_name = android.app.get_package_name()
     if (package_name and
