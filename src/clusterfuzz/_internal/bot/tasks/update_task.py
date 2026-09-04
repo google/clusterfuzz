@@ -66,20 +66,20 @@ def get_source_url():
   """Return the source URL."""
   release = utils.get_clusterfuzz_release()
   platform_name = platform.system()
-  platform_mappings = {
+  deployment_target_mappings = {
       'Linux': 'linux',
       'Windows': 'windows',
       'Darwin': 'macos'
   }
-  platform_name = platform_mappings[platform_name]
+  deployment_target = deployment_target_mappings[platform_name]
 
   # macOS bots run on both x86_64 and arm64 (Apple Silicon), requiring distinct
   # deployment bundles. Other desktop platforms currently share a single bundle.
-  if platform_name == 'macos' and platform.machine().lower() == 'arm64':
-    platform_name = 'macos_arm64'
+  if deployment_target == 'macos' and platform.machine().lower() == 'arm64':
+    deployment_target = 'macos_arm64'
 
   return _deployment_file_url(
-      utils.get_platform_deployment_filename(platform_name, release))
+      utils.get_deployment_target_filename(deployment_target, release))
 
 
 def get_source_manifest_url():
