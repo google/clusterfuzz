@@ -94,6 +94,7 @@ class ExitReason(IntEnum):
   https://developer.android.com/reference/android/app/ApplicationExitInfo
   """
 
+  UNKNOWN = 0
   EXIT_SELF = 1
   SIGNALED = 2
   LOW_MEMORY = 3
