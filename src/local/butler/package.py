@@ -153,7 +153,7 @@ def package(revision,
 def execute(args):
   """Execute the butler package command."""
   if args.platform == 'all':
-    for platform_name in list(constants.PLATFORMS.keys()):
+    for platform_name in list(constants.DEPLOYMENT_TARGETS.keys()):
       package(
           revision=common.compute_staging_revision(),
           platform_name=platform_name,
