@@ -479,8 +479,15 @@ class GetCpuArchTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.system.environment.is_android',
         'platform.machine',
+        'clusterfuzz._internal.platforms.android.settings.get_cpu_arch',
     ])
     self.mock.is_android.return_value = False
+
+  def test_android(self):
+    """Test Android architecture delegation."""
+    self.mock.is_android.return_value = True
+    self.mock.get_cpu_arch.return_value = 'arm64_v8a'
+    self.assertEqual('arm64_v8a', environment.get_cpu_arch())
 
   def test_arm64(self):
     """Test ARM64 architecture detection."""

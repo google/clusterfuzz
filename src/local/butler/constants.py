@@ -40,14 +40,7 @@ DEPLOYMENT_TARGETS = collections.OrderedDict([
     ('macos', ('macosx_10_14_x86_64', 'macosx_10_12_x86_64')),
     # The max macOS version tag should match our bots' OS version
     # (currently macOS 15.x).
-    ('macos_arm64', (
-        'macosx_15_0_arm64',
-        'macosx_14_0_arm64',
-        'macosx_13_0_arm64',
-        'macosx_12_0_arm64',
-        'macosx_11_0_arm64',
-        'macosx_10_9_universal2',
-    )),
+    ('macos_arm64', ('macosx_13_0_arm64',)),
     ('linux', ('manylinux2014_x86_64',)),
 ])
 
