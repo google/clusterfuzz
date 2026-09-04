@@ -563,6 +563,9 @@ def execute(args):
     with open(constants.PACKAGE_TARGET_MANIFEST_PATH, 'w') as f:
       f.write('%s\n' % revision)
 
+  if deploy_appengine:
+    common.export_appengine_requirements()
+
   too_large_file_path = find_file_exceeding_limit('src/appengine',
                                                   APPENGINE_FILESIZE_LIMIT)
   if too_large_file_path:

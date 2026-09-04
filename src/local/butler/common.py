@@ -23,7 +23,6 @@ import shutil
 import stat
 import subprocess
 import sys
-import tempfile
 import urllib.request
 import zipfile
 
@@ -237,87 +236,42 @@ def _install_chromedriver():
   print(f'Installed chromedriver at: {chromedriver_path}')
 
 
-def _pip():
-  """Get the pip binary name."""
-  return 'pip3'
-
-
-def _pipfile_to_requirements(pipfile_dir, requirements_path, dev=False):
-  """Output a requirements.txt given a locked Pipfile."""
-  dev_arg = ''
-  if dev:
-    dev_arg = '--dev'
-
-  return_code, output = execute(
-      f'python3.11 -m pipenv requirements {dev_arg}',
-      exit_on_error=False,
-      cwd=pipfile_dir,
-      extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
-      stderr=subprocess.DEVNULL)
-  if return_code != 0:
-    # Older pipenv version.
-    return_code, output = execute(
-        f'python3.11 -m pipenv lock -r --no-header {dev_arg}',
-        exit_on_error=False,
-        cwd=pipfile_dir,
-        extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
-        stderr=subprocess.DEVNULL)
-
-  if return_code != 0:
-    raise RuntimeError('Failed to generate requirements from Pipfile.')
-
-  with open(requirements_path, 'wb') as f:
-    f.write(output)
-
-
-def _install_pip(requirements_path, target_path):
-  """Perform pip install using requirements_path onto target_path."""
+def _install_third_party(target_path, extra):
+  """Directly install packages for an extra into target_path."""
   if os.path.exists(target_path):
     shutil.rmtree(target_path)
 
+  root_dir = os.environ.get('ROOT_DIR')
+  if not root_dir or not os.path.exists(
+      os.path.join(root_dir, 'pyproject.toml')):
+    root_dir = '.'
   execute(
-      '{pip} install -r {requirements_path} --upgrade --target {target_path}'.
-      format(
-          pip=_pip(),
-          requirements_path=requirements_path,
-          target_path=target_path))
+      f'uv export --extra {extra} --no-dev --no-hashes | '
+      f'uv pip install --target {target_path} -r /dev/stdin '
+      '--python 3.11 --upgrade',
+      cwd=root_dir)
 
 
-def _install_platform_pip(requirements_path, target_path, platform_name):
+def _install_platform_pip(target_path, platform_name):
   """Install platform specific pip packages."""
-  pip_platform = constants.PLATFORMS.get(platform_name)
-  if not pip_platform:
+  uv_platform = constants.PLATFORMS.get(platform_name)
+  if not uv_platform:
     raise OSError(f'Unknown platform: {platform_name}.')
 
-  # Some platforms can specify multiple pip platforms (e.g. macOS has multiple
-  # SDK versions).
-  if isinstance(pip_platform, str):
-    pip_platforms = (pip_platform,)
-  else:
-    assert isinstance(pip_platform, tuple)
-    pip_platforms = pip_platform
+  if not isinstance(uv_platform, str):
+    uv_platform = uv_platform[0]
 
-  pip_abi = constants.ABIS[platform_name]
-
-  for pip_platform in pip_platforms:
-    temp_dir = tempfile.mkdtemp()
-    return_code, _ = execute(
-        f'{_pip()} download --no-deps --only-binary=:all: '
-        f'--platform={pip_platform} --abi={pip_abi} -r {requirements_path} -d '
-        f'{temp_dir}',
-        exit_on_error=False)
-
-    if return_code != 0:
-      print(f'Did not find package for platform: {pip_platform}')
-      continue
-
-    execute(f'unzip -o -d {target_path} "{temp_dir}/*.whl"')
-    shutil.rmtree(temp_dir, ignore_errors=True)
-    break
-
-  if return_code != 0:
-    raise RuntimeError(
-        f'Failed to find package in supported platforms: {pip_platforms}')
+  root_dir = os.environ.get('ROOT_DIR')
+  if not root_dir or not os.path.exists(
+      os.path.join(root_dir, 'pyproject.toml')):
+    root_dir = '.'
+  execute(
+      'uv export --extra platform-specific --no-dev --no-hashes '
+      '--no-header | '
+      f'uv pip install --target {target_path} '
+      f'--python-platform {uv_platform} --python-version 3.11 '
+      '--only-binary :all: --upgrade -r /dev/stdin',
+      cwd=root_dir)
 
 
 def _remove_invalid_files():
@@ -327,20 +281,31 @@ def _remove_invalid_files():
       os.remove(name)
 
 
+def export_appengine_requirements():
+  """Export App Engine requirements.txt."""
+  root_dir = os.environ.get('ROOT_DIR')
+  if not root_dir or not os.path.exists(
+      os.path.join(root_dir, 'pyproject.toml')):
+    root_dir = '.'
+  appengine_requirements_path = os.path.join('src', 'appengine',
+                                             'requirements.txt')
+  execute(
+      'uv export --extra core --extra appengine --no-dev --no-hashes '
+      f'--no-header -o {appengine_requirements_path}',
+      cwd=root_dir)
+
+
 def install_dependencies(platform_name=None):
   """Install dependencies for bots."""
-  _pipfile_to_requirements('src', 'src/requirements.txt')
-  # Hack: Use "dev-packages" to specify App Engine only packages.
-  _pipfile_to_requirements('src', 'src/appengine/requirements.txt', dev=True)
-
-  _install_pip('src/requirements.txt', 'src/third_party')
+  _install_third_party(target_path='src/third_party', extra='core')
   if platform_name:
     _install_platform_pip(
-        'src/platform_requirements.txt',
-        'src/third_party',
-        platform_name=platform_name)
+        target_path='src/third_party', platform_name=platform_name)
 
-  _install_pip('src/appengine/requirements.txt', 'src/appengine/third_party')
+  _install_third_party(
+      target_path='src/appengine/third_party', extra='appengine')
+
+  export_appengine_requirements()
 
   _remove_invalid_files()
   execute('bower install --allow-root')

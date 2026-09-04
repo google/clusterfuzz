@@ -1216,7 +1216,7 @@ def _get_query(string_keywords, only_open, query_filters):
 # steps to work. List of steps taken (for posterity)-
 # 1. gcloud iam service-accounts keys create --iam-account=${service_account} \
 #    --key-file-type=json /tmp/sa-key
-# 2. pipenv shell
+# 2. source .venv/bin/activate
 # 3. GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa-key PYTHONPATH=$PYTHONPATH:src/ \
 #    python src/clusterfuzz/_internal/issue_management/google_issue_tracker/\
 #    issue_tracker.py
