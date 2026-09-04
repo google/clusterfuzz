@@ -23,7 +23,11 @@ from clusterfuzz._internal.system import environment
 
 @dataclass(frozen=True)
 class ProcessExitInfo:
-  """DTO representing process exit metadata from dumpsys activity exit-info."""
+  """DTO representing process exit metadata from dumpsys activity exit-info.
+
+  For a full list of android exit info reasons and subreasons, see:
+  https://cs.android.com/android/platform/superproject/+/android-latest-release:frameworks/proto_logging/stats/enums/app_shared/app_enums.proto;l=270?q=content:subreason
+  """
 
   reason: int
   reason_name: str  # e.g., 'APP CRASH(NATIVE)', 'SIGNALED'
