@@ -115,10 +115,12 @@ class ExitReason(IntEnum):
 
 
 class ExitStatus(IntEnum):
-  """Process exit signal statuses. Taken from:
-  https://cs.android.com/android/platform/superproject/+/android-latest-release:frameworks/base/core/java/android/os/Process.java?q=content:SIGNAL_KILL
+  """Process exit signal statuses corresponding to POSIX signals.
+
+  See: https://developer.android.com/reference/android/os/Process
   """
 
+  SIGQUIT = 3
   SIGILL = 4
   SIGABRT = 6
   SIGKILL = 9
