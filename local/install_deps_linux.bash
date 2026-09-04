@@ -104,11 +104,11 @@ else
 
   export CLOUD_SDK_REPO="cloud-sdk"
   export APT_FILE=/etc/apt/sources.list.d/google-cloud-sdk.list
-  export APT_LINE="deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main"
-  sudo bash -c "grep -x \"$APT_LINE\" $APT_FILE || (echo $APT_LINE | tee -a $APT_FILE)"
+  export APT_LINE="deb [signed-by=/usr/share/keyrings/cloud.google.asc] https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main"
+  sudo bash -c "grep -Fx \"$APT_LINE\" $APT_FILE || (echo \"$APT_LINE\" | tee $APT_FILE)"
 
-  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
-      sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+  curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+      sudo tee /usr/share/keyrings/cloud.google.asc >/dev/null
 
 fi
 
