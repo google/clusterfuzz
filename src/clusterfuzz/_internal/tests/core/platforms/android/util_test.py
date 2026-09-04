@@ -76,6 +76,88 @@ class GetLatestPidForPackageTest(unittest.TestCase):
     self.assertIsNone(util.get_latest_pid_for_package('com.example.app'))
 
 
+# pylint: disable=protected-access
+class ParseExitInfoFromDumpsysTest(unittest.TestCase):
+  """Tests _parse_exit_info_from_dumpsys directly without mocking I/O."""
+
+  def test_happy_path_parsed(self):
+    """Checks that _parse_exit_info_from_dumpsys correctly parses dumpsys activity exit-info block for a matching target PID."""
+    dumpsys_output = (
+        'ApplicationExitInfo #0:\n'
+        '  timestamp=1600000000 pid=4321 uid=10001 package=com.example.app\n'
+        '  reason=5 (APP_CRASH(NATIVE)) subreason=0 (UNKNOWN) status=11\n')
+    exit_info = util._parse_exit_info_from_dumpsys(dumpsys_output, 4321)
+    self.assertEqual(
+        exit_info,
+        util.ProcessExitInfo(
+            reason=constants.ExitReason.CRASH_NATIVE,
+            reason_name='APP_CRASH(NATIVE)',
+            subreason=0,
+            subreason_name='UNKNOWN',
+            status=constants.ExitStatus.SIGSEGV,
+        ),
+    )
+
+  def test_missing_reason_names_in_parentheses(self):
+    """Checks that _parse_exit_info_from_dumpsys parses numerical exit info when reason and subreason names are omitted in output."""
+    dumpsys_output = ('ApplicationExitInfo #0:\n'
+                      '  pid=4321 uid=10001\n'
+                      '  reason=2 subreason=0 status=9\n')
+    exit_info = util._parse_exit_info_from_dumpsys(dumpsys_output, 4321)
+    self.assertEqual(
+        exit_info,
+        util.ProcessExitInfo(
+            reason=constants.ExitReason.SIGNALED,
+            reason_name='',
+            subreason=0,
+            subreason_name='',
+            status=constants.ExitStatus.SIGKILL,
+        ),
+    )
+
+  def test_pid_not_found(self):
+    """Checks that _parse_exit_info_from_dumpsys returns None when the target PID is absent from dumpsys activity exit-info output."""
+    dumpsys_output = (
+        'ApplicationExitInfo #0:\n'
+        '  pid=1111 uid=10001\n'
+        '  reason=5 (APP_CRASH(NATIVE)) subreason=0 (UNKNOWN) status=11\n')
+    exit_info = util._parse_exit_info_from_dumpsys(dumpsys_output, 4321)
+    self.assertIsNone(exit_info)
+
+  def test_dumpsys_output_empty(self):
+    """Checks that _parse_exit_info_from_dumpsys returns None when dumpsys output is empty string or None."""
+    self.assertIsNone(util._parse_exit_info_from_dumpsys('', 4321))
+    self.assertIsNone(util._parse_exit_info_from_dumpsys(None, 4321))
+
+  def test_malformed_reason_line(self):
+    """Checks that _parse_exit_info_from_dumpsys returns None when pid matches but subsequent lines do not contain valid reason metadata."""
+    dumpsys_output = ('ApplicationExitInfo #0:\n'
+                      '  pid=4321 uid=10001\n'
+                      '  invalid reason info block here\n'
+                      '  another invalid line\n')
+    exit_info = util._parse_exit_info_from_dumpsys(dumpsys_output, 4321)
+    self.assertIsNone(exit_info)
+
+  def test_unknown_exit_reason_or_status(self):
+    """Checks that _parse_exit_info_from_dumpsys handles unknown reason or status integer codes gracefully."""
+    dumpsys_output = (
+        'ApplicationExitInfo #0:\n'
+        '  pid=4321 uid=10001\n'
+        '  reason=999 (UNKNOWN_FUTURE_REASON) subreason=0 (UNKNOWN) status=888\n'
+    )
+    exit_info = util._parse_exit_info_from_dumpsys(dumpsys_output, 4321)
+    self.assertEqual(
+        exit_info,
+        util.ProcessExitInfo(
+            reason=constants.ExitReason.UNKNOWN,
+            reason_name='UNKNOWN_FUTURE_REASON',
+            subreason=0,
+            subreason_name='UNKNOWN',
+            status=888,
+        ),
+    )
+
+
 class GetExitInfoForPidTest(unittest.TestCase):
   """Tests get_exit_info_for_pid."""
 
@@ -84,8 +166,8 @@ class GetExitInfoForPidTest(unittest.TestCase):
         'clusterfuzz._internal.platforms.android.adb.get_activity_exit_info',
     ])
 
-  def test_happy_path_parsed(self):
-    """Checks that get_exit_info_for_pid correctly parses dumpsys activity exit-info block for a matching target PID."""
+  def test_fetches_and_parses(self):
+    """Checks that get_exit_info_for_pid fetches output from adb and returns parsed ProcessExitInfo."""
     self.mock.get_activity_exit_info.return_value = (
         'ApplicationExitInfo #0:\n'
         '  timestamp=1600000000 pid=4321 uid=10001 package=com.example.app\n'
@@ -95,62 +177,18 @@ class GetExitInfoForPidTest(unittest.TestCase):
     self.assertEqual(
         exit_info,
         util.ProcessExitInfo(
-            reason=5,
+            reason=constants.ExitReason.CRASH_NATIVE,
             reason_name='APP_CRASH(NATIVE)',
             subreason=0,
             subreason_name='UNKNOWN',
-            status=11,
+            status=constants.ExitStatus.SIGSEGV,
         ),
     )
-
-  def test_missing_reason_names_in_parentheses(self):
-    """Checks that get_exit_info_for_pid parses numerical exit info when reason and subreason names are omitted in output."""
-    self.mock.get_activity_exit_info.return_value = (
-        'ApplicationExitInfo #0:\n'
-        '  pid=4321 uid=10001\n'
-        '  reason=2 subreason=0 status=9\n')
-    exit_info = util.get_exit_info_for_pid('com.example.app', 4321)
-    self.assertEqual(
-        exit_info,
-        util.ProcessExitInfo(
-            reason=2,
-            reason_name='',
-            subreason=0,
-            subreason_name='',
-            status=9,
-        ),
-    )
-
-  def test_pid_not_found(self):
-    """Checks that get_exit_info_for_pid returns None when the target PID is absent from dumpsys activity exit-info output."""
-    self.mock.get_activity_exit_info.return_value = (
-        'ApplicationExitInfo #0:\n'
-        '  pid=1111 uid=10001\n'
-        '  reason=5 (APP_CRASH(NATIVE)) subreason=0 (UNKNOWN) status=11\n')
-    exit_info = util.get_exit_info_for_pid('com.example.app', 4321)
-    self.assertIsNone(exit_info)
 
   def test_none_pid_or_empty_package(self):
     """Checks that get_exit_info_for_pid returns None when target_pid is None or app_package is empty."""
     self.assertIsNone(util.get_exit_info_for_pid('com.example.app', None))
-
-  def test_dumpsys_output_empty(self):
-    """Checks that get_exit_info_for_pid returns None when dumpsys activity exit-info returns empty string or None."""
-    self.mock.get_activity_exit_info.return_value = ''
-    self.assertIsNone(util.get_exit_info_for_pid('com.example.app', 4321))
-
-    self.mock.get_activity_exit_info.return_value = None
-    self.assertIsNone(util.get_exit_info_for_pid('com.example.app', 4321))
-
-  def test_malformed_reason_line(self):
-    """Checks that get_exit_info_for_pid returns None when pid matches but subsequent lines do not contain valid reason metadata."""
-    self.mock.get_activity_exit_info.return_value = (
-        'ApplicationExitInfo #0:\n'
-        '  pid=4321 uid=10001\n'
-        '  invalid reason info block here\n'
-        '  another invalid line\n')
-    exit_info = util.get_exit_info_for_pid('com.example.app', 4321)
-    self.assertIsNone(exit_info)
+    self.assertIsNone(util.get_exit_info_for_pid('', 4321))
 
 
 class ActivityCrashedTest(unittest.TestCase):

@@ -151,9 +151,71 @@ def get_latest_pid_for_package(app_package: str) -> int | None:
   return None
 
 
+def _to_enum(enum_cls, raw_value: int | str):
+  """Converts raw_value to an Enum member, or returns None if invalid."""
+  try:
+    return enum_cls(int(raw_value))
+  except (ValueError, TypeError):
+    return None
+
+
+def _parse_exit_info_from_dumpsys(dumpsys_output: str,
+                                  target_pid: int) -> ProcessExitInfo | None:
+  """Parses dumpsys activity exit-info output for target_pid.
+
+  Args:
+    dumpsys_output: Output text from `dumpsys activity exit-info`.
+    target_pid: Process ID to extract exit metadata for.
+
+  Returns:
+    ProcessExitInfo object if metadata for target_pid is found and parsed,
+    None otherwise.
+  """
+  if not dumpsys_output or target_pid is None:
+    return None
+
+  current_pid = None
+  for line in dumpsys_output.splitlines():
+    pid_match = re.search(r"\bpid=(\d+)", line)
+    if pid_match:
+      current_pid = int(pid_match.group(1))
+
+    if current_pid is None or current_pid != target_pid:
+      continue
+
+    reason_match = re.search(_REASON_STATUS_REGEX, line)
+    if not reason_match:
+      continue
+
+    reason, reason_name, subreason, subreason_name, status = (
+        reason_match.groups())
+
+    parsed_reason = _to_enum(constants.ExitReason, reason)
+    if parsed_reason is None:
+      logs.warning(f'[Android] Unexpected process exit reason code {reason} '
+                   f'for PID {target_pid}.')
+      parsed_reason = constants.ExitReason.UNKNOWN
+
+    parsed_status = _to_enum(constants.ExitStatus, status)
+    if parsed_status is None:
+      logs.warning(f'[Android] Unexpected process exit status code {status} '
+                   f'for PID {target_pid}.')
+      parsed_status = int(status)
+
+    return ProcessExitInfo(
+        reason=parsed_reason,
+        reason_name=reason_name or '',
+        subreason=int(subreason),
+        subreason_name=subreason_name or '',
+        status=parsed_status,
+    )
+
+  return None
+
+
 def get_exit_info_for_pid(app_package: str,
                           target_pid: int) -> ProcessExitInfo | None:
-  """Parses dumpsys activity exit-info output for target_pid.
+  """Fetches and parses dumpsys activity exit-info output for target_pid.
 
   Args:
     app_package: Name of the application package.
@@ -167,31 +229,7 @@ def get_exit_info_for_pid(app_package: str,
     return None
 
   dumpsys_output = adb.get_activity_exit_info(app_package)
-  if not dumpsys_output:
-    return None
-
-  current_pid = None
-  for line in dumpsys_output.splitlines():
-    pid_match = re.search(r"\bpid=(\d+)", line)
-    if pid_match:
-      current_pid = int(pid_match.group(1))
-
-    if current_pid is None or current_pid != target_pid:
-      continue
-
-    reason_match = re.search(_REASON_STATUS_REGEX, line)
-    if reason_match:
-      reason, reason_name, subreason, subreason_name, status = (
-          reason_match.groups())
-      return ProcessExitInfo(
-          reason=int(reason),
-          reason_name=reason_name or '',
-          subreason=int(subreason),
-          subreason_name=subreason_name or '',
-          status=int(status),
-      )
-
-  return None
+  return _parse_exit_info_from_dumpsys(dumpsys_output, target_pid)
 
 
 def activity_crashed(exit_info: ProcessExitInfo | None) -> bool:
