@@ -18,6 +18,7 @@ from unittest import mock
 from unittest import TestCase
 
 from clusterfuzz._internal.platforms.android import app
+from clusterfuzz._internal.platforms.android import constants
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import android_helpers
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -94,3 +95,17 @@ class InstallTest(TestCase):
     app.install('/path/to/app.apk', abi='x86', no_streaming=True)
     self.mock_run_command.assert_called_once_with(
         ['install', '-r', '--abi', 'x86', '--no-streaming', '/path/to/app.apk'])
+
+
+class GetTestcasesDirectoryTest(TestCase):
+  """Tests constants.get_testcases_directory."""
+
+  def setUp(self):
+    super().setUp()
+    helpers.patch_environ(self)
+
+  def test_get_testcases_directory(self):
+    """Tests get_testcases_directory when package name is set."""
+    environment.set_value('PKG_NAME', 'com.google.chrome')
+    self.assertEqual(constants.get_testcases_directory(),
+                     '/sdcard/Android/data/com.google.chrome/files')

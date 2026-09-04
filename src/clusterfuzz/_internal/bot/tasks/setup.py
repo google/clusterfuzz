@@ -101,7 +101,8 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
     relative_testcase_file_path = (
         testcase_file_path[len(local_testcases_directory) + 1:])
     device_testcase_file_path = os.path.join(
-        android.constants.DEVICE_TESTCASES_DIR, relative_testcase_file_path)
+        android.constants.get_testcases_directory(),
+        relative_testcase_file_path)
     android.adb.run_shell_command(['chmod', '0755', device_testcase_file_path])
 
 

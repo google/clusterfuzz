@@ -15,9 +15,11 @@
 
 import re
 
+from . import app
+
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 
-DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'
+_DEFAULT_DEVICE_TESTCASES_DIR = '/sdcard/Android/data/%PKG_NAME%/files'
 
 DEVICE_TMP_DIR = '/data/local/tmp'
 
@@ -86,3 +88,9 @@ DEPRECATED_DEVICE_LIST = [
 # Restrict pixel6 from picking up generic Android jobs to avoid
 # Binary Mismatch: Hence, 'ANDROID:PIXEL6' is added to the list.
 DEVICES_WITH_NO_FALLBACK_QUEUE_LIST = ['ANDROID:PIXEL6']
+
+
+def get_testcases_directory():
+  """Returns the testcases directory."""
+  package_name = app.get_package_name() or ''
+  return _DEFAULT_DEVICE_TESTCASES_DIR.replace('%PKG_NAME%', package_name)

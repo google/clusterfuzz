@@ -53,7 +53,7 @@ def get_launch_command(app_args, testcase_path, testcase_file_url):
   application_launch_command = application_launch_command.replace(
       '%APP_ARGS%', app_args)
   application_launch_command = application_launch_command.replace(
-      '%DEVICE_TESTCASES_DIR%', constants.DEVICE_TESTCASES_DIR)
+      '%DEVICE_TESTCASES_DIR%', constants.get_testcases_directory())
   application_launch_command = application_launch_command.replace(
       '%PKG_NAME%', package_name)
   application_launch_command = application_launch_command.replace(
