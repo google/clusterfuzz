@@ -13,6 +13,7 @@
 # limitations under the License.
 """Common constants."""
 
+from enum import IntEnum
 import re
 
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
@@ -88,7 +89,7 @@ DEPRECATED_DEVICE_LIST = [
 DEVICES_WITH_NO_FALLBACK_QUEUE_LIST = ['ANDROID:PIXEL6']
 
 
-class ExitReason:
+class ExitReason(IntEnum):
   """Android process exit reasons from ApplicationExitInfo. Taken from
   https://developer.android.com/reference/android/app/ApplicationExitInfo
   """
@@ -113,7 +114,7 @@ class ExitReason:
   REASON_ANOMALY = 18
 
 
-class ExitStatus:
+class ExitStatus(IntEnum):
   """Process exit signal statuses. Taken from:
   https://cs.android.com/android/platform/superproject/+/android-latest-release:frameworks/base/core/java/android/os/Process.java?q=content:SIGNAL_KILL
   """
