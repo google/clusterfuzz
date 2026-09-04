@@ -919,6 +919,18 @@ def write_data_to_file(contents, file_path, should_reboot=True):
 
 def get_activity_exit_info(app_package: str) -> str:
   """Get dumpsys activity exit-info output for the given application package.
+  Example dumpsys output:
+  package: org.chromium.chrome
+  Historical Process Exit for uid=10154
+      ApplicationExitInfo #0:
+        timestamp=2026-09-03 11:19:03.480 pid=27098 realUid=10154
+        packageUid=10154 definingUid=10154 user=0
+        process=org.chromium.chrome reason=2 (SIGNALED)
+        subreason=0 (UNKNOWN) status=9
+        importance=100 pss=0.00 rss=0.00 state=empty trace=null
+        description=null
+        anrInfo=null
+
 
   Args:
     app_package: Name of the application package.
