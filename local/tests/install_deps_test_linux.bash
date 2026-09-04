@@ -45,6 +45,10 @@ if [ -d src/appengine/third_party ]; then
   echo "ERROR: src/appengine/third_party should not exist in fresh checkout."
   exit 1
 fi
+if [ -f src/appengine/requirements.txt ]; then
+  echo "ERROR: src/appengine/requirements.txt should not exist in fresh checkout."
+  exit 1
+fi
 
 # Run installation script for fresh setup.
 ./local/install_deps.bash
@@ -64,6 +68,12 @@ fi
 # Verify vendored appengine third_party packages.
 if [ ! -d src/appengine/third_party/flask ]; then
   echo "ERROR: src/appengine/third_party/flask missing."
+  exit 1
+fi
+
+# Verify generated appengine requirements.txt for deployment.
+if [ ! -f src/appengine/requirements.txt ]; then
+  echo "ERROR: src/appengine/requirements.txt missing."
   exit 1
 fi
 

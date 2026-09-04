@@ -27,6 +27,7 @@
 /local/storage
 /paramiko.log
 /.venv
+/src/appengine/requirements.txt
 /src/appengine/app.yaml
 /src/appengine/cron-service.yaml
 /src/appengine/cron.yaml

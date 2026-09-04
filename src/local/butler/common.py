@@ -281,6 +281,20 @@ def _remove_invalid_files():
       os.remove(name)
 
 
+def export_appengine_requirements():
+  """Export App Engine requirements.txt."""
+  root_dir = os.environ.get('ROOT_DIR')
+  if not root_dir or not os.path.exists(
+      os.path.join(root_dir, 'pyproject.toml')):
+    root_dir = '.'
+  appengine_requirements_path = os.path.join('src', 'appengine',
+                                             'requirements.txt')
+  execute(
+      'uv export --extra core --extra appengine --no-dev --no-hashes '
+      f'--no-header -o {appengine_requirements_path}',
+      cwd=root_dir)
+
+
 def install_dependencies(platform_name=None):
   """Install dependencies for bots."""
   _install_third_party(target_path='src/third_party', extra='core')
@@ -290,6 +304,8 @@ def install_dependencies(platform_name=None):
 
   _install_third_party(
       target_path='src/appengine/third_party', extra='appengine')
+
+  export_appengine_requirements()
 
   _remove_invalid_files()
   execute('bower install --allow-root')
