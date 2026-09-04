@@ -94,7 +94,5 @@ DEVICES_WITH_NO_FALLBACK_QUEUE_LIST = ['ANDROID:PIXEL6']
 
 def get_testcases_directory():
   """Returns the testcases directory."""
-  testcases_dir = environment.get_value('DEVICE_TESTCASES_DIR',
-                                        _DEFAULT_DEVICE_TESTCASES_DIR)
   package_name = app.get_package_name() or ''
   return testcases_dir.replace('%PKG_NAME%', package_name)
