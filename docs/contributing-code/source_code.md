@@ -38,3 +38,12 @@ permalink: /contributing-code/source-code/
   * **platform_requirements.txt** - platform dependent package list.
 * **bower.json** - component dependencies for Polymer 2.
 * **butler.py** - helper script for various command line tasks (e.g. testing, deployment).
+
+## Pitfalls
+
+* **App Engine imports** - Directories listed in
+  [`.gcloudignore`](https://github.com/google/clusterfuzz/blob/master/src/appengine/.gcloudignore)
+  are not uploaded to App Engine. Shared modules cannot use top-level imports
+  from these directories, as this causes a `ModuleNotFoundError` on App Engine
+  startup. Instead, import them locally inside the functions or methods where
+  they are used.
