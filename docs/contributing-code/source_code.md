@@ -45,5 +45,5 @@ permalink: /contributing-code/source-code/
   [`.gcloudignore`](https://github.com/google/clusterfuzz/blob/master/src/appengine/.gcloudignore)
   are not uploaded to App Engine. Shared modules cannot use top-level imports
   from these directories, as this causes a `ModuleNotFoundError` on App Engine
-  startup (b/552012304). Instead, import them locally inside the functions or
-  methods where they are used.
+  startup. Instead, import them locally inside the functions or methods where
+  they are used.

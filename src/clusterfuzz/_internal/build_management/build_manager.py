@@ -330,8 +330,8 @@ class BaseBuild:
 
 def _read_schema_version_from_manifest(build_dir: str) -> int:
   """Reads archive_schema_version from clusterfuzz_manifest.json."""
-  # IMPORTANT: `clusterfuzz._internal.bot` has to be imported locally since it
-  # is not uploaded to GCP with App Engine context. See:
+  # `clusterfuzz._internal.bot` has to be imported locally since it is not
+  # uploaded to GCP with App Engine context. See:
   # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
   from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
@@ -371,8 +371,8 @@ def _patch_rpaths(build_dir: str, app_path_env: str):
     return
 
   if environment.is_engine_fuzzer_job():
-    # IMPORTANT: `clusterfuzz._internal.bot` has to be imported locally since it
-    # is not uploaded to GCP with App Engine context. See:
+    # `clusterfuzz._internal.bot` has to be imported locally since it is not
+    # uploaded to GCP with App Engine context. See:
     # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
@@ -611,8 +611,8 @@ class Build(BaseBuild):
 
   def _get_fuzz_targets_from_dir(self, build_dir):
     """Get iterator of fuzz targets from build dir."""
-    # IMPORTANT: `clusterfuzz._internal.bot` has to be imported locally since
-    # it is not uploaded to GCP with App Engine context. See:
+    # `clusterfuzz._internal.bot` has to be imported locally since it is not
+    # uploaded to GCP with App Engine context. See:
     # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
@@ -1363,8 +1363,8 @@ def setup_regular_build(revision,
 
   build_class = RegularBuild
   if environment.is_trusted_host():
-    # IMPORTANT: `clusterfuzz._internal.bot` has to be imported locally since
-    # it is not uploaded to GCP with App Engine context. See:
+    # `clusterfuzz._internal.bot` has to be imported locally since it is not
+    # uploaded to GCP with App Engine context. See:
     # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
     build_class = build_setup_host.RemoteRegularBuild
@@ -1389,8 +1389,8 @@ def setup_regular_build(revision,
   # Additional binaries to pull (for fuzzing engines such as Centipede).
   extra_bucket_path = get_bucket_path('EXTRA_BUILD_BUCKET_PATH')
   if extra_bucket_path and not build.is_discovery:
-    # IMPORTANT: `clusterfuzz._internal.bot` has to be imported locally since
-    # it is not uploaded to GCP with App Engine context. See:
+    # `clusterfuzz._internal.bot` has to be imported locally since it is not
+    # uploaded to GCP with App Engine context. See:
     # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
     extra_build_urls = get_build_urls_list(extra_bucket_path)
@@ -1437,8 +1437,8 @@ def setup_symbolized_builds(revision):
 
   build_class = SymbolizedBuild
   if environment.is_trusted_host():
-    # IMPORTANT: `clusterfuzz._internal.bot` has to be imported locally since
-    # it is not uploaded to GCP with App Engine context. See:
+    # `clusterfuzz._internal.bot` has to be imported locally since it is not
+    # uploaded to GCP with App Engine context. See:
     # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
     build_class = build_setup_host.RemoteSymbolizedBuild  # pylint: disable=no-member
