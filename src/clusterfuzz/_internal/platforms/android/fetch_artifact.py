@@ -56,7 +56,7 @@ def _call_android_api_enabled():
   Disabled always if invoked in a uworker
   """
   if environment.is_uworker():
-    logs.info('AndroidBuildAPI access disabled for uworker.')
+    logs.debug('AndroidBuildAPI access disabled for uworker.')
     return False
 
   flag = feature_flags.FeatureFlags.CALL_ANDROID_API.flag
@@ -66,10 +66,10 @@ def _call_android_api_enabled():
 def _download_artifact(client, bid, target, attempt_id, name, output_directory,
                        output_filename):
   """Download one artifact."""
-  logs.info('reached download_artifact')
-  logs.info('artifact to download: %s' % name)
-  logs.info('output_directory: %s' % output_directory)
-  logs.info('output_filename: %s' % output_filename)
+  logs.debug('reached download_artifact')
+  logs.debug('artifact to download: %s' % name)
+  logs.debug('output_directory: %s' % output_directory)
+  logs.debug('output_filename: %s' % output_filename)
 
   logs.info(
       'AndroidBuildAPI download_artifact started.',
@@ -126,9 +126,9 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
         status='skipped_exists')
     return output_path
 
-  logs.info('Downloading artifact %s.' % name)
+  logs.debug('Downloading artifact %s.' % name)
   output_dir = os.path.dirname(output_path)
-  logs.info('Output dir: %s' % output_dir)
+  logs.debug('Output dir: %s' % output_dir)
   if not os.path.exists(output_dir):
     logs.info(f'Creating directory {output_dir}')
     os.makedirs(output_dir, exist_ok=True)
@@ -147,7 +147,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
   success = client.download_artifact_file(bid, target, attempt_id, name,
                                           output_path)
   if not success:
-    logs.error(
+    logs.warning(
         'AndroidBuildAPI download_artifact failed.',
         api_version=API_VERSION,
         operation='download_artifact',
@@ -185,7 +185,7 @@ def _get_artifacts_for_build(client,
         target=target)
     return []
 
-  logs.info(
+  logs.debug(
       'AndroidBuildAPI get_artifacts_for_build started.',
       api_version=API_VERSION,
       operation='get_artifacts_for_build',
@@ -196,7 +196,7 @@ def _get_artifacts_for_build(client,
 
   artifacts = client.list_artifacts(bid, target, attempt_id, regexp=regexp)
 
-  logs.info(
+  logs.debug(
       'AndroidBuildAPI get_artifacts_for_build completed.',
       api_version=API_VERSION,
       operation='get_artifacts_for_build',
@@ -219,13 +219,13 @@ def _get_client():
   build_apiary_service_account_private_key = db_config.get_value(
       'build_apiary_service_account_private_key')
   if not build_apiary_service_account_private_key:
-    logs.info(
+    logs.warning(
         'Android build apiary credentials are not set, skip artifact fetch.')
     return None
 
   key_dict = json.loads(build_apiary_service_account_private_key)
 
-  logs.info(
+  logs.debug(
       'AndroidBuildAPI client initialization started.', api_version=API_VERSION)
 
   try:
@@ -241,7 +241,7 @@ def _get_client():
 
 def _get_stable_build_info():
   """Return stable artifact for cuttlefish branch and target."""
-  logs.info('Reached get_stable_build_info')
+  logs.debug('Reached get_stable_build_info')
   stable_build_info = STABLE_CUTTLEFISH_BUILD
 
   try:
@@ -260,8 +260,7 @@ def _get_stable_build_info():
 def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
   """Return latest artifact for a branch and target."""
   if not _call_android_api_enabled():
-    logs.warning(
-        'Android build API is disabled by feature flag call_android_api.')
+    logs.info('Android build API is disabled by feature flag call_android_api.')
     return None
 
   client = _get_client()
