@@ -770,9 +770,11 @@ def warning(message, **extras):
   """Logs the warning message."""
   emit(logging.WARN, message, exc_info=sys.exc_info(), **extras)
 
+
 def debug(message, **extras):
   """Logs the debug message."""
   emit(logging.DEBUG, message, **extras)
+
 
 def error(message, **extras):
   """Logs the error in the error log file."""
