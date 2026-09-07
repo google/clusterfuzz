@@ -332,14 +332,13 @@ def run_testcase(thread_index, file_path, gestures, env_copy):
     app_directory = environment.get_value('APP_DIR')
     environment.set_value('PIDS', '[]')
 
-    logs.info(
-        f'Running testcase (thread {thread_index}): file_path={file_path}, '
-        f'needs_http={needs_http}, gestures={gestures}')
-
     # Get command line options.
-
     command = get_command_line_for_application(
         file_path, user_profile_index=thread_index, needs_http=needs_http)
+
+    logs.debug(
+        f'[TestcaseManager] Running testcase (thread {thread_index}): '
+        f'command={command}, needs_http={needs_http}, gestures={gestures}')
 
     # Run testcase.
     return process_handler.run_process(
