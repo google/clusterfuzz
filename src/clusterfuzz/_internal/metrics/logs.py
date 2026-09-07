@@ -53,6 +53,8 @@ _logger = None
 _is_already_handling_uncaught = False
 _default_extras = {}
 
+BASE_LOGGING_LEVEL = logging.DEBUG
+
 
 def _increment_error_count():
   """"Increment the error count metric."""
@@ -115,7 +117,7 @@ def get_handler_config(filename, backup_count):
 
   return {
       'class': 'logging.handlers.RotatingFileHandler',
-      'level': logging.INFO,
+      'level': BASE_LOGGING_LEVEL,
       'formatter': 'simple',
       'filename': file_path,
       'maxBytes': max_bytes,
@@ -396,7 +398,7 @@ def json_fields_filter(record):
 
 def configure_appengine():
   """Configure logging for App Engine."""
-  logging.getLogger().setLevel(logging.INFO)
+  logging.getLogger().setLevel(BASE_LOGGING_LEVEL)
 
   if os.getenv('LOCAL_DEVELOPMENT') or environment.is_running_unit_tests():
     return
@@ -458,12 +460,12 @@ def configure_k8s():
     return True
 
   handler.addFilter(k8s_label_filter)
-  handler.setLevel(logging.INFO)
+  handler.setLevel(BASE_LOGGING_LEVEL)
   formatter = JsonFormatter()
   handler.setFormatter(formatter)
 
   logging.getLogger().addHandler(handler)
-  logging.getLogger().setLevel(logging.INFO)
+  logging.getLogger().setLevel(BASE_LOGGING_LEVEL)
 
 
 def configure_cloud_logging():
@@ -527,7 +529,7 @@ def configure_cloud_logging():
     return True
 
   handler.addFilter(cloud_label_filter)
-  handler.setLevel(logging.INFO)
+  handler.setLevel(BASE_LOGGING_LEVEL)
   formatter = JsonFormatter()
   handler.setFormatter(formatter)
 
@@ -549,7 +551,7 @@ def configure_swarming(name: str, extras: dict[str, str] | None = None) -> None:
     configure_cloud_logging()
 
   logger = logging.getLogger(name)
-  logger.setLevel(logging.INFO)
+  logger.setLevel(BASE_LOGGING_LEVEL)
   set_logger(logger)
 
   sys.excepthook = uncaught_exception_handler
@@ -574,13 +576,13 @@ def configure(name, extras=None):
     return
 
   if _console_logging_enabled():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=BASE_LOGGING_LEVEL)
   if _file_logging_enabled():
     config.dictConfig(get_logging_config_dict(name))
   if _cloud_logging_enabled():
     configure_cloud_logging()
   logger = logging.getLogger(name)
-  logger.setLevel(logging.INFO)
+  logger.setLevel(BASE_LOGGING_LEVEL)
   set_logger(logger)
 
   # Set _default_extras so they can be used later.
@@ -768,6 +770,9 @@ def warning(message, **extras):
   """Logs the warning message."""
   emit(logging.WARN, message, exc_info=sys.exc_info(), **extras)
 
+def debug(message, **extras):
+  """Logs the debug message."""
+  emit(logging.DEBUG, message, **extras)
 
 def error(message, **extras):
   """Logs the error in the error log file."""
