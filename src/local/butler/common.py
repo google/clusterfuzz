@@ -192,7 +192,7 @@ def kill_process(name):
 
 def is_git_dirty():
   """Check if git is dirty."""
-  _, output = execute('git status --porcelain')
+  _, output = execute('git status --porcelain --untracked-files=no')
   return output
 
 
