@@ -346,7 +346,13 @@ def allowed_cors(func):
 
     if origin and whitelisted_cors_urls:
       for domain_regex in whitelisted_cors_urls:
-        if re.match(domain_regex, origin):
+        # Use fullmatch (not match) so the regex must match the ENTIRE Origin.
+        # re.match only anchors at the start, so an unanchored pattern such as
+        # 'https?://...test-client-site.appspot.com' would also match a
+        # malicious origin like 'https://test-client-site.appspot.com.evil.com',
+        # which then gets reflected into Access-Control-Allow-Origin together
+        # with Access-Control-Allow-Credentials: true.
+        if re.fullmatch(domain_regex, origin):
           response.headers['Access-Control-Allow-Origin'] = origin
           response.headers['Vary'] = 'Origin'
           response.headers['Access-Control-Allow-Credentials'] = 'true'
