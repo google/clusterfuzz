@@ -170,6 +170,7 @@ def task_loop():
   execution_count = 0
   max_task_executions = _get_max_task_executions()
 
+  logs.debug('Starting task loop.', is_debug_log=True)
   while True:
     stacktrace = ''
     exception_occurred = False
