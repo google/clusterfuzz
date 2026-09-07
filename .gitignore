@@ -26,6 +26,7 @@
 /local/bin/android-sdk/*
 /local/storage
 /paramiko.log
+/.venv
 /src/appengine/requirements.txt
 /src/appengine/app.yaml
 /src/appengine/cron-service.yaml
@@ -43,7 +44,6 @@
 /src/local/remote/generated.remmina
 /src/protos/ENV
 /src/third_party
-/src/requirements.txt
 _test_data
 bazel-*
 /src/dist
@@ -57,5 +57,5 @@ bazel-*
 **/.terraform/*
 
 # Ignore temporary build files.
-docker/base/Pipfile
-docker/base/Pipfile.lock
+docker/base/pyproject.toml
+docker/base/uv.lock

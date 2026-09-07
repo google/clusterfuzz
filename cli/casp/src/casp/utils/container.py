@@ -32,7 +32,7 @@ CONTAINER_SCRIPTS_DIR = SRC_ROOT / 'local' / 'butler' / 'scripts'
 # The base command prefix for executing ClusterFuzz butler commands.
 # This ensures that commands are run with the correct Python environment
 # and logging settings within the container.
-_COMMAND_PREFIX = 'pipenv run python butler.py --local-logging'
+_COMMAND_PREFIX = 'uv run butler.py --local-logging'
 
 
 def build_butler_command(subcommand: str, **kwargs: str) -> list[str]:

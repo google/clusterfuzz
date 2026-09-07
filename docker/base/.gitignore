@@ -1,2 +1,2 @@
-Pipfile
-Pipfile.lock
+pyproject.toml
+uv.lock

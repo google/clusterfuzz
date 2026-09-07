@@ -91,15 +91,20 @@ else
 fi
 unzip -q clusterfuzz-source.zip
 
-echo "Installing ClusterFuzz package dependencies using pipenv."
+echo "Installing ClusterFuzz package dependencies using uv."
 cd clusterfuzz
 if ! python3 -m pip > /dev/null ; then
   curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
   python3 get-pip.py
 fi
-python3 -m pip install --upgrade pipenv
-pipenv --python 3.11
-pipenv sync
-source "$(pipenv --venv)/bin/activate"
+if ! command -v pipx &> /dev/null; then
+  python3 -m pip install --upgrade pipx==1.10.0
+fi
+if ! command -v uv &> /dev/null; then
+  pipx install uv==0.12.3
+fi
+export PATH="$PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")"
+uv sync
+source .venv/bin/activate
 
 run_bot &

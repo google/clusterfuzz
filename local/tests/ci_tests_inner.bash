@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 #
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script is for running the Kubernetes end-to-end test in CI.
+TEST_CMD=${1:-local/tests/run_tests}
 
-./local/install_deps.bash
+pip install pipx==1.10.0
+pipx install uv==0.12.3
+export PATH="$PATH:$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")"
 
-# Run the test.
-export K8S_E2E=1
-uv run butler.py py_unittest -t core -p k8s_service_e2e_test.py
+uv sync
+uv run butler.py bootstrap
+uv run butler.py lint
+uv run $TEST_CMD

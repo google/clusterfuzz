@@ -22,12 +22,12 @@ def check_virtualenv():
     raise RuntimeError('Python 2 is no longer supported!')
 
   is_in_virtualenv = bool(os.getenv('VIRTUAL_ENV'))
-
   if not is_in_virtualenv:
     raise RuntimeError(
-        'You are not in a virtual env environment. Please install it with'
-        ' `./local/install_deps.bash` or load it with'
-        ' `pipenv shell`. Then, you can re-run this command.')
+        'You are not in a virtual env environment. Please install it with '
+        '`./local/install_deps.bash` or load it with '
+        '`source .venv/bin/activate` (or run with `uv run butler.py`). '
+        'Then, you can re-run this command.')
 
 
 def check():

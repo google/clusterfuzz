@@ -20,11 +20,10 @@ This project uses a `.tool-versions` file. Follow these steps to install the cor
 
     ```bash
     asdf install
-    python3.11 -m pip install pipenv
     ```
 
 4.  **Install Deps**
-    Run this command inside the project directory. This script will use `pipenv` to set up a virtual environment and install all the required packages specified in the `Pipfile`, ensuring your local setup is consistent with the project's requirements.
+    Run this command inside the project directory. This script will set up a virtual environment with `uv` and install all the required packages, ensuring your local setup is consistent with the project's requirements.
 
     ```bash
     ./local/install_deps.bash
