@@ -201,16 +201,37 @@ def generate_new_testcase_mutations_using_radamsa(
 
 def get_radamsa_path():
   """Return path to radamsa binary for current platform."""
+  # 1. Check if the fuzzer build directory (APP_DIR) provides radamsa.
+  app_dir = environment.get_value('APP_DIR')
+  if app_dir:
+    build_radamsa = os.path.join(app_dir, 'radamsa')
+    if os.path.exists(build_radamsa):
+      os.chmod(build_radamsa, 0o755)
+      return build_radamsa
+
+  # 2. Fall back to bundled bot platform binaries.
   bin_directory_path = os.path.join(
       os.path.dirname(os.path.realpath(__file__)), 'bin')
   platform = environment.platform()
   if platform == 'LINUX':
-    return os.path.join(bin_directory_path, 'linux', 'radamsa')
+    radamsa_path = os.path.join(bin_directory_path, 'linux', 'radamsa')
+  elif platform == 'MAC':
+    import platform as py_platform
+    is_arm64 = (
+        py_platform.machine().lower() in ('arm64', 'aarch64') or
+        'arm' in py_platform.processor().lower())
+    arm64_path = os.path.join(bin_directory_path, 'mac', 'radamsa_arm64')
+    if is_arm64 and os.path.exists(arm64_path):
+      radamsa_path = arm64_path
+    else:
+      radamsa_path = os.path.join(bin_directory_path, 'mac', 'radamsa')
+  else:
+    return None
 
-  if platform == 'MAC':
-    return os.path.join(bin_directory_path, 'mac', 'radamsa')
+  if os.path.exists(radamsa_path):
+    os.chmod(radamsa_path, 0o755)
 
-  return None
+  return radamsa_path
 
 
 def get_new_testcase_mutations_timeout():
