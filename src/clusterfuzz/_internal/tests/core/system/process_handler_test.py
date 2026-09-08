@@ -16,6 +16,8 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.platforms.android import constants
+from clusterfuzz._internal.platforms.android import util
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 
@@ -180,7 +182,12 @@ class RunProcessAndroidTest(unittest.TestCase):
 
   def test_run_process_android_activity_crashed(self):
     """Checks that run_process sets return_code from exit_info.reason and logs warning when an Android activity crash is detected."""
-    exit_info = mock.Mock(reason=5, status=11)
+    exit_info = util.ProcessExitInfo(
+        reason=constants.ExitReason.CRASH_NATIVE,
+        reason_name='APP CRASH(NATIVE)',
+        subreason=0,
+        subreason_name='',
+        status=constants.ExitStatus.SIGSEGV)
     self.mock.get_latest_pid_for_package.return_value = 1234
     self.mock.get_exit_info_for_pid.return_value = exit_info
     self.mock.activity_crashed.return_value = True
