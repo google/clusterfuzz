@@ -97,6 +97,17 @@ def _cloud_logging_enabled() -> bool:
           not environment.is_running_unit_tests() and not _is_local())
 
 
+def _allow_clusterfuzz_only(record: logging.LogRecord) -> bool:
+  """Only allow logs originating from ClusterFuzz."""
+  # Option A: Filter by logger name prefix
+  if record.name.startswith('clusterfuzz'):
+    return True
+  # Option B: Filter by source file path
+  if 'clusterfuzz' in record.pathname:
+    return True
+  return False
+
+
 def suppress_unwanted_warnings():
   """Suppress unwanted warnings."""
   # See https://github.com/googleapis/google-api-python-client/issues/299
@@ -408,6 +419,7 @@ def configure_appengine():
   handler = client.get_default_handler()
   handler.addFilter(json_fields_filter)
   logging.getLogger().addHandler(handler)
+  logging.getLogger().addFilter(_allow_clusterfuzz_only)
 
 
 def configure_k8s():
@@ -466,6 +478,7 @@ def configure_k8s():
 
   logging.getLogger().addHandler(handler)
   logging.getLogger().setLevel(BASE_LOGGING_LEVEL)
+  logging.getLogger().addFilter(_allow_clusterfuzz_only)
 
 
 def configure_cloud_logging():
@@ -534,6 +547,7 @@ def configure_cloud_logging():
   handler.setFormatter(formatter)
 
   logging.getLogger().addHandler(handler)
+  logging.getLogger().addFilter(_allow_clusterfuzz_only)
 
 
 def configure_swarming(name: str, extras: dict[str, str] | None = None) -> None:
@@ -583,6 +597,7 @@ def configure(name, extras=None):
     configure_cloud_logging()
   logger = logging.getLogger(name)
   logger.setLevel(BASE_LOGGING_LEVEL)
+  logger.addFilter(_allow_clusterfuzz_only)
   set_logger(logger)
 
   # Set _default_extras so they can be used later.
