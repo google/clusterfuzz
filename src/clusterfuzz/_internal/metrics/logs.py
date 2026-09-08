@@ -53,7 +53,7 @@ _logger = None
 _is_already_handling_uncaught = False
 _default_extras = {}
 
-BASE_LOGGING_LEVEL = logging.DEBUG
+BASE_LOGGING_LEVEL = os.getenv('LOG_LEVEL', logging.DEBUG)
 
 
 def _increment_error_count():
@@ -98,12 +98,10 @@ def _cloud_logging_enabled() -> bool:
 
 
 def _allow_clusterfuzz_only(record: logging.LogRecord) -> bool:
-  """Only allow logs originating from ClusterFuzz."""
-  # Option A: Filter by logger name prefix
+  """Only allow logs originating from ClusterFuzz code."""
   if record.name.startswith('clusterfuzz'):
     return True
-  # Option B: Filter by source file path
-  if 'clusterfuzz' in record.pathname:
+  if 'clusterfuzz' in record.pathname and 'third_party' not in record.pathname:
     return True
   return False
 
