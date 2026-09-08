@@ -53,7 +53,7 @@ _logger = None
 _is_already_handling_uncaught = False
 _default_extras = {}
 
-BASE_LOGGING_LEVEL = os.getenv('LOG_LEVEL', logging.INFO)
+BASE_LOGGING_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
 
 def _increment_error_count():
