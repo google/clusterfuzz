@@ -18,7 +18,6 @@ from unittest import mock
 from unittest import TestCase
 
 from clusterfuzz._internal.platforms.android import app
-from clusterfuzz._internal.platforms.android import constants
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import android_helpers
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -107,5 +106,11 @@ class GetTestcasesDirectoryTest(TestCase):
   def test_get_testcases_directory(self):
     """Tests get_testcases_directory when package name is set."""
     environment.set_value('PKG_NAME', 'com.google.chrome')
-    self.assertEqual(constants.get_testcases_directory(),
+    self.assertEqual(app.get_testcases_directory(),
                      '/sdcard/Android/data/com.google.chrome/files')
+
+  def test_get_testcases_directory_no_package_name(self):
+    """Tests get_testcases_directory when package name is not set returns malformed string."""
+    environment.set_value('PKG_NAME', None)
+    self.assertEqual(app.get_testcases_directory(),
+                     '/sdcard/Android/data//files')

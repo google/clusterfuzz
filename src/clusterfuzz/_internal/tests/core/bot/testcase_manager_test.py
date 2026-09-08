@@ -253,7 +253,7 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
   def test_file_match_android(self):
     """Tests matching a file URL."""
     self.mock.platform.return_value = 'ANDROID'
-    testcases_dir = android.constants.get_testcases_directory()
+    testcases_dir = android.app.get_testcases_directory()
     self.assertEqual(
         '/mnt/scratch0/test.html',
         testcase_manager.convert_dependency_url_to_local_path(

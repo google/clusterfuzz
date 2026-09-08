@@ -21,7 +21,6 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 from . import adb
-from . import constants
 
 AAPT_CMD_TIMEOUT = 60
 CHROME_CACHE_DIRS = [
@@ -53,7 +52,7 @@ def get_launch_command(app_args, testcase_path, testcase_file_url):
   application_launch_command = application_launch_command.replace(
       '%APP_ARGS%', app_args)
   application_launch_command = application_launch_command.replace(
-      '%DEVICE_TESTCASES_DIR%', constants.get_testcases_directory())
+      '%DEVICE_TESTCASES_DIR%', get_testcases_directory())
   application_launch_command = application_launch_command.replace(
       '%PKG_NAME%', package_name)
   application_launch_command = application_launch_command.replace(
@@ -91,6 +90,12 @@ def get_package_name(apk_path=None):
   if not match:
     return None
   return match.group(1)
+
+
+def get_testcases_directory():
+  """Returns the testcases directory."""
+  package_name = get_package_name() or ''
+  return f'/sdcard/Android/data/{package_name}/files'
 
 
 def install(package_apk_path: str, **kwargs):
