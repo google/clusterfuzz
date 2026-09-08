@@ -208,7 +208,7 @@ class ActivityCrashedTest(unittest.TestCase):
     )
     self.assertTrue(util.activity_crashed(exit_info))
 
-  def test_crash_anr(self):
+  def test_regular_app_crash(self):
     """Checks that activity_crashed returns True for CRASH."""
     exit_info = util.ProcessExitInfo(
         reason=constants.ExitReason.CRASH,
