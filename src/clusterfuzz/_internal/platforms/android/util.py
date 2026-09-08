@@ -56,6 +56,7 @@ def _to_enum(enum_cls, raw_value: int | str):
   try:
     return enum_cls(int(raw_value))
   except (ValueError, TypeError):
+    logs.debug(f'[Android] Could not convert {raw_value} to {enum_cls}')
     return None
 
 
