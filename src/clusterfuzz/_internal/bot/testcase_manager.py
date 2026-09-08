@@ -1292,12 +1292,8 @@ def check_for_bad_build(job_type: str,
       f'is_crash={crash_result.is_crash(ignore_state=True)}, '
       f'crash_type={crash_result.get_type()}')
 
-  # 1. Need to account for startup crashes with no crash state. E.g. failed to
-  #    load shared library. So, ignore state for comparison.
-  # 2. Ignore leaks as they don't block a build from reporting regular crashes
-  #    and also don't impact regression range calculations.
-  # 3. On Android, if the application process is not running after startup,
-  #    the build is bad.
+  # On Android, if the application process is not running after startup, the
+  # build is bad.
   if environment.is_android():
     package_name = android.app.get_package_name()
     if (package_name and
@@ -1311,6 +1307,10 @@ def check_for_bad_build(job_type: str,
           'startup.',
           raw_output=output,
           output=build_run_console_output)
+  # 1. Need to account for startup crashes with no crash state. E.g. failed to
+  #    load shared library. So, ignore state for comparison.
+  # 2. Ignore leaks as they don't block a build from reporting regular crashes
+  #    and also don't impact regression range calculations.
   elif (crash_result.is_crash(ignore_state=True) and
         not crash_result.should_ignore() and
         not crash_result.get_type() in ['Direct-leak', 'Indirect-leak']):
