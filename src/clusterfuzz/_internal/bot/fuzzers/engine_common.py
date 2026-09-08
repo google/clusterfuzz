@@ -205,12 +205,17 @@ def get_radamsa_path():
       os.path.dirname(os.path.realpath(__file__)), 'bin')
   platform = environment.platform()
   if platform == 'LINUX':
-    return os.path.join(bin_directory_path, 'linux', 'radamsa')
+    radamsa_path = os.path.join(bin_directory_path, 'linux', 'radamsa')
+  elif platform == 'MAC':
+    if environment.get_host_cpu_arch() == 'arm64':
+      radamsa_path = environment.get_default_tool_path('radamsa')
+    else:
+      radamsa_path = os.path.join(bin_directory_path, 'mac', 'radamsa')
+  else:
+    return None
 
-  if platform == 'MAC':
-    return os.path.join(bin_directory_path, 'mac', 'radamsa')
-
-  return None
+  os.chmod(radamsa_path, 0o755)
+  return radamsa_path
 
 
 def get_new_testcase_mutations_timeout():

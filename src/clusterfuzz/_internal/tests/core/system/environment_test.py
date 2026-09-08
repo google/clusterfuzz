@@ -547,3 +547,96 @@ class GetDefaultToolPathTest(unittest.TestCase):
     self.assertEqual('/resources/platform/linux/llvm-symbolizer',
                      environment.get_default_tool_path('llvm-symbolizer'))
     self.mock.get_platform_resources_directory.assert_called_once_with('linux')
+
+
+class GetPlatformResourcesDirectoryTest(unittest.TestCase):
+  """Tests for get_platform_resources_directory."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.get_resources_directory',
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.system.environment.get_host_cpu_arch',
+    ])
+    self.mock.get_resources_directory.return_value = '/resources'
+
+  def test_mac_x86_64(self):
+    """Test macOS x86_64 platform resources directory."""
+    self.mock.platform.return_value = 'MAC'
+    self.mock.get_host_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('/resources/platform/mac',
+                     environment.get_platform_resources_directory())
+
+  def test_mac_arm64(self):
+    """Test macOS ARM64 platform resources directory."""
+    self.mock.platform.return_value = 'MAC'
+    self.mock.get_host_cpu_arch.return_value = 'arm64'
+    self.assertEqual('/resources/platform/mac_arm64',
+                     environment.get_platform_resources_directory())
+
+  def test_linux(self):
+    """Test Linux x86_64 platform resources directory."""
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.get_host_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('/resources/platform/linux',
+                     environment.get_platform_resources_directory())
+
+  def test_android(self):
+    """Test Android platform resources directory ignores arm64 subdir."""
+    self.mock.platform.return_value = 'ANDROID'
+    self.mock.get_host_cpu_arch.return_value = 'arm64'
+    self.assertEqual('/resources/platform/android',
+                     environment.get_platform_resources_directory())
+
+  def test_android_x86_64(self):
+    """Test Android platform resources directory ignores x86_64 subdir."""
+    self.mock.platform.return_value = 'ANDROID'
+    self.mock.get_host_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('/resources/platform/android',
+                     environment.get_platform_resources_directory())
+
+  def test_android_emulator(self):
+    """Test Android platform resources directory ignores x86_64 subdir.
+    Tests `ANDROID_EMULATOR` platform check on the function how Platform is
+    mocked `test_get_spec_from_config_for_android_emulator`.
+    """
+    self.mock.platform.return_value = 'ANDROID_EMULATOR'
+    self.mock.get_host_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('/resources/platform/android',
+                     environment.get_platform_resources_directory())
+
+  def test_android_auto(self):
+    """Test Android platform resources directory ignores x86_64 subdir."""
+    self.mock.platform.return_value = 'ANDROID_AUTO'
+    self.mock.get_host_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('/resources/platform/android',
+                     environment.get_platform_resources_directory())
+
+  def test_platform_override_mac(self):
+    """Test platform_override with mac on x86_64."""
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.get_host_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('/resources/platform/mac',
+                     environment.get_platform_resources_directory('mac'))
+
+  def test_platform_override_mac_arm64(self):
+    """Test platform_override with mac on arm64."""
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.get_host_cpu_arch.return_value = 'arm64'
+    self.assertEqual('/resources/platform/mac_arm64',
+                     environment.get_platform_resources_directory('mac'))
+
+  def test_platform_override_android(self):
+    """Test platform_override with android."""
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.get_host_cpu_arch.return_value = 'arm64'
+    self.assertEqual('/resources/platform/android',
+                     environment.get_platform_resources_directory('android'))
+
+  def test_platform_override_android_x86_64(self):
+    """Test platform_override with android x86_64."""
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.get_host_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('/resources/platform/android',
+                     environment.get_platform_resources_directory('android'))

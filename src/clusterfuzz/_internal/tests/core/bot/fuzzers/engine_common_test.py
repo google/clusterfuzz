@@ -481,6 +481,55 @@ class GetRadamsaOutputFilenameTest(unittest.TestCase):
     self.assertLessEqual(len(output_filename), filename_length_limit)
 
 
+class GetRadamsaPathTest(unittest.TestCase):
+  """get_radamsa_path tests."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.platform',
+        'os.chmod',
+        'platform.machine',
+    ])
+    self.resources_dir = environment.get_resources_directory()
+    self.bin_dir = os.path.join(
+        os.path.dirname(os.path.realpath(engine_common.__file__)), 'bin')
+
+  def test_linux(self):
+    """Test Linux radamsa path."""
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.machine.return_value = 'x86_64'
+    expected = os.path.join(self.bin_dir, 'linux', 'radamsa')
+    self.assertEqual(expected, engine_common.get_radamsa_path())
+    self.assertTrue(os.path.isfile(expected))
+    self.mock.chmod.assert_called_once_with(expected, 0o755)
+
+  def test_mac_arm64(self):
+    """Test macOS ARM64 radamsa path."""
+    self.mock.platform.return_value = 'MAC'
+    self.mock.machine.return_value = 'arm64'
+    expected = os.path.join(self.resources_dir, 'platform', 'mac_arm64',
+                            'radamsa')
+    self.assertEqual(expected, engine_common.get_radamsa_path())
+    self.assertTrue(os.path.isfile(expected))
+    self.mock.chmod.assert_called_once_with(expected, 0o755)
+
+  def test_mac_x86_64(self):
+    """Test macOS x86_64 radamsa path."""
+    self.mock.platform.return_value = 'MAC'
+    self.mock.machine.return_value = 'x86_64'
+    expected = os.path.join(self.bin_dir, 'mac', 'radamsa')
+    self.assertEqual(expected, engine_common.get_radamsa_path())
+    self.assertTrue(os.path.isfile(expected))
+    self.mock.chmod.assert_called_once_with(expected, 0o755)
+
+  def test_windows_unsupported(self):
+    """Test unsupported platform returns None."""
+    self.mock.platform.return_value = 'WINDOWS'
+    self.assertIsNone(engine_common.get_radamsa_path())
+    self.mock.chmod.assert_not_called()
+
+
 class ProcessSanitizerOptionsOverridesTest(fake_filesystem_unittest.TestCase):
   """process_sanitizer_options_overrides tests."""
 
