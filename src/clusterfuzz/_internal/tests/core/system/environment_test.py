@@ -273,8 +273,9 @@ class ResetCurrentMemoryToolOptionsTest(unittest.TestCase):
     test_helpers.patch_environ(self)
 
   def test_windows_symbolizer(self):
-    """Test that the reset_current_memory_tool_options returns the expected path
-    to the llvm symbolizer on Windows."""
+    """Test that reset_current_memory_tool_options defaults to offline
+    symbolization on Windows, and updates symbolizer path only when
+    symbolize=1."""
     os.environ['JOB_NAME'] = 'windows_libfuzzer_chrome_asan'
     test_helpers.patch(self, [
         'clusterfuzz._internal.system.environment.platform',
@@ -284,6 +285,14 @@ class ResetCurrentMemoryToolOptionsTest(unittest.TestCase):
     windows_symbolizer_path = (
         r'c:\clusterfuzz\resources\platform\windows\llvm-symbolizer.exe')
     self.mock.get_llvm_symbolizer_path.return_value = windows_symbolizer_path
+
+    # By default, Windows ASan uses offline symbolization (symbolize=0).
+    environment.reset_current_memory_tool_options()
+    self.assertIn('symbolize=0', os.environ['ASAN_OPTIONS'])
+    self.assertNotIn('external_symbolizer_path', os.environ['ASAN_OPTIONS'])
+
+    # When symbolize=1 is explicitly requested, external_symbolizer_path is added.
+    os.environ['ADDITIONAL_ASAN_OPTIONS'] = 'symbolize=1'
     environment.reset_current_memory_tool_options()
     self.assertIn('external_symbolizer_path="%s"' % windows_symbolizer_path,
                   os.environ['ASAN_OPTIONS'])

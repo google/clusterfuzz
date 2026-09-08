@@ -196,9 +196,9 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   # Add common sanitizer options.
   asan_options.update(COMMON_SANITIZER_OPTIONS)
 
-  # FIXME: For Windows, rely on online symbolization since llvm-symbolizer.exe
-  # in build archive does not work.
-  asan_options['symbolize'] = int(bot_platform == 'WINDOWS')
+  # Disable online symbolization across all platforms; offline symbolizer is
+  # used instead.
+  asan_options['symbolize'] = 0
 
   # For Android, allow user defined segv handler to work.
   if is_android(bot_platform):

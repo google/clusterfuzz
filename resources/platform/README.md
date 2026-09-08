@@ -4,41 +4,50 @@ This directory contains prebuilt binaries (such as `llvm-symbolizer`) used for c
 
 ## Updating `llvm-symbolizer`
 
-Platform symbolizer binaries are extracted from the Clang toolchain distributed via [CIPD](https://chrome-infra-packages.appspot.com/).
+Prebuilt Clang toolchains can be downloaded directly from:
+`https://commondatastorage.googleapis.com/chromium-browser-clang/{PLATFORM}/clang-{VERSION}.tar.xz`
 
-### Target Packages
+### Target Platforms
 
 | Platform | `$PLATFORM` | Target Path |
 | :--- | :--- | :--- |
-| Linux | `linux-amd64` | `resources/platform/linux/llvm-symbolizer` |
-| macOS | `mac-amd64` | `resources/platform/mac/llvm-symbolizer` |
-| Windows | `windows-amd64` | `resources/platform/windows/llvm-symbolizer.exe` |
+| Linux | `Linux_x64` | `resources/platform/linux/llvm-symbolizer` |
+| macOS (Intel) | `Mac` | `resources/platform/mac/llvm-symbolizer` |
+| macOS (ARM64) | `Mac_arm64` | `resources/platform/mac/llvm-symbolizer` |
+| Windows | `Win` | `resources/platform/windows/llvm-symbolizer.exe` |
+
+### Finding the Clang Version
+
+To check the latest Clang revision from Chromium:
+```bash
+curl -s "https://chromium.googlesource.com/chromium/src/+/main/tools/clang/scripts/update.py?format=TEXT" \
+  | base64 -d | grep -E "CLANG_(REVISION|SUB_REVISION)"
+```
+Combine the output as `<CLANG_REVISION>-<CLANG_SUB_REVISION>` (e.g., `llvmorg-24-init-3796-g20e97c4b-5`).
 
 ### Steps
 
+Note: Add `.exe` to `llvm-symbolizer` for Windows.
+
 ```bash
-# 1. Set platform variables
-PLATFORM="linux-amd64" # linux-amd64 | mac-amd64 | windows-amd64
-OS="linux"             # linux | mac | windows
+# 1. Set platform and version
+PLATFORM="Linux_x64"  # Linux_x64 | Mac | Mac_arm64 | Win
+OS="linux"            # linux | mac | windows
+VERSION="<VERSION>"   # e.g., llvmorg-24-init-3796-g20e97c4b-5
 
-# 2. Export Clang toolchain from CIPD
+# 2. Download the archive
 mkdir -p /tmp/clang
-cipd export -root /tmp/clang -ensure-file - <<CIPD_EOF
-fuchsia/third_party/clang/${PLATFORM} latest
-CIPD_EOF
+curl -s -o /tmp/clang/clang.tar.xz \
+  "https://commondatastorage.googleapis.com/chromium-browser-clang/${PLATFORM}/clang-${VERSION}.tar.xz"
 
-# 3. Copy binary and set permissions
-# Note: add .exe to llvm-symbolizer if windows (llvm-symbolizer.exe)
+# 3. Extract llvm-symbolizer (use bin/llvm-symbolizer.exe for Windows)
+tar -xJf /tmp/clang/clang.tar.xz -C /tmp/clang bin/llvm-symbolizer
+
+# 4. Copy binary and set permissions (use llvm-symbolizer.exe for Windows)
 cp "/tmp/clang/bin/llvm-symbolizer" "resources/platform/${OS}/llvm-symbolizer"
 chmod 0755 "resources/platform/${OS}/llvm-symbolizer"
 
-# 4. Clean up temporary files
+# 5. Clean up temporary files
 rm -rf /tmp/clang
-
-```
-
-To list available package instances:
-```bash
-cipd instances "fuchsia/third_party/clang/${PLATFORM}" -limit 5
 ```
 
