@@ -2383,3 +2383,44 @@ class UpdateSeverityLabelsTest(unittest.TestCase):
     self.assertNotIn('Security_Severity-High', self.issue.labels)
     self.assertIn('Security_Severity-Medium', self.issue.labels)
     self.assertIn('different from what was assigned', result)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class CleanupInvalidFuzzerJobsTest(unittest.TestCase):
+  """Tests for cleanup_invalid_fuzzer_jobs."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+    # Valid Fuzzer and Job.
+    data_types.Fuzzer(name='valid_fuzzer').put()
+    data_types.Job(name='valid_job').put()
+
+  def test_cleanup_invalid_fuzzer_jobs(self):
+    """Test cleaning up FuzzerJob entities when Fuzzer or Job does not exist."""
+    # Valid mapping: both fuzzer and job exist.
+    valid_mapping = data_types.FuzzerJob(
+        fuzzer='valid_fuzzer', job='valid_job', platform='LINUX')
+    valid_mapping.put()
+
+    # Invalid mapping: fuzzer does not exist.
+    invalid_fuzzer_mapping = data_types.FuzzerJob(
+        fuzzer='nonexistent_fuzzer', job='valid_job', platform='LINUX')
+    invalid_fuzzer_mapping.put()
+
+    # Invalid mapping: job does not exist.
+    invalid_job_mapping = data_types.FuzzerJob(
+        fuzzer='valid_fuzzer', job='nonexistent_job', platform='LINUX')
+    invalid_job_mapping.put()
+
+    # Invalid mapping: neither fuzzer nor job exists.
+    invalid_both_mapping = data_types.FuzzerJob(
+        fuzzer='nonexistent_fuzzer', job='nonexistent_job', platform='LINUX')
+    invalid_both_mapping.put()
+
+    cleanup.cleanup_invalid_fuzzer_jobs()
+
+    remaining_fuzzer_jobs = list(data_types.FuzzerJob.query())
+    self.assertEqual(len(remaining_fuzzer_jobs), 1)
+    self.assertEqual(remaining_fuzzer_jobs[0].fuzzer, 'valid_fuzzer')
+    self.assertEqual(remaining_fuzzer_jobs[0].job, 'valid_job')
