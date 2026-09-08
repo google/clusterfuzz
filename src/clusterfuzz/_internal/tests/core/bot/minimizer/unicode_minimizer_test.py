@@ -50,7 +50,8 @@ class UnicodeMinimizerTest(unittest.TestCase):
         self._mock_test_function)
 
   def _mock_test_function(self, data_file):
-    data = open(data_file, 'rb').read()
+    with open(data_file, 'rb') as f:
+      data = f.read()
     if data in self.crash_programs:
       return False
     if data in self.no_crash_programs:

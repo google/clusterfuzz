@@ -35,6 +35,7 @@ from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -57,6 +58,20 @@ MEMCACHE_TTL_IN_SECONDS = 30 * 60
 
 NUM_TESTCASE_QUALITY_BITS = 3
 MAX_TESTCASE_QUALITY = 2**NUM_TESTCASE_QUALITY_BITS - 1
+
+# Testcase metadata keys that must hold an integer revision. These end up
+# interpolated into the admin-configured REVISION_VARS_URL template (see
+# revisions.get_component_revisions_dict) and rendered on the testcase detail
+# page, so untrusted workers must never be able to store arbitrary strings in
+# them.
+NUMERIC_METADATA_KEYS = frozenset({
+    'last_progression_max',
+    'last_progression_min',
+    'last_regression_max',
+    'last_regression_min',
+    'last_tested_crash_revision',
+    'last_tested_revision',
+})
 
 # Value and dimension map for some crash types (timeout, ooms).
 CRASH_TYPE_VALUE_REGEX_MAP = {
@@ -1211,6 +1226,37 @@ def bot_run_timed_out():
 # ------------------------------------------------------------------------------
 
 
+def check_job_supports_untrusted_workloads(job_name: str,
+                                           platform_id: str = None) -> None:
+  """Checks that the named job can run untrusted testcases or fuzzers.
+
+  Raises:
+    ValueError: if the job can run on privileged bots and should never run
+      an untrusted workload.
+  """
+  job = data_types.Job.query(data_types.Job.name == job_name).get()
+  if not job:
+    raise ValueError(f'Job "{job_name}" not found.')
+
+  # 1. This restriction is currently specific to Chromium deployments.
+  if not utils.is_chromium():
+    return
+
+  # 2. It only applies when running with Remote Utasks (e.g., GCP Batch),
+  # where privilege separation (tworkers vs uworkers) is enforced.
+  if not task_utils.is_remotely_executing_utasks():
+    return
+
+  # 3. In remote mode, unprivileged uworkers (where untrusted code must run)
+  # are implemented as Linux containers. Thus, non-Linux jobs cannot support
+  # untrusted workloads in this setup.
+
+  if (platform_id or job.platform).lower() != 'linux':
+    raise ValueError(
+        f'Job "{job_name}" does not support running untrusted workloads. '
+        'Untrusted workloads on Chrome are only supported on Linux.')
+
+
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_component_name(job_type):
   """Gets component name for a job type."""
@@ -1887,6 +1933,29 @@ def clear_progression_pending(testcase):
     return
 
   testcase.delete_metadata('progression_pending', update_testcase=False)
+
+
+def sanitize_issue_metadata(metadata):
+  """Return |metadata| with entries an untrusted worker must not control
+  dropped. Revision keys are coerced to int, and entries that cannot be coerced
+  are dropped."""
+  sanitized = {}
+  for key, value in metadata.items():
+    if not isinstance(key, str):
+      logs.warning(f'Ignoring non-string issue metadata key: {key!r}')
+      continue
+
+    if key in NUMERIC_METADATA_KEYS:
+      try:
+        value = int(value)
+      except (TypeError, ValueError):
+        logs.warning(
+            f'Ignoring non-integer issue metadata for {key}: {value!r}')
+        continue
+
+    sanitized[key] = value
+
+  return sanitized
 
 
 def update_progression_completion_metadata(testcase,

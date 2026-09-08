@@ -327,8 +327,11 @@ def _get_revision_range_html(job_type,
   component_rev_list = revisions.get_component_range_list(
       start_revision, end_revision, job_type, platform_id=platform_id)
   if not component_rev_list:
-    return ('%s:%s (No component revisions found!)' % (start_revision,
-                                                       end_revision))
+    # The revisions may come from testcase metadata written by an untrusted
+    # worker, and the result of this function is bound with inner-h-t-m-l.
+    return ('%s:%s (No component revisions found!)' %
+            (html.escape(str(start_revision), quote=True),
+             html.escape(str(end_revision), quote=True)))
 
   return revisions.format_revision_list(component_rev_list)
 

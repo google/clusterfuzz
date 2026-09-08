@@ -228,7 +228,8 @@ class IntegrationTest(unittest.TestCase):
                      timeout_per_input=None,
                      rss_limit=centipede_constants.RSS_LIMIT_MB_DEFAULT,
                      centipede_bin=None,
-                     sanitized_target_dir=None):
+                     sanitized_target_dir=None,
+                     max_time=MAX_TIME):
     """Run Centipede for other unittest."""
     if centipede_bin is None:
       centipede_bin = self.test_paths.centipede
@@ -257,7 +258,7 @@ class IntegrationTest(unittest.TestCase):
 
     options.arguments = arguments.list()
     results = engine_impl.fuzz(target_path, options, self.test_paths.crashes,
-                               MAX_TIME)
+                               max_time)
 
     expected_command = [self.test_paths.centipede]
     expected_args = fuzzer_options.FuzzerArguments(
@@ -278,6 +279,8 @@ class IntegrationTest(unittest.TestCase):
     expected_args[centipede_constants.RSS_LIMIT_MB_FLAGNAME] = rss_limit
 
     expected_command.extend(expected_args.list())
+    expected_command.append(
+        f'--{centipede_constants.STOP_AFTER_FLAGNAME}={max_time}s')
 
     self.compare_arguments(expected_command, results.command)
     return results
@@ -306,7 +309,8 @@ class IntegrationTest(unittest.TestCase):
                             rss_limit=centipede_constants.RSS_LIMIT_MB_DEFAULT,
                             centipede_bin=None,
                             target_name='clusterfuzz_format_target',
-                            sanitized_target_dir=None):
+                            sanitized_target_dir=None,
+                            max_time=MAX_TIME):
     """Fuzzes the target and check if regex matches Centipede's crash log."""
     if centipede_bin is None:
       centipede_bin = self.test_paths.centipede
@@ -315,7 +319,8 @@ class IntegrationTest(unittest.TestCase):
         timeout_per_input=timeout_per_input,
         rss_limit=rss_limit,
         centipede_bin=centipede_bin,
-        sanitized_target_dir=sanitized_target_dir)
+        sanitized_target_dir=sanitized_target_dir,
+        max_time=max_time)
 
     # Check there is one and only one expected crash.
     self.assertEqual(1, len(results.crashes))
@@ -381,7 +386,8 @@ class IntegrationTest(unittest.TestCase):
     self._test_crash_log_regex(
         constants.CENTIPEDE_TIMEOUT_REGEX,
         'slo',
-        timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
+        timeout_per_input=_TIMEOUT_PER_INPUT_TEST,
+        max_time=15)
 
   def test_minimize_corpus(self):
     """Tests minimizing a corpus."""

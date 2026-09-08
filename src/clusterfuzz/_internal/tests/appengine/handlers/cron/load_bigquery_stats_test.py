@@ -38,7 +38,8 @@ class LoadBigQueryStatsTest(unittest.TestCase):
         'clusterfuzz._internal.cron.load_bigquery_stats._utc_now',
     ])
 
-    self.mock._utc_now.return_value = datetime.datetime(2016, 9, 8)  # pylint: disable=protected-access
+    self.mocked_today = datetime.datetime(2016, 9, 8)
+    self.mock._utc_now.return_value = self.mocked_today  # pylint: disable=protected-access
     self.mock_bigquery = mock.MagicMock()
     self.mock.get_api_client.return_value = self.mock_bigquery
     self.mock.get.return_value = {'schema': 'schema'}
@@ -48,10 +49,8 @@ class LoadBigQueryStatsTest(unittest.TestCase):
         },
     }
 
-  def test_execute(self):
-    """Tests executing of cron job."""
-    load_bigquery_stats.main()
-
+  def _assert_load_calls(self, expected_date_str):
+    """Helper method to assert BigQuery dataset, table, and load job API calls."""
     self.mock_bigquery.datasets().insert.assert_has_calls([
         mock.call(
             projectId='test-clusterfuzz',
@@ -108,7 +107,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                           'load': {
                               'destinationTable': {
                                   'projectId': 'test-clusterfuzz',
-                                  'tableId': 'JobRun$20160907',
+                                  'tableId': f'JobRun${expected_date_str}',
                                   'datasetId': 'fuzzer_stats'
                               },
                               'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
@@ -117,7 +116,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                                   if i == 0 else 'WRITE_APPEND',
                               'sourceUris': [
                                   'gs://test-bigquery-bucket/fuzzer/JobRun/date/'
-                                  '20160907/' + prefix + '*.json'
+                                  f'{expected_date_str}/' + prefix + '*.json'
                               ],
                               'sourceFormat':
                                   'NEWLINE_DELIMITED_JSON',
@@ -209,9 +208,12 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                       'configuration': {
                           'load': {
                               'destinationTable': {
-                                  'projectId': 'test-clusterfuzz',
-                                  'tableId': 'TestcaseRun$20160907',
-                                  'datasetId': 'fuzzer_stats'
+                                  'projectId':
+                                      'test-clusterfuzz',
+                                  'tableId':
+                                      f'TestcaseRun${expected_date_str}',
+                                  'datasetId':
+                                      'fuzzer_stats'
                               },
                               'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
                               'writeDisposition':
@@ -219,7 +221,8 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                                   if i == 0 else 'WRITE_APPEND',
                               'sourceUris': [
                                   'gs://test-bigquery-bucket/fuzzer/TestcaseRun/'
-                                  'date/20160907/' + prefix + '*.json'
+                                  f'date/{expected_date_str}/' + prefix +
+                                  '*.json'
                               ],
                               'sourceFormat':
                                   'NEWLINE_DELIMITED_JSON',
@@ -234,3 +237,15 @@ class LoadBigQueryStatsTest(unittest.TestCase):
           # Otherwise we need to mock two calls to mock.call().execute().__str__()
           # which does not seem to work well.
           any_order=True)
+
+  def test_execute(self):
+    """Tests executing of cron job without a date argument (defaults to yesterday)."""
+    load_bigquery_stats.main()
+    expected_yesterday = (self.mocked_today.date() -
+                          datetime.timedelta(days=1)).strftime('%Y%m%d')
+    self._assert_load_calls(expected_yesterday)
+
+  def test_execute_with_date(self):
+    """Tests executing of cron job with an explicit date."""
+    load_bigquery_stats.main(['--date', '2016-10-15'])
+    self._assert_load_calls('20161015')

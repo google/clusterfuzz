@@ -248,11 +248,11 @@ class UpdateSourceCodeIntegrationTest(unittest.TestCase):
     zipfile_path = os.path.join(self._make_temp_dir(), 'linux.zip')
     storage.copy_file_from('gs://clusterfuzz-deployment/linux-3.zip',
                            zipfile_path)
-    archive = zipfile.ZipFile(zipfile_path)
-    for file in archive.namelist():
-      if os.path.basename(file) == 'adb':
-        continue
-      self.assertTrue(os.path.exists(os.path.join(self.temp_directory, file)))
+    with zipfile.ZipFile(zipfile_path) as archive:
+      for file in archive.namelist():
+        if os.path.basename(file) == 'adb':
+          continue
+        self.assertTrue(os.path.exists(os.path.join(self.temp_directory, file)))
 
   def test_archive_execute_permission_is_respected(self):
     """Tests that the exectuable bit is correctly propagated to source files."""
@@ -260,11 +260,11 @@ class UpdateSourceCodeIntegrationTest(unittest.TestCase):
     zipfile_path = os.path.join(self._make_temp_dir(), 'linux.zip')
     storage.copy_file_from('gs://clusterfuzz-deployment/linux-3.zip',
                            zipfile_path)
-    archive = zipfile.ZipFile(zipfile_path)
-    for member in archive.infolist():
-      if os.path.basename(member.filename) == 'adb':
-        continue
-      mode = (member.external_attr >> 16) & 0o7777
-      filepath = os.path.join(self.temp_directory, member.filename)
-      if mode & 0o100:
-        self.assertTrue(os.access(filepath, os.X_OK))
+    with zipfile.ZipFile(zipfile_path) as archive:
+      for member in archive.infolist():
+        if os.path.basename(member.filename) == 'adb':
+          continue
+        mode = (member.external_attr >> 16) & 0o7777
+        filepath = os.path.join(self.temp_directory, member.filename)
+        if mode & 0o100:
+          self.assertTrue(os.access(filepath, os.X_OK))

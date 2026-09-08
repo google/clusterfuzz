@@ -15,9 +15,7 @@
 
 import json
 import time
-from typing import Dict
 from typing import List
-from typing import Optional
 
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import errors
@@ -309,11 +307,16 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
   return uworker_msg_pb2.Output(progression_task_output=progression_task_output)  # pylint: disable=no-member
 
 
-def _update_issue_metadata(testcase: data_types.Testcase, metadata: Dict):
-  if not metadata:
+MetadataValue = str | int | float | bool | None
+
+
+def _update_issue_metadata(testcase: data_types.Testcase,
+                           metadata: dict[str, MetadataValue]) -> None:
+  """Updates testcase issue metadata with validated values."""
+  if not metadata or not isinstance(metadata, dict):
     return
 
-  for key, value in metadata.items():
+  for key, value in data_handler.sanitize_issue_metadata(metadata).items():
     old_value = testcase.get_metadata(key)
     if old_value != value:
       logs.info(
@@ -323,7 +326,7 @@ def _update_issue_metadata(testcase: data_types.Testcase, metadata: Dict):
 
 def _testcase_reproduces_in_revision(
     testcase: data_types.Testcase, testcase_file_path: str, job_type: str,
-    revision: int, fuzz_target: Optional[data_types.FuzzTarget],
+    revision: int, fuzz_target: data_types.FuzzTarget | None,
     progression_task_output: uworker_msg_pb2.ProgressionTaskOutput):  # pylint: disable=no-member
   """Tests to see if a test case reproduces in the specified revision.
   Returns a tuple containing the (result, error) depending on whether

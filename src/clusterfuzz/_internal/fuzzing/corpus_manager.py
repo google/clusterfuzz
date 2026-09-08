@@ -450,9 +450,14 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
         self._filenames_to_delete_urls_mapping)) or
             len(filenames_to_delete) < 1_000)
 
-    logs.info('Deleting files.')
-    storage.delete_signed_urls(filenames_to_delete)
-    logs.info('Done files.')
+    if delete:
+      logs.info('Deleting files.')
+      storage.delete_signed_urls(filenames_to_delete)
+      logs.info('Done files.')
+      for filename, delete_url in filenames_to_delete_dict.items():
+        if delete_url and filename in self._filenames_to_delete_urls_mapping:
+          del self._filenames_to_delete_urls_mapping[filename]
+
     logs.info(f'Corpus. {results.count(True)} uploaded. '
               f'{len(filenames_to_delete)} deleted. '
               f'{len(self._filenames_to_delete_urls_mapping)} originally.')

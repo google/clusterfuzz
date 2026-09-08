@@ -112,6 +112,7 @@ class MinimizeTaskTestUntrusted(
     """Set up."""
     super().setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
+    environment.set_value('UWORKER', True)
 
     patcher = mock.patch(
         'clusterfuzz._internal.bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.fuzzer_directory',
@@ -353,6 +354,14 @@ class UTaskPostprocessTest(unittest.TestCase):
     # contains blob keys for uploaded testcase and stacktrace.
     self.assertFalse(self.mock.delete_blob.called)
 
+  def test_invalid_testcase_does_not_raise(self):
+    """Checks that an output with a non-existent testcase id returns cleanly."""
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self._get_generic_input())
+    uworker_output.uworker_input.testcase_id = '999999'
+    minimize_task.utask_postprocess(uworker_output)
+    self.assertFalse(self.mock.finalize_testcase.called)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UTaskMainTest(unittest.TestCase):
@@ -376,7 +385,7 @@ class UTaskMainTest(unittest.TestCase):
     setup_testcase.return_value = ([], '/path', None)
     del setup_build
     del check_app_path
-    testcase = data_types.Testcase()
+    testcase = data_types.Testcase(trusted=True)
     testcase.put()
     environment.set_value('FAIL_WAIT', 10)
     uworker_input = uworker_msg_pb2.Input(
@@ -399,7 +408,8 @@ class JsMinimizeTest(unittest.TestCase):
 
     def mock_test_function_unicode_dependent(data_file):
       """If crash -> False, otherwise -> True."""
-      data = open(data_file, 'rb').read()
+      with open(data_file, 'rb') as f:
+        data = f.read()
 
       if data == b'consol\\u0065.log(42);':
         return False
@@ -417,7 +427,8 @@ class JsMinimizeTest(unittest.TestCase):
 
     def mock_test_function_unicode_independent(data_file):
       """If crash -> False, otherwise -> True."""
-      data = open(data_file, 'rb').read()
+      with open(data_file, 'rb') as f:
+        data = f.read()
 
       if data in (b'consol\\u0065.log(42);', b'console.log(42);'):
         return False

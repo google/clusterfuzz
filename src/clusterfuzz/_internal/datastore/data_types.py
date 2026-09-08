@@ -347,11 +347,24 @@ class Fuzzer(Model):
   # reward flags.
   external_contribution = ndb.BooleanProperty(default=False)
 
+  # Primary owner for this fuzzer (e.g. for VRP attribution).
+  # Note: Setting this overrides the bug reporter on filed issues in the issue
+  # tracker, which may affect downstream workflows or automations expecting the
+  # default ClusterFuzz reporter email.
+  primary_owner = ndb.StringProperty()
+
   # Max testcases to generate for this fuzzer.
   max_testcases = ndb.IntegerProperty()
 
   # Does it run un-trusted content ? Examples including running live sites.
   untrusted_content = ndb.BooleanProperty(default=False)
+
+  # Whether this fuzzer is trusted or not.
+  # Untrusted fuzzers can only execute on unprivileged bots, as
+  # they might produce malicious outputs. All the testcases they
+  # produce are also treated as untrusted.
+  # See also `data_handler.check_job_supports_untrusted_workloads()`.
+  trusted = ndb.BooleanProperty(default=True)
 
   # Data bundle name.
   data_bundle_name = ndb.StringProperty(default='')
@@ -1336,7 +1349,7 @@ def fuzz_target_project_qualified_name(project, binary):
 
 class FuzzTargetsCount(Model):
   """Fuzz targets count for every job. Key IDs are the job name."""
-  count = ndb.IntegerProperty(indexed=False)
+  count = ndb.IntegerProperty()
 
 
 class FuzzTargetJob(Model):

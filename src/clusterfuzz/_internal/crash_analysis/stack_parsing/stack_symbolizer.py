@@ -28,10 +28,12 @@
 # Disable all pylint warnings/errors as this is based on external code.
 # pylint: disable-all
 
+import collections
 import os
 import re
 import subprocess
 import sys
+import threading
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -240,7 +242,10 @@ class LLVMSymbolizer(Symbolizer):
     self.default_arch = default_arch
     self.system = system
     self.dsym_hints = dsym_hints
+    self.stderr_buffer = collections.deque(maxlen=100)
     self.pipe = self.open_llvm_symbolizer()
+    self.crashed = False
+    self.last_successful_frame = None
 
   def open_llvm_symbolizer(self):
     if not os.path.exists(self.symbolizer_path):
@@ -255,7 +260,10 @@ class LLVMSymbolizer(Symbolizer):
         '--functions=linkage',
         '--inlining=%s' % stack_inlining,
     ]
-    if self.system == 'darwin':
+    if self.system == 'darwin' and self.symbolizer_path != environment.get_default_tool_path(
+        'llvm-symbolizer'):
+      # TODO(crbug.com/532093354): Remove --cache-size once llvm-symbolizer is fixed.
+      cmd.append('--cache-size=%d' % (5 * 1024 * 1024 * 1024))  # 5 GiB
       for hint in self.dsym_hints:
         cmd.append('--dsym-hint=%s' % hint)
 
@@ -270,7 +278,19 @@ class LLVMSymbolizer(Symbolizer):
 
     # Run the symbolizer.
     pipe = subprocess.Popen(
-        cmd, env=env_copy, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        cmd,
+        env=env_copy,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+    def read_stderr(p, buffer):
+      for line in iter(p.stderr.readline, b''):
+        buffer.append(line.decode('utf-8', errors='replace'))
+
+    self.stderr_thread = threading.Thread(
+        target=read_stderr, args=(pipe, self.stderr_buffer), daemon=True)
+    self.stderr_thread.start()
 
     global pipes
     pipes.append(pipe)
@@ -280,6 +300,9 @@ class LLVMSymbolizer(Symbolizer):
 
   def symbolize(self, addr, binary, offset):
     """Overrides Symbolizer.symbolize."""
+    if self.crashed:
+      return None
+
     if not binary.strip():
       return ['%s in' % addr]
 
@@ -294,11 +317,27 @@ class LLVMSymbolizer(Symbolizer):
           break
 
         file_name = self.pipe.stdout.readline().rstrip().decode('utf-8')
-        result.append(get_stack_frame(binary, addr, function_name, file_name))
+        frame = get_stack_frame(binary, addr, function_name, file_name)
+        result.append(frame)
+        self.last_successful_frame = frame
 
-    except Exception:
-      logs.error('Symbolization using llvm-symbolizer failed for: "%s".' %
-                 symbolizer_input)
+      if self.pipe.poll() is not None:
+        raise RuntimeError("llvm-symbolizer process ended")
+
+    except Exception as e:
+      self.crashed = True
+      return_code = self.pipe.poll()
+      if return_code is not None:
+        self.stderr_thread.join(timeout=0.1)
+      stderr_content = ''.join(self.stderr_buffer).strip()
+      stderr_msg = f' Stderr: {stderr_content}' if stderr_content else ''
+      exit_msg = f' (exit code {return_code})' if return_code is not None else ''
+
+      log_msg = f'Symbolization using llvm-symbolizer failed{exit_msg} for: "{symbolizer_input}".\n'
+      log_msg += f' Previously symbolized: {self.last_successful_frame}.\n'
+      log_msg += stderr_msg
+      logs.error(log_msg)
+
       result = []
     if not result:
       result = None
@@ -558,18 +597,50 @@ class SymbolizationLoop:
   def _close_pipes(self):
     """Closes any open pipes."""
     for pipe in pipes:
-      pipe.stdin.close()
-      pipe.stdout.close()
+      try:
+        pipe.stdin.close()
+      except Exception as e:
+        logs.warning(f'Failed to close symbolizer stdin pipe: {e}')
+
+      try:
+        pipe.stdout.close()
+      except Exception as e:
+        logs.warning(f'Failed to close symbolizer stdout pipe: {e}')
+
       try:
         pipe.kill()
       except ProcessLookupError:
         pass
 
+  def _can_process_trusty_stack_trace(self, trusty_app, trusty_bid) -> bool:
+    """Checks whether the trusty stacktrace can be processed.
+
+    Uworker bots can't access DB nor GCS, which are required to process the
+    trusty stacktrace. This checks if the current bot context 
+    is able to process the stacktrace.
+
+    Args:
+      trusty_app: The name of the crashed Trusted App.
+      trusty_bid: The build ID of the crashed Trusted App.
+
+    Returns:
+      True if the trusty stacktrace can be processed, False otherwise.
+    """
+    symbols_dir = environment.get_value('SYMBOLS_DIR')
+    return bool(
+        trusty_app and trusty_bid and
+        (symbols_dir or not environment.is_uworker()))
+
   def process_trusty_stacktrace(self, unsymbolized_crash_stacktrace):
     """Adds debug line information to a Trusted App stacktrace."""
-    symbols_dir = environment.get_value('SYMBOLS_DIR')
     trusty_app = self._extract_trusty_app_name(unsymbolized_crash_stacktrace)
     trusty_bid = self._extract_trusty_bid(unsymbolized_crash_stacktrace)
+    symbols_dir = environment.get_value('SYMBOLS_DIR')
+    if not self._can_process_trusty_stack_trace(trusty_app, trusty_bid):
+      logs.warning('Wont process trusty stacktrace, missing one of: '
+                   f'trusty_app={trusty_app}, trusty_bid={trusty_bid}, '
+                   f'SYMBOLS_DIR={symbols_dir}')
+      return unsymbolized_crash_stacktrace
 
     symbols_downloader.download_trusty_symbols_if_needed(
         symbols_dir, trusty_app, trusty_bid)
@@ -713,11 +784,12 @@ def symbolize_stacktrace(unsymbolized_crash_stacktrace,
   loop = SymbolizationLoop(
       binary_path_filter=filter_binary_path,
       dsym_hint_producer=chrome_dsym_hints)
+  symbolized_crash_stacktrace = unsymbolized_crash_stacktrace
   if environment.is_android_emulator():
     symbolized_crash_stacktrace = loop.process_trusty_stacktrace(
-        unsymbolized_crash_stacktrace)
+        symbolized_crash_stacktrace)
 
   symbolized_crash_stacktrace = loop.process_stacktrace(
-      unsymbolized_crash_stacktrace)
+      symbolized_crash_stacktrace)
 
   return symbolized_crash_stacktrace

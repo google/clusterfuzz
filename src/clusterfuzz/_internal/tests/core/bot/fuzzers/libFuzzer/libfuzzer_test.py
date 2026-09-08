@@ -186,24 +186,22 @@ class GetRunnerTest(unittest.TestCase):
     test_helpers.patch_environ(self)
 
   @mock.patch('os.chmod')
-  def test_cwd_is_build_dir(self, _):
-    """Test that FUZZ_TARGET_CWD_IS_BUILD_DIR causes cwd to be set to BUILD_DIR"""
-    environment.set_value('BUILD_DIR', '/build/dir')
-    environment.set_value('FUZZ_TARGET_CWD_IS_BUILD_DIR', True)
+  def test_cwd_is_target_dir(self, _):
+    """Test that FUZZ_TARGET_CWD_IS_TARGET_DIR causes cwd to be set to target directory."""
+    environment.set_value('FUZZ_TARGET_CWD_IS_TARGET_DIR', True)
     environment.set_value('USE_MINIJAIL', False)
 
-    runner = libfuzzer.get_runner('/fake/path')
+    runner = libfuzzer.get_runner('/fake/path/binary')
 
     self.assertIsInstance(runner, libfuzzer.LibFuzzerRunner)
-    self.assertEqual(runner.cwd, '/build/dir')
+    self.assertEqual(runner.cwd, '/fake/path')
 
   @mock.patch('os.chmod')
   def test_no_default_cwd(self, _):
-    """Test that cwd is None when FUZZ_TARGET_CWD_IS_BUILD_DIR is not set."""
-    environment.set_value('BUILD_DIR', '/build/dir')
+    """Test that cwd is None when FUZZ_TARGET_CWD_IS_TARGET_DIR is not set."""
     environment.set_value('USE_MINIJAIL', False)
 
-    runner = libfuzzer.get_runner('fake/path')
+    runner = libfuzzer.get_runner('/fake/path/binary')
 
     self.assertIsInstance(runner, libfuzzer.LibFuzzerRunner)
     self.assertIsNone(runner.cwd)

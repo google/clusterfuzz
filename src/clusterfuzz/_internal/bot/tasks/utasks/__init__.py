@@ -22,7 +22,9 @@ from typing import Optional
 from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal import swarming
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base.tasks import task_utils
+from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -246,7 +248,11 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     if task_succeeded:
       error_condition = 'N/A'
     elif _exc_type:
-      error_condition = 'UNHANDLED_EXCEPTION'
+      if issubclass(_exc_type,
+                    (errors.Error, testcase_manager.TestcaseManagerError)):
+        error_condition = _exc_type.__name__
+      else:
+        error_condition = 'UNHANDLED_EXCEPTION'
     else:
       error_condition = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
           self.utask_main_failure)

@@ -1135,9 +1135,10 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     temp_dir = fuzzer_utils.get_temp_dir()
 
   build_dir = environment.get_value('BUILD_DIR')
+  target_dir = os.path.dirname(fuzzer_path)
 
-  cwd = build_dir if environment.get_value(
-      'FUZZ_TARGET_CWD_IS_BUILD_DIR') else None
+  cwd = target_dir if environment.get_value(
+      'FUZZ_TARGET_CWD_IS_TARGET_DIR') else None
 
   is_android = environment.is_android()
   is_fuchsia = environment.platform() == 'FUCHSIA'
@@ -1195,7 +1196,7 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
     runner = LibFuzzerRunner(fuzzer_path, cwd=cwd)
 
   if cwd and not isinstance(runner, LibFuzzerRunner):
-    logs.warning('FUZZ_TARGET_CWD_IS_BUILD_DIR is only supported for standard '
+    logs.warning('FUZZ_TARGET_CWD_IS_TARGET_DIR is only supported for standard '
                  'LibFuzzerRunner and will be ignored.')
 
   return runner

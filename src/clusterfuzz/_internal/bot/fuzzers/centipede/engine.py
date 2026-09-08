@@ -320,9 +320,21 @@ class Engine(engine.Engine):
 
     old_corpus_len = shell.get_directory_file_count(options.corpus_dir)
     logs.info(f'Corpus length before fuzzing: {old_corpus_len}')
-    logs.info(f'Launching a fuzzer run with arguments: {options.arguments}')
+
+    # Centipede is the only fuzzing engine to support fuzzing durations so set
+    # that here using the max_time.
+    # Note: Sending a SIGTERM is enough for Centipede to cleanly shut down but
+    # Windows bots can only do the equivalent of SIGKILL and will benefit from
+    # the fuzzing duration flag.
+    args = list(
+        options.arguments) + [f'--{constants.STOP_AFTER_FLAGNAME}={max_time}s']
+
+    logs.info(f'Launching a fuzzer run with arguments: {args}')
     fuzz_result = runner.run_and_wait(
-        additional_args=options.arguments, timeout=timeout)
+        additional_args=args,
+        timeout=timeout,
+        terminate_before_kill=True,
+        terminate_wait_time=_CLEAN_EXIT_SECS)
     log_lines = fuzz_result.output.splitlines()
     fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
@@ -634,14 +646,20 @@ class Engine(engine.Engine):
     """
     runner = _get_runner(target_path)
     workdir = engine_common.create_temp_fuzzing_dir('workdir')
+    timeout = max_time + _CLEAN_EXIT_SECS
     args = [
         f'--binary={target_path}',
         f'--workdir={workdir}',
         f'--minimize_crash={input_path}',
         f'--num_runs={constants.NUM_RUNS_PER_MINIMIZATION}',
+        f'--{constants.STOP_AFTER_FLAGNAME}={max_time}s',
         '--seed=1',
     ]
-    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    result = runner.run_and_wait(
+        additional_args=args,
+        timeout=timeout,
+        terminate_before_kill=True,
+        terminate_wait_time=_CLEAN_EXIT_SECS)
     if result.timed_out:
       logs.warning(
           'Testcase minimization timed out.', fuzzer_output=result.output)

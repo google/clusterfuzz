@@ -214,22 +214,20 @@ def configure_system_build_properties():
 
   # Write new build.prop.
   new_build_prop_path = os.path.join(bot_tmp_directory, 'new.prop')
-  old_build_prop_file_content = open(old_build_prop_path)
-  new_build_prop_file_content = open(new_build_prop_path, 'w')
-  new_content_notification = '### CHANGED OR ADDED PROPERTIES ###'
-  for line in old_build_prop_file_content:
-    property_name = line.split('=')[0].strip()
-    if property_name in BUILD_PROPERTIES:
-      continue
-    if new_content_notification in line:
-      continue
-    new_build_prop_file_content.write(line)
+  with open(old_build_prop_path) as old_build_prop_file_content, \
+      open(new_build_prop_path, 'w') as new_build_prop_file_content:
+    new_content_notification = '### CHANGED OR ADDED PROPERTIES ###'
+    for line in old_build_prop_file_content:
+      property_name = line.split('=')[0].strip()
+      if property_name in BUILD_PROPERTIES:
+        continue
+      if new_content_notification in line:
+        continue
+      new_build_prop_file_content.write(line)
 
-  new_build_prop_file_content.write(new_content_notification + '\n')
-  for flag, value in BUILD_PROPERTIES.items():
-    new_build_prop_file_content.write('%s=%s\n' % (flag, value))
-  old_build_prop_file_content.close()
-  new_build_prop_file_content.close()
+    new_build_prop_file_content.write(new_content_notification + '\n')
+    for flag, value in BUILD_PROPERTIES.items():
+      new_build_prop_file_content.write('%s=%s\n' % (flag, value))
 
   # Keep verified boot disabled for M and higher releases. This makes it easy
   # to modify system's app_process to load asan libraries.

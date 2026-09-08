@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for fuzzers.utils."""
 
+import json
 import os
 import shutil
 import tempfile
@@ -148,3 +149,128 @@ class GetSupportingFileTest(unittest.TestCase):
     """Test par extension."""
     self.assertEqual('/a/b.labels',
                      utils.get_supporting_file('/a/b.par', '.labels'))
+
+
+class GetFuzzTargetsLocalTest(unittest.TestCase):
+  """Tests for get_fuzz_targets_local."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.metrics.logs.warning',
+    ])
+    self.temp_dir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+  def _create_file(self, name, contents=b''):
+    path = os.path.join(self.temp_dir, name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'wb') as f:
+      f.write(contents)
+    return path
+
+  def test_manifest_targets_used(self):
+    """Test that clusterfuzz_manifest.json is used to find targets."""
+    manifest_target = self._create_file(
+        'manifest_target', contents=b'LLVMFuzzerTestOneInput')
+    self._create_file('not_a_fuzzer', contents=b'LLVMFuzzerTestOneInput')
+    manifest_contents = json.dumps({
+        'archive_schema_version': 1,
+        'fuzz_targets': ['manifest_target']
+    }).encode('utf-8')
+    self._create_file('clusterfuzz_manifest.json', contents=manifest_contents)
+
+    targets = utils.get_fuzz_targets_local(self.temp_dir)
+    self.assertEqual([manifest_target], targets)
+
+  def test_manifest_missing_fallback(self):
+    """Test fallback to scanning when manifest is missing."""
+    file_target_a = self._create_file(
+        'file_target_a_fuzzer', contents=b'LLVMFuzzerTestOneInput')
+    file_target_b = self._create_file(
+        'file_target_b_fuzzer', contents=b'LLVMFuzzerTestOneInput')
+
+    targets = utils.get_fuzz_targets_local(self.temp_dir)
+    self.assertCountEqual([file_target_a, file_target_b], targets)
+
+  def test_manifest_invalid_entries_skipped(self):
+    """Test that non-string entries in manifest fuzz_targets are skipped."""
+    manifest_target = self._create_file(
+        'manifest_target', contents=b'LLVMFuzzerTestOneInput')
+    manifest_contents = json.dumps({
+        'archive_schema_version': 1,
+        'fuzz_targets': [123, None, 'manifest_target', {
+            'invalid': 'dict'
+        }]
+    }).encode('utf-8')
+    self._create_file('clusterfuzz_manifest.json', contents=manifest_contents)
+
+    targets = utils.get_fuzz_targets_local(self.temp_dir)
+    self.assertEqual([manifest_target], targets)
+
+  def test_manifest_without_fuzz_targets_fallback(self):
+    """Test fallback to scanning when fuzz_targets property is missing."""
+    file_target = self._create_file(
+        'file_target_fuzzer', contents=b'LLVMFuzzerTestOneInput')
+    manifest_contents = json.dumps({
+        'archive_schema_version': 1
+    }).encode('utf-8')
+    self._create_file('clusterfuzz_manifest.json', contents=manifest_contents)
+
+    targets = utils.get_fuzz_targets_local(self.temp_dir)
+    self.assertEqual([file_target], targets)
+
+  def test_manifest_empty_fuzz_targets(self):
+    """Test that an empty fuzz_targets list in manifest returns an empty list without fallback."""
+    self._create_file('file_target_fuzzer', contents=b'LLVMFuzzerTestOneInput')
+    manifest_contents = json.dumps({
+        'archive_schema_version': 1,
+        'fuzz_targets': []
+    }).encode('utf-8')
+    self._create_file('clusterfuzz_manifest.json', contents=manifest_contents)
+
+    targets = utils.get_fuzz_targets_local(self.temp_dir)
+    self.assertEqual([], targets)
+
+
+class ExtractFuzzTargetsFromManifestTest(unittest.TestCase):
+  """Tests for extract_fuzz_targets_from_manifest."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.metrics.logs.warning',
+    ])
+
+  def test_extract_valid(self):
+    manifest = {'fuzz_targets': ['manifest_target1', 'manifest_target2']}
+    result = utils.extract_fuzz_targets_from_manifest(manifest)
+    self.assertEqual(['manifest_target1', 'manifest_target2'], result)
+
+  def test_extract_empty_fuzz_targets(self):
+    manifest = {'fuzz_targets': []}
+    result = utils.extract_fuzz_targets_from_manifest(manifest)
+    self.assertEqual([], result)
+
+  def test_extract_missing_fuzz_targets(self):
+    manifest = {'archive_schema_version': 1}
+    result = utils.extract_fuzz_targets_from_manifest(manifest)
+    self.assertIsNone(result)
+
+  def test_extract_invalid_not_dict(self):
+    manifest = 'invalid'
+    result = utils.extract_fuzz_targets_from_manifest(manifest)
+    self.assertIsNone(result)
+
+  def test_extract_invalid_fuzz_targets_type(self):
+    manifest = {'fuzz_targets': 'not_a_list'}
+    result = utils.extract_fuzz_targets_from_manifest(manifest)
+    self.assertIsNone(result)
+
+  def test_extract_mixed_entries(self):
+    manifest = {'fuzz_targets': ['foo_fuzzer', 123, None, 'bar_fuzzer']}
+    result = utils.extract_fuzz_targets_from_manifest(manifest)
+    self.assertEqual(['foo_fuzzer', 'bar_fuzzer'], result)

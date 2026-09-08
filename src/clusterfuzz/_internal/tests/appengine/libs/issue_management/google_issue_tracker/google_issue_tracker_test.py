@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for issue_tracker."""
 
+import copy
 import datetime
 import unittest
 from unittest import mock
@@ -153,6 +154,30 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     self.assertFalse(issue.is_open)
     self.assertEqual(
         datetime.datetime(2019, 6, 24, 6, 40, 7, 672), issue.closed_time)
+
+  def test_is_unrestricted_limit_none(self):
+    """Test is_unrestricted returns True when accessLevel is LIMIT_NONE."""
+    issue_data = copy.deepcopy(BASIC_ISSUE)
+    issue_data['issueState']['accessLimit'] = {'accessLevel': 'LIMIT_NONE'}
+    self.client.issues().get().execute.return_value = issue_data
+    issue = self.issue_tracker.get_issue(68828938)
+    self.assertTrue(issue.is_unrestricted)
+
+  def test_is_unrestricted_limit_view(self):
+    """Test is_unrestricted returns False when accessLevel is LIMIT_VIEW."""
+    issue_data = copy.deepcopy(BASIC_ISSUE)
+    issue_data['issueState']['accessLimit'] = {'accessLevel': 'LIMIT_VIEW'}
+    self.client.issues().get().execute.return_value = issue_data
+    issue = self.issue_tracker.get_issue(68828938)
+    self.assertFalse(issue.is_unrestricted)
+
+  def test_is_unrestricted_no_access_limit(self):
+    """Test is_unrestricted returns False when no accessLimit field."""
+    issue_data = copy.deepcopy(BASIC_ISSUE)
+    issue_data['issueState'].pop('accessLimit', None)
+    self.client.issues().get().execute.return_value = issue_data
+    issue = self.issue_tracker.get_issue(68828938)
+    self.assertFalse(issue.is_unrestricted)
 
   def test_get_labels(self):
     """Test getting labels."""

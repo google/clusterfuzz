@@ -1361,11 +1361,27 @@ def _error_tolerant_delete_signed_url(url: str):
     logs.warning(f'Failed to delete: {url}')
 
 
+def _should_use_threads(urls):
+  """Returns True if threads should be used for operations on |urls|."""
+  if environment.get_value('USE_THREADED_STORAGE_OPS'):
+    if urls:
+      # TODO(paulovlb): Remove this once fixed.
+      logs.info(
+          f'[Corpus Fix] Using threads for GCS operations on URL: {urls[0]}')
+    return True
+  return False
+
+
 def upload_signed_urls(signed_urls: List[str], files: List[str]) -> List[bool]:
+  """Uploads files to signed URLs."""
   if not signed_urls:
     return []
   logs.info('Uploading URLs.')
-  with concurrency.make_pool(_POOL_SIZE) as pool:
+  use_threads = _should_use_threads(signed_urls)
+  if use_threads:
+    # TODO(paulovlb): Remove this once fixed.
+    logs.info('[Corpus Fix] Using thread pool for uploading URLs.')
+  with concurrency.make_pool(_POOL_SIZE, use_threads=use_threads) as pool:
     result = list(
         pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
   logs.info('Done uploading URLs.')
@@ -1394,7 +1410,11 @@ def download_signed_urls(signed_urls: List[str],
   urls_and_filepaths = list(zip(signed_urls, filepaths))
 
   def synchronous_download_urls(urls_and_filepaths):
-    with concurrency.make_pool(_POOL_SIZE) as pool:
+    use_threads = _should_use_threads(signed_urls)
+    if use_threads:
+      # TODO(paulovlb): Remove this once fixed.
+      logs.info('[Corpus Fix] Using thread pool for downloading URLs.')
+    with concurrency.make_pool(_POOL_SIZE, use_threads=use_threads) as pool:
       return list(
           pool.map(_error_tolerant_download_signed_url_to_file,
                    urls_and_filepaths))
@@ -1413,10 +1433,15 @@ def download_signed_urls(signed_urls: List[str],
 
 
 def delete_signed_urls(urls):
+  """Deletes signed URLs."""
   if not urls:
     return
   logs.info('Deleting URLs.')
-  with concurrency.make_pool(_POOL_SIZE) as pool:
+  use_threads = _should_use_threads(urls)
+  if use_threads:
+    # TODO(paulovlb): Remove this once fixed.
+    logs.info('[Corpus Fix] Using thread pool for deleting URLs.')
+  with concurrency.make_pool(_POOL_SIZE, use_threads=use_threads) as pool:
     pool.map(_error_tolerant_delete_signed_url, urls)
   logs.info('Done deleting URLs.')
 

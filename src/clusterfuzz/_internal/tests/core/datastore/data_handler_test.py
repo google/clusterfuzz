@@ -665,6 +665,46 @@ class FilterStackTraceTest(fake_filesystem_unittest.TestCase):
     data_types.STACKTRACE_LENGTH_LIMIT = self.limit
 
 
+class SanitizeIssueMetadataTest(unittest.TestCase):
+  """Test sanitize_issue_metadata."""
+
+  def test_non_revision_keys_pass_through(self):
+    """Ensure keys that are not revisions are left alone."""
+    metadata = {'issue_labels': 'a,b', 'issue_owners': 'someone@example.com'}
+    self.assertEqual(metadata, data_handler.sanitize_issue_metadata(metadata))
+
+  def test_revision_keys_coerced_to_int(self):
+    """Ensure revision keys are coerced to int."""
+    sanitized = data_handler.sanitize_issue_metadata({
+        'last_tested_crash_revision': '1337',
+        'last_progression_min': 42,
+    })
+    self.assertEqual({
+        'last_tested_crash_revision': 1337,
+        'last_progression_min': 42,
+    }, sanitized)
+
+  def test_non_integer_revisions_dropped(self):
+    """Ensure revision values that are not integers are dropped.
+
+    These end up interpolated into REVISION_VARS_URL and rendered on the
+    testcase detail page, so an untrusted worker must not control them."""
+    for value in [
+        'refs/changes/12/12345/1/x/DEPS?format=text#',
+        '<img src=x onerror=alert(1)>',
+        None,
+        ['1337'],
+        {},
+    ]:
+      for key in data_handler.NUMERIC_METADATA_KEYS:
+        sanitized = data_handler.sanitize_issue_metadata({key: value})
+        self.assertEqual({}, sanitized, f'{key}={value!r} was not dropped')
+
+  def test_non_string_keys_dropped(self):
+    """Ensure non-string keys are dropped."""
+    self.assertEqual({}, data_handler.sanitize_issue_metadata({1: 'a'}))
+
+
 @test_utils.with_cloud_emulators('datastore')
 class AddBuildMetadataTest(unittest.TestCase):
   """Test add_build_metadata."""

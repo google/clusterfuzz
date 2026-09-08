@@ -22,6 +22,7 @@ from unittest import mock
 from google.protobuf import timestamp_pb2
 import parameterized
 
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
@@ -168,6 +169,28 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.assertEqual(task_event.task_name, 'mock_task')
     self.assertEqual(task_event.task_id, 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868')
     self.mock.emit.assert_called_once_with(task_event)
+
+  def test_user_defined_exception_recorded(self):
+    """Tests that a user defined error is recorded with its class name."""
+    self.mock._get_execution_mode.return_value = utasks.Mode.BATCH
+    module = mock.MagicMock(__name__='mock_task')
+    module.utask_preprocess.side_effect = errors.InvalidTestcaseError(123)
+    task_utils._TESTCASE_BASED_TASKS.add('mock')
+
+    with self.assertRaises(errors.InvalidTestcaseError):
+      utasks.tworker_preprocess(module, self.TASK_ARGUMENT, self.JOB_TYPE,
+                                self.UWORKER_ENV)
+
+    labels = {
+        'task': 'mock',
+        'subtask': 'preprocess',
+        'mode': 'batch',
+        'platform': 'LINUX',
+        'task_succeeded': False,
+        'error_condition': 'InvalidTestcaseError',
+    }
+    count = monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.get(labels)
+    self.assertEqual(1, count)
 
 
 class SetUworkerEnvTest(unittest.TestCase):

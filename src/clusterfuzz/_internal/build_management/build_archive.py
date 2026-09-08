@@ -40,6 +40,7 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'afl-showmap',
     'afl-tmin',
     'centipede',
+    'clusterfuzz_manifest.json',
     'honggfuzz',
     'jazzer_agent_deploy.jar',
     'jazzer_driver',
@@ -53,6 +54,10 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     # data needed by tests that initially exist in the source tree.
     'src_root',
 ]
+
+# Manifest file present in Chrome build archives. Specifies the archive
+# schema version along with optional build metadata (e.g., fuzz targets).
+CHROME_MANIFEST_FILENAME = 'clusterfuzz_manifest.json'
 
 
 class BuildArchive(archive.ArchiveReader):
@@ -309,7 +314,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     self._manifest_fuzz_targets = None
     # The manifest may not exist for earlier versions of archives. In this
     # case, default to schema version 0.
-    manifest_path = 'clusterfuzz_manifest.json'
+    manifest_path = os.path.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
     if not self.file_exists(manifest_path):
       self._archive_schema_version = default_archive_schema_version
       return
@@ -323,21 +328,11 @@ class ChromeBuildArchive(DefaultBuildArchive):
           'archive_schema_version field')
       self._archive_schema_version = default_archive_schema_version
 
-    fuzz_target_paths = manifest.get('fuzz_targets')
-    if fuzz_target_paths is None:
-      return
+    # Import here as this path is not available in App Engine context.
+    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
-    if not isinstance(fuzz_target_paths, list):
-      logs.error('fuzz_targets in clusterfuzz_manifest.json is not a list')
-      return
-
-    self._manifest_fuzz_targets = []
-    for target_path in fuzz_target_paths:
-      if isinstance(target_path, str):
-        self._manifest_fuzz_targets.append(target_path)
-      else:
-        logs.error('Entry in fuzz_targets (clusterfuzz_manifest.json) is not a '
-                   f'string: {target_path}')
+    self._manifest_fuzz_targets = (
+        fuzzer_utils.extract_fuzz_targets_from_manifest(manifest))
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
@@ -350,7 +345,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
 
   @override
   def find_fuzz_targets(self) -> List[str]:
-    if self._manifest_fuzz_targets:
+    if self._manifest_fuzz_targets is not None:
       return self._manifest_fuzz_targets
     return super().find_fuzz_targets()
 
@@ -421,12 +416,23 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return [
         'args.gn',
         'llvm-symbolizer',
+        'clusterfuzz_manifest.json',
     ]
 
   def get_target_dependencies(
       self, fuzz_target: str) -> List[archive.ArchiveMemberInfo]:
     target_path = self.get_path_for_target(fuzz_target)
-    deps_file = f'{target_path}.runtime_deps'
+    if not target_path:
+      logs.warning(f'Target path not found for {fuzz_target}')
+      return super().get_target_dependencies(fuzz_target)
+
+    # On Windows, `target_path` ends in `.exe`, but the Chrome convention is for
+    # `.runtime_deps` files to not include the `.exe` suffix. For example:
+    # ./fuzzer.exe
+    # ./fuzzer.runtime_deps
+    # So the `.exe` suffix must be stripped before appending `.runtime_deps`.
+    target_name = target_path.removesuffix('.exe')
+    deps_file = f'{target_name}.runtime_deps'
     if not self.file_exists(deps_file):
       logs.warning(f'runtime_deps file not found for {target_path}')
       return super().get_target_dependencies(fuzz_target)
@@ -469,12 +475,13 @@ def open_with_reader(reader: archive.ArchiveReader) -> BuildArchive:
   # archive implementation to use.
   # Hopefully, we can search in the archive whether some files are present and
   # give us some hints.
-  # For instance, chrome build archives are embedding `gn.args`. Let's use
-  # this for now.
+  # For instance, chrome build archives contain `args.gn` and/or
+  # `clusterfuzz_manifest.json`. Let's use this for now.
   # Being wrong is no big deal here, because BuildArchive is designed so that
   # we always fall back on default behaviour.
   args_gn_path = os.path.join(reader.root_dir(), 'args.gn')
-  if reader.file_exists(args_gn_path):
+  manifest_path = os.path.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
+  if reader.file_exists(args_gn_path) or reader.file_exists(manifest_path):
     return ChromeBuildArchive(reader)
   return DefaultBuildArchive(reader)
 

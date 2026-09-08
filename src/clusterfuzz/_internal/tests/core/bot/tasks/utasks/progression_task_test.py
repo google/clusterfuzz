@@ -487,6 +487,28 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     }, json.loads(testcase.additional_metadata))
     self.assertIsNone(testcase.crash_type)
 
+  def test_update_issue_metadata_valid_integers(self):
+    """Test updating integer metadata with valid values."""
+    progression_task._update_issue_metadata(self.testcase, {  # pylint: disable=protected-access
+        'last_tested_crash_revision': 12345,
+        'last_progression_min': '100',
+    })
+    testcase = self.testcase.key.get()
+    metadata = json.loads(testcase.additional_metadata)
+    self.assertEqual(metadata.get('last_tested_crash_revision'), 12345)
+    self.assertEqual(metadata.get('last_progression_min'), 100)
+
+  def test_update_issue_metadata_invalid_integers_rejected(self):
+    """Test that invalid integer strings are ignored."""
+    progression_task._update_issue_metadata(self.testcase, {  # pylint: disable=protected-access
+        'last_tested_crash_revision': 'EVIL/DEPS?x=',
+        'last_progression_max': 'not_a_number',
+    })
+    testcase = self.testcase.key.get()
+    metadata = json.loads(testcase.additional_metadata)
+    self.assertNotIn('last_tested_crash_revision', metadata)
+    self.assertNotIn('last_progression_max', metadata)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
