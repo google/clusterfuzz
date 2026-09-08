@@ -34,6 +34,7 @@ class FeatureFlags(Enum):
   GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
 
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
+  CHROME_FUZZ_TARGET_CPUS = 'chrome_fuzz_target_cpus'
 
   SWARMING_REMOTE_EXECUTION = 'swarming_remote_execution'
   # TODO(b/516630567): Set this value based off dev & stage metrics and tests.
