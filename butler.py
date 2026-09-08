@@ -33,6 +33,8 @@ from local.butler import guard
 
 guard.check()
 
+from local.butler import constants
+
 
 class _ArgumentParser(argparse.ArgumentParser):
   """Custom ArgumentParser."""
@@ -125,7 +127,9 @@ def _add_package_subparser(toplevel_subparsers):
   parser_package = toplevel_subparsers.add_parser(
       'package', help='Package clusterfuzz with a staging revision')
   parser_package.add_argument(
-      '-p', '--platform', choices=['linux', 'macos', 'windows', 'all'])
+      '-p',
+      '--platform',
+      choices=list(constants.DEPLOYMENT_TARGETS.keys()) + ['all'])
   parser_package.add_argument(
       '-r',
       '--release',

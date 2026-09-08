@@ -17,6 +17,7 @@ import ast
 import enum
 import functools
 import os
+import platform as platform_util
 import re
 import socket
 import subprocess
@@ -227,8 +228,14 @@ def get_cpu_arch():
     from clusterfuzz._internal.platforms import android
     return android.settings.get_cpu_arch()
 
-  # FIXME: Add support for desktop architectures as needed.
-  return None
+  machine = platform_util.machine().lower()
+  if machine in ('arm64', 'aarch64'):
+    return 'arm64'
+  if machine in ('x86_64', 'amd64'):
+    return 'x86_64'
+  if machine in ('i386', 'i686', 'x86'):
+    return 'x86'
+  return machine or None
 
 
 def get_current_memory_tool_var():
@@ -271,7 +278,7 @@ def get_instrumented_libraries_paths():
 
 
 def get_default_tool_path(tool_name):
-  """Get the default tool for this platform (from scripts/ dir)."""
+  """Get the default tool for this platform (from resources/ directory)."""
   if is_android():
     # For android devices, we do symbolization on the host machine, which is
     # linux. So, we use the linux version of llvm-symbolizer.

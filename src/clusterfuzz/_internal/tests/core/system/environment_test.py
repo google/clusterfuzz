@@ -469,3 +469,72 @@ class LocalNoopTest(unittest.TestCase):
       return 10
 
     self.assertEqual(None, test_function())
+
+
+class GetCpuArchTest(unittest.TestCase):
+  """Tests for get_cpu_arch."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_android',
+        'platform.machine',
+        'clusterfuzz._internal.platforms.android.settings.get_cpu_arch',
+    ])
+    self.mock.is_android.return_value = False
+
+  def test_android(self):
+    """Test Android architecture delegation."""
+    self.mock.is_android.return_value = True
+    self.mock.get_cpu_arch.return_value = 'arm64_v8a'
+    self.assertEqual('arm64_v8a', environment.get_cpu_arch())
+
+  def test_arm64(self):
+    """Test ARM64 architecture detection."""
+    self.mock.machine.return_value = 'arm64'
+    self.assertEqual('arm64', environment.get_cpu_arch())
+
+  def test_aarch64(self):
+    """Test aarch64 normalized to arm64."""
+    self.mock.machine.return_value = 'aarch64'
+    self.assertEqual('arm64', environment.get_cpu_arch())
+
+  def test_x86_64(self):
+    """Test x86_64 architecture detection."""
+    self.mock.machine.return_value = 'x86_64'
+    self.assertEqual('x86_64', environment.get_cpu_arch())
+
+  def test_amd64(self):
+    """Test amd64 normalized to x86_64."""
+    self.mock.machine.return_value = 'AMD64'
+    self.assertEqual('x86_64', environment.get_cpu_arch())
+
+
+class GetDefaultToolPathTest(unittest.TestCase):
+  """Tests for get_default_tool_path."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_android',
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.system.environment.get_platform_resources_directory',
+    ])
+    self.mock.is_android.return_value = False
+    self.mock.platform.return_value = 'MAC'
+    self.mock.get_platform_resources_directory.return_value = (
+        '/resources/platform/mac')
+
+  def test_desktop(self):
+    """Test getting default tool path on desktop."""
+    self.assertEqual('/resources/platform/mac/llvm-symbolizer',
+                     environment.get_default_tool_path('llvm-symbolizer'))
+
+  def test_android(self):
+    """Test getting default tool path for Android uses host linux directory."""
+    self.mock.is_android.return_value = True
+    self.mock.get_platform_resources_directory.return_value = (
+        '/resources/platform/linux')
+    self.assertEqual('/resources/platform/linux/llvm-symbolizer',
+                     environment.get_default_tool_path('llvm-symbolizer'))
+    self.mock.get_platform_resources_directory.assert_called_once_with('linux')

@@ -533,7 +533,7 @@ def execute(args):
     platforms = ['linux']  # No other platforms required.
   elif args.prod:
     revision = common.compute_prod_revision()
-    platforms = list(constants.PLATFORMS.keys())
+    platforms = list(constants.DEPLOYMENT_TARGETS.keys())
   else:
     print('Please specify either --prod or --staging. For production '
           'deployments, you probably want to use deploy.sh from your '
