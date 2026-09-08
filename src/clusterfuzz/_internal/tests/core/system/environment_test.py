@@ -547,3 +547,44 @@ class GetDefaultToolPathTest(unittest.TestCase):
     self.assertEqual('/resources/platform/linux/llvm-symbolizer',
                      environment.get_default_tool_path('llvm-symbolizer'))
     self.mock.get_platform_resources_directory.assert_called_once_with('linux')
+
+
+class GetPlatformResourcesDirectoryTest(unittest.TestCase):
+  """Tests for get_platform_resources_directory."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.get_resources_directory',
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.system.environment.get_cpu_arch',
+    ])
+    self.mock.get_resources_directory.return_value = '/resources'
+
+  def test_mac_x86_64(self):
+    """Test macOS x86_64 platform resources directory."""
+    self.mock.platform.return_value = 'MAC'
+    self.mock.get_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('/resources/platform/mac',
+                     environment.get_platform_resources_directory())
+
+  def test_mac_arm64(self):
+    """Test macOS ARM64 platform resources directory."""
+    self.mock.platform.return_value = 'MAC'
+    self.mock.get_cpu_arch.return_value = 'arm64'
+    self.assertEqual('/resources/platform/mac/arm64',
+                     environment.get_platform_resources_directory())
+
+  def test_linux(self):
+    """Test Linux x86_64 platform resources directory."""
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.get_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('/resources/platform/linux',
+                     environment.get_platform_resources_directory())
+
+  def test_android(self):
+    """Test Android platform resources directory ignores arm64 subdir."""
+    self.mock.platform.return_value = 'ANDROID'
+    self.mock.get_cpu_arch.return_value = 'arm64'
+    self.assertEqual('/resources/platform/android',
+                     environment.get_platform_resources_directory())
