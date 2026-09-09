@@ -240,12 +240,22 @@ class LoadBigQueryStatsTest(unittest.TestCase):
 
   def test_execute(self):
     """Tests executing of cron job without a date argument (defaults to yesterday)."""
-    load_bigquery_stats.main()
+    self.assertTrue(load_bigquery_stats.main())
     expected_yesterday = (self.mocked_today.date() -
                           datetime.timedelta(days=1)).strftime('%Y%m%d')
     self._assert_load_calls(expected_yesterday)
 
   def test_execute_with_date(self):
     """Tests executing of cron job with an explicit date."""
-    load_bigquery_stats.main(['--date', '2016-10-15'])
+    self.assertTrue(load_bigquery_stats.main(['--date', '2016-10-15']))
     self._assert_load_calls('20161015')
+
+  def test_execute_failure(self):
+    """Tests executing of cron job when a load job returns errors."""
+    self.mock_bigquery.jobs().get().execute.return_value = {
+        'status': {
+            'state': 'DONE',
+            'errors': ['Sample error'],
+        },
+    }
+    self.assertFalse(load_bigquery_stats.main(['--date', '2016-10-15']))
