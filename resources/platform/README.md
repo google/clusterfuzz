@@ -15,7 +15,7 @@ Prebuilt Clang toolchains can be downloaded directly from:
 | macOS (Intel) | `Mac` | `resources/platform/mac/llvm-symbolizer` | LLVM 8 |
 | Windows | `Win` | `resources/platform/windows/llvm-symbolizer.exe` | LLVM 24 |
 
-> TODO(@JuanMBriones): Support macOS ARM64 llvm-symbolizer.
+> TODO(b/559164517): Support macOS ARM64 llvm-symbolizer.
 
 ### Finding the Clang Version
 
