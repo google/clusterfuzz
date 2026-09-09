@@ -9,12 +9,13 @@ Prebuilt Clang toolchains can be downloaded directly from:
 
 ### Target Platforms
 
-| Platform | `$PLATFORM` | Target Path |
-| :--- | :--- | :--- |
-| Linux | `Linux_x64` | `resources/platform/linux/llvm-symbolizer` |
-| macOS (Intel) | `Mac` | `resources/platform/mac/llvm-symbolizer` |
-| macOS (ARM64) | `Mac_arm64` | `resources/platform/mac/llvm-symbolizer` |
-| Windows | `Win` | `resources/platform/windows/llvm-symbolizer.exe` |
+| Platform | `$PLATFORM` | Target Path | Version |
+| :--- | :--- | :--- | :--- |
+| Linux | `Linux_x64` | `resources/platform/linux/llvm-symbolizer` | LLVM 18 |
+| macOS (Intel) | `Mac` | `resources/platform/mac/llvm-symbolizer` | LLVM 8 |
+| Windows | `Win` | `resources/platform/windows/llvm-symbolizer.exe` | LLVM 24 |
+
+> TODO(@JuanMBriones): Support macOS ARM64 llvm-symbolizer.
 
 ### Finding the Clang Version
 
@@ -23,7 +24,7 @@ To check the latest Clang revision from Chromium:
 curl -s "https://chromium.googlesource.com/chromium/src/+/main/tools/clang/scripts/update.py?format=TEXT" \
   | base64 -d | grep -E "CLANG_(REVISION|SUB_REVISION)"
 ```
-Combine the output as `<CLANG_REVISION>-<CLANG_SUB_REVISION>` (e.g., `llvmorg-24-init-3796-g20e97c4b-5`).
+Combine the output as `<CLANG_REVISION>-<CLANG_SUB_REVISION>` (e.g., `llvmorg-24-init-7747-g62397f8b-1`).
 
 ### Steps
 
@@ -31,9 +32,9 @@ Note: Add `.exe` to `llvm-symbolizer` for Windows.
 
 ```bash
 # 1. Set platform and version
-PLATFORM="Linux_x64"  # Linux_x64 | Mac | Mac_arm64 | Win
-OS="linux"            # linux | mac | windows
-VERSION="<VERSION>"   # e.g., llvmorg-24-init-3796-g20e97c4b-5
+PLATFORM="Win"        # Linux_x64 | Mac | Win
+OS="windows"          # linux | mac | windows
+VERSION="<VERSION>"   # e.g., llvmorg-24-init-7747-g62397f8b-1
 
 # 2. Download the archive
 mkdir -p /tmp/clang
