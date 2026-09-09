@@ -380,6 +380,55 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     to_extract = [f.name for f in to_extract]
     self.assertCountEqual(to_extract, needed_files)
 
+  def test_windows_symbolizer_unpacked_schema_v1(self):
+    """Tests that llvm-symbolizer.exe is unpacked in schema v1 even if not
+    listed in runtime_deps, regardless of its directory location."""
+    self._set_archive_schema_version(1)
+    deps_entries = ['./my_fuzzer', 'my_fuzzer.runtime_deps']
+    deps_files = self._resolve_relative_dependency_paths(deps_entries)
+    archive_files = deps_files + [
+        'out/build/llvm-symbolizer.exe',
+        'out/build/my_fuzzer.exe',
+    ]
+    self._add_files_to_archive(archive_files)
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertIn('out/build/llvm-symbolizer.exe', to_extract)
+
+  def test_windows_symbolizer_unpacked_legacy(self):
+    """Tests that llvm-symbolizer.exe is unpacked under legacy schema even if
+    not listed in runtime_deps."""
+    deps_entries = ['my_fuzzer']
+    needed_files = [
+        'build/my_fuzzer.exe',
+        'build/llvm-symbolizer.exe',
+    ]
+    self._add_files_to_archive(needed_files)
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertIn('build/llvm-symbolizer.exe', to_extract)
+
+  def test_symbolizer_with_backslash_paths(self):
+    """Tests that llvm-symbolizer.exe and llvm-symbolizer with backslash path
+    separators are correctly unpacked."""
+    self._set_archive_schema_version(1)
+    deps_entries = ['./my_fuzzer', 'my_fuzzer.runtime_deps']
+    deps_files = self._resolve_relative_dependency_paths(deps_entries)
+    archive_files = deps_files + [
+        r'out\build\llvm-symbolizer.exe',
+        'out/build/my_fuzzer.exe',
+    ]
+    self._add_files_to_archive(archive_files)
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertIn(r'out\build\llvm-symbolizer.exe', to_extract)
+
 
 class ChromeBuildArchiveManifestTest(unittest.TestCase):
   """Test for reading clusterfuzz_manifest.json for Chrome archives."""
