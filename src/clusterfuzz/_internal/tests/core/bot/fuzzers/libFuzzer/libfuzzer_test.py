@@ -21,7 +21,9 @@ from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
+from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import fuzzer
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.system import environment
@@ -205,6 +207,70 @@ class GetRunnerTest(unittest.TestCase):
 
     self.assertIsInstance(runner, libfuzzer.LibFuzzerRunner)
     self.assertIsNone(runner.cwd)
+
+
+class GetArgumentsTest(unittest.TestCase):
+  """Tests for get_arguments."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    self.build_dir = os.path.join(SCRIPT_DIR, 'run_data', 'build_dir')
+
+  @mock.patch(
+      'clusterfuzz._internal.base.utils.is_chromium', return_value=False)
+  @mock.patch(
+      'clusterfuzz._internal.base.utils.default_project_name',
+      return_value='test-project')
+  def test_default_non_chromium(self, unused_project, unused_is_chromium):
+    """Test default rss_limit_mb on non-Chromium/non-Google project."""
+    fuzzer_path = os.path.join(self.build_dir, 'fake0_fuzzer')
+    arguments = fuzzer.get_arguments(fuzzer_path)
+    self.assertEqual(arguments[constants.RSS_LIMIT_FLAGNAME],
+                     constants.DEFAULT_RSS_LIMIT_MB)
+
+  @mock.patch('clusterfuzz._internal.base.utils.is_chromium', return_value=True)
+  @mock.patch(
+      'clusterfuzz._internal.base.utils.default_project_name',
+      return_value='test-project')
+  def test_default_chromium(self, unused_project, unused_is_chromium):
+    """Test default rss_limit_mb on Chromium."""
+    fuzzer_path = os.path.join(self.build_dir, 'fake0_fuzzer')
+    arguments = fuzzer.get_arguments(fuzzer_path)
+    self.assertEqual(arguments[constants.RSS_LIMIT_FLAGNAME], 0)
+
+  @mock.patch(
+      'clusterfuzz._internal.base.utils.is_chromium', return_value=False)
+  @mock.patch(
+      'clusterfuzz._internal.base.utils.default_project_name',
+      return_value='google')
+  def test_default_google_project(self, unused_project, unused_is_chromium):
+    """Test default rss_limit_mb on Google project."""
+    fuzzer_path = os.path.join(self.build_dir, 'fake0_fuzzer')
+    arguments = fuzzer.get_arguments(fuzzer_path)
+    self.assertEqual(arguments[constants.RSS_LIMIT_FLAGNAME], 0)
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.fuzzers.libFuzzer.fuzzer.psutil.virtual_memory'
+  )
+  @mock.patch('clusterfuzz._internal.base.utils.is_chromium', return_value=True)
+  def test_custom_options_override_chromium_default(self, unused_is_chromium,
+                                                    mock_vm):
+    """Test custom options override Chromium default."""
+    mock_vm.return_value.total = 64 * (1024**3)
+    fuzzer_path = os.path.join(self.build_dir, 'fake1_fuzzer')
+    arguments = fuzzer.get_arguments(fuzzer_path)
+    self.assertEqual(int(arguments[constants.RSS_LIMIT_FLAGNAME]), 12345)
+
+  def test_explicit_rss_limit_zero(self):
+    """Test explicit rss_limit_mb=0 in options is preserved."""
+    target_options = mock.MagicMock()
+    target_options.get_engine_arguments.return_value = fuzzer_options.FuzzerArguments(
+        {
+            'rss_limit_mb': 0
+        })
+    fuzzer_path = os.path.join(self.build_dir, 'fake0_fuzzer')
+    arguments = fuzzer.get_arguments(fuzzer_path, fuzzer_options=target_options)
+    self.assertEqual(arguments[constants.RSS_LIMIT_FLAGNAME], 0)
 
 
 if __name__ == '__main__':
