@@ -98,6 +98,18 @@ class Engine(engine.Engine):
     # get_fuzz_timeout returns a negative value.
     return -fuzz_timeout
 
+  def _get_arguments(self, fuzzer_path):
+    """Gets the fuzzer arguments."""
+    return fuzzer.get_arguments(fuzzer_path)
+
+  def _add_rss_limit_if_missing(self, target_path, arguments):
+    """Add rss_limit_mb from target arguments if missing."""
+    if constants.RSS_LIMIT_FLAGNAME not in arguments:
+      fuzzer_arguments = self._get_arguments(target_path)
+      if constants.RSS_LIMIT_FLAGNAME in fuzzer_arguments:
+        arguments[constants.RSS_LIMIT_FLAGNAME] = fuzzer_arguments[
+            constants.RSS_LIMIT_FLAGNAME]
+
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
@@ -111,7 +123,7 @@ class Engine(engine.Engine):
       A FuzzOptions object.
     """
     del build_dir
-    arguments = fuzzer.get_arguments(target_path)
+    arguments = self._get_arguments(target_path)
     extra_env = fuzzer.get_extra_env(target_path)
 
     if self.do_strategies:
@@ -398,6 +410,7 @@ class Engine(engine.Engine):
     # testcases, and can be removed in the distant future.
     arguments = libfuzzer.strip_fuzzing_arguments(arguments)
     arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
+    self._add_rss_limit_if_missing(target_path, arguments)
 
     arguments[constants.RUNS_FLAGNAME] = int(constants.RUNS_TO_REPRODUCE)
 
@@ -514,6 +527,8 @@ class Engine(engine.Engine):
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
+    arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
+    self._add_rss_limit_if_missing(target_path, arguments)
     merge_tmp_dir = self._create_temp_dir('merge-wd')
     logs.info(f'Starting merge with timeout {max_time}.')
 
@@ -522,7 +537,7 @@ class Engine(engine.Engine):
           [output_dir] + input_dirs,
           merge_timeout=max_time,
           tmp_dir=merge_tmp_dir,
-          additional_args=arguments,
+          additional_args=arguments.list(),
           artifact_prefix=reproducers_dir,
           merge_control_file=getattr(self, '_merge_control_file', None))
     finally:
@@ -567,13 +582,16 @@ class Engine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
 
+    arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
+    self._add_rss_limit_if_missing(target_path, arguments)
+
     minimize_tmp_dir = engine_common.create_temp_fuzzing_dir('minimize-workdir')
     result = runner.minimize_crash(
         input_path,
         output_path,
         max_time,
         artifact_prefix=minimize_tmp_dir,
-        additional_args=arguments)
+        additional_args=arguments.list())
 
     if result.timed_out:
       logs.error('Minimization timed out.', fuzzer_output=result.output)
@@ -601,13 +619,16 @@ class Engine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
 
+    arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
+    self._add_rss_limit_if_missing(target_path, arguments)
+
     cleanse_tmp_dir = engine_common.create_temp_fuzzing_dir('cleanse-workdir')
     result = runner.cleanse_crash(
         input_path,
         output_path,
         max_time,
         artifact_prefix=cleanse_tmp_dir,
-        additional_args=arguments)
+        additional_args=arguments.list())
 
     if result.timed_out:
       logs.error('Cleanse timed out.', fuzzer_output=result.output)

@@ -33,6 +33,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
+from clusterfuzz._internal.bot.fuzzers.libFuzzer import fuzzer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
@@ -400,37 +401,35 @@ class LibFuzzerRunner(BaseRunner):
 
   def get_fuzzer_flags(self):
     """Get default libFuzzer options for pruning."""
-    rss_limit = RSS_LIMIT
+    fuzzer_args = fuzzer.get_arguments(
+        self.target_path, fuzzer_options=self.fuzzer_options)
+    rss_limit = fuzzer_args.get(constants.RSS_LIMIT_FLAGNAME, constructor=int)
+
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
-    detect_leaks = 1
-    arguments = options.FuzzerArguments()
-    arguments[constants.TIMEOUT_FLAGNAME] = SINGLE_UNIT_TIMEOUT
-
     if self.fuzzer_options:
-      # Default values from above can be customized for a given fuzz target.
-      libfuzzer_arguments = self.fuzzer_options.get_engine_arguments(
-          'libfuzzer')
-
-      custom_rss_limit = libfuzzer_arguments.get(
-          'rss_limit_mb', constructor=int)
-      if custom_rss_limit:
-        rss_limit = custom_rss_limit
-
-      custom_max_len = libfuzzer_arguments.get('max_len', constructor=int)
+      custom_max_len = self.fuzzer_options.get_engine_arguments(
+          'libfuzzer').get(
+              'max_len', constructor=int)
       if custom_max_len and custom_max_len < max_len:
         max_len = custom_max_len
 
-      # Some targets might falsely report leaks all the time, so allow this to
-      # be disabled.
-      custom_detect_leaks = libfuzzer_arguments.get(
-          'detect_leaks', constructor=int)
+    # Some targets might falsely report leaks all the time, so allow this to
+    # be disabled.
+    detect_leaks = 1
+    if self.fuzzer_options:
+      custom_detect_leaks = self.fuzzer_options.get_engine_arguments(
+          'libfuzzer').get(
+              'detect_leaks', constructor=int)
       if custom_detect_leaks is not None:
         detect_leaks = custom_detect_leaks
 
-    arguments[constants.RSS_LIMIT_FLAGNAME] = rss_limit
-    arguments[constants.MAX_LEN_FLAGNAME] = max_len
-    arguments[constants.DETECT_LEAKS_FLAGNAME] = detect_leaks
-    arguments[constants.VALUE_PROFILE_FLAGNAME] = 1
+    arguments = options.FuzzerArguments({
+        constants.TIMEOUT_FLAGNAME: SINGLE_UNIT_TIMEOUT,
+        constants.RSS_LIMIT_FLAGNAME: rss_limit,
+        constants.MAX_LEN_FLAGNAME: max_len,
+        constants.DETECT_LEAKS_FLAGNAME: detect_leaks,
+        constants.VALUE_PROFILE_FLAGNAME: 1,
+    })
 
     return arguments.list()
 
