@@ -647,7 +647,9 @@ class Engine(engine.Engine):
     runner = _get_runner(target_path)
     workdir = engine_common.create_temp_fuzzing_dir('workdir')
     timeout = max_time + _CLEAN_EXIT_SECS
-    args = [
+    minimize_arguments = self._get_arguments(target_path)
+    self._strip_fuzzing_arguments(minimize_arguments)
+    args = minimize_arguments.list() + [
         f'--binary={target_path}',
         f'--workdir={workdir}',
         f'--minimize_crash={input_path}',
