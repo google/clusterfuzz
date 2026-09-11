@@ -345,6 +345,11 @@ def run_process(cmdline,
 
   if testcase_run and (crash_analyzer.is_memory_tool_crash(output) or
                        crash_analyzer.is_check_failure_crash(output)):
+    if return_code:
+      logs.warning(
+          f'Process {cmdline!r} ended with exit code {return_code}, '
+          'but crash has been detected, overriding return code to 1.',
+          output=output)
     return_code = 1
 
   # If a crash is found, then we add the memory state as well.
