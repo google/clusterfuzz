@@ -198,8 +198,8 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
   if not bid:
     build_info = fetch_artifact.get_latest_artifact_info(branch, ab_target)
     if not build_info:
-      logs.error(f'Unable to fetch build info for branch {branch} '
-                 f'and target {ab_target}.')
+      logs.warning(f'Unable to fetch build info for branch {branch} '
+                   f'and target {ab_target}.')
       return
     bid = build_info['bid']
 
