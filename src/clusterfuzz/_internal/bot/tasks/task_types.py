@@ -105,20 +105,37 @@ def is_no_privilege_workload(command, job):
 
 
 def is_remote_utask(command, job):
-  if not COMMAND_TYPES[command].is_execution_remote(command):
-    return False
+  """Returns True if the task execution is meant to happen remotely.
 
+  Remote execution indicates that the main portion of this task will run on an
+  untrusted worker without privileges, requiring the trusted worker to
+  provision resources via signed URLs."""
   if environment.is_uworker():
     # Return True even if we can't query the db.
     return True
+
+  task_cls = COMMAND_TYPES[command]
+  if command == 'fuzz' and environment.is_tworker():
+    # Fuzz tasks run locally on pooled bots (as UTaskLocalExecutor), but on
+    # orchestration tworkers they are escalated to remote UTasks.
+    is_remote = UTask.is_execution_remote(command)
+  else:
+    is_remote = task_cls.is_execution_remote(command)
+
+  if not is_remote:
+    return False
 
   return batch_service.is_remote_task(command,
                                       job) or swarming.is_swarming_task(job)
 
 
 def task_main_runs_on_uworker():
-  """This returns True if the uworker_main portion of this task is
-  unprivileged."""
+  """Returns True if the uworker_main portion of this task is unprivileged.
+
+  Determining this accurately is critical for data provisioning. If this returns
+  False during prepocess on a tworker, signed GCS URLs for datasets (like data
+  bundles) are skipped. If the task is then executed on a Cloud Batch uworker,
+  bucket downloads will silently fail (resulting in an empty corpus)."""
   command = environment.get_value('TASK_NAME')
   job = environment.get_value('JOB_NAME')
   return is_remote_utask(command, job)

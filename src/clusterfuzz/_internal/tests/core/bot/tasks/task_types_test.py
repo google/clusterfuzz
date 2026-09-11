@@ -23,6 +23,7 @@ from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import events
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -61,6 +62,129 @@ class IsRemoteUtaskTest(unittest.TestCase):
         return_value=True):
       data_types.Job(name=job_name, platform='LINUX').put()
       self.assertFalse(task_types.is_remote_utask('impact', job_name))
+
+  def test_uworker(self):
+    """Tests that is_remote_utask returns True when running on a uworker."""
+    environment.set_value('UWORKER', True)
+
+    result = task_types.is_remote_utask('fuzz', 'any_job')
+
+    self.assertTrue(result)
+
+  def test_linux_fuzz_tworker(self):
+    """Tests that on an orchestration tworker, is_remote_utask evaluates 'fuzz'
+    as remote when configured for batch, ensuring signed URLs are generated
+    during preprocess."""
+    mock_remotely_executing = mock.patch(
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        return_value=True)
+    mock_is_remote_task = mock.patch(
+        'clusterfuzz._internal.batch.service.is_remote_task', return_value=True)
+    environment.set_value('TWORKER', True)
+
+    with mock_remotely_executing, mock_is_remote_task:
+      result = task_types.is_remote_utask('fuzz', 'linux_asan_chrome')
+
+    self.assertTrue(result)
+
+  def test_linux_fuzz_tworker_swarming(self):
+    """Tests that on an orchestration tworker, is_remote_utask returns False for
+    fuzz if the task is not targeting remote batch or swarming."""
+    mock_remotely_executing = mock.patch(
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        return_value=True)
+    mock_is_remote_task = mock.patch(
+        'clusterfuzz._internal.batch.service.is_remote_task',
+        return_value=False)
+    mock_is_swarming = mock.patch(
+        'clusterfuzz._internal.swarming.is_swarming_task', return_value=False)
+    environment.set_value('TWORKER', True)
+
+    with mock_remotely_executing, mock_is_remote_task, mock_is_swarming:
+      result = task_types.is_remote_utask('fuzz', 'linux_asan_chrome')
+
+    self.assertFalse(result)
+
+  def test_linux_fuzz_trusted_pooled_bot(self):
+    """Tests that trusted pooled bots (e.g. Windows, Mac, or legacy Linux bots
+    which run fuzz tasks end-to-end locally) evaluate is_remote_utask as False.
+    """
+    mock_remotely_executing = mock.patch(
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        return_value=True)
+    mock_is_remote_task = mock.patch(
+        'clusterfuzz._internal.batch.service.is_remote_task', return_value=True)
+    environment.set_value('TWORKER', False)
+    environment.set_value('UWORKER', False)
+
+    with mock_remotely_executing, mock_is_remote_task:
+      result = task_types.is_remote_utask('fuzz', 'linux_asan_chrome')
+
+    self.assertFalse(result)
+
+  def test_trusted_tworker(self):
+    """Tests that on an orchestration tworker, is_remote_utask returns False non
+    fuzz tasks on batch."""
+    mock_remotely_executing = mock.patch(
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        return_value=True)
+    mock_is_remote_task = mock.patch(
+        'clusterfuzz._internal.batch.service.is_remote_task', return_value=True)
+    environment.set_value('TWORKER', True)
+
+    with mock_remotely_executing, mock_is_remote_task:
+      result = task_types.is_remote_utask('impact', 'linux_asan_chrome')
+
+    self.assertFalse(result)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TaskMainRunsOnUworkerTest(unittest.TestCase):
+  """Tests for task_main_runs_on_uworker."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        'clusterfuzz._internal.batch.service.is_remote_task',
+    ])
+    self.mock.is_remotely_executing_utasks.return_value = True
+    self.mock.is_remote_task.return_value = True
+
+  def test_fuzz_tworker(self):
+    """Tests that task_main_runs_on_uworker returns True during preprocess on
+    an orchestration tworker for a batch fuzz task, triggering signed URL
+    generation for data bundles."""
+    environment.set_value('TASK_NAME', 'fuzz')
+    environment.set_value('JOB_NAME', 'linux_asan_chrome')
+    environment.set_value('TWORKER', True)
+
+    result = task_types.task_main_runs_on_uworker()
+
+    self.assertTrue(result)
+
+  def test_fuzz_trusted_pooled_bot(self):
+    """Tests that task_main_runs_on_uworker returns False on trusted pooled bots
+    """
+    environment.set_value('TASK_NAME', 'fuzz')
+    environment.set_value('JOB_NAME', 'linux_asan_chrome')
+    environment.set_value('TWORKER', False)
+    environment.set_value('UWORKER', False)
+
+    result = task_types.task_main_runs_on_uworker()
+
+    self.assertFalse(result)
+
+  def test_trusted_task(self):
+    """Tests that task_main_runs_on_uworker returns False for trusted tasks
+    (e.g. impact) even on orchestration tworkers."""
+    environment.set_value('TASK_NAME', 'impact')
+    environment.set_value('JOB_NAME', 'linux_asan_chrome')
+    environment.set_value('TWORKER', True)
+
+    result = task_types.task_main_runs_on_uworker()
+
+    self.assertFalse(result)
 
 
 @test_utils.with_cloud_emulators('datastore')
