@@ -73,6 +73,8 @@ def _parse_exit_info_from_dumpsys(dumpsys_output: str,
     None otherwise.
   """
   if not dumpsys_output or target_pid is None:
+    logs.debug('[Android] Could not parse exit info from dumpsys - no output ' \
+               'or no pid')
     return None
 
   current_pid = None
