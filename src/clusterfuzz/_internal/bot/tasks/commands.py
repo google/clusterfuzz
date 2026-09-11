@@ -102,7 +102,7 @@ def cleanup_task_state():
 
 def is_supported_cpu_arch_for_job():
   """Return true if the current cpu architecture can run this job."""
-  cpu_arch = environment.get_cpu_arch()
+  cpu_arch = environment.get_target_cpu_arch()
   if not cpu_arch:
     # No cpu architecture check is defined for this platform, bail out.
     return True

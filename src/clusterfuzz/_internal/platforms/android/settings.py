@@ -72,8 +72,8 @@ def get_build_version():
   return match.group(1)
 
 
-def get_cpu_arch():
-  """Return cpu architecture."""
+def get_target_cpu_arch():
+  """Return target cpu architecture."""
   return adb.get_property('ro.product.cpu.abi')
 
 
