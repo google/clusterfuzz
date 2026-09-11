@@ -13,11 +13,27 @@
 # limitations under the License.
 """Utility functions for Android device."""
 
+from dataclasses import dataclass
 import os
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
+
+
+@dataclass(frozen=True)
+class ProcessExitInfo:
+  """DTO representing process exit metadata from dumpsys activity exit-info.
+
+  For a full list of android exit info reasons and subreasons, see:
+  https://cs.android.com/android/platform/superproject/+/android-latest-release:frameworks/proto_logging/stats/enums/app_shared/app_enums.proto;l=270?q=content:subreason
+  """
+
+  reason: android.constants.ExitReason | int
+  reason_name: str  # e.g., 'APP_CRASH(NATIVE)', 'SIGNALED'
+  subreason: int
+  subreason_name: str  # e.g., 'UNKNOWN', 'ISOLATED_NOT_NEEDED'
+  status: android.constants.ExitStatus | int
 
 
 def get_device_path(local_path):
