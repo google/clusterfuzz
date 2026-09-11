@@ -316,3 +316,4 @@ def schedule_fuzz_tasks():
 
 def main():
   schedule_fuzz_tasks()
+  return True
