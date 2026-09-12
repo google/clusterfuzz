@@ -138,15 +138,22 @@ def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
   if _is_blacklisted_user(email):
     return UserAccess.Denied
 
-  if _is_privileged_user(email):
-    return UserAccess.Allowed
+  # Only trust the email for identity-based authorization when the identity
+  # provider has verified it.  An unverified email (e.g. a GitHub Enterprise
+  # Managed User address) can be asserted arbitrarily and must not be matched
+  # against privileged_users, external-user job/fuzzer ACLs, or whitelisted
+  # domains.  _is_trusted_domain_user already enforces this; extend the same
+  # guard to every other email-identity gate.
+  if user.email_verified:
+    if _is_privileged_user(email):
+      return UserAccess.Allowed
 
-  if job_type and external_users.is_job_allowed_for_user(email, job_type):
-    return UserAccess.Allowed
+    if job_type and external_users.is_job_allowed_for_user(email, job_type):
+      return UserAccess.Allowed
 
-  if (fuzzer_name and
-      external_users.is_fuzzer_allowed_for_user(email, fuzzer_name)):
-    return UserAccess.Allowed
+    if (fuzzer_name and
+        external_users.is_fuzzer_allowed_for_user(email, fuzzer_name)):
+      return UserAccess.Allowed
 
   if not need_privileged_access and _is_trusted_domain_user(user):
     return UserAccess.Allowed
@@ -166,7 +173,15 @@ def can_user_access_testcase(testcase):
       need_privileged_access=need_privileged_access):
     return True
 
-  user_email = helpers.get_user_email()
+  # Email-equality checks below (uploader, assignee, CC, reporter) rely on
+  # the email being verified.  An unverified federated email can be set to any
+  # value (e.g. GitHub EMU) and must not grant access to another user's
+  # test cases or embargoed reproducers.
+  user = auth.get_current_user()
+  if not user or not user.email_verified:
+    return False
+
+  user_email = user.email
   if testcase.uploader_email and testcase.uploader_email == user_email:
     return True
 
@@ -189,8 +204,7 @@ def can_user_access_testcase(testcase):
       issues_to_check.append(original_issue)
 
   relaxed_restrictions = (
-      config.relax_testcase_restrictions or
-      _is_trusted_domain_user(auth.get_current_user()))
+      config.relax_testcase_restrictions or _is_trusted_domain_user(user))
   for issue in issues_to_check:
     if relaxed_restrictions:
       if (any(utils.emails_equal(user_email, cc) for cc in issue.ccs) or
