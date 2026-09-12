@@ -29,13 +29,14 @@ def get_extra_env(fuzzer_path):
   return None
 
 
-def get_arguments(fuzzer_path) -> options.FuzzerArguments:
+def get_arguments(fuzzer_path, fuzzer_options=None) -> options.FuzzerArguments:
   """Get arguments for a given fuzz target."""
   arguments = options.FuzzerArguments()
   rss_limit_mb = None
   timeout = None
 
-  fuzzer_options = options.get_fuzz_target_options(fuzzer_path)
+  if fuzzer_options is None:
+    fuzzer_options = options.get_fuzz_target_options(fuzzer_path)
 
   if fuzzer_options:
     arguments = fuzzer_options.get_engine_arguments('libfuzzer')
@@ -45,11 +46,11 @@ def get_arguments(fuzzer_path) -> options.FuzzerArguments:
   if timeout is None:
     arguments[constants.TIMEOUT_FLAGNAME] = constants.DEFAULT_TIMEOUT_LIMIT
 
-  if not rss_limit_mb and (utils.is_chromium() or
-                           utils.default_project_name() == 'google'):
+  if rss_limit_mb is None and (utils.is_chromium() or
+                               utils.default_project_name() == 'google'):
     # TODO(metzman/alhijazi): Monitor if we are crashing the bots.
     arguments[constants.RSS_LIMIT_FLAGNAME] = 0
-  elif not rss_limit_mb:
+  elif rss_limit_mb is None:
     arguments[constants.RSS_LIMIT_FLAGNAME] = constants.DEFAULT_RSS_LIMIT_MB
   else:
     # psutil gives the total amount of memory in bytes, but we're only dealing
