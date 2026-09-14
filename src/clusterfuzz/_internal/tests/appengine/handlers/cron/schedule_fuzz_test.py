@@ -17,6 +17,7 @@ import unittest
 
 from clusterfuzz._internal.cron import schedule_fuzz
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 # pylint: disable=protected-access
@@ -233,3 +234,55 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
     self._setup_chrome_entities()
     task = self._run_and_get_task()
     self.assertIsNone(task.extra_info.get('base_os_version'))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ChromeCpuCapacityTest(unittest.TestCase):
+  """Tests for CPU-aware scheduling capacity in schedule_fuzz."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.cron.schedule_fuzz.get_total_batch_active_jobs',
+        'clusterfuzz._internal.cron.schedule_fuzz.get_queue_size',
+        'clusterfuzz._internal.base.tasks.get_utask_main_queue_size',
+    ])
+
+  def test_cpu_capacity_schedules_deficit(self):
+    """Tests that deficit tasks are scheduled when below CPU target."""
+    data_types.FeatureFlag(
+        id='chrome_fuzz_target_cpus', enabled=True, value='1000').put()
+    self.mock.get_total_batch_active_jobs.return_value = 300
+    self.mock.get_queue_size.return_value = 50
+    self.mock.get_utask_main_queue_size.return_value = 50
+
+    capacity = schedule_fuzz._remaining_chrome_cpu_capacity(
+        schedule_fuzz.PREPROCESS_QUEUE)
+    self.assertEqual(capacity, 100)
+
+  def test_cpu_capacity_zero_when_at_or_above_target(self):
+    """Tests that no tasks are scheduled when CPU target is met or exceeded."""
+    data_types.FeatureFlag(
+        id='chrome_fuzz_target_cpus', enabled=True, value='1000').put()
+    self.mock.get_total_batch_active_jobs.return_value = 500
+    self.mock.get_queue_size.return_value = 0
+    self.mock.get_utask_main_queue_size.return_value = 0
+
+    capacity = schedule_fuzz._remaining_chrome_cpu_capacity(
+        schedule_fuzz.PREPROCESS_QUEUE)
+    self.assertEqual(capacity, 0)
+
+  def test_fallback_when_batch_query_fails(self):
+    """Tests that queue size fallback is used if batch query fails."""
+    data_types.FeatureFlag(
+        id='chrome_fuzz_target_cpus', enabled=True, value='1000').put()
+    self.mock.get_total_batch_active_jobs.return_value = None
+    self.mock.get_queue_size.return_value = 200
+
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.pub_sub_task_queue.PubSubTaskQueue.get_max_target_size'
+    ])
+    self.mock.get_max_target_size.return_value = 1000
+
+    capacity = schedule_fuzz._remaining_chrome_cpu_capacity(
+        schedule_fuzz.PREPROCESS_QUEUE)
+    self.assertEqual(capacity, 800)
