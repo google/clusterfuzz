@@ -814,6 +814,10 @@ class TestcaseRunner:
       if not expected_state:
         expected_state = state.crash_state
 
+      if crash_result.should_ignore():
+        logs.info('Crash stacktrace matched ignore signatures, ignored.')
+        continue
+
       if crash_result.is_security_issue() != expected_security_flag:
         logs.info('Detected a crash without the correct security flag.')
         continue
