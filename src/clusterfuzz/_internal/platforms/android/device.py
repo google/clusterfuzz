@@ -126,8 +126,7 @@ def clear_temp_directories():
 def clear_testcase_directory():
   """Clears testcase directory."""
   adb.run_shell_command(
-      f'find {app.get_testcases_directory()} -mindepth 1 -delete',
-      root=True)
+      f'find {app.get_testcases_directory()} -mindepth 1 -delete', root=True)
 
 
 def configure_device_settings():

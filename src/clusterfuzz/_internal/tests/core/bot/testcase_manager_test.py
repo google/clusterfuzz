@@ -1209,3 +1209,52 @@ class CheckForBadBuildTest(unittest.TestCase):
 
     self.assertFalse(build_data.is_bad_build)
     self.assertEqual(build_data.revision, 123)
+
+  def test_android_no_package_name_skips_process_check(self):
+    """Test that Android fuzzing without an APK package (e.g. a native binary
+    target) does not run the package process-liveness check at all. Expects
+    get_process_and_child_pids to never be called and, with a clean run, the
+    build not to be flagged as bad."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (0, 1.0, 'Running 1 inputs...')
+    self.mock.get_package_name.return_value = None
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='android_libfuzzer_target', crash_revision=123)
+
+    self.mock.get_process_and_child_pids.assert_not_called()
+    self.assertFalse(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)
+
+  def test_android_no_package_name_still_detects_crash(self):
+    """Test that skipping the package check does not disable generic bad build
+    detection: an Android run with no APK package that crashes on startup must
+    still be flagged as a bad build via the crash result path."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (
+        1, 1.0,
+        'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000')
+    self.mock.get_package_name.return_value = None
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='android_libfuzzer_target', crash_revision=123)
+
+    self.mock.get_process_and_child_pids.assert_not_called()
+    self.assertTrue(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)
+
+  def test_android_apk_running_still_detects_crash(self):
+    """Test that a live APK process does not mask a real startup crash: when
+    the process is running but the run produced a memory tool crash, the build
+    must still be reported as bad through the crash result path."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (
+        1, 1.0,
+        'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000')
+    self.mock.get_package_name.return_value = 'org.chromium.chrome'
+    self.mock.get_process_and_child_pids.return_value = [2155]
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='aluminium_asan_chrome_public', crash_revision=123)
+
+    self.assertTrue(build_data.is_bad_build)

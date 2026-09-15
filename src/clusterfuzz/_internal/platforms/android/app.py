@@ -96,6 +96,7 @@ def get_testcases_directory():
   """Returns the testcases directory."""
   package_name = get_package_name()
   if not package_name:
+    # Fallback for non-apk fuzzing jobs.
     return '/sdcard/fuzzer-testcases'
   return f'/sdcard/Android/data/{package_name}/files'
 
