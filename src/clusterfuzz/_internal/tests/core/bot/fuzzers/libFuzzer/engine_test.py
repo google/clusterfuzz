@@ -458,14 +458,12 @@ class EngineArgumentsTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.libfuzzer.get_runner',
         'clusterfuzz._internal.bot.fuzzers.libfuzzer.set_sanitizer_options',
-        'clusterfuzz._internal.bot.fuzzers.libFuzzer.fuzzer.get_arguments',
+        'clusterfuzz._internal.bot.fuzzers.libFuzzer.fuzzer.get_rss_limit_mb',
+        'clusterfuzz._internal.bot.fuzzers.options.get_fuzz_target_options',
     ])
     self.runner = mock.MagicMock()
     self.mock.get_runner.return_value = self.runner
-    self.mock.get_arguments.return_value = fuzzer_options.FuzzerArguments({
-        'timeout': 25,
-        'rss_limit_mb': 0,
-    })
+    self.mock.get_rss_limit_mb.return_value = 0
     self.engine = engine.Engine()
 
   def test_reproduce_defaults_rss_limit(self):
@@ -506,6 +504,21 @@ class EngineArgumentsTest(unittest.TestCase):
     self.runner.cleanse_crash.assert_called_once()
     _, kwargs = self.runner.cleanse_crash.call_args
     self.assertIn('-rss_limit_mb=0', kwargs['additional_args'])
+
+  def test_unparseable_arguments_are_passed_through(self):
+    """Test that arguments which cannot be parsed are left untouched.
+
+    Uploaded testcases can have arbitrary arguments that do not match
+    FuzzerArguments' parsing regex. Running without rss_limit_mb is preferable
+    to failing the task.
+    """
+    self.runner.minimize_crash.return_value = new_process.ProcessResult(
+        command=['/target'], return_code=0, output='', time_executed=1)
+    self.engine.minimize_testcase('/target', ['--disable-logging'], '/input',
+                                  '/output', 30)
+    self.runner.minimize_crash.assert_called_once()
+    _, kwargs = self.runner.minimize_crash.call_args
+    self.assertEqual(['--disable-logging'], kwargs['additional_args'])
 
 
 class BaseIntegrationTest(unittest.TestCase):

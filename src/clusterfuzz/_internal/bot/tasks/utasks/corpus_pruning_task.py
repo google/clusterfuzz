@@ -88,10 +88,6 @@ CORPUS_SIZE_LIMIT_FOR_FAILURES = 10 * 1024 * 1024 * 1024  # 10 GB.
 # Maximum number of units to restore from quarantine in one run.
 MAX_QUARANTINE_UNITS_TO_RESTORE = 128
 
-# Memory limits for testcase.
-RSS_LIMIT = 2560
-RSS_LIMIT_MB_FLAG = '-rss_limit_mb=%d'
-
 # Flag to enforce length limit for a single corpus element.
 MAX_LEN_FLAG = '-max_len=%d'
 
@@ -401,9 +397,7 @@ class LibFuzzerRunner(BaseRunner):
 
   def get_fuzzer_flags(self):
     """Get default libFuzzer options for pruning."""
-    fuzzer_args = fuzzer.get_arguments(
-        self.target_path, fuzzer_options=self.fuzzer_options)
-    rss_limit = fuzzer_args.get(constants.RSS_LIMIT_FLAGNAME, constructor=int)
+    rss_limit = fuzzer.get_rss_limit_mb(self.fuzzer_options)
 
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
     if self.fuzzer_options:
