@@ -1295,17 +1295,17 @@ def check_for_bad_build(job_type: str,
   # On Android, if we have an APK package and the application process is not
   # running after startup, the build is bad.
   if (environment.is_android() and
-      (package_name := android.app.get_package_name()) and
-      not android.adb.get_process_and_child_pids(package_name)):
-    is_bad_build = True
-    build_run_console_output = utils.get_crash_stacktrace_output(
-        command, output, output)
-    logs.info(
-        f'Bad build for {job_type} detected at r{crash_revision}: '
-        f'application process for {package_name} is not running after '
-        'startup.',
-        raw_output=output,
-        output=build_run_console_output)
+      (package_name := android.app.get_package_name())):
+    if not android.adb.get_process_and_child_pids(package_name):
+      is_bad_build = True
+      build_run_console_output = utils.get_crash_stacktrace_output(
+          command, output, output)
+      logs.info(
+          f'Bad build for {job_type} detected at r{crash_revision}: '
+          f'application process for {package_name} is not running after '
+          'startup.',
+          raw_output=output,
+          output=build_run_console_output)
   # 1. Need to account for startup crashes with no crash state. E.g. failed to
   #    load shared library. So, ignore state for comparison.
   # 2. Ignore leaks as they don't block a build from reporting regular crashes
