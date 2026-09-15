@@ -1292,12 +1292,11 @@ def check_for_bad_build(job_type: str,
       f'is_crash={crash_result.is_crash(ignore_state=True)}, '
       f'crash_type={crash_result.get_type()}')
 
-  # On Android, if the application process is not running after startup, the
-  # build is bad.
-  if environment.is_android():
-    package_name = android.app.get_package_name()
-    if (package_name and
-        not android.adb.get_process_and_child_pids(package_name)):
+  # On Android, if we have an APK package and the application process is not
+  # running after startup, the build is bad.
+  if (environment.is_android() and
+      (package_name := android.app.get_package_name())):
+    if not android.adb.get_process_and_child_pids(package_name):
       is_bad_build = True
       build_run_console_output = utils.get_crash_stacktrace_output(
           command, output, output)
