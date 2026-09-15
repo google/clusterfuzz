@@ -120,3 +120,47 @@ class NeedsNoStreamingForAsanTest(unittest.TestCase):
     """Test outcome for an ASan device via settings build flavor."""
     self.mock.get_sanitizer_tool_name.return_value = 'asan'
     self.assertTrue(device._needs_no_streaming_for_asan())
+
+
+class ClearTestcaseDirectoryTest(unittest.TestCase):
+  """Tests clear_testcase_directory."""
+
+  def setUp(self):
+    super().setUp()
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.run_shell_command',
+    ])
+
+  def test_clears_apk_scoped_directory_as_root(self):
+    """Test that, for an APK target, the contents of the package's scoped
+    storage directory are deleted as root. Expects a single `find ... -delete`
+    shell command; `-mindepth 1` guarantees only the contents are removed and
+    the directory itself is preserved for the next run."""
+    environment.set_value('PKG_NAME', 'com.google.chrome')
+
+    device.clear_testcase_directory()
+
+    self.mock.run_shell_command.assert_called_once_with(
+        'find /sdcard/Android/data/com.google.chrome/files -mindepth 1 -delete',
+        root=True)
+
+  def test_clears_fallback_directory_when_no_package(self):
+    """Test that, when fuzzing without an APK package, the shared
+    /sdcard/fuzzer-testcases directory is cleared instead of a malformed
+    scoped storage path."""
+    environment.set_value('PKG_NAME', None)
+
+    device.clear_testcase_directory()
+
+    self.mock.run_shell_command.assert_called_once_with(
+        'find /sdcard/fuzzer-testcases -mindepth 1 -delete', root=True)
+
+  def test_propagates_adb_failure(self):
+    """Test that an adb failure while clearing the directory is not swallowed,
+    so the caller can react to a device in a bad state."""
+    environment.set_value('PKG_NAME', 'com.google.chrome')
+    self.mock.run_shell_command.side_effect = RuntimeError('device offline')
+
+    with self.assertRaises(RuntimeError):
+      device.clear_testcase_directory()
