@@ -16,6 +16,7 @@
 import ast
 import base64
 import bisect
+import html
 import os
 import re
 import time
@@ -630,13 +631,28 @@ def format_revision_list(revisions, use_html=True):
   result = ''
   for revision in revisions:
     if revision['component']:
-      result += '%s: ' % revision['component']
+      # Component names and revision text/URLs originate from a DEPS file's
+      # own dependency keys and 'rev'/'url' string literals, which can hold
+      # arbitrary content -- the AST-based parser in deps_to_revisions_dict
+      # restricts what *operations* a DEPS file can perform (no exec()), not
+      # what *content* its string literals hold. This is the same
+      # untrusted-content boundary _get_revision_range_html in show.py
+      # already escapes for its own fallback string, since the result of
+      # this function is likewise bound with inner-h-t-m-l there.
+      component = revision['component']
+      if use_html:
+        component = html.escape(str(component), quote=True)
+      result += '%s: ' % component
 
     if 'link_url' in revision and revision['link_url'] and use_html:
       result += '<a target="_blank" href="{link_url}">{link_text}</a>'.format(
-          link_url=revision['link_url'], link_text=revision['link_text'])
+          link_url=html.escape(str(revision['link_url']), quote=True),
+          link_text=html.escape(str(revision['link_text']), quote=True))
     else:
-      result += revision['link_text']
+      link_text = revision['link_text']
+      if use_html:
+        link_text = html.escape(str(link_text), quote=True)
+      result += link_text
 
     if use_html:
       result += '<br />'
