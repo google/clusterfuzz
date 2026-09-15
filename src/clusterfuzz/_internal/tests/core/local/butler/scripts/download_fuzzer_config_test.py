@@ -15,6 +15,7 @@
 
 import json
 import os
+import shutil
 import unittest
 
 from clusterfuzz._internal.datastore import data_types
@@ -69,23 +70,28 @@ class DownloadFuzzerConfigTest(unittest.TestCase):
     self.fuzzer2.put()
 
   def tearDown(self):
-    if os.path.exists('fuzzer1_config.json'):
-      os.remove('fuzzer1_config.json')
-    if os.path.exists('fuzzer2_config.json'):
-      os.remove('fuzzer2_config.json')
+    for fuzzer_name in ['fuzzer1', 'fuzzer2', 'fuzzer_missing']:
+      config_dir = os.path.join('..', 'clusterfuzz-data', 'fuzzers',
+                                fuzzer_name)
+      if os.path.exists(config_dir):
+        shutil.rmtree(config_dir)
 
   def test_execute_success(self):
     """Test successful download."""
     args = Args(['fuzzer1', 'fuzzer2'])
     download_fuzzer_config.execute(args)
 
-    with open('fuzzer1_config.json') as f:
+    path1 = os.path.join('..', 'clusterfuzz-data', 'fuzzers', 'fuzzer1',
+                         'clusterfuzz_config', 'fuzzer1_config.json')
+    with open(path1) as f:
       config1 = json.load(f)
       self.assertEqual(['job1'], config1['jobs'])
       self.assertEqual('data_bundle1', config1['data_bundle_name'])
       self.assertEqual(10, config1['timeout'])
 
-    with open('fuzzer2_config.json') as f:
+    path2 = os.path.join('..', 'clusterfuzz-data', 'fuzzers', 'fuzzer2',
+                         'clusterfuzz_config', 'fuzzer2_config.json')
+    with open(path2) as f:
       config2 = json.load(f)
       self.assertEqual([], config2['jobs'])
       self.assertEqual('data_bundle2', config2['data_bundle_name'])
@@ -96,5 +102,10 @@ class DownloadFuzzerConfigTest(unittest.TestCase):
     args = Args(['fuzzer1', 'fuzzer_missing'])
     download_fuzzer_config.execute(args)
 
-    self.assertTrue(os.path.exists('fuzzer1_config.json'))
-    self.assertFalse(os.path.exists('fuzzer_missing_config.json'))
+    path1 = os.path.join('..', 'clusterfuzz-data', 'fuzzers', 'fuzzer1',
+                         'clusterfuzz_config', 'fuzzer1_config.json')
+    missing_path = os.path.join('..', 'clusterfuzz-data', 'fuzzers',
+                                'fuzzer_missing', 'clusterfuzz_config',
+                                'fuzzer_missing_config.json')
+    self.assertTrue(os.path.exists(path1))
+    self.assertFalse(os.path.exists(missing_path))
