@@ -630,6 +630,8 @@ class Engine(engine.Engine):
     minimum_testcase = min(testcases, key=os.path.getsize)
     return minimum_testcase
 
+  # FIXME: Investigate whether `minimize_testcase` needs to be used, or if it
+  # can be safely deleted
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
     """Minimizes a testcase.
@@ -647,8 +649,13 @@ class Engine(engine.Engine):
     runner = _get_runner(target_path)
     workdir = engine_common.create_temp_fuzzing_dir('workdir')
     timeout = max_time + _CLEAN_EXIT_SECS
+
+    # Centipede does not store arguments in the database, so the `arguments`
+    # parameter is safe to ignore
     minimize_arguments = self._get_arguments(target_path)
     self._strip_fuzzing_arguments(minimize_arguments)
+    # Remove `TIMEOUT_PER_INPUT` flag set by `_get_arguments`
+    del minimize_arguments[constants.TIMEOUT_PER_INPUT_FLAGNAME]
     args = minimize_arguments.list() + [
         f'--binary={target_path}',
         f'--workdir={workdir}',

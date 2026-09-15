@@ -268,9 +268,7 @@ class GetArgumentsTest(unittest.TestCase):
         {
             'rss_limit_mb': 0
         })
-    fuzzer_path = os.path.join(self.build_dir, 'fake0_fuzzer')
-    arguments = fuzzer.get_arguments(fuzzer_path, fuzzer_options=target_options)
-    self.assertEqual(arguments[constants.RSS_LIMIT_FLAGNAME], 0)
+    self.assertEqual(fuzzer.get_rss_limit_mb(target_options), 0)
 
 
 if __name__ == '__main__':
