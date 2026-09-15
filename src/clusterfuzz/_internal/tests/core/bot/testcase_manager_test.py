@@ -1017,7 +1017,7 @@ class UntrustedEngineReproduceTest(
 
     self.assertEqual([
         os.path.join(environment.get_value('BUILD_DIR'), 'test_fuzzer'),
-        '-runs=100',
+        '-rss_limit_mb=2560', '-runs=100',
         file_host.rebase_to_worker_root(testcase_file_path)
     ], result.command)
     self.assertEqual(result.return_code,

@@ -310,14 +310,27 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     ]
     self.assertCountEqual(flags, expected_default_flags)
 
+    with patch(
+        'clusterfuzz._internal.base.utils.is_chromium', return_value=True):
+      flags = runner.get_fuzzer_flags()
+      expected_chromium_flags = [
+          '-timeout=5', '-rss_limit_mb=0', '-max_len=5242880',
+          '-detect_leaks=1', '-use_value_profile=1'
+      ]
+      self.assertCountEqual(flags, expected_chromium_flags)
+
     runner.fuzzer_options = options.FuzzerOptions(
         os.path.join(self.build_dir, 'test_get_libfuzzer_flags.options'))
-    flags = runner.get_fuzzer_flags()
-    expected_custom_flags = [
-        '-timeout=5', '-rss_limit_mb=31337', '-max_len=1337', '-detect_leaks=0',
-        '-use_value_profile=1'
-    ]
-    self.assertCountEqual(flags, expected_custom_flags)
+    with patch(
+        'clusterfuzz._internal.bot.fuzzers.libFuzzer.fuzzer.psutil.virtual_memory'
+    ) as mock_vm:
+      mock_vm.return_value.total = 64 * (1024**3)
+      flags = runner.get_fuzzer_flags()
+      expected_custom_flags = [
+          '-timeout=5', '-rss_limit_mb=31337', '-max_len=1337',
+          '-detect_leaks=0', '-use_value_profile=1'
+      ]
+      self.assertCountEqual(flags, expected_custom_flags)
 
   def test_rsync_from_disk_when_quarantine_corpus_is_nonzero(self):
     """

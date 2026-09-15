@@ -98,6 +98,22 @@ class Engine(engine.Engine):
     # get_fuzz_timeout returns a negative value.
     return -fuzz_timeout
 
+  def _add_rss_limit_if_missing(self, target_path, arguments):
+    """Add rss_limit_mb from target arguments if missing. Returns arguments
+    unchanged if it cannot be parsed.
+    """
+    db_arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
+    if db_arguments is None:
+      logs.warning(
+          'Failed to parse arguments. Returning without setting rss_limit_mb.',
+          arguments=arguments)
+      return arguments
+
+    if constants.RSS_LIMIT_FLAGNAME not in db_arguments:
+      db_arguments[constants.RSS_LIMIT_FLAGNAME] = fuzzer.get_rss_limit_mb(
+          fuzzer_options.get_fuzz_target_options(target_path))
+    return db_arguments.list()
+
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
@@ -397,6 +413,7 @@ class Engine(engine.Engine):
     # Remove fuzzing specific arguments. This is only really needed for legacy
     # testcases, and can be removed in the distant future.
     arguments = libfuzzer.strip_fuzzing_arguments(arguments)
+    arguments = self._add_rss_limit_if_missing(target_path, arguments)
     arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
 
     arguments[constants.RUNS_FLAGNAME] = int(constants.RUNS_TO_REPRODUCE)
@@ -514,6 +531,7 @@ class Engine(engine.Engine):
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
+    arguments = self._add_rss_limit_if_missing(target_path, arguments)
     merge_tmp_dir = self._create_temp_dir('merge-wd')
     logs.info(f'Starting merge with timeout {max_time}.')
 
@@ -567,6 +585,8 @@ class Engine(engine.Engine):
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
 
+    arguments = self._add_rss_limit_if_missing(target_path, arguments)
+
     minimize_tmp_dir = engine_common.create_temp_fuzzing_dir('minimize-workdir')
     result = runner.minimize_crash(
         input_path,
@@ -600,6 +620,8 @@ class Engine(engine.Engine):
     """
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path)
+
+    arguments = self._add_rss_limit_if_missing(target_path, arguments)
 
     cleanse_tmp_dir = engine_common.create_temp_fuzzing_dir('cleanse-workdir')
     result = runner.cleanse_crash(
