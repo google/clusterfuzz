@@ -17,6 +17,7 @@ import os
 
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzers_utils
 from clusterfuzz._internal.protos import untrusted_runner_pb2
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 from . import file_utils
@@ -24,14 +25,47 @@ from . import file_utils
 # pylint: disable=no-member
 
 
+def _allowed_roots():
+  """Return worker filesystem roots that file RPCs may access."""
+  roots = []
+  for env_var in ('WORKER_ROOT_DIR', 'WORKER_BOT_TMPDIR'):
+    root = environment.get_value(env_var)
+    if root:
+      roots.append(os.path.realpath(root))
+
+  return roots
+
+
+def _is_allowed_path(path):
+  """Check whether path stays inside the worker-owned filesystem roots."""
+  if not path:
+    return False
+
+  roots = _allowed_roots()
+  if not roots:
+    return True
+
+  try:
+    real_path = os.path.realpath(path)
+    return any(os.path.commonpath([root, real_path]) == root for root in roots)
+  except ValueError:
+    return False
+
+
 def create_directory(request, _):
   """Create a directory."""
+  if not _is_allowed_path(request.path):
+    return untrusted_runner_pb2.CreateDirectoryResponse(result=False)
+
   result = shell.create_directory(request.path, request.create_intermediates)
   return untrusted_runner_pb2.CreateDirectoryResponse(result=result)
 
 
 def remove_directory(request, _):
   """Remove a directory."""
+  if not _is_allowed_path(request.path):
+    return untrusted_runner_pb2.RemoveDirectoryResponse(result=False)
+
   result = shell.remove_directory(request.path, request.recreate)
   return untrusted_runner_pb2.RemoveDirectoryResponse(result=result)
 
@@ -39,6 +73,9 @@ def remove_directory(request, _):
 def list_files(request, _):
   """List files."""
   file_paths = []
+  if not _is_allowed_path(request.path):
+    return untrusted_runner_pb2.ListFilesResponse(file_paths=file_paths)
+
   if request.recursive:
     for root, _, files in shell.walk(request.path):
       for filename in files:
@@ -54,6 +91,8 @@ def copy_file_to_worker(request_iterator, context):
   """Copy file from host to worker."""
   metadata = dict(context.invocation_metadata())
   path = metadata['path-bin'].decode('utf-8')
+  if not _is_allowed_path(path):
+    return untrusted_runner_pb2.CopyFileToResponse(result=False)
 
   # Create intermediate directories if needed.
   directory = os.path.dirname(path)
@@ -74,7 +113,7 @@ def copy_file_to_worker(request_iterator, context):
 def copy_file_from_worker(request, context):
   """Copy file from worker to host."""
   path = request.path
-  if not os.path.isfile(path):
+  if not _is_allowed_path(path) or not os.path.isfile(path):
     context.set_trailing_metadata([('result', 'invalid-path')])
     return
 
@@ -85,7 +124,7 @@ def copy_file_from_worker(request, context):
 
 def stat(request, _):
   """Stat a path."""
-  if not os.path.exists(request.path):
+  if not _is_allowed_path(request.path) or not os.path.exists(request.path):
     return untrusted_runner_pb2.StatResponse(result=False)
 
   stat_result = os.stat(request.path)
@@ -100,6 +139,9 @@ def stat(request, _):
 
 def get_fuzz_targets(request, _):
   """Get list of fuzz targets."""
+  if not _is_allowed_path(request.path):
+    return untrusted_runner_pb2.GetFuzzTargetsResponse(fuzz_target_paths=[])
+
   fuzz_target_paths = fuzzers_utils.get_fuzz_targets_local(request.path)
   return untrusted_runner_pb2.GetFuzzTargetsResponse(
       fuzz_target_paths=fuzz_target_paths)
