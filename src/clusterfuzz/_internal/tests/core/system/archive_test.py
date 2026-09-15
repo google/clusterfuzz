@@ -209,6 +209,59 @@ class ArchiveReaderTest(unittest.TestCase):
 
       self.assertEqual(expected_results, actual_results)
 
+  def test_tar_hardlink_traversal(self):
+    """Hard link linknames with '..' must not escape the output directory."""
+    with tempfile.TemporaryDirectory() as outer:
+      victim_path = os.path.join(outer, 'victim-file')
+      with open(victim_path, 'wb') as f:
+        f.write(b'original')
+
+      malicious_archive_path = os.path.join(outer, 'evil.tar')
+      with tarfile.open(malicious_archive_path, 'w') as tar:
+        # Hard link whose relative linkname escapes the output directory and
+        # aliases an existing file outside of it.
+        link = tarfile.TarInfo(name='alias')
+        link.type = tarfile.LNKTYPE
+        link.linkname = '../victim-file'
+        tar.addfile(link)
+
+      output_directory = tempfile.mkdtemp()
+      self.addCleanup(shell.remove_directory, output_directory)
+
+      with archive.open(malicious_archive_path) as reader:
+        result = reader.extract_all(output_directory, trusted=False)
+        self.assertFalse(result)
+      self.assertFalse(os.path.exists(os.path.join(output_directory,
+                                                   'alias')))
+      with open(victim_path, 'rb') as f:
+        self.assertEqual(f.read(), b'original')
+
+  def test_tar_hardlink_within_directory(self):
+    """Hard links to members inside the archive still extract normally."""
+    with tempfile.TemporaryDirectory() as outer:
+      source_dir = os.path.join(outer, 'dir')
+      os.mkdir(source_dir)
+      with open(os.path.join(source_dir, 'original'), 'wb') as f:
+        f.write(b'hello')
+      # A real hard link on disk; tarfile records it as a canonical LNKTYPE
+      # entry whose linkname is the member-rooted path of the target.
+      os.link(os.path.join(source_dir, 'original'),
+              os.path.join(source_dir, 'link'))
+
+      archive_path = os.path.join(outer, 'links.tar')
+      with tarfile.open(archive_path, 'w') as tar:
+        tar.add(os.path.join(source_dir, 'original'), arcname='dir/original')
+        tar.add(os.path.join(source_dir, 'link'), arcname='dir/link')
+
+      output_directory = tempfile.mkdtemp()
+      self.addCleanup(shell.remove_directory, output_directory)
+
+      with archive.open(archive_path) as reader:
+        result = reader.extract_all(output_directory, trusted=False)
+        self.assertTrue(result)
+      self.assertTrue(
+          os.path.exists(os.path.join(output_directory, 'dir', 'link')))
+
   def test_zip(self):
     """Test that a .zip file is handled properly by list_members() and open()."""
     with tempfile.NamedTemporaryFile(suffix='.zip') as tmp_zip_file:
