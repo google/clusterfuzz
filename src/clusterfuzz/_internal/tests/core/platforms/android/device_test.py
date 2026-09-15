@@ -13,6 +13,9 @@
 # limitations under the License.
 """Tests for device functions."""
 
+import os
+import subprocess
+import tempfile
 import unittest
 
 from clusterfuzz._internal.platforms.android import device
@@ -130,37 +133,102 @@ class ClearTestcaseDirectoryTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.platforms.android.adb.run_shell_command',
+        'clusterfuzz._internal.platforms.android.app.get_testcases_directory',
     ])
 
-  def test_clears_apk_scoped_directory_as_root(self):
-    """Test that, for an APK target, the contents of the package's scoped
-    storage directory are deleted as root. Expects a single `find ... -delete`
-    shell command; `-mindepth 1` guarantees only the contents are removed and
-    the directory itself is preserved for the next run."""
-    environment.set_value('PKG_NAME', 'com.google.chrome')
+  def test_targets_the_testcases_directory_as_root(self):
+    """Test that the directory reported by app.get_testcases_directory() is the
+    one cleared, and that it is cleared as root. Which path that resolves to
+    (APK scoped storage vs. the shared fallback) is covered by app_test."""
+    self.mock.get_testcases_directory.return_value = (
+        '/sdcard/Android/data/com.google.chrome/files')
 
     device.clear_testcase_directory()
 
-    self.mock.run_shell_command.assert_called_once_with(
-        'find /sdcard/Android/data/com.google.chrome/files -mindepth 1 -delete',
-        root=True)
-
-  def test_clears_fallback_directory_when_no_package(self):
-    """Test that, when fuzzing without an APK package, the shared
-    /sdcard/fuzzer-testcases directory is cleared instead of a malformed
-    scoped storage path."""
-    environment.set_value('PKG_NAME', None)
-
-    device.clear_testcase_directory()
-
-    self.mock.run_shell_command.assert_called_once_with(
-        'find /sdcard/fuzzer-testcases -mindepth 1 -delete', root=True)
+    args, kwargs = self.mock.run_shell_command.call_args
+    self.assertIn('/sdcard/Android/data/com.google.chrome/files', args[0])
+    self.assertTrue(kwargs['root'])
 
   def test_propagates_adb_failure(self):
     """Test that an adb failure while clearing the directory is not swallowed,
     so the caller can react to a device in a bad state."""
-    environment.set_value('PKG_NAME', 'com.google.chrome')
+    self.mock.get_testcases_directory.return_value = '/sdcard/fuzzer-testcases'
     self.mock.run_shell_command.side_effect = RuntimeError('device offline')
 
     with self.assertRaises(RuntimeError):
       device.clear_testcase_directory()
+
+
+@unittest.skipUnless(
+    environment.is_posix(),
+    'Runs the emitted shell command against the local filesystem, which '
+    'requires a POSIX shell and find command.')
+class ClearTestcaseDirectorySemanticsTest(unittest.TestCase):
+  """Tests what the command emitted by clear_testcase_directory actually does
+  to a directory, by running it against the local filesystem."""
+
+  def setUp(self):
+    super().setUp()
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.run_shell_command',
+        'clusterfuzz._internal.platforms.android.app.get_testcases_directory',
+    ])
+
+  def _run_emitted_command(self):
+    """Executes the shell command that was handed to adb against the local
+    filesystem, mimicking the device shell, and returns its exit code."""
+    self.mock.run_shell_command.assert_called_once()
+    command = self.mock.run_shell_command.call_args[0][0]
+    return subprocess.run(
+        command, shell=True, check=False, capture_output=True).returncode
+
+  def _populate(self, directory):
+    """Fills |directory| with entries that a glob based delete would miss."""
+    os.makedirs(os.path.join(directory, 'subdir'))
+    os.makedirs(os.path.join(directory, '.hidden_dir'))
+    for path in [
+        'visible.txt',
+        '.hidden.txt',
+        os.path.join('subdir', 'nested.txt'),
+        os.path.join('.hidden_dir', 'nested.txt'),
+    ]:
+      with open(os.path.join(directory, path), 'w') as handle:
+        handle.write('testcase')
+
+  def test_removes_all_contents_including_hidden_entries(self):
+    """Test that every entry is removed, hidden ones included. A glob based
+    `rm -rf <dir>/*` would leave dotfiles behind, leaking testcases from the
+    previous run into the next one."""
+    with tempfile.TemporaryDirectory() as testcases_directory:
+      self.mock.get_testcases_directory.return_value = testcases_directory
+      self._populate(testcases_directory)
+
+      device.clear_testcase_directory()
+
+      self.assertEqual(0, self._run_emitted_command())
+      self.assertEqual([], os.listdir(testcases_directory))
+
+  def test_preserves_the_directory_itself(self):
+    """Test that only the contents are deleted. `-mindepth 1` keeps the
+    directory in place, so the next run does not have to recreate it."""
+    with tempfile.TemporaryDirectory() as testcases_directory:
+      self.mock.get_testcases_directory.return_value = testcases_directory
+      self._populate(testcases_directory)
+
+      device.clear_testcase_directory()
+
+      self.assertEqual(0, self._run_emitted_command())
+      self.assertTrue(os.path.isdir(testcases_directory))
+
+  def test_succeeds_on_empty_directory(self):
+    """Test that clearing an already empty directory is a successful no-op,
+    since `clear_testcase_directory` runs before every fuzzing session."""
+    with tempfile.TemporaryDirectory() as testcases_directory:
+      self.mock.get_testcases_directory.return_value = testcases_directory
+
+      device.clear_testcase_directory()
+
+      self.assertEqual(0, self._run_emitted_command())
+      self.assertTrue(os.path.isdir(testcases_directory))
+      self.assertEqual([], os.listdir(testcases_directory))
