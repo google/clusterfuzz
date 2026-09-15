@@ -125,8 +125,9 @@ def clear_temp_directories():
 
 def clear_testcase_directory():
   """Clears testcase directory."""
-  # Use wildcard to delete contents only, preserving the directory itself
-  adb.run_shell_command(f'rm -rf {app.get_testcases_directory()}/*', root=True)
+  adb.run_shell_command(
+      f'find {app.get_testcases_directory()} -mindepth 1 -delete',
+      root=True)
 
 
 def configure_device_settings():
