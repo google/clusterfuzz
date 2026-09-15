@@ -144,7 +144,16 @@ def get_email_from_bearer_token(request):
 
   token = bearer_token.split(' ')[1]
   try:
-    claim = id_token.verify_oauth2_token(token, google_requests.Request())
+    # audience must be passed explicitly: verify_oauth2_token treats a
+    # missing audience as "don't check it", which would let an ID token
+    # minted for a completely different destination (but for the same
+    # service account, which can be requested by anything with permission
+    # to mint tokens as it, or that the service account itself calls out
+    # to elsewhere with) be replayed against this endpoint. request.url is
+    # the URL Pub/Sub actually pushed to, which is what a correctly
+    # configured OIDC push subscription sets as the token's audience.
+    claim = id_token.verify_oauth2_token(
+        token, google_requests.Request(), audience=request.url)
   except ValueError:
     raise helpers.UnauthorizedError('Malformed bearer token')
   if (not claim.get('email_verified') or
