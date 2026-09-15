@@ -56,10 +56,13 @@ class Handler(base_handler.Handler):
 
     duplicate_testcase = data_handler.find_testcase(
         project, state.crash_type, state.crash_state, security_flag)
-    if (duplicate_testcase and duplicate_testcase.security_flag and
-        not access.can_user_access_testcase(duplicate_testcase)):
-      # Do not disclose the existence or identifiers of a security-confidential
-      # testcase to a user who is not allowed to access it.
+    if duplicate_testcase and not access.can_user_access_testcase(
+        duplicate_testcase):
+      # find_testcase only filters by project/crash signature, not by
+      # whether the caller has any relationship to that project. Without
+      # this check, any authenticated user could pass an arbitrary project
+      # name and learn whether a matching testcase exists there, plus its
+      # duplicate_id/bug_id, regardless of project ownership.
       duplicate_testcase = None
     if duplicate_testcase:
       result['result'] = 'duplicate'
