@@ -19,6 +19,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers import coverage_report
+from libs import helpers as libs_helpers
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -27,6 +28,10 @@ class CoverageReportTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
+    helpers.patch(self, ['libs.access.has_access'])
+    # Default to a caller that is allowed to access the job; the access-denied
+    # path is exercised explicitly in test_no_access.
+    self.mock.has_access.return_value = True
 
     self.today = datetime.datetime.utcnow().date()
     self.today_minus_2 = self.today - datetime.timedelta(days=2)
@@ -63,3 +68,11 @@ class CoverageReportTest(unittest.TestCase):
     report_url = coverage_report.get_report_url('job', 'fake_job', 'latest')
     expected_url = None
     self.assertEqual(expected_url, report_url)
+
+  def test_no_access(self):
+    """Tests that a caller without access to the job is denied instead of
+    being handed the coverage report location."""
+    self.mock.has_access.return_value = False
+    with self.assertRaises(libs_helpers.AccessDeniedError):
+      coverage_report.get_report_url('job', 'job1', 'latest')
+    self.mock.has_access.assert_called_with(job_type='job1')
