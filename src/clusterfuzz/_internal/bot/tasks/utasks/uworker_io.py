@@ -19,6 +19,11 @@ from typing import TypeVar
 import uuid
 import zlib
 
+# Maximum decompressed size for uworker messages (256 MB).
+# Prevents a malicious or compromised uworker from causing an OOM
+# on the trusted tworker via a zlib decompression bomb.
+_MAX_UWORKER_MSG_SIZE = 256 * 1024 * 1024
+
 from google.cloud import ndb
 from google.cloud.datastore_v1.types import entity as entity_pb2
 from google.cloud.ndb import model
@@ -126,7 +131,7 @@ def download_and_deserialize_uworker_input(
   download URL."""
   data = storage.download_signed_url(uworker_input_download_url)
   try:
-    data = zlib.decompress(data)
+    data = zlib.decompress(data, max_length=_MAX_UWORKER_MSG_SIZE)
   except zlib.error:
     # This is for backward compatiblity during the merge.
     # TOOD(metzman): Remove backward compatibility efforts when every
@@ -167,7 +172,8 @@ def download_input_based_on_output_url(
   input_url = uworker_output_path_to_input_path(output_url)
   data = storage.read_data(input_url)
   try:
-    serialized_uworker_input = zlib.decompress(data)
+    serialized_uworker_input = zlib.decompress(
+        data, max_length=_MAX_UWORKER_MSG_SIZE)
   except zlib.error:
     # For backwards compatability support uncompressed.
     serialized_uworker_input = data
@@ -181,7 +187,8 @@ def download_and_deserialize_uworker_output(
   """Downloads and deserializes uworker output."""
   data = storage.read_data(output_url)
   try:
-    serialized_uworker_output = zlib.decompress(data)
+    serialized_uworker_output = zlib.decompress(
+        data, max_length=_MAX_UWORKER_MSG_SIZE)
   except zlib.error:
     # For backwards compatability support uncompressed.
     serialized_uworker_output = data
