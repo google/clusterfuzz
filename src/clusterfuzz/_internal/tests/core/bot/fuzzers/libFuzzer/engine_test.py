@@ -142,13 +142,12 @@ class PrepareTest(fake_fs_unittest.TestCase):
         '-dict=/path/target.dict'
     ], options.arguments)
 
-  def test_prepare_chromium(self):
+  @mock.patch('clusterfuzz._internal.base.utils.is_chromium', return_value=True)
+  def test_prepare_chromium(self, _):
     """Test prepare on Chromium defaults rss_limit_mb to 0."""
-    with mock.patch(
-        'clusterfuzz._internal.base.utils.is_chromium', return_value=True):
-      engine_impl = engine.Engine()
-      options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
-      self.assertIn('-rss_limit_mb=0', options.arguments)
+    engine_impl = engine.Engine()
+    options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
+    self.assertIn('-rss_limit_mb=0', options.arguments)
 
 
 class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
