@@ -400,20 +400,20 @@ class LibFuzzerRunner(BaseRunner):
     rss_limit = fuzzer.get_rss_limit_mb(self.fuzzer_options)
 
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
+    detect_leaks = 1
     if self.fuzzer_options:
-      custom_max_len = self.fuzzer_options.get_engine_arguments(
-          'libfuzzer').get(
-              'max_len', constructor=int)
+      # Default values from above can be customized for a given fuzz target.
+      libfuzzer_arguments = self.fuzzer_options.get_engine_arguments(
+          'libfuzzer')
+
+      custom_max_len = libfuzzer_arguments.get('max_len', constructor=int)
       if custom_max_len and custom_max_len < max_len:
         max_len = custom_max_len
 
-    # Some targets might falsely report leaks all the time, so allow this to
-    # be disabled.
-    detect_leaks = 1
-    if self.fuzzer_options:
-      custom_detect_leaks = self.fuzzer_options.get_engine_arguments(
-          'libfuzzer').get(
-              'detect_leaks', constructor=int)
+      # Some targets might falsely report leaks all the time, so allow this to
+      # be disabled.
+      custom_detect_leaks = libfuzzer_arguments.get(
+          'detect_leaks', constructor=int)
       if custom_detect_leaks is not None:
         detect_leaks = custom_detect_leaks
 
