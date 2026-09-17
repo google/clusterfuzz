@@ -32,6 +32,7 @@ from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
@@ -252,10 +253,11 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
   def test_file_match_android(self):
     """Tests matching a file URL."""
     self.mock.platform.return_value = 'ANDROID'
+    testcases_dir = android.app.get_testcases_directory()
     self.assertEqual(
         '/mnt/scratch0/test.html',
         testcase_manager.convert_dependency_url_to_local_path(
-            'file:///sdcard/fuzzer-testcases/test.html'))
+            f'file://{testcases_dir}/test.html'))
     self.mock.normalize_path.assert_called_once_with('/mnt/scratch0/test.html')
 
   def test_file_match_linux(self):
@@ -1242,3 +1244,52 @@ class CheckForBadBuildTest(unittest.TestCase):
 
     self.assertFalse(build_data.is_bad_build)
     self.assertEqual(build_data.revision, 123)
+
+  def test_android_no_package_name_skips_process_check(self):
+    """Test that Android fuzzing without an APK package (e.g. a native binary
+    target) does not run the package process-liveness check at all. Expects
+    get_process_and_child_pids to never be called and, with a clean run, the
+    build not to be flagged as bad."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (0, 1.0, 'Running 1 inputs...')
+    self.mock.get_package_name.return_value = None
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='android_libfuzzer_target', crash_revision=123)
+
+    self.mock.get_process_and_child_pids.assert_not_called()
+    self.assertFalse(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)
+
+  def test_android_no_package_name_still_detects_crash(self):
+    """Test that skipping the package check does not disable generic bad build
+    detection: an Android run with no APK package that crashes on startup must
+    still be flagged as a bad build via the crash result path."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (
+        1, 1.0,
+        'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000')
+    self.mock.get_package_name.return_value = None
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='android_libfuzzer_target', crash_revision=123)
+
+    self.mock.get_process_and_child_pids.assert_not_called()
+    self.assertTrue(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)
+
+  def test_android_apk_running_still_detects_crash(self):
+    """Test that a live APK process does not mask a real startup crash: when
+    the process is running but the run produced a memory tool crash, the build
+    must still be reported as bad through the crash result path."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (
+        1, 1.0,
+        'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000')
+    self.mock.get_package_name.return_value = 'org.chromium.chrome'
+    self.mock.get_process_and_child_pids.return_value = [2155]
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='aluminium_asan_chrome_public', crash_revision=123)
+
+    self.assertTrue(build_data.is_bad_build)

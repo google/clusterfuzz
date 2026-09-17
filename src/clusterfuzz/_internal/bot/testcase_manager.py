@@ -332,7 +332,12 @@ def run_testcase(thread_index, file_path, gestures, env_copy):
     app_directory = environment.get_value('APP_DIR')
     environment.set_value('PIDS', '[]')
 
+    logs.info(
+        f'Running testcase (thread {thread_index}): file_path={file_path}, '
+        f'needs_http={needs_http}, gestures={gestures}')
+
     # Get command line options.
+
     command = get_command_line_for_application(
         file_path, user_profile_index=thread_index, needs_http=needs_http)
 
@@ -459,7 +464,7 @@ def convert_dependency_url_to_local_path(url):
 
       # Convert remote to local path for android.
       if environment.is_android():
-        remote_testcases_directory = android.constants.DEVICE_TESTCASES_DIR
+        remote_testcases_directory = android.app.get_testcases_directory()
         local_testcases_directory = environment.get_value('FUZZ_INPUTS')
         local_path = local_path.replace(remote_testcases_directory,
                                         local_testcases_directory)
@@ -999,7 +1004,7 @@ def get_command_line_for_application(file_to_run='',
   apps_argument = environment.get_value('APPS_ARG')
   crash_stacks_directory = environment.get_value('CRASH_STACKTRACES_DIR')
   debugger = environment.get_value('DEBUGGER_PATH')
-  device_testcases_directory = android.constants.DEVICE_TESTCASES_DIR
+  device_testcases_directory = android.app.get_testcases_directory()
   fuzzer_directory = environment.get_value('FUZZER_DIR')
   extension_argument = environment.get_value('EXTENSION_ARG')
   input_directory = environment.get_value('INPUT_DIR')
@@ -1247,7 +1252,8 @@ def check_for_bad_build(job_type: str,
     os.environ['APP_ARGS'] = job_default_args
 
   try:
-    command = get_command_line_for_application(file_to_run='', needs_http=False)
+    command = get_command_line_for_application(
+        file_to_run='', needs_http=False, write_command_line_file=True)
   finally:
     if orig_app_args is not None:
       os.environ['APP_ARGS'] = orig_app_args
@@ -1277,19 +1283,41 @@ def check_for_bad_build(job_type: str,
   process_handler.terminate_stale_application_instances()
 
   # Check if the build is bad.
+  logs.info(
+      f'Starting bad build check for {job_type} at r{crash_revision} with '
+      f'command: {command} (timeout={fast_warmup_timeout})')
   return_code, crash_time, output = process_handler.run_process(
       command,
       timeout=fast_warmup_timeout,
       current_working_directory=app_directory)
   crash_result = CrashResult(return_code, crash_time, output)
+  logs.info(
+      f'Bad build check run_process completed: return_code={return_code}, '
+      f'is_crash={crash_result.is_crash(ignore_state=True)}, '
+      f'crash_type={crash_result.get_type()}')
 
+  # On Android, if we have an APK package and the application process is not
+  # running after startup, the build is bad.
+  if (environment.is_android() and
+      (package_name := android.app.get_package_name()) and
+      not android.adb.get_process_and_child_pids(package_name)):
+    is_bad_build = True
+    build_run_console_output = utils.get_crash_stacktrace_output(
+        command, output, output)
+    logs.info(
+        f'Bad build for {job_type} detected at r{crash_revision}: '
+        f'application process for {package_name} is not running after '
+        'startup.',
+        raw_output=output,
+        output=build_run_console_output)
   # 1. Need to account for startup crashes with no crash state. E.g. failed to
   #    load shared library. So, ignore state for comparison.
   # 2. Ignore leaks as they don't block a build from reporting regular crashes
   #    and also don't impact regression range calculations.
-  if (crash_result.is_crash(ignore_state=True) and
-      not crash_result.should_ignore() and
-      not crash_result.get_type() in ['Direct-leak', 'Indirect-leak']):
+  elif (crash_result.is_crash(ignore_state=True) and
+        not crash_result.should_ignore() and
+        not crash_result.get_type() in ['Direct-leak', 'Indirect-leak']):
+
     is_bad_build = True
     build_run_console_output = utils.get_crash_stacktrace_output(
         command,
@@ -1300,19 +1328,6 @@ def check_for_bad_build(job_type: str,
         f'return code = {return_code}, crash type = {crash_result.get_type()}',
         raw_output=output,
         output=build_run_console_output)
-  elif environment.is_android():
-    package_name = android.app.get_package_name()
-    if (package_name and
-        not android.adb.get_process_and_child_pids(package_name)):
-      is_bad_build = True
-      build_run_console_output = utils.get_crash_stacktrace_output(
-          command, output, output)
-      logs.info(
-          f'Bad build for {job_type} detected at r{crash_revision}: '
-          f'application process for {package_name} is not running after '
-          'startup.',
-          raw_output=output,
-          output=build_run_console_output)
 
   # Exit all running instances.
   process_handler.terminate_stale_application_instances()
