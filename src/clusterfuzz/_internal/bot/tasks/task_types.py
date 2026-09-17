@@ -192,7 +192,8 @@ class UTask(BaseUTask):
     if download_url is None:
       return
 
-    assert batch_service.is_remote_task(command, job_type)
+    assert batch_service.is_remote_task(
+        command, job_type) or swarming.is_swarming_task(job_type)
 
     logs.info(
         f'Queueing task for remote execution in {queue.name}',
