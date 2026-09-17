@@ -752,10 +752,6 @@ def symbolize_stacktrace(unsymbolized_crash_stacktrace,
                                                enable_inline_frames)
 
   platform = environment.platform()
-  if platform == 'WINDOWS':
-    # Windows Clang ASAN provides symbolized stacktraces anyway.
-    return unsymbolized_crash_stacktrace
-
   if platform == 'FUCHSIA':
     # Fuchsia Clang ASAN provides symbolized stacktraces anyway.
     return unsymbolized_crash_stacktrace

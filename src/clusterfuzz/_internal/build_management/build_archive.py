@@ -96,7 +96,9 @@ class BuildArchive(archive.ArchiveReader):
         The list of fuzz targets.
     """
     if self._fuzz_targets is None:
-      # Import here as this path is not available in App Engine context.
+      # `clusterfuzz._internal.bot` has to be imported locally since it is not
+      # uploaded to GCP with App Engine context. See:
+      # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
       from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
       self._fuzz_targets = {
@@ -207,7 +209,9 @@ class DefaultBuildArchive(BuildArchive):
 
   @override
   def find_fuzz_targets(self) -> List[str]:
-    # Import here as this path is not available in App Engine context.
+    # `clusterfuzz._internal.bot` has to be imported locally since it is not
+    # uploaded to GCP with App Engine context. See:
+    # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
     return [
@@ -328,7 +332,9 @@ class ChromeBuildArchive(DefaultBuildArchive):
           'archive_schema_version field')
       self._archive_schema_version = default_archive_schema_version
 
-    # Import here as this path is not available in App Engine context.
+    # `clusterfuzz._internal.bot` has to be imported locally since it is not
+    # uploaded to GCP with App Engine context. See:
+    # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
     self._manifest_fuzz_targets = (
@@ -400,7 +406,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return lambda f: f.startswith(prefix)
 
   def _get_filename_matcher(self, file: str) -> Callable[[str], bool]:
-    return lambda f: os.path.basename(f) == file
+    return lambda f: os.path.basename(f.replace('\\', '/')) == file
 
   def _match_files(self, matchers: List[Callable[[str], bool]]
                   ) -> List[archive.ArchiveMemberInfo]:
@@ -416,6 +422,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return [
         'args.gn',
         'llvm-symbolizer',
+        'llvm-symbolizer.exe',
         'clusterfuzz_manifest.json',
     ]
 

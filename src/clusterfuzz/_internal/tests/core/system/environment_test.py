@@ -273,8 +273,9 @@ class ResetCurrentMemoryToolOptionsTest(unittest.TestCase):
     test_helpers.patch_environ(self)
 
   def test_windows_symbolizer(self):
-    """Test that the reset_current_memory_tool_options returns the expected path
-    to the llvm symbolizer on Windows."""
+    """Test that reset_current_memory_tool_options defaults to offline
+    symbolization on Windows, and updates symbolizer path only when
+    symbolize=1."""
     os.environ['JOB_NAME'] = 'windows_libfuzzer_chrome_asan'
     test_helpers.patch(self, [
         'clusterfuzz._internal.system.environment.platform',
@@ -284,6 +285,14 @@ class ResetCurrentMemoryToolOptionsTest(unittest.TestCase):
     windows_symbolizer_path = (
         r'c:\clusterfuzz\resources\platform\windows\llvm-symbolizer.exe')
     self.mock.get_llvm_symbolizer_path.return_value = windows_symbolizer_path
+
+    # By default, Windows ASan uses offline symbolization (symbolize=0).
+    environment.reset_current_memory_tool_options()
+    self.assertIn('symbolize=0', os.environ['ASAN_OPTIONS'])
+    self.assertNotIn('external_symbolizer_path', os.environ['ASAN_OPTIONS'])
+
+    # When symbolize=1 is explicitly requested, external_symbolizer_path is added.
+    os.environ['ADDITIONAL_ASAN_OPTIONS'] = 'symbolize=1'
     environment.reset_current_memory_tool_options()
     self.assertIn('external_symbolizer_path="%s"' % windows_symbolizer_path,
                   os.environ['ASAN_OPTIONS'])
@@ -469,3 +478,72 @@ class LocalNoopTest(unittest.TestCase):
       return 10
 
     self.assertEqual(None, test_function())
+
+
+class GetCpuArchTest(unittest.TestCase):
+  """Tests for get_cpu_arch."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_android',
+        'platform.machine',
+        'clusterfuzz._internal.platforms.android.settings.get_cpu_arch',
+    ])
+    self.mock.is_android.return_value = False
+
+  def test_android(self):
+    """Test Android architecture delegation."""
+    self.mock.is_android.return_value = True
+    self.mock.get_cpu_arch.return_value = 'arm64_v8a'
+    self.assertEqual('arm64_v8a', environment.get_cpu_arch())
+
+  def test_arm64(self):
+    """Test ARM64 architecture detection."""
+    self.mock.machine.return_value = 'arm64'
+    self.assertEqual('arm64', environment.get_cpu_arch())
+
+  def test_aarch64(self):
+    """Test aarch64 normalized to arm64."""
+    self.mock.machine.return_value = 'aarch64'
+    self.assertEqual('arm64', environment.get_cpu_arch())
+
+  def test_x86_64(self):
+    """Test x86_64 architecture detection."""
+    self.mock.machine.return_value = 'x86_64'
+    self.assertEqual('x86_64', environment.get_cpu_arch())
+
+  def test_amd64(self):
+    """Test amd64 normalized to x86_64."""
+    self.mock.machine.return_value = 'AMD64'
+    self.assertEqual('x86_64', environment.get_cpu_arch())
+
+
+class GetDefaultToolPathTest(unittest.TestCase):
+  """Tests for get_default_tool_path."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_android',
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.system.environment.get_platform_resources_directory',
+    ])
+    self.mock.is_android.return_value = False
+    self.mock.platform.return_value = 'MAC'
+    self.mock.get_platform_resources_directory.return_value = (
+        '/resources/platform/mac')
+
+  def test_desktop(self):
+    """Test getting default tool path on desktop."""
+    self.assertEqual('/resources/platform/mac/llvm-symbolizer',
+                     environment.get_default_tool_path('llvm-symbolizer'))
+
+  def test_android(self):
+    """Test getting default tool path for Android uses host linux directory."""
+    self.mock.is_android.return_value = True
+    self.mock.get_platform_resources_directory.return_value = (
+        '/resources/platform/linux')
+    self.assertEqual('/resources/platform/linux/llvm-symbolizer',
+                     environment.get_default_tool_path('llvm-symbolizer'))
+    self.mock.get_platform_resources_directory.assert_called_once_with('linux')
