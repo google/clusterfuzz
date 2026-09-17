@@ -19,14 +19,18 @@ daemon is reachable (e.g. on bots without Docker).
 
 Run with:
   pipenv run python -m pytest \
-      src/clusterfuzz/tests/dev_env_testcontainers_test.py
+      src/clusterfuzz/tests/test_dev_env_testcontainers.py
 
 or, from inside an activated virtualenv (`pipenv shell`):
-  python -m pytest src/clusterfuzz/tests/dev_env_testcontainers_test.py
+  python -m pytest src/clusterfuzz/tests/test_dev_env_testcontainers.py
 
 This is deliberately not part of CI: `butler.py py_unittest` only discovers
 tests under src/clusterfuzz/_internal/tests/{core,appengine}, so this file is
-never collected by the `core` or `appengine` targets that CI runs.
+never collected by the `core` or `appengine` targets that CI runs. The
+`test_` prefix (rather than a `_test.py` suffix) is also intentional: it keeps
+pytest collection working while opting out of butler's lint rule requiring an
+__init__.py next to every *_test.py file, which exists to protect unittest
+discovery that this file does not rely on.
 """
 
 import pytest
