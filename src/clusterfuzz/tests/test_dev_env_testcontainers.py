@@ -18,11 +18,14 @@ through testcontainers. They are skipped automatically when no usable Docker
 daemon is reachable (e.g. on bots without Docker).
 
 Run with:
+```
   pipenv run python -m pytest \
       src/clusterfuzz/tests/test_dev_env_testcontainers.py
-
+```
 or, from inside an activated virtualenv (`pipenv shell`):
+```
   python -m pytest src/clusterfuzz/tests/test_dev_env_testcontainers.py
+```
 
 This is deliberately not part of CI: `butler.py py_unittest` only discovers
 tests under src/clusterfuzz/_internal/tests/{core,appengine}, so this file is
