@@ -174,7 +174,8 @@ class UTask(BaseUTask):
       return
 
     queue = pub_sub_task_queue.UTASK_MAIN_QUEUE
-    if swarming.is_swarming_task(job_type):
+    is_swarming_job = swarming.is_swarming_task(job_type)
+    if is_swarming_job:
       queue = pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE
 
     utask_main_queue_size = tasks.get_utask_main_queue_size(queue.name)
@@ -192,8 +193,7 @@ class UTask(BaseUTask):
     if download_url is None:
       return
 
-    assert batch_service.is_remote_task(
-        command, job_type) or swarming.is_swarming_task(job_type)
+    assert batch_service.is_remote_task(command, job_type) or is_swarming_job
 
     logs.info(
         f'Queueing task for remote execution in {queue.name}',
