@@ -481,6 +481,45 @@ class GetRadamsaOutputFilenameTest(unittest.TestCase):
     self.assertLessEqual(len(output_filename), filename_length_limit)
 
 
+class GetRadamsaPathTest(unittest.TestCase):
+  """get_radamsa_path tests."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.platform',
+        'platform.machine',
+    ])
+    self.resources_dir = environment.get_resources_directory()
+
+  def test_linux(self):
+    """Test Linux radamsa path."""
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.machine.return_value = 'x86_64'
+    expected = os.path.join(self.resources_dir, 'platform', 'linux', 'radamsa')
+    self.assertEqual(expected, engine_common.get_radamsa_path())
+
+  def test_mac_arm64(self):
+    """Test macOS ARM64 radamsa path."""
+    self.mock.platform.return_value = 'MAC'
+    self.mock.machine.return_value = 'arm64'
+    expected = os.path.join(self.resources_dir, 'platform', 'mac', 'arm64',
+                            'radamsa')
+    self.assertEqual(expected, engine_common.get_radamsa_path())
+
+  def test_mac_x86_64(self):
+    """Test macOS x86_64 radamsa path."""
+    self.mock.platform.return_value = 'MAC'
+    self.mock.machine.return_value = 'x86_64'
+    expected = os.path.join(self.resources_dir, 'platform', 'mac', 'radamsa')
+    self.assertEqual(expected, engine_common.get_radamsa_path())
+
+  def test_windows_unsupported(self):
+    """Test unsupported platform returns None."""
+    self.mock.platform.return_value = 'WINDOWS'
+    self.assertIsNone(engine_common.get_radamsa_path())
+
+
 class ProcessSanitizerOptionsOverridesTest(fake_filesystem_unittest.TestCase):
   """process_sanitizer_options_overrides tests."""
 

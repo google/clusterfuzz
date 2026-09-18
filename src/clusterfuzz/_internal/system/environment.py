@@ -436,6 +436,12 @@ def get_platform_resources_directory(platform_override=None):
   if is_android(plt):
     plt = 'ANDROID'
 
+  arch = get_cpu_arch()
+  if (not platform_override and plt != 'ANDROID' and arch and
+      not arch.startswith('x86')):
+    return os.path.join(get_resources_directory(), 'platform', plt.lower(),
+                        arch)
+
   return os.path.join(get_resources_directory(), 'platform', plt.lower())
 
 

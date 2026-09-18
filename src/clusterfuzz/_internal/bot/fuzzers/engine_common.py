@@ -201,16 +201,10 @@ def generate_new_testcase_mutations_using_radamsa(
 
 def get_radamsa_path():
   """Return path to radamsa binary for current platform."""
-  bin_directory_path = os.path.join(
-      os.path.dirname(os.path.realpath(__file__)), 'bin')
-  platform = environment.platform()
-  if platform == 'LINUX':
-    return os.path.join(bin_directory_path, 'linux', 'radamsa')
+  if environment.platform() not in ('LINUX', 'MAC'):
+    return None
 
-  if platform == 'MAC':
-    return os.path.join(bin_directory_path, 'mac', 'radamsa')
-
-  return None
+  return environment.get_default_tool_path('radamsa')
 
 
 def get_new_testcase_mutations_timeout():
