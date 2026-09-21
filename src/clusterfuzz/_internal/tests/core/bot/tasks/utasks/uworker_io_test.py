@@ -416,3 +416,32 @@ class TestCheckRunningFuzzerSafe(unittest.TestCase):
     self.mock.is_uworker.return_value = False
     with self.assertRaises(SystemExit):
       uworker_io.check_running_fuzzer_safe(self.fuzzer)
+
+
+class TestCheckRunningTestcaseSafe(unittest.TestCase):
+  """Tests check_handling_testcase_safe."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_uworker',
+    ])
+    self.testcase = mock.MagicMock(spec=data_types.Testcase)
+    self.testcase.name = 'test_testcase'
+
+  def test_trusted_testcase(self):
+    """Test that trusted testcase passes without checks."""
+    self.testcase.trusted = True
+    self.assertTrue(uworker_io.check_handling_testcase_safe(self.testcase))
+
+  def test_untrusted_testcase_uworker(self):
+    """Test that untrusted testcase on uworker passes."""
+    self.testcase.trusted = False
+    self.mock.is_uworker.return_value = True
+    self.assertTrue(uworker_io.check_handling_testcase_safe(self.testcase))
+
+  def test_untrusted_testcase_not_uworker_raises(self):
+    """Test that untrusted testcase not on uworker raises SystemExit."""
+    self.testcase.trusted = False
+    self.mock.is_uworker.return_value = False
+    with self.assertRaises(SystemExit):
+      uworker_io.check_handling_testcase_safe(self.testcase)

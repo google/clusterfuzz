@@ -347,7 +347,10 @@ class Fuzzer(Model):
   # reward flags.
   external_contribution = ndb.BooleanProperty(default=False)
 
-  # Primary owner to be reported for bugs filed by CF
+  # Primary owner for this fuzzer (e.g. for VRP attribution).
+  # Note: Setting this overrides the bug reporter on filed issues in the issue
+  # tracker, which may affect downstream workflows or automations expecting the
+  # default ClusterFuzz reporter email.
   primary_owner = ndb.StringProperty()
 
   # Max testcases to generate for this fuzzer.

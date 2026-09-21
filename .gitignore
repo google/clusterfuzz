@@ -59,3 +59,8 @@ bazel-*
 # Ignore temporary build files.
 docker/base/Pipfile
 docker/base/Pipfile.lock
+
+# Tags and Cscope files
+tags
+cscope.files
+cscope.out

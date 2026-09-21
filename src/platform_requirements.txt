@@ -1,4 +1,20 @@
+# This file contains dependencies from src/Pipfile that contain native/compiled
+# C/C++/Rust extensions.
+#
+# When packaging bot deployment bundles for non-Linux platforms (e.g. Windows,
+# macOS, macOS ARM64) on a Linux build machine, butler uses this list to
+# download pre-compiled binary wheels for the target platform and extract them
+# into src/third_party.
+#
+# If you add or bump a package in Pipfile that has native extensions, make sure
+# to update it here as well.
+bcrypt==4.1.2
+cffi==1.15.1
+cryptography==37.0.4
+google-crc32c==1.5.0
 grpcio==1.62.2
 kubernetes==34.1.0
 protobuf==4.23.4
 psutil==5.9.4
+PyYAML==6.0.1
+wrapt==1.16.0

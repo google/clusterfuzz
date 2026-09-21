@@ -887,8 +887,8 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       absolute_testcase_path = os.path.join(
           environment.get_value('FUZZ_INPUTS'), 'testcase')
 
-      # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on
-      # the job when we start doing untrusted fuzzing.
+      # TODO(b/556173460): Set trusted based on
+      # the job when we start doing untrusted engine fuzzing
       testcase_id = data_handler.store_testcase(
           crash=crash,
           fuzzed_keys=key,

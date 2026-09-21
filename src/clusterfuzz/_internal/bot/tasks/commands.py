@@ -112,8 +112,13 @@ def is_supported_cpu_arch_for_job():
     # No specific cpu architecture requirement specified in job, bail out.
     return True
 
-  # Convert to list just in case anyone specifies value as a single string.
-  supported_cpu_arch_list = list(supported_cpu_arch)
+  # We support specifying CPU_ARCH as a list e.g. ['armeabi', 'armeabi-v7a'] or
+  # as a string e.g. 'x86_64, arm64'.
+  if isinstance(supported_cpu_arch, list):
+    supported_cpu_arch_list = supported_cpu_arch
+  else:
+    supported_cpu_arch_list = utils.parse_delimited(
+        str(supported_cpu_arch), delimiter=',', strip=True, remove_empty=True)
 
   return cpu_arch in supported_cpu_arch_list
 
@@ -366,11 +371,6 @@ def process_command_impl(task_name,
         logs.info(
             f'Testcase {task_argument} no longer exists, short-circuiting '
             f'task {task_name}.')
-        return None
-
-      if testcase.status == 'Duplicate' or testcase.duplicate_of:
-        logs.info(f'Testcase {task_argument} is a duplicate, short-circuiting '
-                  f'task {task_name}.')
         return None
 
       # Make sure that our platform id matches that of the testcase (for
