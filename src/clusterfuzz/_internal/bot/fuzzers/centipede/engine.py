@@ -630,8 +630,8 @@ class Engine(engine.Engine):
     minimum_testcase = min(testcases, key=os.path.getsize)
     return minimum_testcase
 
-  # FIXME: Investigate whether `minimize_testcase` needs to be used, or if it
-  # can be safely deleted
+  # FIXME(crbug.com/564526622): Investigate whether `minimize_testcase` needs
+  # to be used, or if it can be safely deleted
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
     """Minimizes a testcase.
