@@ -100,7 +100,7 @@ class Engine(engine.Engine):
 
   def _add_rss_limit_if_missing(self, target_path, arguments):
     """Add rss_limit_mb from target arguments if missing. Returns arguments
-    unchanged if it cannot be parsed.
+    unchanged if it cannot be parsed or if rss_limit_mb is already present.
     """
     db_arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
     if db_arguments is None:
@@ -109,9 +109,11 @@ class Engine(engine.Engine):
           arguments=arguments)
       return arguments
 
-    if constants.RSS_LIMIT_FLAGNAME not in db_arguments:
-      db_arguments[constants.RSS_LIMIT_FLAGNAME] = fuzzer.get_rss_limit_mb(
-          fuzzer_options.get_fuzz_target_options(target_path))
+    if constants.RSS_LIMIT_FLAGNAME in db_arguments:
+      return arguments
+
+    db_arguments[constants.RSS_LIMIT_FLAGNAME] = fuzzer.get_rss_limit_mb(
+        fuzzer_options.get_fuzz_target_options(target_path))
     return db_arguments.list()
 
   def prepare(self, corpus_dir, target_path, build_dir):
