@@ -29,9 +29,11 @@ class HandlerTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_url',
         'libs.helpers.get_testcase',
+        'libs.access.can_user_access_testcase',
         'clusterfuzz._internal.system.environment.is_running_on_app_engine',
     ])
     self.mock.is_running_on_app_engine.return_value = True
+    self.mock.can_user_access_testcase.return_value = True
 
     import server
     self.app = webtest.TestApp(server.app)
@@ -58,3 +60,17 @@ class HandlerTest(unittest.TestCase):
 
     response = self.app.get('/issue/12345', expect_errors=True)
     self.assertEqual(404, response.status_int)
+
+  def test_no_access(self):
+    """A caller without access to the testcase must not be redirected to its
+    issue URL, previously this handler had no access check at all."""
+    self.mock.can_user_access_testcase.return_value = False
+    testcase = data_types.Testcase()
+    testcase.bug_information = '456789'
+    self.mock.get_testcase.return_value = testcase
+    self.mock.get_issue_url.return_value = 'http://google.com/456789'
+
+    response = self.app.get('/issue/12345', expect_errors=True)
+
+    self.assertEqual(403, response.status_int)
+    self.mock.get_issue_url.assert_not_called()
