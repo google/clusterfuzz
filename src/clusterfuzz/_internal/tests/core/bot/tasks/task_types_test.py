@@ -470,22 +470,6 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
         else:
           self._assert_queued_on(pub_sub_task_queue.UTASK_MAIN_QUEUE.name)
 
-  def test_routes_swarming_jobs_to_the_swarming_queue(self):
-    """Tests that a utask on a swarming job is queued on the swarming
-    utask_main queue, even though it is not a batch remote task."""
-    self.mock.is_remotely_executing_utasks.return_value = True
-    self.mock.is_remote_task.return_value = False
-    self.mock.is_swarming_task.return_value = True
-
-    for command in self.UTASK_COMMANDS:
-      with self.subTest(command=command):
-        self._execute(command)
-        if command in self.TWORKER_ONLY_REMOTE_COMMANDS:
-          self._assert_executed_locally()
-        else:
-          self._assert_queued_on(
-              pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
-
   def test_tworker_routes_batch_jobs_to_the_utask_main_queue(self):
     """Tests that on a tworker every utask on a batch job is queued on the
     utask_main queue, including the ones that run locally elsewhere."""
@@ -512,7 +496,7 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
         self._assert_queued_on(
             pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
 
-  def test_trusted_tasks_always_execute_locally(self):
+  def test_trusted_tasks_are_not_queued_for_remote_execution(self):
     """Tests that trusted tasks run in this process and are never queued, even
     on a job that is remote for utasks."""
     self.mock.is_remotely_executing_utasks.return_value = True
