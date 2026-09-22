@@ -333,6 +333,7 @@ class UploadHandlerCommon:
                      stacktrace=None,
                      multiple_testcases=None,
                      trusted_agreement_signed=False,
+                     trusted=False,
                      testcase_id=None,
                      testcase_metadata=None,
                      skip_minimization=False) -> str:
@@ -417,6 +418,11 @@ class UploadHandlerCommon:
             job_type, platform_id)
       except ValueError as e:
         raise helpers.EarlyExitError(str(e), 400)
+
+    # Only uploaders who signed the trusted agreement produce trusted
+    # testcases. Everything else stays untrusted and is restricted to
+    # unprivileged bots.
+    trusted = trusted and trusted_agreement_signed
 
     crash_data = None
     if job.is_external():
@@ -619,7 +625,8 @@ class UploadHandlerCommon:
         bug_summary_update_flag,
         quiet_flag,
         additional_metadata=testcase_metadata,
-        crash_data=crash_data)
+        crash_data=crash_data,
+        trusted=trusted)
 
     testcase = data_handler.get_testcase_by_id(testcase_id)
     events.emit(
@@ -693,6 +700,7 @@ class UploadHandlerCommon:
         gestures=gestures,
         stacktrace=stacktrace,
         trusted_agreement_signed=trusted_agreement_signed,
+        trusted=trusted_agreement_signed,
         testcase_metadata=testcase_metadata,
         skip_minimization=skip_minimization,
     )
@@ -781,6 +789,10 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
             gestures=message_data.get('gestures', '[]'),
             http_flag=message_data.get('http_flag', None),
             platform_id='Linux',
+            # Bypasses the untrusted workload job check, since this is an
+            # internal path rather than a user upload. It deliberately does
+            # not pass trusted=True: the sampled crash may come from an
+            # untrusted fuzzer, so the testcase stays untrusted.
             trusted_agreement_signed=True,
         )
         monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
