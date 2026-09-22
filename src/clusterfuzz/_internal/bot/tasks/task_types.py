@@ -193,6 +193,7 @@ class UTask(BaseUTask):
     if download_url is None:
       return
 
+    # TODO(b/564999007): Refactor so we check against a single source of truth.
     assert batch_service.is_remote_task(command, job_type) or is_swarming_job
 
     logs.info(
