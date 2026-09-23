@@ -1,0 +1,32 @@
+{
+  "credentials": {
+    "email": "test-unpriv-clusterfuzz-service-account-email",
+    "scopes": ["https://www.googleapis.com/auth/cloud-platform"],
+    "access_token": "fake-uworker-access-token",
+    "expires_in_seconds": 3600
+  },
+  "host": {
+    "interface": "127.0.0.1"
+  },
+  "metadata": {
+    "project": {
+      "project-id": "test-clusterfuzz",
+      "numeric-project-id": "1234567890",
+      "attributes": {
+        "deployment-bucket": "test-deployment-bucket",
+        "deployment-zip": "linux-3.zip"
+      }
+    },
+    "instance": {
+      "id": "2222222222222222222",
+      "hostname": "uworker-1.c.test-clusterfuzz.internal",
+      "zone": "projects/1234567890/zones/us-central1-f",
+      "preempted": "FALSE",
+      "scheduling": {
+        "preemptible": "TRUE",
+        "provisioning-model": "SPOT"
+      },
+      "attributes": {}
+    }
+  }
+}

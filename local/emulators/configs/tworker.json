@@ -1,0 +1,37 @@
+{
+  "credentials": {
+    "email": "test-clusterfuzz-service-account-email",
+    "scopes": [
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ],
+    "access_token": "fake-tworker-access-token",
+    "expires_in_seconds": 3600
+  },
+  "host": {
+    "interface": "127.0.0.1"
+  },
+  "metadata": {
+    "project": {
+      "project-id": "test-clusterfuzz",
+      "numeric-project-id": "1234567890",
+      "attributes": {
+        "deployment-bucket": "test-deployment-bucket",
+        "deployment-zip": "linux-3.zip"
+      }
+    },
+    "instance": {
+      "id": "1111111111111111111",
+      "hostname": "tworker-1.c.test-clusterfuzz.internal",
+      "zone": "projects/1234567890/zones/us-central1-f",
+      "preempted": "FALSE",
+      "scheduling": {
+        "preemptible": "FALSE",
+        "provisioning-model": "STANDARD"
+      },
+      "attributes": {
+        "override_tworker_queue": "jobs-linux-test"
+      }
+    }
+  }
+}
