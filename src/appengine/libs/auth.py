@@ -213,9 +213,8 @@ def get_current_user():
   if not email_verified:
     # The user is rejected here rather than by an access check, and the login
     # page is expected to have asked them to verify their email.
-    logs.warning(
-        f'Rejecting sign-in from provider {sign_in_provider}: '
-        f'email {email} is not verified.')
+    logs.warning(f'Rejecting sign-in from provider {sign_in_provider}: '
+                 f'email {email} is not verified.')
     return None
 
   if not email:
