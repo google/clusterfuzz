@@ -1,6 +1,8 @@
 Change Log
 ==========
 
+Just a test
+
 ## Version 2.5.0
 - Restructured internal imports to make pip package cleaner.
 - AFL++ support.
