@@ -209,11 +209,25 @@ def get_current_user():
     return None
 
   email_verified = bool(decoded_claims.get('email_verified'))
+  email = decoded_claims.get('email')
   if not email_verified:
+    # The user is rejected here rather than by an access check, and the login
+    # page is expected to have asked them to verify their email.
+    logs.warning(
+        f'Rejecting sign-in from provider {sign_in_provider}: '
+        f'email {email} is not verified.')
     return None
 
-  email = decoded_claims.get('email')
-  if not email or utils.is_service_account(email):
+  if not email:
+    return None
+
+  # Service accounts are expected to authenticate through IAP or a bearer
+  # token, both handled above. They cannot obtain a Firebase session cookie
+  # today, so this is defense-in-depth against a future flow that mints custom
+  # tokens for them.
+  if utils.is_service_account(email):
+    logs.warning(
+        f'Rejecting Firebase session cookie for service account {email}.')
     return None
 
   # We cache the email for this request if we've validated the user to make
