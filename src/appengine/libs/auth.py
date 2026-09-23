@@ -65,7 +65,7 @@ def is_current_user_admin():
     return True
 
   user = get_current_user()
-  if not user:
+  if not user or not user.email_verified:
     return False
 
   key = ndb.Key(data_types.Admin, user.email)
@@ -208,20 +208,12 @@ def get_current_user():
     logs.error(f'Firebase provider {sign_in_provider} is not enabled.')
     return None
 
-  # Per https://docs.github.com/en/authentication/
-  #       keeping-your-account-and-data-secure/authorizing-oauth-apps
-  # GitHub requires emails to be verified before an OAuth app can be
-  # authorized, so we still allow GitHub sign-ins through here. However, the
-  # email itself may be unverified (e.g. GitHub Enterprise Managed Users can
-  # assert an arbitrary, GitHub-unverified email), so we carry the real
-  # email_verified state on the User and never trust an unverified email as a
-  # whitelisted domain (see libs/access.py).
   email_verified = bool(decoded_claims.get('email_verified'))
-  if not email_verified and sign_in_provider != 'github.com':
+  if not email_verified:
     return None
 
   email = decoded_claims.get('email')
-  if not email:
+  if not email or utils.is_service_account(email):
     return None
 
   # We cache the email for this request if we've validated the user to make

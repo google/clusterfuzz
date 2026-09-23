@@ -272,6 +272,19 @@ class GetAccessTest(unittest.TestCase):
         access.get_access(need_privileged_access=False),
         access.UserAccess.Denied)
 
+  def test_get_access_unverified_privileged_and_external(self):
+    """Ensure an unverified email is denied even if matching privileged_users,
+    fuzzer permissions, or job permissions."""
+    self.mock.get_current_user.return_value = auth.User(
+        'test@test.com', email_verified=False)
+    self.mock.is_current_user_admin.return_value = False
+    self.mock._is_privileged_user.return_value = True
+    self.mock.is_fuzzer_allowed_for_user.return_value = True
+    self.mock.is_job_allowed_for_user.return_value = True
+    self.assertEqual(
+        access.get_access(job_type='test', fuzzer_name='test'),
+        access.UserAccess.Denied)
+
   def test_get_access_external_fuzzer(self):
     """For a fuzzer, ensure it allows when a user is allowed."""
     self.mock.get_current_user.return_value = self.user

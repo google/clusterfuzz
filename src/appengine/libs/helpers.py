@@ -148,7 +148,10 @@ def get_or_exit(fn,
 def get_user_email():
   """Returns currently logged-in user's email."""
   try:
-    return auth.get_current_user().email
+    user = auth.get_current_user()
+    if not user or not user.email_verified:
+      return ''
+    return user.email
   except Exception:
     return ''
 
