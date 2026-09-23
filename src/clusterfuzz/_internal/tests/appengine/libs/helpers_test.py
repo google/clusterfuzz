@@ -134,6 +134,12 @@ class GetUserEmailTest(unittest.TestCase):
     self.mock.get_current_user.return_value = auth.User('TeSt@Test.com')
     self.assertEqual(helpers.get_user_email(), 'TeSt@Test.com')
 
+  def test_get_user_email_unverified(self):
+    """Ensure it gets empty string when user email is not verified."""
+    self.mock.get_current_user.return_value = auth.User(
+        'TeSt@Test.com', email_verified=False)
+    self.assertEqual(helpers.get_user_email(), '')
+
   def test_get_user_email_failure(self):
     """Ensure it gets empty string when a user is invalid."""
     self.mock.get_current_user.side_effect = Exception()

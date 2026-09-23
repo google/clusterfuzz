@@ -67,6 +67,18 @@
       ],
       callbacks: {
         signInSuccessWithAuthResult: function(authResult, redirectUrl) {
+          if (!authResult.user.emailVerified) {
+            authResult.user.sendEmailVerification().then(function() {
+              alert(
+                  'A verification email has been sent to ' +
+                  authResult.user.email +
+                  '. Please click the verification link in that email and sign in again.'
+              );
+              firebase.auth().signOut();
+            });
+            return false;
+          }
+
           authResult.user.getIdToken().then(function(idToken) {
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/session-login');
