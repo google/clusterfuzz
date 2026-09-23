@@ -488,6 +488,7 @@ class GetRadamsaPathTest(unittest.TestCase):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
         'clusterfuzz._internal.system.environment.platform',
+        'os.chmod',
         'platform.machine',
     ])
     self.resources_dir = environment.get_resources_directory()
@@ -496,8 +497,11 @@ class GetRadamsaPathTest(unittest.TestCase):
     """Test Linux radamsa path."""
     self.mock.platform.return_value = 'LINUX'
     self.mock.machine.return_value = 'x86_64'
-    expected = os.path.join(self.resources_dir, 'platform', 'linux', 'radamsa')
+    expected = os.path.join(
+        os.path.dirname(os.path.realpath(engine_common.__file__)), 'bin',
+        'linux', 'radamsa')
     self.assertEqual(expected, engine_common.get_radamsa_path())
+    self.mock.chmod.assert_called_once_with(expected, 0o755)
 
   def test_mac_arm64(self):
     """Test macOS ARM64 radamsa path."""
@@ -506,6 +510,7 @@ class GetRadamsaPathTest(unittest.TestCase):
     expected = os.path.join(self.resources_dir, 'platform', 'mac_arm64',
                             'radamsa')
     self.assertEqual(expected, engine_common.get_radamsa_path())
+    self.mock.chmod.assert_called_once_with(expected, 0o755)
 
   def test_mac_x86_64(self):
     """Test macOS x86_64 radamsa path."""
@@ -513,6 +518,7 @@ class GetRadamsaPathTest(unittest.TestCase):
     self.mock.machine.return_value = 'x86_64'
     expected = os.path.join(self.resources_dir, 'platform', 'mac', 'radamsa')
     self.assertEqual(expected, engine_common.get_radamsa_path())
+    self.mock.chmod.assert_called_once_with(expected, 0o755)
 
   def test_windows_unsupported(self):
     """Test unsupported platform returns None."""

@@ -534,3 +534,28 @@ class SymbolizeStacktraceChainTest(unittest.TestCase):
     self.mock_loop.process_stacktrace.assert_called_once_with(
         'unsymbolized_input')
     self.assertEqual('final_symbolized_output', result)
+
+
+class GuessArchTest(unittest.TestCase):
+  """Tests for guess_arch."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.get_target_cpu_arch',
+    ])
+
+  def test_64bit_x86_64(self):
+    """Test 64-bit address on x86_64 target."""
+    self.mock.get_target_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('x86_64', stack_symbolizer.guess_arch('0x0000000100001234'))
+
+  def test_64bit_arm64(self):
+    """Test 64-bit address on arm64 target."""
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
+    self.assertEqual('arm64', stack_symbolizer.guess_arch('0x0000000100001234'))
+
+  def test_32bit(self):
+    """Test 32-bit address returns i386."""
+    self.mock.get_target_cpu_arch.return_value = 'x86_64'
+    self.assertEqual('i386', stack_symbolizer.guess_arch('0x10001234'))
+

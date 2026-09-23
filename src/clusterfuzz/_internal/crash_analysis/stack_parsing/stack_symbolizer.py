@@ -208,6 +208,8 @@ def guess_arch(address):
   """Guess which architecture we're running on (32/64).
   10 = len('0x') + 8 hex digits."""
   if len(address) > 10:
+    if environment.get_target_cpu_arch() == 'arm64':
+      return 'arm64'
     return 'x86_64'
   else:
     return 'i386'
