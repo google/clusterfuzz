@@ -539,6 +539,13 @@ class GetDefaultToolPathTest(unittest.TestCase):
     self.assertEqual('/resources/platform/mac/llvm-symbolizer',
                      environment.get_default_tool_path('llvm-symbolizer'))
 
+  def test_mac_arm64(self):
+    """Test getting default tool path on macOS ARM64."""
+    self.mock.get_platform_resources_directory.return_value = (
+        '/resources/platform/mac_arm64')
+    self.assertEqual('/resources/platform/mac_arm64/llvm-symbolizer',
+                     environment.get_default_tool_path('llvm-symbolizer'))
+
   def test_android(self):
     """Test getting default tool path for Android uses host linux directory."""
     self.mock.is_android.return_value = True
