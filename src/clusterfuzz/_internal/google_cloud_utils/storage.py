@@ -1305,9 +1305,12 @@ def str_to_bytes(data):
 
 def download_signed_url_to_filepath(url, filepath: str):
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
+  # Download fully before opening |filepath|, so a failed request never leaves
+  # an empty file under the real name. The handle is used only in this block.
+  contents = download_signed_url(url)
   with open(filepath, 'wb') as fp:
-    download_signed_url_to_file(url, fp)
-    return filepath
+    fp.write(contents)
+  return filepath
 
 
 def download_signed_url_to_file(url, file: io.IOBase):
