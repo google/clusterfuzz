@@ -21,8 +21,10 @@ from unittest import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -525,3 +527,76 @@ class GetProtoCorpusTest(unittest.TestCase):
     corpus = corpus_manager.get_proto_corpus(bucket_name, bucket_path,
                                              backup_url, 5)
     self.assertFalse(corpus.HasField('backup_url'))
+
+
+class DataBundleSignedUrlFlowTest(fake_filesystem_unittest.TestCase):
+  """End-to-end tests for data bundle preprocess signing and uworker sync."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_utils.set_up_pyfakefs(self)
+    self.provider = storage.FileSystemProvider('/gcs')
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.task_types.task_main_runs_on_uworker',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.entity_to_protobuf',
+        'clusterfuzz._internal.google_cloud_utils.storage._provider',
+        'clusterfuzz._internal.google_cloud_utils.storage.use_async_http',
+        'clusterfuzz._internal.system.environment.is_uworker',
+    ])
+    self.mock.task_main_runs_on_uworker.return_value = True
+    self.mock.entity_to_protobuf.return_value = (
+        uworker_msg_pb2.DataBundleCorpus().data_bundle)  # pylint: disable=no-member
+    self.mock._provider.return_value = self.provider  # pylint: disable=protected-access
+    self.mock.use_async_http.return_value = False
+    self.mock.is_uworker.return_value = True
+
+  def _assert_bundle_roundtrip(self, bucket_name, blobs):
+    """Uploads |blobs| to |bucket_name|, runs get_proto_data_bundle_corpus ->
+    proto serialization -> sync_data_bundle_corpus_to_disk, and asserts the
+    on-disk tree matches the object names exactly."""
+    bundle = data_types.DataBundle(name='bundle', bucket_name=bucket_name)
+    self.provider.create_bucket(bucket_name, None, None, None)
+    for rel_path, content in blobs.items():
+      self.provider.write_data(content, f'{bundle.bucket_url()}/{rel_path}')
+
+    proto_corpus = corpus_manager.get_proto_data_bundle_corpus(bundle)
+    deserialized = uworker_msg_pb2.DataBundleCorpus.FromString(  # pylint: disable=no-member
+        proto_corpus.SerializeToString())
+    self.assertTrue(
+        corpus_manager.sync_data_bundle_corpus_to_disk(deserialized, '/bundle'))
+
+    found = {}
+    for dirpath, _, filenames in os.walk('/bundle'):
+      for filename in filenames:
+        full_path = os.path.join(dirpath, filename)
+        rel_path = os.path.relpath(full_path, '/bundle').replace(os.sep, '/')
+        with open(full_path, 'rb') as fp:
+          found[rel_path] = fp.read()
+    self.assertEqual(found, blobs)
+
+  def test_lokihardt_js_corpus(self):
+    """The flat lokihardt bundle keeps corpus.db."""
+    self._assert_bundle_roundtrip('bundle-a.example.com',
+                                  {'corpus.db': b'SQLite format 3\x00'})
+
+  def test_ltests_nested_and_special_characters(self):
+    """The ltests bundle keeps its folder tree and names with spaces, '+', '&'
+    and "'"."""
+    self._assert_bundle_roundtrip(
+        'example.com', {
+            'ietestcenter/Graphics/Hands-On-CSS3/svg/res/2.0/images/'
+            'textures/rust.jpg':
+                b'rust-bytes',
+            'ietestcenter/Browser/DoNotTrack/img/ie8 logo.jpg':
+                b'ie8',
+            'ietestcenter/Mobile/Graphics/AppFountain/images/+.png':
+                b'plus',
+            'ietestcenter/Mobile/Graphics/AppFountain/images/'
+            'Beards & Beaks.png':
+                b'amp',
+            'ietestcenter/Mobile/Graphics/AppFountain/images/'
+            "Arcane's TD.png":
+                b'quote',
+            'cobalt_tests/animations-demo/layer_fern.css':
+                b'css',
+        })
