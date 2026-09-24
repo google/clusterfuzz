@@ -365,6 +365,48 @@ class SignedUrlDownloadTest(fake_filesystem_unittest.TestCase):
         self.assertIsNone(storage._get_safe_download_path('/bundle', bad))  # pylint: disable=protected-access
         mock_error.assert_called_once()
 
+  def test_windows_escaping_and_reserved_names(self):
+    """Escapes Windows-forbidden characters, trailing dots/spaces, and reserved
+    device names on WINDOWS while leaving them unchanged on LINUX."""
+    windows_safe_names = [
+        'tests/browser/img/example logo.jpg',
+        'tests/mobile/images/+.png',
+        'tests/mobile/images/a & b.png',
+        "tests/mobile/images/it's here.png",
+    ]
+    with mock.patch.object(
+        storage.environment, 'platform', return_value='WINDOWS'):
+      for rel in windows_safe_names:
+        self.assertEqual(
+            storage._get_safe_download_path('/bundle', rel),  # pylint: disable=protected-access
+            os.path.join('/bundle', *rel.split('/')))
+
+    synthetic_cases = [
+        ('a:b.js', 'a%3Ab.js'),
+        ('x?.txt', 'x%3F.txt'),
+        (r'a\..\x', 'a%5C..%5Cx'),
+        ('trailing.', 'trailing%2E'),
+        ('trailing ', 'trailing%20'),
+        ('CON', '%43ON'),
+        ('con.txt', '%63on.txt'),
+        ('NUL.txt', '%4EUL.txt'),
+        ('COM1.log', '%43OM1.log'),
+        ('LPT9', '%4CPT9'),
+        ('CONSOLE.txt', 'CONSOLE.txt'),
+        ('icon.png', 'icon.png'),
+    ]
+    for raw_name, expected_win in synthetic_cases:
+      with mock.patch.object(
+          storage.environment, 'platform', return_value='WINDOWS'):
+        self.assertEqual(
+            storage._get_safe_download_path('/bundle', raw_name),  # pylint: disable=protected-access
+            os.path.join('/bundle', expected_win))
+      with mock.patch.object(
+          storage.environment, 'platform', return_value='LINUX'):
+        self.assertEqual(
+            storage._get_safe_download_path('/bundle', raw_name),  # pylint: disable=protected-access
+            os.path.join('/bundle', raw_name))
+
   def _seed_blobs(self, bucket, blobs):
     self.provider.create_bucket(bucket, None, None, None)
     for rel_path, data in blobs.items():
@@ -468,6 +510,46 @@ class SignedUrlDownloadTest(fake_filesystem_unittest.TestCase):
 
     self.assertEqual(dispatched, [(u1, '/dup_dir/data.db')])
     mock_error.assert_called_once()
+
+  def test_windows_case_and_escaping_collisions_skipped(self):
+    """On Windows, case-only duplicates and escaping collisions are skipped
+    before reaching the pool; on Linux, case-only differences both download."""
+    urls = [
+        'https://storage.googleapis.com/b/js/A.js?X-Goog-Signature=1',
+        'https://storage.googleapis.com/b/js/a.js?X-Goog-Signature=2',
+        'https://storage.googleapis.com/b/a%3Ab.js?X-Goog-Signature=3',
+        'https://storage.googleapis.com/b/a%253Ab.js?X-Goog-Signature=4',
+    ]
+    self.mock.use_async_http.return_value = True
+
+    win_dispatched = []
+    with mock.patch.object(
+        storage.environment, 'platform', return_value='WINDOWS'), \
+         mock.patch.object(
+             storage.os.path, 'normcase', side_effect=lambda p: p.lower()), \
+         mock.patch.object(
+             storage.fast_http,
+             'download_urls',
+             side_effect=lambda pairs: (
+                 win_dispatched.extend(pairs) or [True] * len(pairs))):
+      storage.download_signed_urls_preserving_paths(urls, '/win_dir', 'gs://b')
+
+    self.assertEqual([p for _, p in win_dispatched],
+                     ['/win_dir/js/A.js', '/win_dir/a%3Ab.js'])
+
+    linux_dispatched = []
+    with mock.patch.object(
+        storage.environment, 'platform', return_value='LINUX'), \
+         mock.patch.object(
+             storage.fast_http,
+             'download_urls',
+             side_effect=lambda pairs: (
+                 linux_dispatched.extend(pairs) or [True] * len(pairs))):
+      storage.download_signed_urls_preserving_paths(urls[:2], '/linux_dir',
+                                                    'gs://b')
+
+    self.assertEqual([p for _, p in linux_dispatched],
+                     ['/linux_dir/js/A.js', '/linux_dir/js/a.js'])
 
 
 class GetRelativePathFromSignedUrlTest(unittest.TestCase):
