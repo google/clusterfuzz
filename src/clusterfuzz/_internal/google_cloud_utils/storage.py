@@ -25,7 +25,9 @@ import shutil
 import threading
 import time
 from typing import List
+from typing import Optional
 from typing import Tuple
+import urllib.parse
 import uuid
 from xml.etree import ElementTree as ET
 
@@ -1395,11 +1397,81 @@ def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return _provider().sign_delete_url(remote_path, minutes)
 
 
+_GCS_SIGNED_URL_HOST = 'storage.googleapis.com'
+_RESERVED_DATA_BUNDLE_NAMES = {'.sync', 'files.info'}
+
+
+def _redact_signed_url(url: str) -> str:
+  """Drops the query string, which holds the signature and credential."""
+  parsed = urllib.parse.urlparse(url)
+  return urllib.parse.urlunparse(parsed._replace(query='', fragment=''))
+
+
+def _get_relative_path_from_signed_url(signed_url: str,
+                                       gcs_prefix_url: str) -> Optional[str]:
+  """Returns the object path in |signed_url| relative to |gcs_prefix_url|
+  (e.g. gs://bucket or gs://bucket/prefix), or None if it can't be derived."""
+  parsed = urllib.parse.urlparse(signed_url)
+
+  if parsed.scheme == 'gs':
+    # FileSystemProvider / integration tests: raw, unencoded remote path.
+    bucket, object_path = parsed.netloc, parsed.path.lstrip('/')
+  elif parsed.scheme == 'https' and parsed.netloc == _GCS_SIGNED_URL_HOST:
+    # V4 path-style signed URL: /<bucket>/<percent-encoded object>.
+    # unquote (not unquote_plus): '+' in a path is a literal plus.
+    bucket, _, object_path = urllib.parse.unquote(
+        parsed.path).lstrip('/').partition('/')
+  else:
+    return None
+
+  prefix_bucket, prefix_path = get_bucket_name_and_path(gcs_prefix_url)
+
+  if bucket != prefix_bucket:
+    return None
+
+  prefix_path = prefix_path.strip('/')
+  if prefix_path:
+    if not object_path.startswith(prefix_path + '/'):
+      return None
+    object_path = object_path[len(prefix_path) + 1:]
+
+  return object_path if object_path else None
+
+
+def _get_safe_download_path(directory: str,
+                            relative_path: str) -> Optional[str]:
+  """Returns a path under |directory| for |relative_path|, or None if it must
+  be skipped (folder placeholder, traversal, absolute, reserved)."""
+  if not relative_path or relative_path.endswith('/'):
+    return None  # GCS "folder" placeholder object.
+
+  if relative_path in _RESERVED_DATA_BUNDLE_NAMES:
+    logs.error(f'Object name collides with reserved file: {relative_path!r}')
+    return None
+
+  parts = relative_path.split('/')  # GCS separator is always '/'.
+  if any(part in ('', '.', '..') for part in parts):
+    logs.error(f'Unsafe object name in signed URL download: {relative_path!r}')
+    return None
+
+  local_path = os.path.join(directory, *parts)  # OS-native separators.
+  real_dir = os.path.realpath(directory)
+  if os.path.commonpath([real_dir, os.path.realpath(local_path)]) != real_dir:
+    logs.error(f'Path traversal in signed URL download: {relative_path!r}')
+    return None
+
+  return local_path
+
+
 def download_signed_urls(signed_urls: List[str],
                          directory: str) -> List[SignedUrlDownloadResult]:
-  """Download |signed_urls| to |directory|."""
-  # TODO(metzman): Use the actual names of the files stored on GCS instead of
-  # renaming them.
+  """Download |signed_urls| to |directory|.
+
+  Object names are not preserved: each file is written flat into |directory|
+  as '<uuid>-<idx>', where <uuid> is shared by the call and <idx> is the URL's
+  index in |signed_urls|. Callers that need the original file names or folder
+  layout (e.g. data bundles) should use download_signed_urls_preserving_paths.
+  """
   if not signed_urls:
     return []
   os.makedirs(directory, exist_ok=True)
@@ -1408,12 +1480,62 @@ def download_signed_urls(signed_urls: List[str],
       os.path.join(directory, f'{basename}-{idx}')
       for idx in range(len(signed_urls))
   ]
+  return _download_signed_urls_to_filepaths(list(zip(signed_urls, filepaths)))
+
+
+def download_signed_urls_preserving_paths(
+    signed_urls: List[str], directory: str,
+    gcs_url: str) -> List[SignedUrlDownloadResult]:
+  """Download |signed_urls| to |directory|, keeping each object's path relative
+  to |gcs_url| (e.g. gs://bucket or gs://bucket/prefix). Used for data bundles,
+  whose fuzzers depend on file names and folder layout."""
+  if not signed_urls:
+    return []
+  os.makedirs(directory, exist_ok=True)
+  basename = uuid.uuid4().hex
+  urls_and_filepaths = []
+  seen_paths = set()
+
+  for idx, url in enumerate(signed_urls):
+    relative_path = _get_relative_path_from_signed_url(url, gcs_url)
+    if relative_path is None:
+      logs.error('Could not derive object path from signed URL '
+                 f'{_redact_signed_url(url)}; using an arbitrary name.')
+      path = os.path.join(directory, f'{basename}-{idx}')
+    else:
+      path = _get_safe_download_path(directory, relative_path)
+      if path is None:
+        continue
+
+      # Two URLs must never map to the same local file: the pool would open
+      # it from two workers at once.
+      if path in seen_paths:
+        logs.error(f'Duplicate local path, skipping: {path}')
+        continue
+
+      seen_paths.add(path)
+
+    urls_and_filepaths.append((url, path))
+
+  if not urls_and_filepaths:
+    return []
+
+  # Create parent directories up front so both the sync and fast_http paths can
+  # write nested files (fast_http does not create directories).
+  for parent in {os.path.dirname(p) for _, p in urls_and_filepaths}:
+    os.makedirs(parent, exist_ok=True)
+
+  return _download_signed_urls_to_filepaths(urls_and_filepaths)
+
+
+def _download_signed_urls_to_filepaths(
+    urls_and_filepaths: List[Tuple[str, str]]) -> List[SignedUrlDownloadResult]:
+  """Downloads each (signed URL, filepath) pair. Parent directories must
+  already exist. Returns results for successful downloads only."""
   logs.info('Downloading URLs.')
 
-  urls_and_filepaths = list(zip(signed_urls, filepaths))
-
   def synchronous_download_urls(urls_and_filepaths):
-    use_threads = _should_use_threads(signed_urls)
+    use_threads = _should_use_threads([url for url, _ in urls_and_filepaths])
     if use_threads:
       # TODO(paulovlb): Remove this once fixed.
       logs.info('[Corpus Fix] Using thread pool for downloading URLs.')
