@@ -551,6 +551,37 @@ class SignedUrlDownloadTest(fake_filesystem_unittest.TestCase):
     self.assertEqual([p for _, p in linux_dispatched],
                      ['/linux_dir/js/A.js', '/linux_dir/js/a.js'])
 
+  def test_derivation_logging_capped_and_redacts_signature(self):
+    """Temporary derivation logging caps unencoded logs, logs encoded URLs, and
+    never includes X-Goog-Signature."""
+    unencoded_urls = [
+        f'https://storage.googleapis.com/b/file_{i}.txt{_SIGNED_QUERY}'
+        for i in range(25)
+    ]
+    encoded_url = (
+        'https://storage.googleapis.com/b/a%20%26%20b.png' + _SIGNED_QUERY)
+
+    self.mock.use_async_http.return_value = True
+    with mock.patch.object(
+        storage.fast_http, 'download_urls',
+        side_effect=lambda pairs: [True] * len(pairs)), \
+         mock.patch.object(storage.logs, 'info') as mock_info:
+      storage.download_signed_urls_preserving_paths(
+          unencoded_urls + [encoded_url], '/log_dir', 'gs://b')
+
+    derivation_calls = [
+        c for c in mock_info.call_args_list
+        if c.args and c.args[0] == '[b/556617562] signed URL path derivation'
+    ]
+    # First 20 unencoded + 1 encoded URL past index 20 = 21 calls.
+    self.assertEqual(len(derivation_calls), 21)
+    for call in derivation_calls:
+      signed_url_path = call.kwargs['signed_url_path']
+      self.assertNotIn('X-Goog-Signature', signed_url_path)
+      self.assertNotIn('secret123', signed_url_path)
+    self.assertEqual(derivation_calls[-1].kwargs['derived_relative_path'],
+                     'a & b.png')
+
 
 class GetRelativePathFromSignedUrlTest(unittest.TestCase):
   """Tests for _get_relative_path_from_signed_url."""

@@ -1422,6 +1422,27 @@ def _redact_signed_url(url: str) -> str:
   return urllib.parse.urlunparse(parsed._replace(query='', fragment=''))
 
 
+# TODO(b/556617562): Remove temporary verification logging.
+_MAX_DERIVATION_LOGS = 20
+
+
+# TODO(b/556617562): Remove temporary verification logging.
+def _log_signed_url_path_derivation(url: str, relative_path: Optional[str],
+                                    idx: int, encoded_logged_count: int) -> int:
+  """Logs the redacted URL path next to the derived relative path."""
+  redacted = _redact_signed_url(url)
+  has_percent = '%' in urllib.parse.urlparse(url).path
+  if idx < _MAX_DERIVATION_LOGS or (
+      has_percent and encoded_logged_count < _MAX_DERIVATION_LOGS):
+    logs.info(
+        '[b/556617562] signed URL path derivation',
+        signed_url_path=redacted,
+        derived_relative_path=relative_path)
+    if idx >= _MAX_DERIVATION_LOGS and has_percent:
+      encoded_logged_count += 1
+  return encoded_logged_count
+
+
 def _get_relative_path_from_signed_url(signed_url: str,
                                        gcs_prefix_url: str) -> Optional[str]:
   """Returns the object path in |signed_url| relative to |gcs_prefix_url|
@@ -1512,16 +1533,25 @@ def download_signed_urls_preserving_paths(
   basename = uuid.uuid4().hex
   urls_and_filepaths = []
   seen_paths = set()
+  derived_count = 0
+  fallback_uuid_count = 0
+  skipped_count = 0
+  encoded_logged_count = 0
 
   for idx, url in enumerate(signed_urls):
     relative_path = _get_relative_path_from_signed_url(url, gcs_url)
+    # TODO(b/556617562): Remove temporary verification logging.
+    encoded_logged_count = _log_signed_url_path_derivation(
+        url, relative_path, idx, encoded_logged_count)
     if relative_path is None:
+      fallback_uuid_count += 1
       logs.error('Could not derive object path from signed URL '
                  f'{_redact_signed_url(url)}; using an arbitrary name.')
       path = os.path.join(directory, f'{basename}-{idx}')
     else:
       path = _get_safe_download_path(directory, relative_path)
       if path is None:
+        skipped_count += 1
         continue
 
       # Two URLs must never map to the same local file: the pool would open
@@ -1530,12 +1560,22 @@ def download_signed_urls_preserving_paths(
       # Linux/Mac.
       path_key = os.path.normcase(path)
       if path_key in seen_paths:
+        skipped_count += 1
         logs.error(f'Duplicate local path, skipping: {path}')
         continue
 
       seen_paths.add(path_key)
+      derived_count += 1
 
     urls_and_filepaths.append((url, path))
+
+  # TODO(b/556617562): Remove temporary verification logging.
+  logs.info(
+      '[b/556617562] download_signed_urls path derivation summary',
+      total_urls=len(signed_urls),
+      derived_count=derived_count,
+      fallback_uuid_count=fallback_uuid_count,
+      skipped_count=skipped_count)
 
   if not urls_and_filepaths:
     return []

@@ -543,6 +543,18 @@ def update_data_bundle(
 
   # Update the testcase list file.
   testcase_manager.create_testcase_list_file(data_bundle_directory)
+  # TODO(b/556617562): Remove temporary verification logging.
+  bundle_rel_files = []
+  for root, _, filenames in os.walk(data_bundle_directory):
+    for filename in filenames:
+      bundle_rel_files.append(
+          os.path.relpath(os.path.join(root, filename), data_bundle_directory))
+  bundle_rel_files.sort()
+  logs.info(
+      '[b/556617562] synced data bundle directory contents',
+      data_bundle=data_bundle.name,
+      file_count=len(bundle_rel_files),
+      sample_relative_paths=bundle_rel_files[:20])
   logs.info('Synced data bundle.')
 
   #  Write last synced time in the sync file.

@@ -514,6 +514,12 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
       self._filenames_to_delete_urls_mapping[sha_filename] = (
           corpus_urls[result.url])
 
+    # TODO(b/556617562): Remove temporary verification logging.
+    logs.info(
+        '[b/556617562] synced engine corpus via signed URLs',
+        file_count=len(self._filenames_to_delete_urls_mapping),
+        sample_sha_filenames=sorted(self._filenames_to_delete_urls_mapping)[:5])
+
     # TODO(metzman): Add timeout and tolerance for missing URLs.
     return fails < MAX_SYNC_ERRORS
 
