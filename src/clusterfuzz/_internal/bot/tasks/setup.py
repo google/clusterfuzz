@@ -501,7 +501,7 @@ def update_data_bundle(
       not _is_search_index_data_bundle(data_bundle.name) and num_urls == 0):
     logs.error(
         f'Uworker missing required signed URLs for data bundle '
-        f'{data_bundle.name}, and the fuzzer is configured with'
+        f'{data_bundle.name}, and the fuzzer is configured with '
         f'{fuzzer.data_bundle_name}. The Tworker failed to generate signed URLs'
         ' during preprocess.')
   else:
