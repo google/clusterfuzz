@@ -15,10 +15,12 @@
 
 import os
 import socket
+from urllib.parse import urlsplit
 
 import requests
 
 from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 # GCE_METADATA_HOST may point to a metadata emulator instead of the
@@ -53,11 +55,8 @@ def get(path):
 
 def _metadata_host_port():
   """Splits _METADATA_SERVER into (host, port), defaulting to port 80."""
-  if ':' in _METADATA_SERVER:
-    host, _, port = _METADATA_SERVER.partition(':')
-    return host, int(port)
-
-  return _METADATA_SERVER, 80
+  parsed = urlsplit('//' + _METADATA_SERVER)
+  return parsed.hostname, parsed.port or 80
 
 
 def is_gce():
@@ -65,7 +64,8 @@ def is_gce():
   try:
     sock = socket.create_connection(_metadata_host_port())
     sock.close()
-  except Exception:
+  except Exception as e:
+    logs.info(f'Bot not marked as GCE: {e}')
     return False
 
   return True
