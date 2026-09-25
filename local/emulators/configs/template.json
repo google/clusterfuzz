@@ -1,0 +1,63 @@
+{
+  // Reference metadata emulator config. Copy this file to create a fixture,
+  // stripping "//" comments so standard encoding/json can parse it.
+  //
+  // The shape of "metadata" mirrors the GCE metadata server's hierarchy:
+  //
+  //   curl -H 'Metadata-Flavor: Google' \
+  //     'http://metadata.google.internal/computeMetadata/v1/?recursive=true' \
+  //     | jq
+
+  "credentials": {
+    // Identity and token reported under instance/service-accounts/.
+    // No network, no gcloud, no real credentials.
+    "email": "",
+    "scopes": [],
+    "access_token": "",
+    "expires_in_seconds": 3600
+  },
+
+  "host": {
+    "interface": "127.0.0.1"
+  },
+
+  "metadata": {
+    "project": {
+      "project-id": "",
+      "numeric-project-id": "",
+
+      // Project-wide custom metadata, served under project/attributes/<key>.
+      // Applies to every instance in the project.
+      "attributes": {
+        "deployment-bucket": "test-deployment"
+      }
+    },
+
+    "instance": {
+      "id": "",
+      "hostname": "",
+
+      // Write the zone the way the real metadata server does: as a full
+      // resource path, not just the zone name.
+      //
+      //   do this:      "projects/1234567890/zones/us-central1-f"
+      //   not this:     "us-central1-f"
+      "zone": "",
+
+      "machine-type": "",
+      "preempted": "FALSE",
+      "scheduling": {
+        "preemptible": "FALSE",
+        "provisioning-model": "STANDARD"
+      },
+
+      // Per-instance custom metadata, served under instance/attributes/<key>.
+      // An instance attribute shadows a project attribute of the same name. If
+      // neither scope defines the key the server returns 404, which some
+      // callers treat as a meaningful answer rather than an error.
+      "attributes": {
+        "override_tworker_queue": "jobs-linux-test"
+      }
+    }
+  }
+}
