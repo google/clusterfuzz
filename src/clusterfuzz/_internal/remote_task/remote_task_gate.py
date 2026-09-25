@@ -62,7 +62,7 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     return feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled
 
   def _is_swarming_task(self, job_type):
-    return swarming.is_swarming_task(job_type)
+    return swarming.is_swarming_task(job_type, ignore_feature_flag=True)
 
   def _handle_swarming_job(self, module, job_type, input_download_url):
     return self._service_map['swarming'].create_utask_main_job(
@@ -71,6 +71,19 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
   def _handle_swarming_jobs(self,
                             remote_tasks: list[remote_task_types.RemoteTask]):
     return self._service_map['swarming'].create_utask_main_jobs(remote_tasks)
+
+  def _split_remote_tasks(
+      self, remote_tasks: list[remote_task_types.RemoteTask]) -> tuple[list[
+          remote_task_types.RemoteTask], list[remote_task_types.RemoteTask]]:
+    """Splits remote tasks into swarming and non-swarming tasks."""
+    swarming_tasks = []
+    other_tasks = []
+    for task in remote_tasks:
+      if self._is_swarming_task(task.job_type):
+        swarming_tasks.append(task)
+      else:
+        other_tasks.append(task)
+    return swarming_tasks, other_tasks
 
   def get_job_frequency(self):
     """Returns the frequency distribution for all remote task adapters.
@@ -153,9 +166,15 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     tasks_by_adapter = collections.defaultdict(list)
     unscheduled_tasks = []
 
+    swarming_tasks, remote_tasks = self._split_remote_tasks(remote_tasks)
     if self._is_swarming_applicable():
-      logs.info(f'[Swarming] enabled, pushing {len(remote_tasks)} tasks.')
-      remote_tasks = self._handle_swarming_jobs(remote_tasks)
+      logs.info(f'[Swarming] scheduling {len(swarming_tasks)} tasks.')
+      unscheduled_tasks = self._handle_swarming_jobs(swarming_tasks)
+    else:
+      logs.info(
+          f'[Swarming] Swarming flag not enabled, {len(swarming_tasks)} tasks'
+          ' unscheduled.')
+      unscheduled_tasks.extend(swarming_tasks)
 
     if not remote_tasks:
       pass
