@@ -64,3 +64,6 @@ docker/base/Pipfile.lock
 tags
 cscope.files
 cscope.out
+
+# Test coverage files
+.coverage
