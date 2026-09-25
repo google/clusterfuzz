@@ -55,6 +55,14 @@ COMMON_SANITIZER_OPTIONS = {
     'use_sigaltstack': 1,
 }
 
+# CPU architectures whose binaries live in the default unsuffixed platform
+# resource directory (e.g., `resources/platform/mac`) rather than an
+# architecture-suffixed directory (e.g., `resources/platform/mac_arm64`).
+_UNSUFFIXED_ARCHS = {
+    'x86_64',
+    'x86',
+}
+
 
 class UtaskMainRuntime(enum.Enum):
 
@@ -438,12 +446,19 @@ def get_resources_directory():
 def get_platform_resources_directory(platform_override=None):
   """Return the path to platform-specific resources directory."""
   plt = platform_override or platform()
+  platform_directory = os.path.join(get_resources_directory(), 'platform')
 
-  # Android resources share the same android directory.
-  if is_android(plt):
-    plt = 'ANDROID'
+  # All Android variants share the same android directory. It holds host-side
+  # tools (adb, aapt) and device-side payloads (.apk), neither of which is
+  # keyed by host arch, so it is never arch-split.
+  if is_android(plt.upper()):
+    return os.path.join(platform_directory, 'android')
 
-  return os.path.join(get_resources_directory(), 'platform', plt.lower())
+  arch = get_host_cpu_arch()
+  if (not arch or arch in _UNSUFFIXED_ARCHS):
+    return os.path.join(platform_directory, plt.lower())
+
+  return os.path.join(platform_directory, f'{plt.lower()}_{arch}')
 
 
 def get_suppressions_directory():
