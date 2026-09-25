@@ -48,6 +48,7 @@ import json
 import os
 import socket
 import tempfile
+import uuid
 
 import requests
 from wiremock.client import HttpMethods
@@ -222,6 +223,39 @@ def _json_value_mapping(path: str,
   )
 
 
+def _fault_mapping(path: str,
+                   status_code: int,
+                   delay_ms: int | None = None,
+                   scenario_name: str | None = None,
+                   required_state: str | None = None,
+                   new_state: str | None = None) -> Mapping:
+  """Returns a non-persistent Mapping that injects an HTTP fault for path."""
+  response_kwargs = {
+      'status': status_code,
+      'body': f'injected fault for {path}\n',
+      'headers': _TEXT_HEADERS,
+  }
+  if delay_ms is not None:
+    response_kwargs['fixed_delay_milliseconds'] = delay_ms
+
+  return Mapping(
+      persistent=False,
+      scenario_name=scenario_name,
+      required_scenario_state=required_state,
+      new_scenario_state=new_state,
+      metadata={
+          'fault': True,
+          'fault_path': path,
+      },
+      request=MappingRequest(
+          method=HttpMethods.GET,
+          url_path=f'/computeMetadata/v1/{path}',
+          headers=_REQUIRED_HEADER_MATCHER,
+      ),
+      response=MappingResponse(**response_kwargs),
+  )
+
+
 class MetadataEmulatorClient:
   """Talks to a running WireMock metadata emulator."""
 
@@ -229,6 +263,7 @@ class MetadataEmulatorClient:
     self.hostport = hostport
     self.admin_url = f'http://{hostport}/__admin'
     self._baseline_instance_attributes = set()
+    self._runtime_instance_attributes = set()
 
     # Loopback traffic must not be handed to an ambient http_proxy, which
     # would answer with its own error instead of reaching the emulator.
@@ -313,7 +348,10 @@ class MetadataEmulatorClient:
         _text_value_mapping(
             f'project/attributes/{key}', value, persistent=persistent))
 
-    if key not in self._baseline_instance_attributes:
+    overridden_on_instance = (
+        key in self._baseline_instance_attributes or
+        key in self._runtime_instance_attributes)
+    if not overridden_on_instance:
       Mappings.create_mapping(
           _text_value_mapping(
               f'instance/attributes/{key}', value, persistent=persistent))
@@ -335,6 +373,8 @@ class MetadataEmulatorClient:
     self._use_admin()
     if persistent:
       self._baseline_instance_attributes.add(key)
+    else:
+      self._runtime_instance_attributes.add(key)
     Mappings.create_mapping(
         _text_value_mapping(
             f'instance/attributes/{key}', value, persistent=persistent))
@@ -399,6 +439,54 @@ class MetadataEmulatorClient:
         timeout=_REQUEST_TIMEOUT)
     response.raise_for_status()
     return response.text
+
+  def _remove_existing_faults_for_path(self, path: str) -> None:
+    """Removes any active fault mappings targeting path."""
+    self._use_admin()
+    for mapping in Mappings.retrieve_all_mappings().mappings:
+      metadata = mapping.metadata or {}
+      if metadata.get('fault') and metadata.get('fault_path') == path:
+        Mappings.delete_mapping(mapping.id)
+
+  def inject_fault(self,
+                   path: str,
+                   status: int = 500,
+                   times: int = 1,
+                   delay_seconds: float = 0) -> None:
+    """Makes the emulator fail a metadata path.
+
+    Args:
+      path: A metadata path without the /computeMetadata/v1/ prefix.
+      status: The HTTP status to return.
+      times: How many requests to affect. 0 means until clear_faults().
+      delay_seconds: How long the emulator should stall before responding.
+    """
+    status_code = status or 500
+    delay_ms = int(delay_seconds * 1000) if delay_seconds > 0 else None
+
+    self._remove_existing_faults_for_path(path)
+
+    if times <= 0:
+      Mappings.create_mapping(_fault_mapping(path, status_code, delay_ms))
+      return
+
+    scenario_name = f'fault-{path}-{uuid.uuid4().hex}'
+    for i in range(times):
+      Mappings.create_mapping(
+          _fault_mapping(
+              path,
+              status_code,
+              delay_ms=delay_ms,
+              scenario_name=scenario_name,
+              required_state='Started' if i == 0 else f'step_{i}',
+              new_state=f'step_{i + 1}',
+          ))
+
+  def clear_faults(self) -> None:
+    """Removes every injected fault and runtime metadata override."""
+    self._use_admin()
+    self._runtime_instance_attributes.clear()
+    Mappings.reset_mappings()
 
 
 def bootstrap() -> None:
