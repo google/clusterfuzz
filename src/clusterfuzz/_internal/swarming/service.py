@@ -102,19 +102,25 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
     for i, task in enumerate(remote_tasks):
       if not swarming.is_swarming_task(task.job_type):
         unscheduled_tasks.append(task)
+        logs.debug(
+            '[Swarming] Task is not suitable for swarming.',
+            job_name=task.job_type)
         continue
 
       task_req = swarming.create_new_task_request(task.command, task.job_type,
                                                   task.argument)
       if not task_req:
         unscheduled_tasks.append(task)
+        logs.debug(
+            '[Swarming] Failed to create task request.', job_name=task.job_type)
         continue
 
       os_val = self._get_dimension(task_req, 'os')
       pool_val = self._get_dimension(task_req, 'pool')
       if not os_val or not pool_val:
-        logs.error(f'[Swarming] Failed to find required dimension for job '
-                   f'{task.job_type}. Discarding task')
+        logs.error(
+            '[Swarming] Missing dimensions for task request. Skipping task.',
+            job_name=task.job_type)
         continue
 
       # Since there are multiple concurrent scheduling sessions/bots, it is

@@ -679,14 +679,18 @@ def run_command(cmd, log_output=False, timeout=None, recover=True):
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
   if log_output:
-    logs.info('Running: adb %s' % cmd)
+    logs.info(f'[ADB] Running: {cmd}')
+  else:
+    logs.debug(f'[ADB] Running: {cmd}')
   if not timeout:
     timeout = ADB_TIMEOUT
 
   output = execute_command(get_adb_command_line(cmd), timeout)
   if not recover:
     if log_output:
-      logs.info('Output: (%s)' % output)
+      logs.info(f'[ADB] Output for {cmd}: {output}')
+    else:
+      logs.debug(f'[ADB] Output for {cmd}: {output}')
     return output
 
   device_not_found_string_with_serial = DEVICE_NOT_FOUND_STRING.format(
