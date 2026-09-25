@@ -37,13 +37,14 @@ class TestGceMetadataEmulator:
 
   # TODO(b/555371391) Remove this setup once we have our own butler.py command
   @pytest.fixture(scope='class', autouse=True)
-  def _emulators(self, request):
+  @classmethod
+  def _emulators(cls):
     gce_metadata_emulator.bootstrap()
     importlib.reload(compute_engine._metadata)  # pylint: disable=protected-access
     importlib.reload(compute_metadata)
     with gce_metadata_emulator.trusted_untrusted_pair() as (tworker, uworker):
-      request.cls.tworker = tworker
-      request.cls.uworker = uworker
+      cls.tworker = tworker
+      cls.uworker = uworker
       yield
 
   def test_default_credentials_come_from_the_trusted_emulator(self):
@@ -158,12 +159,13 @@ class TestGceMetadataEmulatorUntrustedDefault:
 
   # TODO(b/555371391) Remove this setup once we have our own butler.py command
   @pytest.fixture(scope='class', autouse=True)
-  def _emulator(self, request):
+  @classmethod
+  def _emulator(cls):
     gce_metadata_emulator.bootstrap()
     importlib.reload(compute_engine._metadata)  # pylint: disable=protected-access
     importlib.reload(compute_metadata)
     with gce_metadata_emulator.untrusted_as_default() as uworker:
-      request.cls.uworker = uworker
+      cls.uworker = uworker
       yield
 
   def test_default_credentials_come_from_the_untrusted_emulator(self):
