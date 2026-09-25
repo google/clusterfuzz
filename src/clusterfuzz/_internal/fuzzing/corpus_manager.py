@@ -667,13 +667,14 @@ def get_proto_data_bundle_corpus(
 
 
 def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
+  """Syncs |data_bundle_corpus| to |directory|."""
   if (not task_types.task_main_runs_on_uworker() and
       not environment.is_uworker()):
     # Fast path for when we don't need an untrusted worker to run a task.
     return gsutil.GSUtilRunner().rsync(
         data_bundle_corpus.gcs_url, directory, delete=False).return_code == 0
-  results = storage.download_signed_urls(data_bundle_corpus.corpus_urls,
-                                         directory)
+  results = storage.download_signed_urls_preserving_paths(
+      data_bundle_corpus.corpus_urls, directory, data_bundle_corpus.gcs_url)
   fails = [result.url for result in results if not result.url]
   return len(fails) < MAX_SYNC_ERRORS
 
