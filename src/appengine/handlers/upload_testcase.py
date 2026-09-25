@@ -333,7 +333,6 @@ class UploadHandlerCommon:
                      stacktrace=None,
                      multiple_testcases=None,
                      trusted_agreement_signed=False,
-                     trusted=False,
                      testcase_id=None,
                      testcase_metadata=None,
                      skip_minimization=False) -> str:
@@ -410,19 +409,17 @@ class UploadHandlerCommon:
       helpers.log(f'User {email} does not have access', helpers.VIEW_OPERATION)
       raise helpers.AccessDeniedError()
 
-    # Ensure the job supports untrusted workloads if the uploader hasn't signed
-    # a trusted agreement.
-    if not trusted_agreement_signed:
-      try:
-        data_handler.check_job_supports_untrusted_workloads(
-            job_type, platform_id)
-      except ValueError as e:
+    # Only jobs that can't run untrusted workloads (no uworkers, e.g.
+    # Mac/Windows) get trusted testcases, and they require the trusted
+    # agreement. Everything else stays untrusted and runs on uworkers, even if
+    # the agreement was signed.
+    try:
+      data_handler.check_job_supports_untrusted_workloads(job_type, platform_id)
+      trusted = False
+    except ValueError as e:
+      if not trusted_agreement_signed:
         raise helpers.EarlyExitError(str(e), 400)
-
-    # Only uploaders who signed the trusted agreement produce trusted
-    # testcases. Everything else stays untrusted and is restricted to
-    # unprivileged bots.
-    trusted = trusted and trusted_agreement_signed
+      trusted = True
 
     crash_data = None
     if job.is_external():
@@ -700,7 +697,6 @@ class UploadHandlerCommon:
         gestures=gestures,
         stacktrace=stacktrace,
         trusted_agreement_signed=trusted_agreement_signed,
-        trusted=trusted_agreement_signed,
         testcase_metadata=testcase_metadata,
         skip_minimization=skip_minimization,
     )
@@ -789,11 +785,6 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
             gestures=message_data.get('gestures', '[]'),
             http_flag=message_data.get('http_flag', None),
             platform_id='Linux',
-            # Bypasses the untrusted workload job check, since this is an
-            # internal path rather than a user upload. It deliberately does
-            # not pass trusted=True: the sampled crash may come from an
-            # untrusted fuzzer, so the testcase stays untrusted.
-            trusted_agreement_signed=True,
         )
         monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
             'fuzzer': fuzzer,
