@@ -17,9 +17,6 @@ from enum import IntEnum
 import re
 
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
-
-DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'
-
 DEVICE_TMP_DIR = '/data/local/tmp'
 
 # Directory to keep fuzzing artifacts for grey-box fuzzers e.g. corpus.

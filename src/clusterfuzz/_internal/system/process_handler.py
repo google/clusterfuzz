@@ -255,8 +255,10 @@ def run_process(cmdline,
     time.sleep(ANDROID_CRASH_LOGCAT_WAIT_TIME)
     output = android.logger.log_output()
     app_package = android.app.get_package_name()
-    process_pid = android.util.get_latest_pid_for_package(app_package)
-    exit_info = android.util.get_exit_info_for_pid(app_package, process_pid)
+    exit_info = None
+    if app_package:
+      process_pid = android.util.get_latest_pid_for_package(app_package)
+      exit_info = android.util.get_exit_info_for_pid(app_package, process_pid)
 
     if android.util.activity_crashed(exit_info):
       logs.warning(f'Activity Crashed with: {exit_info}')
@@ -345,6 +347,11 @@ def run_process(cmdline,
 
   if testcase_run and (crash_analyzer.is_memory_tool_crash(output) or
                        crash_analyzer.is_check_failure_crash(output)):
+    if return_code:
+      logs.warning(
+          f'Process {cmdline!r} ended with exit code {return_code}, '
+          'but crash has been detected, overriding return code to 1.',
+          output=output)
     return_code = 1
 
   # If a crash is found, then we add the memory state as well.

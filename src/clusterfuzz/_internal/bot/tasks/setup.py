@@ -101,7 +101,7 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
     relative_testcase_file_path = (
         testcase_file_path[len(local_testcases_directory) + 1:])
     device_testcase_file_path = os.path.join(
-        android.constants.DEVICE_TESTCASES_DIR, relative_testcase_file_path)
+        android.app.get_testcases_directory(), relative_testcase_file_path)
     android.adb.run_shell_command(['chmod', '0755', device_testcase_file_path])
 
 
@@ -491,7 +491,21 @@ def update_data_bundle(
   """Updates a data bundle to the latest version."""
   data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
-  logs.info('Setting up data bundle %s.' % data_bundle)
+  num_urls = len(data_bundle_corpus.corpus_urls)
+
+  # If this is executing on an untrusted worker, we require signed URLs
+  # Missing the signed URLs results in attempting to run the fuzzer without its
+  # required data bundle
+  # Search index data bundles are the exception, which don't sync via this path.
+  if (environment.is_uworker() and
+      not _is_search_index_data_bundle(data_bundle.name) and num_urls == 0):
+    logs.error(
+        f'Uworker missing required signed URLs for data bundle '
+        f'{data_bundle.name}, and the fuzzer is configured with '
+        f'{fuzzer.data_bundle_name}. The Tworker failed to generate signed URLs'
+        ' during preprocess.')
+  else:
+    logs.info(f'Setting up data bundle {data_bundle.name}.')
   data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
 
   if not _should_update_data_bundle(data_bundle, data_bundle_directory):

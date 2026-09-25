@@ -94,3 +94,33 @@ class InstallTest(TestCase):
     app.install('/path/to/app.apk', abi='x86', no_streaming=True)
     self.mock_run_command.assert_called_once_with(
         ['install', '-r', '--abi', 'x86', '--no-streaming', '/path/to/app.apk'])
+
+
+class GetTestcasesDirectoryTest(TestCase):
+  """Tests app.get_testcases_directory."""
+
+  def setUp(self):
+    super().setUp()
+    helpers.patch_environ(self)
+
+  def test_apk_package_uses_app_scoped_storage(self):
+    """Tests that, when an APK package name is resolvable, testcases are placed
+    inside that package's scoped storage dir (/sdcard/Android/data/<pkg>/files),
+    which is the only external location an Android 11+ app can read from."""
+    environment.set_value('PKG_NAME', 'com.google.chrome')
+    self.assertEqual(app.get_testcases_directory(),
+                     '/sdcard/Android/data/com.google.chrome/files')
+
+  def test_no_package_name_uses_shared_fallback_directory(self):
+    """Tests that, when no package name is set (non-APK fuzzing, e.g. a native
+    binary target), the shared /sdcard/fuzzer-testcases directory is returned
+    instead of a malformed '/sdcard/Android/data//files' path."""
+    environment.set_value('PKG_NAME', None)
+    self.assertEqual(app.get_testcases_directory(), '/sdcard/fuzzer-testcases')
+
+  def test_non_apk_app_path_uses_shared_fallback_directory(self):
+    """Tests that an APP_PATH pointing at a non-APK target (from which no
+    package name can be derived) also falls back to /sdcard/fuzzer-testcases,
+    rather than attempting to build a scoped storage path."""
+    environment.set_value('APP_PATH', '/path/to/native_fuzzer')
+    self.assertEqual(app.get_testcases_directory(), '/sdcard/fuzzer-testcases')

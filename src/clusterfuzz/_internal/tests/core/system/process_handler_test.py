@@ -206,3 +206,33 @@ class RunProcessAndroidTest(unittest.TestCase):
     return_code, _, _ = process_handler.run_process(
         'am start -n com.example.app/.MainActivity')
     self.assertEqual(return_code, 0)
+
+  def test_run_process_android_no_package_name_skips_exit_info(self):
+    """Checks that, when no APK package name is resolvable (non-APK fuzzing,
+    e.g. a native binary pushed to the device), run_process skips the
+    package-scoped exit info lookups entirely, treats exit_info as None and
+    still returns a 0 return_code instead of failing."""
+    self.mock.get_package_name.return_value = None
+    self.mock.activity_crashed.return_value = False
+
+    return_code, _, _ = process_handler.run_process('/data/local/tmp/fuzzer')
+
+    self.mock.get_latest_pid_for_package.assert_not_called()
+    self.mock.get_exit_info_for_pid.assert_not_called()
+    self.mock.activity_crashed.assert_called_once_with(None)
+    self.assertEqual(return_code, 0)
+
+  def test_run_process_android_no_pid_for_package(self):
+    """Checks the edge case where the package exists but has no recorded pid
+    (the app never started). Expects exit info to still be queried with a None
+    pid, no crash to be reported and a 0 return_code."""
+    self.mock.get_latest_pid_for_package.return_value = None
+    self.mock.get_exit_info_for_pid.return_value = None
+    self.mock.activity_crashed.return_value = False
+
+    return_code, _, _ = process_handler.run_process(
+        'am start -n com.example.app/.MainActivity')
+
+    self.mock.get_exit_info_for_pid.assert_called_once_with(
+        'com.example.app', None)
+    self.assertEqual(return_code, 0)

@@ -406,7 +406,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return lambda f: f.startswith(prefix)
 
   def _get_filename_matcher(self, file: str) -> Callable[[str], bool]:
-    return lambda f: os.path.basename(f) == file
+    return lambda f: os.path.basename(f.replace('\\', '/')) == file
 
   def _match_files(self, matchers: List[Callable[[str], bool]]
                   ) -> List[archive.ArchiveMemberInfo]:
@@ -422,6 +422,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return [
         'args.gn',
         'llvm-symbolizer',
+        'llvm-symbolizer.exe',
         'clusterfuzz_manifest.json',
     ]
 
