@@ -37,6 +37,16 @@ class ComputeMetadataTest(unittest.TestCase):
       self.assertEqual(('127.0.0.1', 41234),
                        compute_metadata._metadata_host_port())  # pylint: disable=protected-access
 
+  def test_host_port_split_ipv6(self):
+    """Verifies that _metadata_host_port() strips brackets from IPv6 hosts and parses an optional port."""
+    with mock.patch.object(compute_metadata, '_METADATA_SERVER',
+                           '[fd20:ce::254]'):
+      self.assertEqual(('fd20:ce::254', 80),
+                       compute_metadata._metadata_host_port())  # pylint: disable=protected-access
+
+    with mock.patch.object(compute_metadata, '_METADATA_SERVER', '[::1]:41234'):
+      self.assertEqual(('::1', 41234), compute_metadata._metadata_host_port())  # pylint: disable=protected-access
+
   def test_is_gce_on_non_default_port(self):
     """Verifies that compute_metadata.is_gce() connects to the port in _METADATA_SERVER rather than hardcoding port 80."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
