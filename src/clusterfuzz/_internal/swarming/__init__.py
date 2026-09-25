@@ -36,9 +36,22 @@ def has_swarming_env_vars(job_environment: dict) -> bool:
       job_environment.get('SWARMING_DIMENSIONS'))
 
 
-def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
-  """Returns True if the task is supposed to run on swarming."""
-  if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+def is_swarming_task(job_name: str,
+                     job: data_types.Job | None = None,
+                     ignore_feature_flag: bool = False) -> bool:
+  """Validates that the current job and environment can send a task to swarming.
+
+  Args:
+    job_name: The name of the job.
+    job: The job object, use if available to avoid querying datastore.
+    ignore_feature_flag: So that we check the job even if the feature flag is
+      not enabled.
+
+  Returns:
+    True if the task is supposed to run on swarming.
+  """
+  if not (ignore_feature_flag or
+          FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled):
     logs.info('[DEBUG] Flag is disabled', job_name=job_name)
     return False
   if job is None:
