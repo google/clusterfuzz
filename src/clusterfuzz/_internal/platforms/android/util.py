@@ -14,9 +14,7 @@
 """Utility functions for Android device."""
 
 from dataclasses import dataclass
-from dataclasses import dataclass
 import os
-import re
 import re
 
 from clusterfuzz._internal.metrics import logs

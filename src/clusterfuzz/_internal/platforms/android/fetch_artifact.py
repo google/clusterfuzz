@@ -133,17 +133,6 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
     logs.info(f'Creating directory {output_dir}')
     os.makedirs(output_dir, exist_ok=True)
 
-  # TODO(b/537368595) Remove unnecesary logging.
-  # Just like get, except get_media.
-  logs.info(
-      'AndroidBuildAPI download_artifact media download started.',
-      api_version=API_VERSION,
-      operation='download_artifact_media',
-      build_id=bid,
-      target=target,
-      attempt_id=attempt_id,
-      artifact_name=name)
-
   success = client.download_artifact_file(bid, target, attempt_id, name,
                                           output_path)
   if not success:
@@ -185,18 +174,9 @@ def _get_artifacts_for_build(client,
         target=target)
     return []
 
-  logs.debug(
-      'AndroidBuildAPI get_artifacts_for_build started.',
-      api_version=API_VERSION,
-      operation='get_artifacts_for_build',
-      build_id=bid,
-      target=target,
-      attempt_id=attempt_id,
-      regexp=regexp)
-
   artifacts = client.list_artifacts(bid, target, attempt_id, regexp=regexp)
 
-  logs.debug(
+  logs.info(
       'AndroidBuildAPI get_artifacts_for_build completed.',
       api_version=API_VERSION,
       operation='get_artifacts_for_build',
@@ -260,7 +240,8 @@ def _get_stable_build_info():
 def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
   """Return latest artifact for a branch and target."""
   if not _call_android_api_enabled():
-    logs.info('Android build API is disabled by feature flag call_android_api.')
+    logs.debug(
+        'Android build API is disabled by feature flag call_android_api.')
     return None
 
   client = _get_client()
@@ -277,14 +258,6 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
     # and tip-of-tree builds.
     if 'bid' in build_info and build_info['bid'] != '0':
       return build_info
-
-  logs.info(
-      'AndroidBuildAPI get_latest_artifact_info started.',
-      api_version=API_VERSION,
-      operation='get_latest_artifact_info',
-      branch=branch,
-      target=target,
-      signed=signed)
 
   builds = client.list_builds(branch, target, signed)
 
@@ -318,7 +291,7 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
 def get(bid, target, regex, output_directory, output_filename=None):
   """Return artifact for a given build id, target and file regex."""
   if not _call_android_api_enabled():
-    logs.warning(
+    logs.debug(
         'Android build API is disabled by feature flag call_android_api.')
     return None
 

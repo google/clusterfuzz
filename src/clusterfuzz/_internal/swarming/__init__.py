@@ -39,23 +39,23 @@ def has_swarming_env_vars(job_environment: dict) -> bool:
 def is_swarming_task(job_name: str, job: data_types.Job | None = None) -> bool:
   """Returns True if the task is supposed to run on swarming."""
   if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
-    logs.info('[DEBUG] Flag is disabled', job_name=job_name)
+    logs.debug('[Swarming] Flag is disabled', job_name=job_name)
     return False
   if job is None:
     job = data_types.Job.query(data_types.Job.name == job_name).get()
     if not job:
-      logs.info('[Swarming DEBUG] Job not found', job_name=job_name)
+      logs.debug('[Swarming] Job not found', job_name=job_name)
       return False
 
   if not has_swarming_env_vars(job.get_environment()):
-    logs.info('[Swarming DEBUG] No swarming env var', job_name=job_name)
+    logs.debug('[Swarming] No swarming env var', job_name=job_name)
     return False
 
   swarming_config = get_swarming_config()
   if swarming_config is None:
     logs.warning(
-        """[Swarming DEBUG] current task is not suitable for swarming. 
-    'Reason: failed to retrieve config.""",
+        """[Swarming] current task is not suitable for swarming.
+    Reason: failed to retrieve config.""",
         job_name=job_name)
     return False
 
@@ -86,7 +86,7 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
   Job dimensions have more precedence than static dimensions"""
   swarming_config = get_swarming_config()
   if not swarming_config:
-    logs.error(
+    logs.debug(
         '[Swarming] No dimensions set. Reason: failed to retrieve config')
     return []
 
@@ -136,7 +136,7 @@ def _append_metadata_env_var(
         swarming_pb2.StringPair(  # pylint: disable=no-member
             key=env_var_name, value=str(value)))
   else:
-    logs.warning(f'{env_var_name} is not set or cannot be fetched.')
+    logs.info(f'[Swarming] Metadata {env_var_name} cannot be fetched.')
 
 
 def _get_env_vars(logs_project_id: str,
@@ -196,18 +196,24 @@ def create_new_task_request(command: str, job_name: str, download_url: str
   Returns None if the task should'nt be executed on swarming 
   or if the SWARMING_REMOTE_EXECUTION flag is disabled."""
   if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+    logs.debug('[Swarming] Flag is disabled', job_name=job_name)
     return None
 
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if job is None:
+    logs.debug('[Swarming] Job not found', job_name=job_name)
     return None
 
   swarming_config = get_swarming_config()
   if not swarming_config:
+    logs.debug('[Swarming] Config not found', job_name=job_name)
     return None
 
   instance_spec = _get_instance_spec(swarming_config, job)
   if instance_spec is None:
+    logs.warning(
+        '[Swarming] No matching spec in swarming config for job.',
+        job_name=job_name)
     return None
 
   swarming_realm = swarming_config.get('swarming_realm',)
