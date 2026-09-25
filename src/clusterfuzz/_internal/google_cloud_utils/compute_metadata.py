@@ -13,14 +13,19 @@
 # limitations under the License.
 """GCE metadata."""
 
+import os
 import socket
+from urllib.parse import urlsplit
 
 import requests
 
 from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-_METADATA_SERVER = 'metadata.google.internal'
+# GCE_METADATA_HOST may point to a metadata emulator instead of the
+# real server. It is the same variable google-auth honours.
+_METADATA_SERVER = os.getenv('GCE_METADATA_HOST', 'metadata.google.internal')
 _METADATA_URL = 'http://{}/computeMetadata/v1/'.format(_METADATA_SERVER)
 
 _RETRIES = 3
@@ -48,12 +53,19 @@ def get(path):
   return _get_raw(path)
 
 
+def _metadata_host_port():
+  """Splits _METADATA_SERVER into (host, port), defaulting to port 80."""
+  parsed = urlsplit('//' + _METADATA_SERVER)
+  return parsed.hostname, parsed.port or 80
+
+
 def is_gce():
   """Return whether or not we're on GCE."""
   try:
-    sock = socket.create_connection((_METADATA_SERVER, 80))
+    sock = socket.create_connection(_metadata_host_port())
     sock.close()
-  except Exception:
+  except Exception as e:
+    logs.info(f'Bot not marked as GCE: {e}')
     return False
 
   return True
