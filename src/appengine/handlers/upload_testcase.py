@@ -409,14 +409,17 @@ class UploadHandlerCommon:
       helpers.log(f'User {email} does not have access', helpers.VIEW_OPERATION)
       raise helpers.AccessDeniedError()
 
-    # Ensure the job supports untrusted workloads if the uploader hasn't signed
-    # a trusted agreement.
-    if not trusted_agreement_signed:
-      try:
-        data_handler.check_job_supports_untrusted_workloads(
-            job_type, platform_id)
-      except ValueError as e:
+    # Only jobs that can't run untrusted workloads (no uworkers, e.g.
+    # Mac/Windows) get trusted testcases, and they require the trusted
+    # agreement. Everything else stays untrusted and runs on uworkers, even if
+    # the agreement was signed.
+    try:
+      data_handler.check_job_supports_untrusted_workloads(job_type, platform_id)
+      trusted = False
+    except ValueError as e:
+      if not trusted_agreement_signed:
         raise helpers.EarlyExitError(str(e), 400)
+      trusted = True
 
     crash_data = None
     if job.is_external():
@@ -619,7 +622,8 @@ class UploadHandlerCommon:
         bug_summary_update_flag,
         quiet_flag,
         additional_metadata=testcase_metadata,
-        crash_data=crash_data)
+        crash_data=crash_data,
+        trusted=trusted)
 
     testcase = data_handler.get_testcase_by_id(testcase_id)
     events.emit(
@@ -781,7 +785,6 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
             gestures=message_data.get('gestures', '[]'),
             http_flag=message_data.get('http_flag', None),
             platform_id='Linux',
-            trusted_agreement_signed=True,
         )
         monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
             'fuzzer': fuzzer,

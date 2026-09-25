@@ -1398,7 +1398,8 @@ def create_user_uploaded_testcase(key,
                                   bug_summary_update_flag,
                                   quiet_flag,
                                   additional_metadata=None,
-                                  crash_data=None):
+                                  crash_data=None,
+                                  trusted=False):
   """Create a testcase object, metadata, and task for a user uploaded test."""
   testcase = data_types.Testcase()
   if crash_data:
@@ -1443,7 +1444,7 @@ def create_user_uploaded_testcase(key,
   testcase.http_flag = bool(http_flag)
   testcase.archive_state = archive_state
   testcase.project_name = get_project_name(job.name)
-  testcase.trusted = False
+  testcase.trusted = trusted
 
   if archive_state or bundled:
     testcase.absolute_path = file_path_input
