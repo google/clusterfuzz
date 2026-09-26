@@ -805,7 +805,8 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     ])
 
   def test_test_for_reproducibility_succeed_after_ignored_run(self):
-    """Test test_for_reproducibility properly updates expected_state when start is empty and first run is ignored."""
+    """Test test_for_reproducibility properly updates expected_state when start
+    is empty and first run is ignored."""
     test_helpers.patch(self, [
         'clusterfuzz._internal.crash_analysis.crash_analyzer.ignore_stacktrace'
     ])
