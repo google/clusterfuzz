@@ -760,6 +760,9 @@ def add_additional_testcase_run_data(testcase_run, fully_qualified_fuzzer_name,
 def get_fuzzer_metadata_from_output(fuzzer_output):
   """Extract metadata from fuzzer output."""
   metadata = {}
+  fuzzer_output = fuzzer_output.replace(
+      '\r', '').replace('\x85', '').replace(
+      '\u2028', '').replace('\u2029', '')
   for line in fuzzer_output.splitlines():
     match = FUZZER_METADATA_REGEX.match(line)
     if match:
