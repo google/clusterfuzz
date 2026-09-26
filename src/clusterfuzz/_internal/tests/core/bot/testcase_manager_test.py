@@ -769,6 +769,79 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash is reproducible.'),
     ])
 
+  def test_test_for_reproducibility_with_ignore_pattern(self):
+    """Test test_for_reproducibility fails when ignore signatures match."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.crash_analysis.crash_analyzer.ignore_stacktrace'
+    ])
+    self.mock.ignore_stacktrace.return_value = True
+    self.mock.run_process.return_value = (1, 1,
+                                          'crash\nCaught harmless ASan fault')
+    fuzz_target = _get_fuzz_target_from_preprocess(self.blackbox_testcase)
+    result = testcase_manager.test_for_reproducibility(
+        fuzz_target,
+        '/fuzz-testcase',
+        'type',
+        'state',
+        expected_security_flag=False,
+        test_timeout=10,
+        http_flag=False,
+        gestures=None)
+    self.assertFalse(result)
+
+    # Bails out after 2 runs because it needs at least 2 successes out of 3.
+    self.assertEqual(2, self.mock.run_process.call_count)
+    self.mock.info.assert_has_calls([
+        mock.call('Beginning a reproducibility test.'),
+        mock.call(
+            'Crash occurred in 1 seconds (round 1). State:\nstate',
+            output='crash\nCaught harmless ASan fault'),
+        mock.call('Crash stacktrace matched ignore signatures, ignored.'),
+        mock.call(
+            'Crash occurred in 1 seconds (round 2). State:\nstate',
+            output='crash\nCaught harmless ASan fault'),
+        mock.call('Crash stacktrace matched ignore signatures, ignored.'),
+        mock.call('Crash is not reproducible. Crash count: 0/3.')
+    ])
+
+  def test_test_for_reproducibility_succeed_after_ignored_run(self):
+    """Test test_for_reproducibility properly updates expected_state when start
+    is empty and first run is ignored."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.crash_analysis.crash_analyzer.ignore_stacktrace'
+    ])
+
+    # Mock get_crash_data to return a state representation from the output.
+    def custom_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-argument
+      state = stacktraces.CrashInfo()
+      state.crash_state = output.strip()
+      # Pick any type from CRASH_TYPES_NON_SECURITY to match expected_security_flag=False.
+      state.crash_type = 'Timeout'
+      state.crash_stacktrace = output.strip()
+      return state
+
+    self.mock.get_crash_data.side_effect = custom_get_crash_data
+
+    # Scenario: Run 1 encounters an ignorable crash. Runs 2 & 3 encounter the real crash.
+    self.mock.ignore_stacktrace.side_effect = [True, False, False]
+    self.mock.run_process.side_effect = [
+        (1, 1, 'AAAAA'),
+        (1, 1, 'BBBBB'),
+        (1, 1, 'BBBBB'),
+    ]
+    fuzz_target = _get_fuzz_target_from_preprocess(self.blackbox_testcase)
+
+    result = testcase_manager.test_for_reproducibility(
+        fuzz_target,
+        '/fuzz-testcase',
+        'type',
+        None,
+        expected_security_flag=False,
+        test_timeout=10,
+        http_flag=False,
+        gestures=None)
+    self.assertTrue(result)
+
   def test_test_for_reproducibility_blackbox_succeed_after_multiple_tries(self):
     """Test test_for_reproducibility with failure on first run and then succeed
     on remaining runs (blackbox)."""

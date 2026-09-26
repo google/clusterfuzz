@@ -814,6 +814,10 @@ class TestcaseRunner:
       if not crash_result.is_crash():
         continue
 
+      if crash_result.should_ignore():
+        logs.info('Crash stacktrace matched ignore signatures, ignored.')
+        continue
+
       # If we don't have an expected crash state, set it to the one from initial
       # crash.
       if not expected_state:
