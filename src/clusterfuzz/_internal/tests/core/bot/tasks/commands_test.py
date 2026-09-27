@@ -303,41 +303,41 @@ class IsSupportedCpuArchForJobTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.system.environment.get_cpu_arch',
+        'clusterfuzz._internal.system.environment.get_target_cpu_arch',
     ])
 
   def test_no_bot_cpu_arch(self):
     """Test when no cpu arch is defined on bot."""
-    self.mock.get_cpu_arch.return_value = None
+    self.mock.get_target_cpu_arch.return_value = None
     environment.set_value('CPU_ARCH', 'arm64')
     self.assertTrue(commands.is_supported_cpu_arch_for_job())
 
   def test_no_job_cpu_arch_requirement(self):
     """Test when job specifies no CPU_ARCH requirement."""
-    self.mock.get_cpu_arch.return_value = 'arm64'
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
     environment.set_value('CPU_ARCH', None)
     self.assertTrue(commands.is_supported_cpu_arch_for_job())
 
   def test_matching_single_string(self):
     """Test when job specifies matching single string CPU_ARCH."""
-    self.mock.get_cpu_arch.return_value = 'arm64'
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
     environment.set_value('CPU_ARCH', 'arm64')
     self.assertTrue(commands.is_supported_cpu_arch_for_job())
 
   def test_non_matching_single_string(self):
     """Test when job specifies non-matching single string CPU_ARCH."""
-    self.mock.get_cpu_arch.return_value = 'arm64'
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
     environment.set_value('CPU_ARCH', 'x86_64')
     self.assertFalse(commands.is_supported_cpu_arch_for_job())
 
   def test_matching_comma_separated_string(self):
     """Test when job specifies comma-separated CPU_ARCH."""
-    self.mock.get_cpu_arch.return_value = 'arm64'
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
     environment.set_value('CPU_ARCH', 'x86_64, arm64')
     self.assertTrue(commands.is_supported_cpu_arch_for_job())
 
   def test_matching_list(self):
     """Test when job specifies a list of supported architectures."""
-    self.mock.get_cpu_arch.return_value = 'arm64'
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
     environment.set_value('CPU_ARCH', ['x86_64', 'arm64'])
     self.assertTrue(commands.is_supported_cpu_arch_for_job())
