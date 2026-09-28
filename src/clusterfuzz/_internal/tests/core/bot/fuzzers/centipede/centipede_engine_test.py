@@ -220,6 +220,31 @@ class IntegrationTest(unittest.TestCase):
     args = arguments.list()
     self.assertIn('-rss_limit_mb=1234', args)
 
+  @patch('clusterfuzz._internal.base.utils.is_chromium', return_value=True)
+  def test_options_arguments_chromium_default(self, _):
+    """Tests that rss_limit_mb=0 on Chromium when unspecified."""
+    testcase_path = setup_testcase('test_fuzzer', self.test_paths)
+    engine_impl = engine.Engine()
+    # pylint: disable=protected-access
+    arguments = engine_impl._get_arguments(str(testcase_path))
+    args = arguments.list()
+    self.assertIn('-rss_limit_mb=0', args)
+
+  @patch('clusterfuzz._internal.base.utils.is_chromium', return_value=False)
+  @patch(
+      'clusterfuzz._internal.base.utils.default_project_name',
+      return_value='test-project')
+  def test_options_arguments_non_chromium_default(self, unused_default_project,
+                                                  unused_is_chromium):
+    """Tests that rss_limit_mb defaults to RSS_LIMIT_MB_DEFAULT on non-Chromium."""
+    testcase_path = setup_testcase('test_fuzzer', self.test_paths)
+    engine_impl = engine.Engine()
+    # pylint: disable=protected-access
+    arguments = engine_impl._get_arguments(str(testcase_path))
+    args = arguments.list()
+    self.assertIn(f'-rss_limit_mb={centipede_constants.RSS_LIMIT_MB_DEFAULT}',
+                  args)
+
   @patch('clusterfuzz._internal.bot.fuzzers.centipede.engine._CLEAN_EXIT_SECS',
          5)
   def _run_centipede(self,

@@ -221,13 +221,20 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   return asan_options
 
 
-def get_cpu_arch():
-  """Return cpu architecture."""
+def get_target_cpu_arch():
+  """Return target cpu architecture,
+  i.e. the cpu architecture where the fuzzer will run.
+  """
   if is_android():
     # FIXME: Handle this import in a cleaner way.
     from clusterfuzz._internal.platforms import android
-    return android.settings.get_cpu_arch()
+    return android.settings.get_target_cpu_arch()
 
+  return get_host_cpu_arch()
+
+
+def get_host_cpu_arch():
+  """Returns cpu architecture of the current host."""
   machine = platform_util.machine().lower()
   if machine in ('arm64', 'aarch64'):
     return 'arm64'

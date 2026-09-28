@@ -33,6 +33,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
+from clusterfuzz._internal.bot.fuzzers.libFuzzer import fuzzer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
@@ -86,10 +87,6 @@ CORPUS_SIZE_LIMIT_FOR_FAILURES = 10 * 1024 * 1024 * 1024  # 10 GB.
 
 # Maximum number of units to restore from quarantine in one run.
 MAX_QUARANTINE_UNITS_TO_RESTORE = 128
-
-# Memory limits for testcase.
-RSS_LIMIT = 2560
-RSS_LIMIT_MB_FLAG = '-rss_limit_mb=%d'
 
 # Flag to enforce length limit for a single corpus element.
 MAX_LEN_FLAG = '-max_len=%d'
@@ -400,21 +397,14 @@ class LibFuzzerRunner(BaseRunner):
 
   def get_fuzzer_flags(self):
     """Get default libFuzzer options for pruning."""
-    rss_limit = RSS_LIMIT
+    rss_limit = fuzzer.get_rss_limit_mb(self.fuzzer_options)
+
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
     detect_leaks = 1
-    arguments = options.FuzzerArguments()
-    arguments[constants.TIMEOUT_FLAGNAME] = SINGLE_UNIT_TIMEOUT
-
     if self.fuzzer_options:
       # Default values from above can be customized for a given fuzz target.
       libfuzzer_arguments = self.fuzzer_options.get_engine_arguments(
           'libfuzzer')
-
-      custom_rss_limit = libfuzzer_arguments.get(
-          'rss_limit_mb', constructor=int)
-      if custom_rss_limit:
-        rss_limit = custom_rss_limit
 
       custom_max_len = libfuzzer_arguments.get('max_len', constructor=int)
       if custom_max_len and custom_max_len < max_len:
@@ -427,10 +417,13 @@ class LibFuzzerRunner(BaseRunner):
       if custom_detect_leaks is not None:
         detect_leaks = custom_detect_leaks
 
-    arguments[constants.RSS_LIMIT_FLAGNAME] = rss_limit
-    arguments[constants.MAX_LEN_FLAGNAME] = max_len
-    arguments[constants.DETECT_LEAKS_FLAGNAME] = detect_leaks
-    arguments[constants.VALUE_PROFILE_FLAGNAME] = 1
+    arguments = options.FuzzerArguments({
+        constants.TIMEOUT_FLAGNAME: SINGLE_UNIT_TIMEOUT,
+        constants.RSS_LIMIT_FLAGNAME: rss_limit,
+        constants.MAX_LEN_FLAGNAME: max_len,
+        constants.DETECT_LEAKS_FLAGNAME: detect_leaks,
+        constants.VALUE_PROFILE_FLAGNAME: 1,
+    })
 
     return arguments.list()
 
