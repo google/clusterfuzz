@@ -16,6 +16,9 @@ import os
 import unittest
 from unittest import mock
 
+from google.api_core import exceptions as api_exceptions
+from google.cloud.ndb import exceptions as ndb_exceptions
+
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import swarming_pb2
@@ -47,6 +50,29 @@ class SwarmingTest(unittest.TestCase):
     os.environ.pop('DEPLOYMENT_BUCKET', None)
     os.environ.pop('PROJECT_NAME', None)
     os.environ.pop('HOST_JOB_SELECTION', None)
+
+  def test_is_swarming_enabled_flag_enabled(self):
+    """Tests that is_swarming_enabled returns True when the flag is enabled."""
+    self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
+    self.assertTrue(swarming.is_swarming_enabled())
+
+  def test_is_swarming_enabled_flag_disabled(self):
+    """Tests that is_swarming_enabled returns False when the flag is disabled."""
+    self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = False
+    self.assertFalse(swarming.is_swarming_enabled())
+
+  def test_is_swarming_enabled_permission_denied(self):
+    """Tests that is_swarming_enabled returns False on PermissionDenied."""
+    type(self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION).enabled = (
+        mock.PropertyMock(
+            side_effect=api_exceptions.PermissionDenied('Denied')))
+    self.assertFalse(swarming.is_swarming_enabled())
+
+  def test_is_swarming_enabled_ndb_context_error(self):
+    """Tests that is_swarming_enabled returns False on NDB ContextError."""
+    type(self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION).enabled = (
+        mock.PropertyMock(side_effect=ndb_exceptions.ContextError()))
+    self.assertFalse(swarming.is_swarming_enabled())
 
   def test_has_swarming_env_vars_empty_env(self):
     """Tests that empty environment returns False."""
@@ -355,25 +381,25 @@ class SwarmingTest(unittest.TestCase):
         ])
     self.assertEqual(spec, expected_spec)
 
-  def test_is_swarming_task(self):
-    """Tests that is_swarming_task works as expected."""
+  def test_is_swarming_job(self):
+    """Tests that is_swarming_job depends on the IS_SWARMING_JOB env var."""
     job = data_types.Job(
         name='libfuzzer_chrome_asan',
         platform='LINUX',
         environment_string='IS_SWARMING_JOB = True')
     job.put()
-    self.assertTrue(swarming.is_swarming_task(job.name))
+    self.assertTrue(swarming.is_swarming_job(job.name))
 
     job.environment_string = 'IS_SWARMING_JOB = False'
     job.put()
-    self.assertFalse(swarming.is_swarming_task(job.name))
+    self.assertFalse(swarming.is_swarming_job(job.name))
 
     job.environment_string = ''
     job.put()
-    self.assertFalse(swarming.is_swarming_task(job.name))
+    self.assertFalse(swarming.is_swarming_job(job.name))
 
-  def test_is_swarming_task_with_job_instance(self):
-    """Tests that is_swarming_task avoids DB query when job is provided."""
+  def test_is_swarming_job_with_job_instance(self):
+    """Tests that is_swarming_job avoids DB query when job is provided."""
     # Mock query to prove that passing a job instance bypasses the Datastore query.
     helpers.patch(self,
                   ['clusterfuzz._internal.datastore.data_types.Job.query'])
@@ -384,12 +410,11 @@ class SwarmingTest(unittest.TestCase):
     job.put()  # Ensure it's valid, though it won't be queried
 
     # Call with job instance
-    self.assertTrue(swarming.is_swarming_task(job.name, job=job))
+    self.assertTrue(swarming.is_swarming_job(job.name, job=job))
     self.mock.query.assert_not_called()
 
-  def test_is_swarming_task_without_job_instance(self):
-    """Tests that is_swarming_task queries the DB when job is not provided."""
-    # Mock query to prove that passing a job instance bypasses the Datastore query.
+  def test_is_swarming_job_without_job_instance(self):
+    """Tests that is_swarming_job queries the DB when job is not provided."""
     helpers.patch(self,
                   ['clusterfuzz._internal.datastore.data_types.Job.query'])
     job = data_types.Job(
@@ -402,18 +427,33 @@ class SwarmingTest(unittest.TestCase):
     mock_query_obj.get.return_value = job
     self.mock.query.return_value = mock_query_obj
 
-    self.assertTrue(swarming.is_swarming_task(job.name))
+    self.assertTrue(swarming.is_swarming_job(job.name))
     self.mock.query.assert_called_once()
 
-  def test_is_swarming_task_with_feature_flag_disabled(self):
-    """Tests that is_swarming_task returns False when the feature flag is disabled."""
+  def test_is_swarming_job_ignores_feature_flag(self):
+    """Tests that is_swarming_job only depends on the job, and not on whether
+    swarming is enabled."""
     self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = False
     job = data_types.Job(
         name='libfuzzer_chrome_asan',
         platform='LINUX',
         environment_string='IS_SWARMING_JOB = True')
     job.put()
-    self.assertFalse(swarming.is_swarming_task(job.name))
+    self.assertTrue(swarming.is_swarming_job(job.name))
+
+  def test_is_swarming_job_unmapped_platform(self):
+    """Tests that is_swarming_job returns False when the job platform has no
+    mapping in the swarming config."""
+    job = data_types.Job(
+        name='some_job_name',
+        platform='UNKNOWN-PLATFORM',
+        environment_string='IS_SWARMING_JOB = True')
+    job.put()
+    self.assertFalse(swarming.is_swarming_job(job.name))
+
+  def test_is_swarming_job_not_found(self):
+    """Tests that is_swarming_job returns False when the job doesn't exist."""
+    self.assertFalse(swarming.is_swarming_job('non_existent_job'))
 
   def test_get_task_dimensions_with_env_var(self):
     """Tests that _get_task_dimensions handles SWARMING_DIMENSIONS env var."""

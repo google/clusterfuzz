@@ -126,7 +126,7 @@ def is_remote_utask(command, job):
     return False
 
   return batch_service.is_remote_task(command,
-                                      job) or swarming.is_swarming_task(job)
+                                      job) or swarming.is_swarming_job(job)
 
 
 def task_main_runs_on_uworker():
@@ -174,7 +174,7 @@ class UTask(BaseUTask):
       return
 
     queue = pub_sub_task_queue.UTASK_MAIN_QUEUE
-    is_swarming_job = swarming.is_swarming_task(job_type)
+    is_swarming_job = swarming.is_swarming_job(job_type)
     if is_swarming_job:
       queue = pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE
 

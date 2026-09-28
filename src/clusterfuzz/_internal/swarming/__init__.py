@@ -17,6 +17,9 @@ import base64
 import json
 import uuid
 
+from google.api_core import exceptions as api_exceptions
+from google.cloud.ndb import exceptions as ndb_exceptions
+
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.errors import BadConfigError
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
@@ -36,24 +39,32 @@ def has_swarming_env_vars(job_environment: dict) -> bool:
       job_environment.get('SWARMING_DIMENSIONS'))
 
 
-def is_swarming_task(job_name: str,
-                     job: data_types.Job | None = None,
-                     ignore_feature_flag: bool = False) -> bool:
-  """Validates that the current job and environment can send a task to swarming.
+def is_swarming_enabled() -> bool:
+  """Checks whether swarming is enabled in the current CF instance.
+
+  Note: This method requires DB connection, else returns False.
+
+  Returns:
+    True if the current ClusterFuzz instance has swarming enabled.
+  """
+  try:
+    return FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled
+  except (api_exceptions.PermissionDenied, ndb_exceptions.ContextError):
+    logs.debug(
+        '[Swarming] Unauthorized bot tried to query the DB for FeatureFlag')
+    return False
+
+
+def is_swarming_job(job_name: str, job: data_types.Job | None = None) -> bool:
+  """Validates that the current job is meant to be scheduled on swarming.
 
   Args:
     job_name: The name of the job.
     job: The job object, use if available to avoid querying datastore.
-    ignore_feature_flag: So that we check the job even if the feature flag is
-      not enabled.
 
   Returns:
-    True if the task is supposed to run on swarming.
+    True if the job is supposed to run on swarming.
   """
-  if not (ignore_feature_flag or
-          FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled):
-    logs.info('[DEBUG] Flag is disabled', job_name=job_name)
-    return False
   if job is None:
     job = data_types.Job.query(data_types.Job.name == job_name).get()
     if not job:
@@ -205,11 +216,8 @@ def _env_vars_to_json(
 
 def create_new_task_request(command: str, job_name: str, download_url: str
                            ) -> swarming_pb2.NewTaskRequest | None:  # pylint: disable=no-member
-  """Gets the configured specifications for a swarming task. 
-  Returns None if the task should'nt be executed on swarming 
-  or if the SWARMING_REMOTE_EXECUTION flag is disabled."""
-  if not FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
-    return None
+  """Gets the configured specifications for a swarming task.
+  Returns None if the task should'nt be executed on swarming."""
 
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if job is None:
