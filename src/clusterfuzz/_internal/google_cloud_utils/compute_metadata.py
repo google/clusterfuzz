@@ -67,7 +67,7 @@ def is_gce():
     sock = socket.create_connection((host, port))
     sock.close()
   except Exception as e:
-    logs.warning(f'Bot not marked as GCE: {e}')
+    logs.info(f'Bot not marked as GCE: {e}')
     return False
 
   return True
