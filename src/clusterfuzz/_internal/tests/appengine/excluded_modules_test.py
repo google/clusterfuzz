@@ -65,8 +65,7 @@ class ExcludedModulesTest(unittest.TestCase):
             f'Module {module} is excluded in .gcloudignore, but it was imported by server.'
         )
       else:  # Unexpected crash.
-        print('stdout:\n' + result.stdout)
-        print('stderr:\n' + result.stderr)
         msg = 'Subprocess execution failed: '
         msg += 'No output marker found' if cnt == 0 else 'Multiple output markers found'
+        msg += '.\nSTDOUT:\n' + result.stdout + '\nSTDERR:\n' + result.stderr 
         self.fail(msg)
