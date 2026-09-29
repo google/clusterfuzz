@@ -15,6 +15,7 @@
 import datetime
 import os
 import unittest
+from unittest import mock
 
 from pyfakefs import fake_filesystem_unittest
 
@@ -294,3 +295,23 @@ class StrToBytesTest(unittest.TestCase):
 
   def test_bytes(self):
     self.assertEqual(storage.str_to_bytes(b'\x00A'), b'\x00A')
+
+
+class SignedUrlDownloadTest(fake_filesystem_unittest.TestCase):
+  """Tests for downloading signed URLs to local files."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+
+  def test_failed_download_does_not_open_or_leave_empty_file(self):
+    """If download_signed_url raises, the destination file is never opened or
+    created."""
+    filepath = '/bundle/corpus.db'
+    with mock.patch.object(
+            storage, 'download_signed_url', side_effect=RuntimeError('boom')), \
+            mock.patch('builtins.open', wraps=open) as mocked_open:
+      self.assertFalse(
+          storage._error_tolerant_download_signed_url_to_file(  # pylint: disable=protected-access
+              ('https://storage.googleapis.com/b/corpus.db', filepath)))
+      mocked_open.assert_not_called()
+    self.assertFalse(os.path.exists(filepath))
