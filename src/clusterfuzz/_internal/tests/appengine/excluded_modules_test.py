@@ -30,11 +30,14 @@ excluded_modules = [
     'clusterfuzz._internal.tests', '_internal.tests',
     'third_party'
 ]
+return_code = 0
 for module in excluded_modules:
   # No need to match prefixes because python always imports the parent module.
   if module in sys.modules:
     print('SUBPROCESS_MARKER_STRING ' + module)
-    sys.exit(1)
+    return_code = 1
+
+sys.exit(return_code)
 '''.format(sys_path=str(sys.path))
 
 
@@ -51,21 +54,19 @@ class ExcludedModulesTest(unittest.TestCase):
         text=True)
 
     if result.returncode != 0:
-      module = None
-      cnt = 0
+      modules = []
 
       for line in result.stdout.splitlines():
         if line.startswith('SUBPROCESS_MARKER_STRING'):
           # Module name does not have whitespace, so this is safe.
-          module = line.split()[1]
-          cnt += 1
+          modules.append(line.split()[1])
 
-      if cnt == 1:
+      if len(modules) > 0:
+        mods_str = ', '.join(modules)
         self.fail(
-            f'Module {module} is excluded in .gcloudignore, but it was imported by server.'
+            f'Modules {mods_str} are excluded in .gcloudignore, but were imported by server.'
         )
       else:  # Unexpected crash.
-        msg = 'Subprocess execution failed: '
-        msg += 'No output marker found' if cnt == 0 else 'Multiple output markers found'
-        msg += '.\nSTDOUT:\n' + result.stdout + '\nSTDERR:\n' + result.stderr 
+        msg = 'Subprocess execution failed: no output marker found.\n'
+        msg += 'STDOUT:\n' + result.stdout + '\nSTDERR:\n' + result.stderr 
         self.fail(msg)
