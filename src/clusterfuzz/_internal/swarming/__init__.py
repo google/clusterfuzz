@@ -50,7 +50,7 @@ def is_swarming_enabled() -> bool:
   try:
     return FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled
   except (api_exceptions.PermissionDenied, ndb_exceptions.ContextError):
-    logs.debug(
+    logs.error(
         '[Swarming] Unauthorized bot tried to query the DB for FeatureFlag')
     return False
 
