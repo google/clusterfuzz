@@ -21,6 +21,7 @@ import datetime
 import io
 import json
 import os
+import pathlib
 import shutil
 import threading
 import time
@@ -1399,6 +1400,20 @@ def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
 
 _GCS_SIGNED_URL_HOST = 'storage.googleapis.com'
 _RESERVED_DATA_BUNDLE_NAMES = {'.sync', 'files.info'}
+_WINDOWS_ILLEGAL_FILENAME_CHARS = frozenset('<>:"\\|?*') | frozenset(
+    map(chr, range(32)))
+_WINDOWS_ESCAPE_TABLE = str.maketrans(
+    {c: f'%{ord(c):02X}' for c in _WINDOWS_ILLEGAL_FILENAME_CHARS})
+
+
+def _escape_windows_path_component(component: str) -> str:
+  """Percent-escapes what Windows can't represent in a file name."""
+  escaped = component.translate(_WINDOWS_ESCAPE_TABLE)
+  if escaped[-1] in '. ':  # Windows silently strips a trailing '.' or ' '.
+    escaped = escaped[:-1] + f'%{ord(escaped[-1]):02X}'
+  if pathlib.PureWindowsPath(escaped).is_reserved():  # CON, NUL.txt, COM1...
+    escaped = f'%{ord(escaped[0]):02X}{escaped[1:]}'
+  return escaped
 
 
 class BucketRootSignedUrlError(ValueError):
@@ -1476,6 +1491,8 @@ def _get_safe_download_path(directory: str,
     logs.error(f'Unsafe object name in signed URL download: {relative_path!r}')
     return None
 
+  if environment.platform() == 'WINDOWS':
+    parts = [_escape_windows_path_component(p) for p in parts]
   local_path = os.path.join(directory, *parts)  # OS-native separators.
   real_dir = os.path.realpath(directory)
   if os.path.commonpath([real_dir, os.path.realpath(local_path)]) != real_dir:
@@ -1535,12 +1552,15 @@ def download_signed_urls_preserving_paths(
         continue
 
       # Two URLs must never map to the same local file: the pool would open
-      # it from two workers at once.
-      if path in seen_paths:
+      # it from two workers at once (PermissionError on Windows). normcase
+      # lowercases on Windows (NTFS is case-insensitive) and is a no-op on
+      # Linux/Mac.
+      path_key = os.path.normcase(path)
+      if path_key in seen_paths:
         logs.error(f'Duplicate local path, skipping: {path}')
         continue
 
-      seen_paths.add(path)
+      seen_paths.add(path_key)
 
     urls_and_filepaths.append((url, path))
 
