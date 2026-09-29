@@ -16,6 +16,7 @@
 import collections
 
 from firebase_admin import auth
+from firebase_admin import exceptions as firebase_exceptions
 from google.auth.transport import requests as google_requests
 from google.cloud import ndb
 from google.oauth2 import id_token
@@ -231,11 +232,19 @@ def get_current_user():
   return User(email, email_verified)
 
 
+def verify_id_token(token):
+  """Verify an ID token and return its decoded claims."""
+  try:
+    return auth.verify_id_token(token)
+  except (ValueError, firebase_exceptions.FirebaseError):
+    raise AuthError('Invalid ID token.')
+
+
 def create_session_cookie(token, expires_in):
   """Create a new session cookie."""
   try:
     return auth.create_session_cookie(token, expires_in=expires_in)
-  except auth.AuthError:
+  except (ValueError, firebase_exceptions.FirebaseError):
     raise AuthError('Failed to create session cookie.')
 
 
@@ -254,5 +263,5 @@ def decode_claims(session_cookie):
   """Decode the claims for the current session cookie."""
   try:
     return auth.verify_session_cookie(session_cookie, check_revoked=True)
-  except (ValueError, auth.AuthError):
+  except (ValueError, firebase_exceptions.FirebaseError):
     raise AuthError('Invalid session cookie.')
