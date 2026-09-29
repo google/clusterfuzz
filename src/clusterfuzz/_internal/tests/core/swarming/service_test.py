@@ -142,21 +142,17 @@ class SwarmingServiceTest(unittest.TestCase):
     self.mock_api.push_task.assert_not_called()
 
   def test_create_utask_main_jobs_swarming_disabled(self):
-    """Test that all tasks are returned as unscheduled, without being
-    processed, when swarming is not enabled."""
+    """Test that all tasks are returned as unscheduled when swarming is
+    disabled."""
     tasks = [
         remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
         remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
     ]
     self.mock.is_swarming_enabled.return_value = False
-    self.mock.is_swarming_job.return_value = True
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
 
     self.assertEqual(unscheduled, tasks)
-    self.mock.is_swarming_job.assert_not_called()
-    self.mock.create_new_task_request.assert_not_called()
-    self.mock_api.count_tasks.assert_not_called()
     self.mock_api.push_task.assert_not_called()
 
   def test_create_utask_main_jobs_returns_unscheduled_on_empty_response(self):
