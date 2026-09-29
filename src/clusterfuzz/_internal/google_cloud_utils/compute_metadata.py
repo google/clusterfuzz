@@ -62,10 +62,12 @@ def _metadata_host_port():
 def is_gce():
   """Return whether or not we're on GCE."""
   try:
-    sock = socket.create_connection(_metadata_host_port())
+    host, port = _metadata_host_port()
+    logs.info(f'Connecting to metadata server at {host}:{port}')
+    sock = socket.create_connection((host, port))
     sock.close()
   except Exception as e:
-    logs.info(f'Bot not marked as GCE: {e}')
+    logs.warning(f'Bot not marked as GCE: {e}')
     return False
 
   return True
