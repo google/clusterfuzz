@@ -66,19 +66,7 @@ def _call_android_api_enabled():
 def _download_artifact(client, bid, target, attempt_id, name, output_directory,
                        output_filename):
   """Download one artifact."""
-  logs.debug('reached download_artifact')
-  logs.debug('artifact to download: %s' % name)
-  logs.debug('output_directory: %s' % output_directory)
-  logs.debug('output_filename: %s' % output_filename)
-
-  logs.info(
-      'AndroidBuildAPI download_artifact started.',
-      api_version=API_VERSION,
-      operation='download_artifact',
-      build_id=bid,
-      target=target,
-      attempt_id=attempt_id,
-      artifact_name=name)
+  logs.debug('Artifact to download: %s' % name)
 
   artifact = client.get_artifact_metadata(bid, target, attempt_id, name)
 
@@ -126,9 +114,7 @@ def _download_artifact(client, bid, target, attempt_id, name, output_directory,
         status='skipped_exists')
     return output_path
 
-  logs.debug('Downloading artifact %s.' % name)
   output_dir = os.path.dirname(output_path)
-  logs.debug('Output dir: %s' % output_dir)
   if not os.path.exists(output_dir):
     logs.info(f'Creating directory {output_dir}')
     os.makedirs(output_dir, exist_ok=True)
