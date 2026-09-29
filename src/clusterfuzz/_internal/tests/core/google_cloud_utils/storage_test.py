@@ -16,12 +16,19 @@ import datetime
 import os
 import unittest
 from unittest import mock
+import urllib.parse
 
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
+
+_SIGNED_QUERY = '?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Signature=secret123'
+_FLAT_BUNDLE_A_GCS_URL = 'gs://bundle-a.example.com'
+_FLAT_BUNDLE_B_GCS_URL = 'gs://bundle-b.example.com'
+_NESTED_BUNDLE_GCS_URL = 'gs://example.com'
 
 
 class LifecycleConfigTest(unittest.TestCase):
@@ -302,16 +309,271 @@ class SignedUrlDownloadTest(fake_filesystem_unittest.TestCase):
 
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
+    self.fs.create_dir('/bundle')
+    self.provider = storage.FileSystemProvider('/gcs')
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage._provider',
+        'clusterfuzz._internal.google_cloud_utils.storage.use_async_http',
+    ])
+    self.mock._provider.return_value = self.provider  # pylint: disable=protected-access
+    self.mock.use_async_http.return_value = False
 
   def test_failed_download_does_not_open_or_leave_empty_file(self):
     """If download_signed_url raises, the destination file is never opened or
     created."""
-    filepath = '/bundle/corpus.db'
+    filepath = '/bundle/data.db'
+
     with mock.patch.object(
-            storage, 'download_signed_url', side_effect=RuntimeError('boom')), \
-            mock.patch('builtins.open', wraps=open) as mocked_open:
+        storage, 'download_signed_url', side_effect=RuntimeError('boom')), \
+         mock.patch('builtins.open', wraps=open) as mocked_open:
       self.assertFalse(
           storage._error_tolerant_download_signed_url_to_file(  # pylint: disable=protected-access
-              ('https://storage.googleapis.com/b/corpus.db', filepath)))
+              ('https://storage.googleapis.com/b/data.db', filepath)))
       mocked_open.assert_not_called()
+
     self.assertFalse(os.path.exists(filepath))
+
+  def test_valid_bundle_paths(self):
+    """Valid relative paths resolve under the bundle directory."""
+    paths = [
+        'data.db',
+        'list.csv',
+        'tests/graphics/css3/svg/res/2.0/images/textures/texture.jpg',
+        'tests/browser/img/example logo.jpg',
+        'tests/mobile/images/+.png',
+        "tests/mobile/images/it's & .png",
+        'demos/animations/layer.css',
+    ]
+
+    for path in paths:
+      self.assertEqual(
+          storage._get_safe_download_path('/bundle', path),  # pylint: disable=protected-access
+          os.path.join('/bundle', *path.split('/')))
+
+  def test_folder_placeholder_returns_none_without_error(self):
+    """GCS folder placeholder objects ending with '/' are silently skipped."""
+    with mock.patch.object(storage.logs, 'error') as mock_error:
+      self.assertIsNone(storage._get_safe_download_path('/bundle', 'tests/'))  # pylint: disable=protected-access
+      self.assertIsNone(storage._get_safe_download_path('/bundle', ''))  # pylint: disable=protected-access
+      mock_error.assert_not_called()
+
+  def test_traversal_and_reserved_names_rejected(self):
+    """Traversal segments and reserved bundle metadata names are rejected."""
+    for bad in ('../x', 'a/../../x', 'a//b', './x', '/abs', '.sync',
+                'files.info'):
+      with mock.patch.object(storage.logs, 'error') as mock_error:
+        self.assertIsNone(storage._get_safe_download_path('/bundle', bad))  # pylint: disable=protected-access
+        mock_error.assert_called_once()
+
+  def _seed_blobs(self, bucket, blobs):
+    self.provider.create_bucket(bucket, None, None, None)
+    for rel_path, data in blobs.items():
+      self.provider.write_data(data, f'gs://{bucket}/{rel_path}')
+
+  def test_no_prefix_uses_uuid_names(self):
+    """download_signed_urls uses flat <uuid>-<idx> names, even for nested
+    object names. This preserves the behavior for coverage guided corpora.
+    """
+    self._seed_blobs('engine-bucket', {'sub/input1': b'111', 'input2': b'222'})
+    urls = ['gs://engine-bucket/sub/input1', 'gs://engine-bucket/input2']
+    results = storage.download_signed_urls(urls, '/engine_dir')
+    self.assertEqual(len(results), 2)
+    for idx, res in enumerate(results):
+      self.assertEqual(os.path.dirname(res.filepath), '/engine_dir')
+      self.assertTrue(res.filepath.endswith(f'-{idx}'))
+
+  def test_preserve_paths_sync_and_async(self):
+    """Preserves filenames and nested directory trees for both download paths."""
+    blobs = {
+        'data.db': b'sqlite',
+        'tests/browser/img/example logo.jpg': b'jpg',
+        'tests/mobile/images/+.png': b'png',
+        'demos/animations/layer.css': b'css',
+    }
+    bucket = 'example.com'
+    self._seed_blobs(bucket, blobs)
+    urls = [
+        'https://storage.googleapis.com/'
+        f'{bucket}/{urllib.parse.quote(rel)}{_SIGNED_QUERY}' for rel in blobs
+    ]
+
+    with mock.patch.object(
+        storage,
+        'download_signed_url',
+        side_effect=lambda u: blobs[storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+            u, f'gs://{bucket}')]):
+      sync_results = storage.download_signed_urls_preserving_paths(
+          urls, '/sync_bundle', f'gs://{bucket}')
+
+    self.assertEqual(len(sync_results), len(blobs))
+    for rel, expected_bytes in blobs.items():
+      full_path = os.path.join('/sync_bundle', *rel.split('/'))
+      self.assertTrue(os.path.isfile(full_path), msg=f'Missing {full_path}')
+      with open(full_path, 'rb') as fp:
+        self.assertEqual(fp.read(), expected_bytes)
+
+    def fake_fast_http_download(urls_and_paths):
+      for _, dest_path in urls_and_paths:
+        # Parent directories must already exist before fast_http runs.
+        self.assertTrue(os.path.isdir(os.path.dirname(dest_path)))
+        with open(dest_path, 'wb') as fp:
+          fp.write(b'async')
+      return [True] * len(urls_and_paths)
+
+    self.mock.use_async_http.return_value = True
+    with mock.patch.object(
+        storage.fast_http, 'download_urls',
+        side_effect=fake_fast_http_download):
+      async_results = storage.download_signed_urls_preserving_paths(
+          urls, '/async_bundle', f'gs://{bucket}')
+
+    self.assertEqual(len(async_results), len(blobs))
+    for rel in blobs:
+      self.assertTrue(
+          os.path.isfile(os.path.join('/async_bundle', *rel.split('/'))))
+
+  def test_fallback_on_underivable_url_redacts_signature(self):
+    """An underivable URL falls back to a uuid name and redacts the query."""
+    bad_url = 'https://custom.host.example/bucket/data.db' + _SIGNED_QUERY
+
+    with mock.patch.object(
+        storage, 'download_signed_url', return_value=b'content'), \
+         mock.patch.object(storage.logs, 'error') as mock_error:
+      results = storage.download_signed_urls_preserving_paths(
+          [bad_url], '/fallback_dir', 'gs://bucket')
+
+    self.assertEqual(len(results), 1)
+    self.assertTrue(results[0].filepath.endswith('-0'))
+    mock_error.assert_called_once()
+    logged_msg = mock_error.call_args[0][0]
+    self.assertNotIn('secret123', logged_msg)
+    self.assertNotIn('X-Goog-Signature', logged_msg)
+
+  def test_bucket_root_url_skipped(self):
+    """A bucket-root URL is logged and skipped, not downloaded."""
+    root_url = 'https://storage.googleapis.com/b/' + _SIGNED_QUERY
+    good_url = 'https://storage.googleapis.com/b/data.db' + _SIGNED_QUERY
+
+    with mock.patch.object(
+        storage, 'download_signed_url', return_value=b'data') as mock_download, \
+         mock.patch.object(storage.logs, 'error') as mock_error:
+      results = storage.download_signed_urls_preserving_paths(
+          [root_url, good_url], '/root_dir', 'gs://b')
+
+    mock_download.assert_called_once_with(good_url)
+    self.assertEqual([r.filepath for r in results], ['/root_dir/data.db'])
+    self.assertEqual(os.listdir('/root_dir'), ['data.db'])
+
+    mock_error.assert_called_once()
+    logged_msg = mock_error.call_args[0][0]
+    self.assertIn('Signed URL does not reference an object', logged_msg)
+    self.assertNotIn('X-Goog-Signature', logged_msg)
+
+  def test_duplicate_path_skipped_before_pool(self):
+    """Two URLs mapping to the same local path only dispatch the first."""
+    u1 = 'https://storage.googleapis.com/b/data.db?X-Goog-Signature=one'
+    u2 = 'https://storage.googleapis.com/b/data.db?X-Goog-Signature=two'
+    dispatched = []
+
+    def record_download(urls_and_paths):
+      dispatched.extend(urls_and_paths)
+      return [True] * len(urls_and_paths)
+
+    self.mock.use_async_http.return_value = True
+    with mock.patch.object(
+        storage.fast_http, 'download_urls', side_effect=record_download), \
+         mock.patch.object(storage.logs, 'error') as mock_error:
+      storage.download_signed_urls_preserving_paths([u1, u2], '/dup_dir',
+                                                    'gs://b')
+
+    self.assertEqual(dispatched, [(u1, '/dup_dir/data.db')])
+    mock_error.assert_called_once()
+
+
+class GetRelativePathFromSignedUrlTest(unittest.TestCase):
+  """Tests for _get_relative_path_from_signed_url."""
+
+  def test_flat_bundles(self):
+    """Flat data bundles derive their exact filename."""
+    url_a = ('https://storage.googleapis.com/bundle-a.example.com/'
+             'data.db' + _SIGNED_QUERY)
+    self.assertEqual(
+        storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+            url_a, _FLAT_BUNDLE_A_GCS_URL),
+        'data.db')
+
+    url_b = ('https://storage.googleapis.com/bundle-b.example.com/'
+             'list.csv' + _SIGNED_QUERY)
+    self.assertEqual(
+        storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+            url_b, _FLAT_BUNDLE_B_GCS_URL),
+        'list.csv')
+
+  def test_nested_paths_and_special_characters(self):
+    """Nested paths and percent-encoded spaces, '+', '&', and \"'\"."""
+    cases = [
+        ('tests/graphics/css3/svg/res/2.0/images/textures/texture.jpg',
+         'tests/graphics/css3/svg/res/2.0/images/textures/texture.jpg'),
+        ('tests/browser/img/example%20logo.jpg',
+         'tests/browser/img/example logo.jpg'),
+        ('tests/mobile/images/%2B.png', 'tests/mobile/images/+.png'),
+        ('tests/mobile/images/400%2B%20number.png',
+         'tests/mobile/images/400+ number.png'),
+        ('tests/mobile/images/a%20%26%20b.png',
+         'tests/mobile/images/a & b.png'),
+        ('tests/mobile/images/it%27s%20a%20-%20b%27s%20c.png',
+         "tests/mobile/images/it's a - b's c.png"),
+        ("tests/mobile/images/it's%20here.png",
+         "tests/mobile/images/it's here.png"),
+        ('demos/animations/layer.css', 'demos/animations/layer.css'),
+    ]
+    for encoded_path, expected in cases:
+      url = ('https://storage.googleapis.com/'
+             f'example.com/{encoded_path}' + _SIGNED_QUERY)
+      self.assertEqual(
+          storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+              url, _NESTED_BUNDLE_GCS_URL),
+          expected,
+          msg=f'Failed for {encoded_path}')
+
+  def test_gs_urls_used_as_is_without_unquoting(self):
+    """gs:// URLs from FileSystemProvider are not percent-decoded."""
+    self.assertEqual(
+        storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+            f'{_NESTED_BUNDLE_GCS_URL}/tests/browser/images/'
+            'New Presentation.pptx', _NESTED_BUNDLE_GCS_URL),
+        'tests/browser/images/New Presentation.pptx')
+    self.assertEqual(
+        storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+            'gs://b/100%25.txt', 'gs://b'),
+        '100%25.txt')
+
+  def test_prefix_stripping_and_mismatches(self):
+    """Strips non-empty prefixes and returns None on bucket/host mismatch."""
+    self.assertEqual(
+        storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+            'gs://b/pre/x/y', 'gs://b/pre'),
+        'x/y')
+    self.assertIsNone(
+        storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+            f'{_NESTED_BUNDLE_GCS_URL}/tests/a.svg', _FLAT_BUNDLE_B_GCS_URL))
+    self.assertIsNone(
+        storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+            'https://b.storage.googleapis.com/x' + _SIGNED_QUERY, 'gs://b'))
+
+  def test_bucket_root_raises(self):
+    """URLs that reference a bucket root rather than an object raise."""
+    bucket_root_urls = [
+        'https://storage.googleapis.com/' + _SIGNED_QUERY,
+        'https://storage.googleapis.com' + _SIGNED_QUERY,
+        'https://storage.googleapis.com/b' + _SIGNED_QUERY,
+        'https://storage.googleapis.com/b/' + _SIGNED_QUERY,
+        'gs://b',
+        'gs://b/',
+    ]
+    for url in bucket_root_urls:
+      with self.subTest(url=url):
+        with self.assertRaises(storage.BucketRootSignedUrlError) as ctx:
+          storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+              url, 'gs://b')
+        self.assertNotIn('X-Goog-Signature', str(ctx.exception))
