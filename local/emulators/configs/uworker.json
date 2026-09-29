@@ -23,7 +23,7 @@
       "zone": "projects/1234567890/zones/us-central1-f",
       "preempted": "FALSE",
       "scheduling": {
-        "preemptible": "TRUE",
+        "preemptible": "FALSE",
         "provisioning-model": "SPOT"
       },
       "attributes": {}
