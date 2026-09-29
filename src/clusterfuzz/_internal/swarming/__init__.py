@@ -217,7 +217,7 @@ def _env_vars_to_json(
 def create_new_task_request(command: str, job_name: str, download_url: str
                            ) -> swarming_pb2.NewTaskRequest | None:  # pylint: disable=no-member
   """Gets the configured specifications for a swarming task.
-  Returns None if the task should'nt be executed on swarming."""
+  Returns None if the task shouldn't be executed on swarming."""
 
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if job is None:
