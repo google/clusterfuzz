@@ -1156,6 +1156,36 @@ class TestTrustedVsUntrusted(unittest.TestCase):
         None)
     self.assertFalse(data_handler.get_testcase_by_id(testcase_id).trusted)
 
+  def test_user_uploaded_trusted(self):
+    """Tests that uploads from a signed trusted agreement are trusted."""
+    gestures = []
+    testcase_id = data_handler.create_user_uploaded_testcase(
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        self.job,
+        None,
+        None,
+        gestures,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        trusted=True)
+    self.assertTrue(data_handler.get_testcase_by_id(testcase_id).trusted)
+
   def test_fuzzer_created(self):
     """Tests that fuzzer created testcases are marked as such."""
     crash = mock.Mock(

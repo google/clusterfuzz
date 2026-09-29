@@ -4,8 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-# If you add or bump packages here with native/compiled C/C++/Rust extensions,
-# make sure to also update src/platform_requirements.txt.
+# If you add or bump packages here that have native/compiled C/C++/Rust/CFFI
+# extensions (either directly or in their transitive dependencies in
+# src/Pipfile.lock), make sure to also update src/platform_requirements.txt.
 cryptography = "==37.0.4"
 crcmod = "==1.7"
 future = "==0.17.1"
@@ -27,8 +28,12 @@ pyfakefs = "==4.4.0"
 pylint = "~=2.4"
 pylint-protobuf = "==0.21.0"
 pyright = "==1.1.393"
+pytest = "==9.1.1"
+pytest-cov = "==7.1.0"
 pyyaml = "==6.0.2"
 selenium = "==3.141.0"
+testcontainers = "==4.15.0"
 twine = "*"
 WebTest = "==3.0.0"
 yapf = "==0.22.0"
+wiremock = "==2.7.0"
