@@ -12,35 +12,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for server module."""
+import os
 import subprocess
 import sys
 import unittest
 
 from clusterfuzz._internal.tests.test_libs import helpers
 
-_SUBPROCESS_CODE = '''
+_SUBPROCESS_CODE = r'''
+import re
 import sys
-sys.path = {sys_path}
+sys.path = {sys_path}  # List of string.
 
 import clusterfuzz._internal.system.environment as env
 env.is_running_on_app_engine = lambda: True
 
 import server
 
-excluded_modules = [
-    'clusterfuzz._internal.bot', '_internal.bot',
-    'clusterfuzz._internal.tests', '_internal.tests',
-    'third_party'
-]
+excluded_modules = {excluded_modules}  # List of string.
 return_code = 0
-for module in excluded_modules:
-  # No need to match prefixes because python always imports the parent module.
-  if module in sys.modules:
-    print('SUBPROCESS_MARKER_STRING ' + module)
-    return_code = 1
+
+for excluded in excluded_modules:
+  # The module must begin with either a full module path or an empty string,
+  # then must contain `excluded` and end immediately.
+  # For instance, this avoids abc.github, github.xyz matching against git,
+  # meanwhile it allows for clusterfuzz._internal.bot to match against _internal.bot.
+  # This also ignores submodules whose parent module was already detected
+  # from being detected as well.
+  pattern = re.compile(r'(.+\.|^)' + re.escape(excluded) + '$')
+  for module in sys.modules:
+    if pattern.match(module):
+      print('SUBPROCESS_MARKER_STRING ' + module)
+      return_code = 1
 
 sys.exit(return_code)
-'''.format(sys_path=str(sys.path))
+'''
 
 
 class ServerTest(unittest.TestCase):
@@ -61,9 +67,33 @@ class ServerTest(unittest.TestCase):
 
   def test_excluded_modules_import(self):
     """Check for imports of modules excluded by .gcloudignore."""
+    # Parse .gcloudignore to figure out module names.
+    # It does not detect if some pattern actually matches a python module,
+    # it just treats every pattern as a possible module and assumes that,
+    # if they aren't, then the server will never import them as well.
+    excluded_modules = []
+    file_path = os.path.abspath(
+        os.path.join('src', 'appengine', '.gcloudignore'))
+    with open(file_path) as f:
+      for line in f:
+        line = line.strip()
+        if line.startswith('#') or not line:
+          continue
+
+        if line.startswith('./'):
+          line = line[2:]
+        if '.' in line:
+          continue
+
+        line = line.strip('/').replace('/', '.')
+        excluded_modules.append(line)
+
+    code = _SUBPROCESS_CODE.format(
+        sys_path=str(sys.path), excluded_modules=str(excluded_modules))
+
     # Uses the same working directory and env vars as the current process.
     result = subprocess.run(
-        [sys.executable, '-c', _SUBPROCESS_CODE],
+        [sys.executable, '-c', code],
         check=False,
         capture_output=True,
         text=True)
@@ -76,12 +106,12 @@ class ServerTest(unittest.TestCase):
           # Module name does not have whitespace, so this is safe.
           modules.append(line.split()[1])
 
-      if len(modules) > 0:
-        mods_str = ', '.join(modules)
+      if modules:
+        mods = ', '.join(modules)
         self.fail(
-            f'Modules {mods_str} are excluded in .gcloudignore, but were imported by server.'
+            f'Modules {mods} are excluded in .gcloudignore, but were imported by server.'
         )
       else:  # Unexpected crash.
         msg = 'Subprocess execution failed: no output marker found.\n'
-        msg += 'STDOUT:\n' + result.stdout + '\nSTDERR:\n' + result.stderr 
+        msg += 'STDOUT:\n' + result.stdout + '\nSTDERR:\n' + result.stderr
         self.fail(msg)
