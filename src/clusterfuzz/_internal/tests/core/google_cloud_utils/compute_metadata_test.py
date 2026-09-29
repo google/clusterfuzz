@@ -29,23 +29,28 @@ class ComputeMetadataTest(unittest.TestCase):
     """Verifies that _metadata_host_port() defaults to port 80 for bare hostnames and parses explicit host:port values."""
     with mock.patch.object(compute_metadata, '_METADATA_SERVER',
                            'metadata.google.internal'):
-      self.assertEqual(('metadata.google.internal', 80),
-                       compute_metadata._metadata_host_port())  # pylint: disable=protected-access
+      host, port = compute_metadata._metadata_host_port()  # pylint: disable=protected-access
+      self.assertEqual('metadata.google.internal', host)
+      self.assertEqual(80, port)
 
     with mock.patch.object(compute_metadata, '_METADATA_SERVER',
                            '127.0.0.1:41234'):
-      self.assertEqual(('127.0.0.1', 41234),
-                       compute_metadata._metadata_host_port())  # pylint: disable=protected-access
+      host, port = compute_metadata._metadata_host_port()  # pylint: disable=protected-access
+      self.assertEqual('127.0.0.1', host)
+      self.assertEqual(41234, port)
 
   def test_host_port_split_ipv6(self):
     """Verifies that _metadata_host_port() strips brackets from IPv6 hosts and parses an optional port."""
     with mock.patch.object(compute_metadata, '_METADATA_SERVER',
                            '[fd20:ce::254]'):
-      self.assertEqual(('fd20:ce::254', 80),
-                       compute_metadata._metadata_host_port())  # pylint: disable=protected-access
+      host, port = compute_metadata._metadata_host_port()  # pylint: disable=protected-access
+      self.assertEqual('fd20:ce::254', host)
+      self.assertEqual(80, port)
 
     with mock.patch.object(compute_metadata, '_METADATA_SERVER', '[::1]:41234'):
-      self.assertEqual(('::1', 41234), compute_metadata._metadata_host_port())  # pylint: disable=protected-access
+      host, port = compute_metadata._metadata_host_port()  # pylint: disable=protected-access
+      self.assertEqual('::1', host)
+      self.assertEqual(41234, port)
 
   def test_is_gce_on_non_default_port(self):
     """Verifies that compute_metadata.is_gce() connects to the port in _METADATA_SERVER rather than hardcoding port 80."""
