@@ -62,7 +62,8 @@ class RemoteTaskGate(remote_task_types.RemoteTaskInterface):
     return feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled
 
   def _is_swarming_task(self, job_type):
-    return swarming.is_swarming_task(job_type, ignore_feature_flag=True)
+    """Returns True if a job of this type should be scheduled on swarming."""
+    return swarming.is_swarming_job(job_type)
 
   def _handle_swarming_job(self, module, job_type, input_download_url):
     return self._service_map['swarming'].create_utask_main_job(

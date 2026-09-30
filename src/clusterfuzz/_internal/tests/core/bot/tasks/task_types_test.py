@@ -110,7 +110,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
         'clusterfuzz._internal.batch.service.is_remote_task',
         return_value=False)
     mock_is_swarming = mock.patch(
-        'clusterfuzz._internal.swarming.is_swarming_task', return_value=False)
+        'clusterfuzz._internal.swarming.is_swarming_job', return_value=False)
     environment.set_value('TWORKER', True)
 
     with mock_remotely_executing, mock_is_remote_task, mock_is_swarming:
@@ -125,7 +125,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
     Context:
     - Bot environment: Orchestration tworker VM running preprocess.
     - Job config: Swarming jobs such as Android Aluminium (AL) emulators
-      configured via IS_SWARMING_JOB or SWARMING_DIMENSIONS (is_swarming_task=True).
+      configured via IS_SWARMING_JOB or SWARMING_DIMENSIONS (is_swarming_job=True).
     - Expected behavior: The tworker identifies this as an untrusted remote
       uworker execution, returning True so signed GCS URLs are generated during
       preprocess for data bundles and corpus assets.
@@ -137,7 +137,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
         'clusterfuzz._internal.batch.service.is_remote_task',
         return_value=False)
     mock_is_swarming = mock.patch(
-        'clusterfuzz._internal.swarming.is_swarming_task', return_value=True)
+        'clusterfuzz._internal.swarming.is_swarming_job', return_value=True)
     environment.set_value('TWORKER', True)
 
     with mock_remotely_executing, mock_is_remote_task, mock_is_swarming:
@@ -399,13 +399,13 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
         'clusterfuzz._internal.batch.service.is_remote_task',
         'clusterfuzz._internal.bot.tasks.task_types.BaseUTask.execute_locally',
         'clusterfuzz._internal.bot.tasks.task_types.UTask.preprocess',
-        'clusterfuzz._internal.swarming.is_swarming_task',
+        'clusterfuzz._internal.swarming.is_swarming_job',
     ])
 
     # Defaults: nothing is remote and the utask_main queue is empty.
     self.mock.is_remotely_executing_utasks.return_value = False
     self.mock.is_remote_task.return_value = False
-    self.mock.is_swarming_task.return_value = False
+    self.mock.is_swarming_job.return_value = False
     self.mock.get_utask_main_queue_size.return_value = 0
     self.mock.get_max_target_size.return_value = 1000
     self.mock.preprocess.return_value = 'https://download-url'
@@ -449,7 +449,7 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
     swarming job."""
     self.mock.is_remotely_executing_utasks.return_value = True
     self.mock.is_remote_task.return_value = False
-    self.mock.is_swarming_task.return_value = False
+    self.mock.is_swarming_job.return_value = False
 
     for command in self.UTASK_COMMANDS:
       with self.subTest(command=command):
@@ -460,7 +460,7 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
     """Tests that a utask on a batch job is queued on the utask_main queue."""
     self.mock.is_remotely_executing_utasks.return_value = True
     self.mock.is_remote_task.return_value = True
-    self.mock.is_swarming_task.return_value = False
+    self.mock.is_swarming_job.return_value = False
 
     for command in self.UTASK_COMMANDS:
       with self.subTest(command=command):
@@ -475,7 +475,7 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
     utask_main queue, including the ones that run locally elsewhere."""
     os.environ['TWORKER'] = 'True'
     self.mock.is_remote_task.return_value = True
-    self.mock.is_swarming_task.return_value = False
+    self.mock.is_swarming_job.return_value = False
 
     for command in self.UTASK_COMMANDS:
       with self.subTest(command=command):
@@ -488,7 +488,7 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
     elsewhere."""
     os.environ['TWORKER'] = 'True'
     self.mock.is_remote_task.return_value = False
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
 
     for command in self.UTASK_COMMANDS:
       with self.subTest(command=command):
@@ -496,12 +496,30 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
         self._assert_queued_on(
             pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
 
+  def test_routes_swarming_jobs_to_the_swarming_queue_when_disabled(self):
+    """Tests that utasks on a swarming job are queued on the swarming
+    utask_main queue even if swarming is disabled, so that they are kept there
+    until swarming is enabled instead of being executed somewhere else."""
+    os.environ['TWORKER'] = 'True'
+    self.mock.is_remote_task.return_value = False
+    self.mock.is_swarming_job.return_value = True
+
+    with mock.patch(
+        'clusterfuzz._internal.base.feature_flags.FeatureFlags.enabled',
+        new_callable=mock.PropertyMock,
+        return_value=False):
+      for command in self.UTASK_COMMANDS:
+        with self.subTest(command=command):
+          self._execute(command)
+          self._assert_queued_on(
+              pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+
   def test_trusted_tasks_are_not_queued_for_remote_execution(self):
     """Tests that trusted tasks run in this process and are never queued, even
     on a job that is remote for utasks."""
     self.mock.is_remotely_executing_utasks.return_value = True
     self.mock.is_remote_task.return_value = True
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
 
     for command in self.TRUSTED_COMMANDS:
       with self.subTest(command=command):
