@@ -84,14 +84,10 @@ _DEFAULT_ADDRESS = '127.0.0.1:9010'
 _SECONDARY_ADDRESS = '127.0.0.1:9012'
 
 
-def emulator_dir() -> str:
-  """Returns the directory holding the emulator config fixtures."""
-  return os.path.abspath(os.path.join('local', 'emulators'))
-
 
 def config_path(name: str) -> str:
   """Returns the path to a named config fixture, e.g. 'tworker'."""
-  return os.path.join(emulator_dir(), 'configs', name + '.json')
+  return os.path.abspath(os.path.join('..', 'seed', 'gce_metadata_server', f'{name}.json'))
 
 
 def load_config(name: str) -> dict:
