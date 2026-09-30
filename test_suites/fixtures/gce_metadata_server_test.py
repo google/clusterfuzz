@@ -202,19 +202,20 @@ class TestGceMetadataEmulator:
 
   def test_set_adds_and_overrides_metadata_across_scopes(self):
     """Verifies runtime metadata overrides in project and instance scopes."""
-    self.tworker.set_project_attribute('custom-attr', 'from-project')
+    self.tworker.set_project_attribute(key='custom-attr', value='from-project')
     assert compute_metadata.get('project/attributes/custom-attr') == (
         'from-project')
     assert compute_metadata.get('instance/attributes/custom-attr') == (
         'from-project')
 
-    self.tworker.set_instance_attribute('custom-attr', 'from-instance')
+    self.tworker.set_instance_attribute(
+        key='custom-attr', value='from-instance')
     assert compute_metadata.get('instance/attributes/custom-attr') == (
         'from-instance')
     assert compute_metadata.get('project/attributes/custom-attr') == (
         'from-project')
 
-    self.tworker.set_instance_metadata('preempted', 'TRUE')
+    self.tworker.set_instance_metadata(key='preempted', value='TRUE')
     assert compute_metadata.get('instance/preempted') == 'TRUE'
 
 
