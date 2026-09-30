@@ -114,7 +114,7 @@ def _auth_env(hostport: str) -> dict[str, str]:
 
 
 def _flatten_entries(data: dict, prefix: str = '') -> dict[str, str]:
-  """Flattens nested metadata dicts (excluding 'attributes') into relative paths."""
+  """Flattens nested metadata dicts (excluding 'attributes') into paths."""
   items = {}
   for key, value in data.items():
     if key == 'attributes' or value is None:
@@ -147,7 +147,8 @@ def _forbidden_mapping() -> Mapping:
 
 
 def _root_mapping() -> Mapping:
-  """Returns a Mapping for reachability pings at '/' and '/computeMetadata/v1/'."""
+  """Returns a Mapping for reachability pings at '/' and
+  '/computeMetadata/v1/'."""
   return Mapping(
       persistent=True,
       request=MappingRequest(
@@ -296,7 +297,8 @@ class MetadataEmulatorClient:
                             key: str,
                             value: str,
                             persistent: bool = False) -> None:
-    """Sets 'project/attributes/<key>' and falls back for 'instance/attributes/<key>'."""
+    """Sets 'project/attributes/<key>' and falls back for instance attributes.
+    """
     self._use_admin()
     Mappings.create_mapping(
         _text_value_mapping(
@@ -413,7 +415,7 @@ def bootstrap() -> None:
 
 @contextlib.contextmanager
 def _metadata_emulator(name: str, hostport: str):
-  """Yields a running WireMock emulator for the named fixture, and stops it after.
+  """Yields a running WireMock emulator for the named fixture, and stops it.
 
   hostport is _DEFAULT_ADDRESS or _SECONDARY_ADDRESS. Callers pick it through
   the public context managers below rather than naming an address themselves.
@@ -443,8 +445,8 @@ def _metadata_emulator(name: str, hostport: str):
 # TODO(b/555371204): Make this into real pytest fixtures
 @contextlib.contextmanager
 def trusted_as_default():
-  """Yields a tworker emulator on the default address, making it the in-process identity.
-  
+  """Yields a tworker emulator, making it the in-process identity.
+
   Anything that already cached a credential keeps it, so tests wanting a fresh
   one have to say so: credentials.get_default(__memoize_force__=True).
   """
@@ -454,7 +456,7 @@ def trusted_as_default():
 
 @contextlib.contextmanager
 def untrusted_as_default():
-  """Yields a uworker emulator on the default address, making it the in-process identity.
+  """Yields a uworker emulator, making it the in-process identity.
 
   Anything that already cached a credential keeps it, so tests wanting a fresh
   one have to say so: credentials.get_default(__memoize_force__=True).
