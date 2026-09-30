@@ -40,9 +40,12 @@ class TestGceMetadataEmulator:
   @pytest.fixture(scope='class', autouse=True)
   @classmethod
   def _emulators(cls):
+    """Starts the tworker/uworker pair and loads the configs they serve."""
     gce_metadata_emulator.bootstrap()
     importlib.reload(compute_engine._metadata)  # pylint: disable=protected-access
     importlib.reload(compute_metadata)
+    cls.tworker_cfg = gce_metadata_emulator.load_config('tworker')
+    cls.uworker_cfg = gce_metadata_emulator.load_config('uworker')
     with gce_metadata_emulator.trusted_untrusted_pair() as (tworker, uworker):
       cls.tworker = tworker
       cls.uworker = uworker
@@ -56,16 +59,19 @@ class TestGceMetadataEmulator:
     creds, project_id = google.auth.default()
 
     assert isinstance(creds, compute_engine.Credentials)
-    assert project_id == 'test-clusterfuzz'
+    assert project_id == self.tworker_cfg['metadata']['project']['project-id']
 
   def test_refreshing_credentials_yields_the_configured_token(self):
     """Verifies that refreshing Compute Engine credentials returns the token and email from tworker.json."""
     creds = compute_engine.Credentials()
+    assert creds.token is None
+    assert creds.service_account_email == 'default'
+
     creds.refresh(google_auth_requests.Request())
 
-    assert creds.token == 'fake-tworker-access-token'
+    assert creds.token == self.tworker_cfg['credentials']['access_token']
     assert creds.service_account_email == (
-        'test-clusterfuzz-service-account-email')
+        self.tworker_cfg['credentials']['email'])
 
   def test_clusterfuzz_credentials_wrapper_resolves_from_the_emulator(self):
     """Verifies that clusterfuzz's own credentials.get_default() wrapper, not just raw google.auth, lands on the emulator's service account."""
@@ -76,7 +82,7 @@ class TestGceMetadataEmulator:
 
     assert isinstance(creds, compute_engine.Credentials)
     assert creds.service_account_email == (
-        'test-clusterfuzz-service-account-email')
+        self.tworker_cfg['credentials']['email'])
 
   def test_trusted_and_untrusted_emulators_serve_distinct_identities(self):
     """Verifies that tworker and uworker run on separate ports and serve their respective service account emails and tokens."""
@@ -85,21 +91,23 @@ class TestGceMetadataEmulator:
       assert re.match(r'^127\.0\.0\.1:\d+$', emulator.hostport)
 
     assert self.tworker.get('instance/service-accounts/default/email') == (
-        'test-clusterfuzz-service-account-email')
+        self.tworker_cfg['credentials']['email'])
     assert self.uworker.get('instance/service-accounts/default/email') == (
-        'test-unpriv-clusterfuzz-service-account-email')
+        self.uworker_cfg['credentials']['email'])
 
     tworker_token = json.loads(
         self.tworker.get('instance/service-accounts/default/token'))
     uworker_token = json.loads(
         self.uworker.get('instance/service-accounts/default/token'))
-    assert tworker_token['access_token'] == 'fake-tworker-access-token'
-    assert uworker_token['access_token'] == 'fake-uworker-access-token'
+    assert tworker_token['access_token'] == (
+        self.tworker_cfg['credentials']['access_token'])
+    assert uworker_token['access_token'] == (
+        self.uworker_cfg['credentials']['access_token'])
 
   def test_get_reads_from_the_trusted_emulator(self):
     """Verifies that compute_metadata.get() is answered by the tworker emulator, the in-process identity, and returns tworker.json's values."""
     assert compute_metadata.get('instance/zone') == (
-        'projects/1234567890/zones/us-central1-f')
+        self.tworker_cfg['metadata']['instance']['zone'])
 
     assert compute_metadata.get('instance/id') == self.tworker.get(
         'instance/id')
@@ -121,18 +129,23 @@ class TestGceMetadataEmulator:
   def test_instance_attributes_fall_back_to_project_attributes(self):
     """Verifies that querying instance/attributes/<key> falls back to project/attributes/<key> when not set on the instance."""
     assert compute_metadata.get('instance/attributes/deployment-bucket') == (
-        'test-deployment-bucket')
+        self.tworker_cfg['metadata']['project']['attributes'][
+            'deployment-bucket'])
     assert compute_metadata.get('project/attributes/deployment-bucket') == (
-        'test-deployment-bucket')
+        self.tworker_cfg['metadata']['project']['attributes'][
+            'deployment-bucket'])
 
   def test_get_reads_project_and_instance_attributes(self):
     """Verifies that compute_metadata.get() reads both project/attributes/<key> and instance/attributes/<key>."""
     assert compute_metadata.get('project/attributes/deployment-bucket') == (
-        'test-deployment-bucket')
+        self.tworker_cfg['metadata']['project']['attributes'][
+            'deployment-bucket'])
     assert compute_metadata.get('project/attributes/deployment-zip') == (
-        'linux-3.zip')
+        self.tworker_cfg['metadata']['project']['attributes']['deployment-zip'])
     assert compute_metadata.get(
-        'instance/attributes/override_tworker_queue') == 'jobs-linux-test'
+        'instance/attributes/override_tworker_queue') == (
+            self.tworker_cfg['metadata']['instance']['attributes'][
+                'override_tworker_queue'])
 
   def test_metadata_flavor_header_is_required(self):
     """Verifies that the emulator rejects requests missing the 'Metadata-Flavor: Google' header with HTTP 403 Forbidden."""
@@ -162,6 +175,7 @@ class TestGceMetadataEmulatorUntrustedDefault:
     gce_metadata_emulator.bootstrap()
     importlib.reload(compute_engine._metadata)  # pylint: disable=protected-access
     importlib.reload(compute_metadata)
+    cls.uworker_cfg = gce_metadata_emulator.load_config('uworker')
     with gce_metadata_emulator.untrusted_as_default() as uworker:
       cls.uworker = uworker
       yield
@@ -174,10 +188,10 @@ class TestGceMetadataEmulatorUntrustedDefault:
     creds.refresh(google_auth_requests.Request())
 
     assert isinstance(creds, compute_engine.Credentials)
-    assert project_id == 'test-clusterfuzz'
+    assert project_id == self.uworker_cfg['metadata']['project']['project-id']
     assert creds.service_account_email == (
-        'test-unpriv-clusterfuzz-service-account-email')
-    assert creds.token == 'fake-uworker-access-token'
+        self.uworker_cfg['credentials']['email'])
+    assert creds.token == self.uworker_cfg['credentials']['access_token']
 
   def test_clusterfuzz_credentials_wrapper_resolves_to_the_untrusted_identity(
       self):
@@ -189,12 +203,13 @@ class TestGceMetadataEmulatorUntrustedDefault:
     creds.refresh(google_auth_requests.Request())
 
     assert creds.service_account_email == (
-        'test-unpriv-clusterfuzz-service-account-email')
+        self.uworker_cfg['credentials']['email'])
 
   def test_get_reads_from_the_untrusted_emulator(self):
     """Verifies that compute_metadata.get() is answered by uworker, whose instance/id differs from tworker's."""
-    assert compute_metadata.get('instance/id') == '2222222222222222222'
+    assert compute_metadata.get('instance/id') == (
+        self.uworker_cfg['metadata']['instance']['id'])
     assert compute_metadata.get('instance/id') == self.uworker.get(
         'instance/id')
     assert compute_metadata.get('instance/hostname') == (
-        'uworker-1.c.test-clusterfuzz.internal')
+        self.uworker_cfg['metadata']['instance']['hostname'])
