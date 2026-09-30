@@ -14,7 +14,7 @@
 """A fake GCE metadata server for integration tests.
 
 Spins up a WireMock container serving fake service account tokens and project
-metadata from JSON configs (in local/emulators/configs/).
+metadata from JSON configs (in test_suites/seed/gce_metadata_server/).
 
 Tests can resolve credentials via google.auth, oauth2client, and
 compute_metadata without a real GCE VM or cloud credentials.
@@ -24,30 +24,30 @@ The test runner must call bootstrap() before importing Google auth or
 application modules, so that the auth libraries pickup the fake server host
 address instead of the real one.
 
-  from clusterfuzz._internal.tests.test_libs import gce_metadata_emulator
-    gce_metadata_emulator.bootstrap()
+  from test_suites.fixtures import gce_metadata_server
+    gce_metadata_server.bootstrap()
 
 Usage:
 Wrap test code in a context manager to choose which credentials and metadata
 are returned:
 
-  with gce_metadata_emulator.trusted_as_default() as tworker:
+  with gce_metadata_server.trusted_as_default() as tworker:
     ...
 
-  with gce_metadata_emulator.untrusted_as_default() as uworker:
+  with gce_metadata_server.untrusted_as_default() as uworker:
     ...
 
 To test interactions between trusted and untrusted environments, use
 trusted_untrusted_pair(). In-process code uses tworker, while subprocesses
 define the emulator instance by exporting the environment:
 
-  with gce_metadata_emulator.trusted_untrusted_pair() as (tworker, uworker):
+  with gce_metadata_server.trusted_untrusted_pair() as (tworker, uworker):
     subprocess.run(argv, env={uworker.env,...})
 
 At runtime, use the client to update the values served by the metadata
 server.
 
-    with gce_metadata_emulator.trusted_as_default() as client:
+    with gce_metadata_server.trusted_as_default() as client:
       client.set_instance_attribute('key', 'value')
       client.set_service_account('account@domain.com', 'token')
 """
@@ -84,10 +84,11 @@ _DEFAULT_ADDRESS = '127.0.0.1:9010'
 _SECONDARY_ADDRESS = '127.0.0.1:9012'
 
 
-
 def config_path(name: str) -> str:
   """Returns the path to a named config fixture, e.g. 'tworker'."""
-  return os.path.abspath(os.path.join('..', 'seed', 'gce_metadata_server', f'{name}.json'))
+  test_suites_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+  return os.path.join(test_suites_dir, 'seed', 'gce_metadata_server',
+                      f'{name}.json')
 
 
 def load_config(name: str) -> dict:
@@ -423,8 +424,8 @@ def _metadata_emulator(name: str, hostport: str):
   # did not publish it first nothing already imported can reach the emulator.
   if os.environ.get('GCE_METADATA_HOST') != _DEFAULT_ADDRESS:
     raise RuntimeError(
-        'gce_metadata_emulator.bootstrap() has to run before the Google auth '
-        'libraries are imported. See the gce_metadata_emulator docstring.')
+        'gce_metadata_server.bootstrap() has to run before the Google auth '
+        'libraries are imported. See the gce_metadata_server docstring.')
 
   _, _, port = hostport.partition(':')
 
