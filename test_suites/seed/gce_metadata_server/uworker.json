@@ -24,7 +24,7 @@
       "preempted": "FALSE",
       "scheduling": {
         "preemptible": "FALSE",
-        "provisioning-model": "SPOT"
+        "provisioning-model": "STANDARD"
       },
       "attributes": {}
     }
