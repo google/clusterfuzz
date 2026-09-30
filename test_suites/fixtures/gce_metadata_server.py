@@ -246,9 +246,21 @@ class MetadataEmulatorClient:
     """
     return _auth_env(self.hostport)
 
-  def _use_admin(self) -> None:
-    """Points the wiremock SDK singleton at this emulator's admin endpoint."""
+  def _create_mapping(self, mapping: Mapping) -> None:
     Config.base_url = self.admin_url
+    Mappings.create_mapping(mapping)
+
+  def _all_mappings(self) -> list[Mapping]:
+    Config.base_url = self.admin_url
+    return Mappings.retrieve_all_mappings().mappings
+
+  def _delete_mapping(self, mapping_id: str) -> None:
+    Config.base_url = self.admin_url
+    Mappings.delete_mapping(mapping_id)
+
+  def _reset_mappings(self) -> None:
+    Config.base_url = self.admin_url
+    Mappings.reset_mappings()
 
   def close(self) -> None:
     """Releases the connections this client holds open to the emulator."""
@@ -256,9 +268,8 @@ class MetadataEmulatorClient:
 
   def overwrite_config(self, cfg: dict) -> None:
     """Replaces the emulator's baseline metadata with a fixture config."""
-    self._use_admin()
-    Mappings.create_mapping(_forbidden_mapping())
-    Mappings.create_mapping(_root_mapping())
+    self._create_mapping(_forbidden_mapping())
+    self._create_mapping(_root_mapping())
 
     metadata = cfg.get('metadata', {})
     project = metadata.get('project', {})
@@ -289,8 +300,7 @@ class MetadataEmulatorClient:
   def set_project_metadata(self, key: str, value: str,
                            persistent: bool = False) -> None:
     """Sets a project metadata value under 'project/<key>'."""
-    self._use_admin()
-    Mappings.create_mapping(
+    self._create_mapping(
         _text_value_mapping(f'project/{key}', value, persistent=persistent))
 
   def set_project_attribute(self,
@@ -299,13 +309,12 @@ class MetadataEmulatorClient:
                             persistent: bool = False) -> None:
     """Sets 'project/attributes/<key>' and falls back for instance attributes.
     """
-    self._use_admin()
-    Mappings.create_mapping(
+    self._create_mapping(
         _text_value_mapping(
             f'project/attributes/{key}', value, persistent=persistent))
 
     if key not in self._baseline_instance_attributes:
-      Mappings.create_mapping(
+      self._create_mapping(
           _text_value_mapping(
               f'instance/attributes/{key}', value, persistent=persistent))
 
@@ -314,8 +323,7 @@ class MetadataEmulatorClient:
                             value: str,
                             persistent: bool = False) -> None:
     """Sets an instance metadata value under 'instance/<key>'."""
-    self._use_admin()
-    Mappings.create_mapping(
+    self._create_mapping(
         _text_value_mapping(f'instance/{key}', value, persistent=persistent))
 
   def set_instance_attribute(self,
@@ -323,10 +331,9 @@ class MetadataEmulatorClient:
                              value: str,
                              persistent: bool = False) -> None:
     """Sets 'instance/attributes/<key>', shadowing any project attribute."""
-    self._use_admin()
     if persistent:
       self._baseline_instance_attributes.add(key)
-    Mappings.create_mapping(
+    self._create_mapping(
         _text_value_mapping(
             f'instance/attributes/{key}', value, persistent=persistent))
 
@@ -337,9 +344,8 @@ class MetadataEmulatorClient:
                           expires_in_seconds: int = _DEFAULT_EXPIRES_IN_SECONDS,
                           persistent: bool = False) -> None:
     """Sets the service account identity and token served by the emulator."""
-    self._use_admin()
     scopes = list(scopes or [])
-    Mappings.create_mapping(
+    self._create_mapping(
         _text_value_mapping(
             'instance/service-accounts/',
             f'{email}/\ndefault/\n',
@@ -347,7 +353,7 @@ class MetadataEmulatorClient:
 
     for account in dict.fromkeys(['default', email]):
       base_path = f'instance/service-accounts/{account}'
-      Mappings.create_mapping(
+      self._create_mapping(
           _text_value_mapping(
               f'{base_path}/',
               'aliases\nemail\nidentity\nscopes\ntoken\n',
@@ -355,7 +361,7 @@ class MetadataEmulatorClient:
               query_parameters={'recursive': {
                   'absent': True
               }}))
-      Mappings.create_mapping(
+      self._create_mapping(
           _json_value_mapping(
               f'{base_path}/', {
                   'aliases': ['default'],
@@ -366,14 +372,14 @@ class MetadataEmulatorClient:
               query_parameters={'recursive': {
                   'matches': '.*'
               }}))
-      Mappings.create_mapping(
+      self._create_mapping(
           _text_value_mapping(f'{base_path}/email', email, persistent))
-      Mappings.create_mapping(
+      self._create_mapping(
           _text_value_mapping(f'{base_path}/aliases', 'default', persistent))
-      Mappings.create_mapping(
+      self._create_mapping(
           _text_value_mapping(f'{base_path}/scopes', '\n'.join(scopes) + '\n',
                               persistent))
-      Mappings.create_mapping(
+      self._create_mapping(
           _json_value_mapping(
               f'{base_path}/token', {
                   'access_token': access_token,
