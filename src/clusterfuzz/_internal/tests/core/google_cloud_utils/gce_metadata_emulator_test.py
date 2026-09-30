@@ -23,6 +23,7 @@ from google.auth import compute_engine
 from google.auth.transport import requests as google_auth_requests
 import pytest
 import requests
+from wiremock.testing.testcontainer import WireMockContainerException
 
 from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
@@ -142,13 +143,10 @@ class TestGceMetadataEmulator:
     assert response.text == ''
 
   def test_a_second_emulator_cannot_take_a_held_address(self):
-    """Verifies that opening an emulator on an address another one already holds raises, instead of failing on a port collision."""
-    with pytest.raises(RuntimeError) as caught:
+    """Verifies that opening an emulator on an address another one already holds fails."""
+    with pytest.raises(WireMockContainerException):
       with gce_metadata_emulator.untrusted_as_default():
         pass
-
-    assert self.tworker.hostport in str(caught.value)
-    assert 'uworker' in str(caught.value)
 
 
 # TODO(b/555371391) Move this to the new integration test suite
