@@ -172,7 +172,6 @@ class TestGceMetadataEmulator:
         pass
 
 
-
 class TestGceMetadataEmulatorUntrustedDefault:
   """Integration tests for a test class that runs as the untrusted worker."""
 
