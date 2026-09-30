@@ -13,34 +13,43 @@
 # limitations under the License.
 """A fake GCE metadata server for integration tests.
 
-Runs a WireMock testcontainer serving a service account token and metadata
-values from a JSON fixture, so tests can resolve credentials and read metadata
-without a real GCE host or login.
+Spins up a WireMock container serving fake service account tokens and project
+metadata from JSON configs (in local/emulators/configs/).
 
-Start order matters: google-auth and our vendored oauth2client read the
-GCE_METADATA_* variables once, at import time, and bake the resulting URL in.
-Importing this module claims two addresses, and the test runner publishes the
-first of them before importing anything else:
+Tests can resolve credentials via google.auth, oauth2client, and
+compute_metadata without a real GCE VM or cloud credentials.
 
-    # src/local/butler/py_unittest.py
+Setup:
+The test runner must call bootstrap() before importing Google auth or
+application modules, so that the auth libraries pickup the fake server host
+address instead of the real one.
+
+  from clusterfuzz._internal.tests.test_libs import gce_metadata_emulator
     gce_metadata_emulator.bootstrap()
 
-That first one is the default address, the only one in-process code can reach,
-so a test picks its in-process identity by picking which fixture answers there:
+Usage:
+Wrap test code in a context manager to choose which credentials and metadata
+are returned:
 
-    with gce_metadata_emulator.trusted_as_default() as tworker:
-      ...
-    with gce_metadata_emulator.untrusted_as_default() as uworker:
-      ...
-    with gce_metadata_emulator.trusted_untrusted_pair() as (tworker, uworker):
-      ...  # uworker sits on the secondary address
+  with gce_metadata_emulator.trusted_as_default() as tworker:
+    ...
 
-Nothing is patched to make that work: the addresses never move, only what
-listens on them does. An emulator on the secondary address is reachable through
-the client its context manager yields, or by handing its env to a child
-process:
+  with gce_metadata_emulator.untrusted_as_default() as uworker:
+    ...
 
-    subprocess.run(argv, env={**os.environ, **uworker.env})
+To test interactions between trusted and untrusted environments, use
+trusted_untrusted_pair(). In-process code uses tworker, while subprocesses
+define the emulator instance by exporting the environment:
+
+  with gce_metadata_emulator.trusted_untrusted_pair() as (tworker, uworker):
+    subprocess.run(argv, env={uworker.env,...})
+
+At runtime, use the client to update the values served by the metadata
+server.
+
+    with gce_metadata_emulator.trusted_as_default() as client:
+      client.set_instance_attribute('key', 'value')
+      client.set_service_account('account@domain.com', 'token')
 """
 
 import contextlib
@@ -102,14 +111,6 @@ def load_config(name: str) -> dict:
 
   with open(path, encoding='utf-8') as handle:
     return json.load(handle)
-
-
-def _address_in_use(hostport: str) -> bool:
-  """Returns whether something is already listening on hostport."""
-  host, _, port = hostport.partition(':')
-  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    sock.settimeout(_REQUEST_TIMEOUT)
-    return sock.connect_ex((host, int(port))) == 0
 
 
 def _auth_env(hostport: str) -> dict[str, str]:
@@ -419,6 +420,8 @@ def bootstrap() -> None:
   # their own identity instead of the emulator's.
   os.environ.pop('GOOGLE_APPLICATION_CREDENTIALS', None)
   os.environ['CLOUDSDK_CONFIG'] = tempfile.mkdtemp(prefix='metadata-cloudsdk-')
+  print(
+      f'Overriding GCE_METADATA_HOST to: {os.environ.get("GCE_METADATA_HOST")}')
 
 
 @contextlib.contextmanager
@@ -437,12 +440,6 @@ def _metadata_emulator(name: str, hostport: str):
         'gce_metadata_emulator.bootstrap() has to run before the Google auth '
         'libraries are imported. See the gce_metadata_emulator docstring.')
 
-  if _address_in_use(hostport):
-    raise RuntimeError(
-        f'{hostport} is taken, so the {name} emulator cannot bind it. An '
-        'address serves one identity at a time; trusted_untrusted_pair() runs '
-        'two on separate addresses.')
-
   _, _, port = hostport.partition(':')
 
   with wiremock_container(
@@ -459,7 +456,11 @@ def _metadata_emulator(name: str, hostport: str):
 # TODO(b/555371204): Make this into real pytest fixtures
 @contextlib.contextmanager
 def trusted_as_default():
-  """Yields a tworker emulator on the default address, making it the in-process identity."""
+  """Yields a tworker emulator on the default address, making it the in-process identity.
+  
+  Anything that already cached a credential keeps it, so tests wanting a fresh
+  one have to say so: credentials.get_default(__memoize_force__=True).
+  """
   with _metadata_emulator('tworker', _DEFAULT_ADDRESS) as emulator:
     yield emulator
 
@@ -467,9 +468,6 @@ def trusted_as_default():
 @contextlib.contextmanager
 def untrusted_as_default():
   """Yields a uworker emulator on the default address, making it the in-process identity.
-
-  Use this for a test class that should run untrusted throughout:
-  google.auth.default() and compute_metadata then resolve to uworker.
 
   Anything that already cached a credential keeps it, so tests wanting a fresh
   one have to say so: credentials.get_default(__memoize_force__=True).
@@ -480,10 +478,11 @@ def untrusted_as_default():
 
 @contextlib.contextmanager
 def trusted_untrusted_pair():
-  """Yields (tworker on the default address, uworker on the secondary one).
-
+  """Yields a pair of emulators: tworker on the default address, uworker on the
+  secondary address.
+  
   tworker is the in-process identity here. uworker is reachable through the
-  client returned, or by handing its env to a child process.
+  client returned, or by handing its env to a subprocess.
   """
   with trusted_as_default() as tworker, \
       _metadata_emulator('uworker', _SECONDARY_ADDRESS) as uworker:
