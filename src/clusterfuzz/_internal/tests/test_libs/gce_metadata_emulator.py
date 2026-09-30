@@ -55,7 +55,6 @@ server.
 import contextlib
 import json
 import os
-import socket
 import tempfile
 
 import requests
@@ -66,14 +65,6 @@ from wiremock.client import MappingResponse
 from wiremock.client import Mappings
 from wiremock.constants import Config
 from wiremock.testing.testcontainer import wiremock_container
-
-
-def _find_free_port() -> int:
-  """Returns a port that is free right now."""
-  with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    sock.bind(('127.0.0.1', 0))
-    return sock.getsockname()[1]
-
 
 _REQUEST_TIMEOUT = 5
 _DEFAULT_EXPIRES_IN_SECONDS = 3600
@@ -89,8 +80,8 @@ _JSON_HEADERS = {
 }
 _REQUIRED_HEADER_MATCHER = {'Metadata-Flavor': {'equalTo': 'Google'}}
 
-_DEFAULT_ADDRESS = f'127.0.0.1:{_find_free_port()}'
-_SECONDARY_ADDRESS = f'127.0.0.1:{_find_free_port()}'
+_DEFAULT_ADDRESS = '127.0.0.1:9010'
+_SECONDARY_ADDRESS = '127.0.0.1:9012'
 
 
 def emulator_dir() -> str:
@@ -405,9 +396,8 @@ class MetadataEmulatorClient:
 def bootstrap() -> None:
   """Points this process at the address the default emulator will bind.
 
-  No server is started here, and no port is picked here either: importing this
-  module already claimed both addresses. This publishes the first one, and has
-  to run before anything imports the Google auth libraries, which resolve the
+  No server is started here. This publishes the default address, and has to
+  run before anything imports the Google auth libraries, which resolve the
   metadata address once, at import time, and keep it. That is what lets a test
   start and stop emulators later and still have already-imported code reach
   them.
@@ -428,7 +418,7 @@ def bootstrap() -> None:
 def _metadata_emulator(name: str, hostport: str):
   """Yields a running WireMock emulator for the named fixture, and stops it after.
 
-  hostport is one of the addresses reserved at import. Callers pick it through
+  hostport is _DEFAULT_ADDRESS or _SECONDARY_ADDRESS. Callers pick it through
   the public context managers below rather than naming an address themselves.
   """
   cfg = load_config(name)
