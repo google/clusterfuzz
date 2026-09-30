@@ -285,8 +285,8 @@ def execute(args):
 
   # TODO(b/555371391) Move this initialization to the new integration test suite
   if os.getenv('GCE_METADATA_EMULATOR'):
-    from clusterfuzz._internal.tests.test_libs import gce_metadata_emulator
-    gce_metadata_emulator.bootstrap()
+    from test_suites.fixtures import gce_metadata_server
+    gce_metadata_server.bootstrap()
 
   if args.parallel:
     run_tests_parallel(args, test_directory, top_level_dir)

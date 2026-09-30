@@ -27,12 +27,9 @@ from wiremock.testing.testcontainer import WireMockContainerException
 
 from clusterfuzz._internal.google_cloud_utils import compute_metadata
 from clusterfuzz._internal.google_cloud_utils import credentials
-from clusterfuzz._internal.tests.test_libs import gce_metadata_emulator
+from test_suites.fixtures import gce_metadata_server
 
 
-# TODO(b/555371391) Move this to the new integration test suite
-@pytest.mark.skip(
-    reason='Experimental: pending migration to the new integration test suite.')
 class TestGceMetadataEmulator:
   """Integration tests for the fake GCE metadata server."""
 
@@ -41,12 +38,12 @@ class TestGceMetadataEmulator:
   @classmethod
   def _emulators(cls):
     """Starts the tworker/uworker pair and loads the configs they serve."""
-    gce_metadata_emulator.bootstrap()
+    gce_metadata_server.bootstrap()
     importlib.reload(compute_engine._metadata)  # pylint: disable=protected-access
     importlib.reload(compute_metadata)
-    cls.tworker_cfg = gce_metadata_emulator.load_config('tworker')
-    cls.uworker_cfg = gce_metadata_emulator.load_config('uworker')
-    with gce_metadata_emulator.trusted_untrusted_pair() as (tworker, uworker):
+    cls.tworker_cfg = gce_metadata_server.load_config('tworker')
+    cls.uworker_cfg = gce_metadata_server.load_config('uworker')
+    with gce_metadata_server.trusted_untrusted_pair() as (tworker, uworker):
       cls.tworker = tworker
       cls.uworker = uworker
       yield
@@ -158,13 +155,10 @@ class TestGceMetadataEmulator:
   def test_a_second_emulator_cannot_take_a_held_address(self):
     """Verifies that opening an emulator on an address another one already holds fails."""
     with pytest.raises(WireMockContainerException):
-      with gce_metadata_emulator.untrusted_as_default():
+      with gce_metadata_server.untrusted_as_default():
         pass
 
 
-# TODO(b/555371391) Move this to the new integration test suite
-@pytest.mark.skip(
-    reason='Experimental: pending migration to the new integration test suite.')
 class TestGceMetadataEmulatorUntrustedDefault:
   """Integration tests for a test class that runs as the untrusted worker."""
 
@@ -172,11 +166,11 @@ class TestGceMetadataEmulatorUntrustedDefault:
   @pytest.fixture(scope='class', autouse=True)
   @classmethod
   def _emulator(cls):
-    gce_metadata_emulator.bootstrap()
+    gce_metadata_server.bootstrap()
     importlib.reload(compute_engine._metadata)  # pylint: disable=protected-access
     importlib.reload(compute_metadata)
-    cls.uworker_cfg = gce_metadata_emulator.load_config('uworker')
-    with gce_metadata_emulator.untrusted_as_default() as uworker:
+    cls.uworker_cfg = gce_metadata_server.load_config('uworker')
+    with gce_metadata_server.untrusted_as_default() as uworker:
       cls.uworker = uworker
       yield
 
