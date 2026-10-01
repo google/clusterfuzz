@@ -14,6 +14,7 @@
 """Download fuzzer config as a JSON file."""
 
 import json
+import os
 import sys
 
 from clusterfuzz._internal.datastore import data_types
@@ -40,7 +41,10 @@ def execute(args):
 
   for fuzzer in fuzzers:
     config = fuzzer.get_config_dict()
-    filename = f'{fuzzer.name}_config.json'
+    output_dir = os.path.join('..', 'clusterfuzz-data', 'fuzzers', fuzzer.name,
+                              'clusterfuzz_config')
+    os.makedirs(output_dir, exist_ok=True)
+    filename = os.path.join(output_dir, f'{fuzzer.name}_config.json')
 
     with open(filename, 'w') as f:
       json.dump(config, f, indent=4)
