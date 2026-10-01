@@ -16,7 +16,7 @@ FROM gcr.io/clusterfuzz-images/base:ubuntu-20-04
 ENV UPDATE_WEB_TESTS True
 
 # Note: snapcraft installation seems to always fail.
-RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections &&     curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.py?format=TEXT' | base64 -d > /tmp/install-build-deps.py &&     sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.py &&     sed -i "s/if requires_pinned_linux_libc():/if False:/" /tmp/install-build-deps.py &&     chmod u+x /tmp/install-build-deps.py &&     /tmp/install-build-deps.py --backwards-compatible --no-prompt --no-chromeos-fonts --syms --lib32
+RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections &&     curl -fsSL 'https://raw.githubusercontent.com/chromium/chromium/main/build/install-build-deps.py' -o /tmp/install-build-deps.py &&     sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.py &&     sed -i "s/if requires_pinned_linux_libc():/if False:/" /tmp/install-build-deps.py &&     chmod u+x /tmp/install-build-deps.py &&     /tmp/install-build-deps.py --backwards-compatible --no-prompt --no-chromeos-fonts --syms --lib32
 
 RUN dpkg --add-architecture i386 &&     apt-get update &&     apt-get install -y         autofs         dbus-x11         blackbox         libdconf-dev         libdconf1         libdconf1:i386         libgbm1:i386         libgles2         nfs-common         nodejs         pulseaudio         xdotool         xvfb
 
