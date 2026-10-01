@@ -56,6 +56,7 @@ def _to_enum(enum_cls, raw_value: int | str):
   try:
     return enum_cls(int(raw_value))
   except (ValueError, TypeError):
+    logs.debug(f'[Android] Could not convert {raw_value} to {enum_cls}')
     return None
 
 
@@ -72,6 +73,8 @@ def _parse_exit_info_from_dumpsys(dumpsys_output: str,
     None otherwise.
   """
   if not dumpsys_output or target_pid is None:
+    logs.debug('[Android] Could not parse exit info from dumpsys - no output ' \
+               'or no pid')
     return None
 
   current_pid = None

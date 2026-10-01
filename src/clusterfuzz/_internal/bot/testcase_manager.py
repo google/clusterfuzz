@@ -341,6 +341,10 @@ def run_testcase(thread_index, file_path, gestures, env_copy):
     command = get_command_line_for_application(
         file_path, user_profile_index=thread_index, needs_http=needs_http)
 
+    logs.debug(
+        f'[TestcaseManager] Running testcase (thread {thread_index}): '
+        f'command={command}, needs_http={needs_http}, gestures={gestures}')
+
     # Run testcase.
     return process_handler.run_process(
         command,
