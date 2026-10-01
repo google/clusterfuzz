@@ -15,6 +15,7 @@
 
 import os
 import re
+import subprocess
 import time
 
 from clusterfuzz._internal.metrics import logs
@@ -81,11 +82,23 @@ def get_package_name(apk_path=None):
   if not apk_path.endswith('.apk'):
     return None
 
-  # Try retrieving package name using aapt.
+  # Try retrieving package name using aapt. |apk_path| comes from an extracted
+  # archive, so it can hold characters a shell would act on; run aapt with an
+  # argument list rather than building a command string for bash to evaluate.
   aapt_binary_path = os.path.join(
       environment.get_platform_resources_directory(), 'aapt')
-  aapt_command = '%s dump badging %s' % (aapt_binary_path, apk_path)
-  output = adb.execute_command(aapt_command, timeout=AAPT_CMD_TIMEOUT)
+  try:
+    result = subprocess.run(
+        [aapt_binary_path, 'dump', 'badging', apk_path],
+        shell=False,
+        capture_output=True,
+        timeout=AAPT_CMD_TIMEOUT,
+        check=False)
+  except (subprocess.TimeoutExpired, OSError):
+    logs.warning('Failed to read the package name from %s.' % apk_path)
+    return None
+
+  output = result.stdout.decode('utf-8', errors='ignore')
   match = re.match('.*package: name=\'([^\']+)\'', output, re.DOTALL)
   if not match:
     return None
