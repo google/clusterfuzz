@@ -24,7 +24,7 @@ ENV WAIT_TIME 7200
 # Add git-core/ppa for latest git version. Otherwise, we fail on gclient sync.
 RUN apt-get update && \
     apt-get install -y software-properties-common && \
-    add-apt-repository -y ppa:git-core/ppa
+    retry add-apt-repository -y ppa:git-core/ppa
 
 RUN apt-get update && \
     apt-get install -y \
@@ -34,7 +34,9 @@ RUN apt-get update && \
 
 # Note: snapcraft installation seems to always fail.
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
-    curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.py?format=TEXT' | base64 -d > /tmp/install-build-deps.py && \
+    { curl -fsSL 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.py?format=TEXT' -o /tmp/install-build-deps.b64 && \
+      base64 -d /tmp/install-build-deps.b64 > /tmp/install-build-deps.py || \
+      curl -fsSL 'https://raw.githubusercontent.com/chromium/chromium/main/build/install-build-deps.py' -o /tmp/install-build-deps.py; } && \
     sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.py && \
     sed -i "s/if requires_pinned_linux_libc():/if False:/" /tmp/install-build-deps.py && \
     chmod u+x /tmp/install-build-deps.py && \

@@ -149,6 +149,8 @@ ENV PYTHONIOENCODING UTF-8
 ENV BASE_OS_VERSION=ubuntu-24-04
 
 
+# Retry helper for flaky network commands in child images, e.g. `retry add-apt-repository ...`.
+COPY retry.sh /usr/local/bin/retry
 COPY Pipfile Pipfile.lock setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh /data/
 RUN cd /data && \
     # Make pip3.11 the default so that pipenv install --system works.
