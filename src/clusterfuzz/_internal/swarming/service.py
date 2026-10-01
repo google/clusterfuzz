@@ -98,9 +98,14 @@ class SwarmingService(remote_task_types.RemoteTaskInterface):
        Returns the tasks that couldn't be created.
     """
     unscheduled_tasks = []
+    if not swarming.is_swarming_enabled():
+      logs.warning('[Swarming] Not enabled. Returning all tasks as'
+                   ' unscheduled.')
+      return remote_tasks
+
     logs.info(f'[Swarming] Pushing {len(remote_tasks)} tasks trough service.')
     for i, task in enumerate(remote_tasks):
-      if not swarming.is_swarming_task(task.job_type):
+      if not swarming.is_swarming_job(task.job_type):
         unscheduled_tasks.append(task)
         continue
 
