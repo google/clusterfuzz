@@ -277,8 +277,6 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
 def get(bid, target, regex, output_directory, output_filename=None):
   """Return artifact for a given build id, target and file regex."""
   if not _call_android_api_enabled():
-    logs.debug(
-        'Android build API is disabled by feature flag call_android_api.')
     return None
 
   client = _get_client()
