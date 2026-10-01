@@ -133,7 +133,10 @@ def main(argv=None):
   unique_crashes = get_unique_crashes(args.unique_crashes)
   paths = generate_testcases(args.output_dir, args.no_of_files, failing_cases,
                              unique_crashes)
-  failing = max(0, min(failing_cases, args.no_of_files))
+  failing = min(failing_cases, args.no_of_files)
+  if failing < 0:
+    raise ValueError(
+        f'Number of failing testcases must be >= 0, got {failing_cases}')
   mode = ', unique crash states' if unique_crashes and failing else ''
   print(f'Generated {len(paths)}/{args.no_of_files} testcases '
         f'({failing} failing, {len(paths) - failing} successfull{mode}).')
