@@ -23,14 +23,14 @@ raise an uncaught exception (non-zero exit code), so ClusterFuzz records a
 crash; the rest exit cleanly. All those crashes share the same crash state, so
 ClusterFuzz groups them into a single testcase.
 
-With `distinct_crashes`, each of those `failing_cases` testcases gets a unique
+With `unique_crashes`, each of those `failing_cases` testcases gets a unique
 crash state instead (top frame `crash_case_<i>`), so ClusterFuzz records
-`failing_cases` distinct crashes. It has no effect without `failing_cases`.
+`failing_cases` unique crashes. It has no effect without `failing_cases`.
 
 Since ClusterFuzz only passes the three contract flags, each option can also be
 set through the environment (e.g. the job environment string):
   --failing_cases=<k>   or  FAILING_CASES = <k>
-  --distinct_crashes    or  DISTINCT_CRASHES = True
+  --unique_crashes      or  UNIQUE_CRASHES = True
 The command line takes precedence over the environment.
 """
 
@@ -41,7 +41,7 @@ import sys
 TESTCASE_PREFIX = 'fuzz-'
 TESTCASE_EXTENSION = '.py'
 FAILING_CASES_ENV_VAR = 'FAILING_CASES'
-DISTINCT_CRASHES_ENV_VAR = 'DISTINCT_CRASHES'
+UNIQUE_CRASHES_ENV_VAR = 'UNIQUE_CRASHES'
 
 FAILING_TESTCASE_TEMPLATE = '''\
 import sys
@@ -52,7 +52,7 @@ sys.stderr.flush()
 raise RuntimeError('Simulated crash in testcase {index}')
 '''
 
-DISTINCT_FAILING_TESTCASE_TEMPLATE = '''\
+UNIQUE_FAILING_TESTCASE_TEMPLATE = '''\
 import sys
 
 
@@ -66,7 +66,7 @@ sys.stderr.flush()
 crash_case_{index}()
 '''
 
-PASSING_TESTCASE_TEMPLATE = '''\
+SUCCESSFULL_TESTCASE_TEMPLATE = '''\
 import sys
 
 # Testcase {index}: passing case.
@@ -81,7 +81,7 @@ def _parse_args(argv):
   parser.add_argument('--output_dir', required=True)
   parser.add_argument('--no_of_files', type=int, required=True)
   parser.add_argument('--failing_cases', type=int, default=None)
-  parser.add_argument('--distinct_crashes', action='store_true')
+  parser.add_argument('--unique_crashes', action='store_true')
   return parser.parse_args(argv)
 
 
@@ -92,31 +92,31 @@ def get_failing_cases(cli_value):
   return int(os.environ.get(FAILING_CASES_ENV_VAR, 0))
 
 
-def get_distinct_crashes(cli_value):
-  """Returns whether distinct crashes are enabled by the CLI or environment."""
-  return cli_value or os.environ.get(DISTINCT_CRASHES_ENV_VAR) == 'True'
+def get_unique_crashes(cli_value):
+  """Returns whether unique crashes are enabled by the CLI or environment."""
+  return cli_value or os.environ.get(UNIQUE_CRASHES_ENV_VAR) == 'True'
 
 
-def _get_template(index, failing_cases, distinct_crashes):
+def _get_template(index, failing_cases, unique_crashes):
   """Returns the testcase template for testcase |index|."""
   if index >= failing_cases:
-    return PASSING_TESTCASE_TEMPLATE
-  if distinct_crashes:
-    return DISTINCT_FAILING_TESTCASE_TEMPLATE
+    return SUCCESSFULL_TESTCASE_TEMPLATE
+  if unique_crashes:
+    return UNIQUE_FAILING_TESTCASE_TEMPLATE
   return FAILING_TESTCASE_TEMPLATE
 
 
 def generate_testcases(output_dir,
                        no_of_files,
                        failing_cases,
-                       distinct_crashes=False):
+                       unique_crashes=False):
   """Writes testcases to |output_dir|. Returns the list of written paths."""
   os.makedirs(output_dir, exist_ok=True)
   failing_cases = max(0, min(failing_cases, no_of_files))
 
   paths = []
   for index in range(no_of_files):
-    template = _get_template(index, failing_cases, distinct_crashes)
+    template = _get_template(index, failing_cases, unique_crashes)
     path = os.path.join(output_dir,
                         f'{TESTCASE_PREFIX}{index}{TESTCASE_EXTENSION}')
     with open(path, 'w') as f:
@@ -130,11 +130,11 @@ def generate_testcases(output_dir,
 def main(argv=None):
   args = _parse_args(argv)
   failing_cases = get_failing_cases(args.failing_cases)
-  distinct_crashes = get_distinct_crashes(args.distinct_crashes)
+  unique_crashes = get_unique_crashes(args.unique_crashes)
   paths = generate_testcases(args.output_dir, args.no_of_files, failing_cases,
-                             distinct_crashes)
+                             unique_crashes)
   failing = max(0, min(failing_cases, args.no_of_files))
-  mode = ', distinct crash states' if distinct_crashes and failing else ''
+  mode = ', unique crash states' if unique_crashes and failing else ''
   print(f'Generated {len(paths)}/{args.no_of_files} testcases '
         f'({failing} failing, {len(paths) - failing} passing{mode}).')
   return 0
