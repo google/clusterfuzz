@@ -136,7 +136,7 @@ def main(argv=None):
   failing = max(0, min(failing_cases, args.no_of_files))
   mode = ', unique crash states' if unique_crashes and failing else ''
   print(f'Generated {len(paths)}/{args.no_of_files} testcases '
-        f'({failing} failing, {len(paths) - failing} passing{mode}).')
+        f'({failing} failing, {len(paths) - failing} successfull{mode}).')
   return 0
 
 
