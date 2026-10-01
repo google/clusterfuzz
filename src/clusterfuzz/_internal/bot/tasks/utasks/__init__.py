@@ -67,7 +67,7 @@ def _timestamp_now() -> Timestamp:
 
 def _get_execution_mode(job_type):
   """Determines whether this task in executed on swarming or batch."""
-  if swarming.is_swarming_task(job_type):
+  if swarming.is_swarming_job(job_type):
     return Mode.SWARMING
   return Mode.BATCH
 
