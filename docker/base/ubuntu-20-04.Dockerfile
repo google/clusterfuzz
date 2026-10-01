@@ -168,6 +168,8 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
+# Retry helper for flaky network commands in child images, e.g. `retry add-apt-repository ...`.
+COPY retry.sh /usr/local/bin/retry
 COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh Pipfile Pipfile.lock start.sh /data/
 RUN cd /data && \
     # Make pip3.11 the default so that pipenv install --system works.
