@@ -73,7 +73,7 @@ class SwarmingAPITest(unittest.TestCase):
         'Content-Type': 'application/json',
         'Authorization': 'Bearer fake_token'
     }
-    expected_url = 'https://server-name/prpc/swarming.v2.Tasks/NewTask'
+    expected_url = 'http://127.0.0.1:9014/prpc/swarming.v2.Tasks/NewTask'
     self.mock.post_url.assert_called_with(
         url=expected_url,
         data=json_format.MessageToJson(task_request),
@@ -92,7 +92,7 @@ class SwarmingAPITest(unittest.TestCase):
         'Content-Type': 'application/json',
         'Authorization': 'Bearer fake_token'
     }
-    expected_url = 'https://server-name/prpc/swarming.v2.Tasks/CountTasks'
+    expected_url = 'http://127.0.0.1:9014/prpc/swarming.v2.Tasks/CountTasks'
 
     expected_request = swarming_pb2.TasksCountRequest(tags=['tag1'])
     json_format.Parse('"2026-06-01T00:00:00Z"', expected_request.start)
