@@ -234,13 +234,16 @@ def entity_from_protobuf(entity_proto: any_pb2.Any, model_type: Type[T]) -> T:  
 def check_handling_testcase_safe(testcase):
   """Exits when the current task execution model is trusted but the testcase is
   untrusted. This will allow uploading testcases to trusted jobs (e.g. Mac) more
-  safely."""
+  safely. Returns True if safe to handle, False otherwise."""
   if testcase.trusted:
-    return
-  if not environment.get_value('UNTRUSTED_UTASK'):
-    # TODO(https://b.corp.google.com/issues/328691756): Change this to
-    # log_fatal_and_exit once we are handling untrusted tasks properly.
-    logs.warning(f'Cannot handle {testcase.key.id()} in trusted task.')
+    return True
+  if environment.is_uworker():
+    return True
+
+  logs.log_fatal_and_exit(
+      f'Security Violation: Cannot handle untrusted testcase '
+      f'{testcase.key.id()} in long-lived bot.')
+  return False
 
 
 def check_running_fuzzer_safe(fuzzer):

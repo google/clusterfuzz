@@ -679,14 +679,18 @@ def run_command(cmd, log_output=False, timeout=None, recover=True):
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
   if log_output:
-    logs.info('Running: adb %s' % cmd)
+    logs.info(f'[ADB] Running: {cmd}')
+  else:
+    logs.debug(f'[ADB] Running: {cmd}')
   if not timeout:
     timeout = ADB_TIMEOUT
 
   output = execute_command(get_adb_command_line(cmd), timeout)
   if not recover:
     if log_output:
-      logs.info('Output: (%s)' % output)
+      logs.info(f'[ADB] Output for {cmd}: {output}')
+    else:
+      logs.debug(f'[ADB] Output for {cmd}: {output}')
     return output
 
   device_not_found_string_with_serial = DEVICE_NOT_FOUND_STRING.format(
@@ -915,3 +919,29 @@ def write_data_to_file(contents, file_path, should_reboot=True):
     else:
       # Manually revert /system to read-only since we aren't rebooting.
       run_shell_command('mount -o ro,remount /system', root=True)
+
+
+def get_activity_exit_info(app_package: str) -> str:
+  """Get dumpsys activity exit-info output for the given application package.
+  Example dumpsys output:
+  package: org.chromium.chrome
+  Historical Process Exit for uid=10154
+      ApplicationExitInfo #0:
+        timestamp=2026-09-03 11:19:03.480 pid=27098 realUid=10154
+        packageUid=10154 definingUid=10154 user=0
+        process=org.chromium.chrome reason=2 (SIGNALED)
+        subreason=0 (UNKNOWN) status=9
+        importance=100 pss=0.00 rss=0.00 state=empty trace=null
+        description=null
+        anrInfo=null
+
+
+  Args:
+    app_package: Name of the application package.
+
+  Returns:
+    Dumpsys output for the application package.
+  """
+  dumpsys_output = run_shell_command(
+      ['dumpsys', 'activity', 'exit-info', app_package])
+  return dumpsys_output

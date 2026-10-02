@@ -125,7 +125,8 @@ def clear_temp_directories():
 
 def clear_testcase_directory():
   """Clears testcase directory."""
-  adb.remove_directory(constants.DEVICE_TESTCASES_DIR, recreate=True)
+  adb.run_shell_command(
+      f'find {app.get_testcases_directory()} -mindepth 1 -delete', root=True)
 
 
 def configure_device_settings():
@@ -442,7 +443,7 @@ def push_testcases_to_device():
     return
 
   adb.copy_local_directory_to_remote(local_testcases_directory,
-                                     constants.DEVICE_TESTCASES_DIR)
+                                     app.get_testcases_directory())
 
 
 def reboot():

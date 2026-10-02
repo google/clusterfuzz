@@ -322,6 +322,34 @@ class LLVMSymbolizerTest(unittest.TestCase):
     # Verify Popen calls
     self.assertEqual(['llvm-symbolizer'], self._get_called_binaries(mock_popen))
 
+  @mock.patch(
+      'clusterfuzz._internal.system.environment.platform',
+      return_value='WINDOWS')
+  @mock.patch('subprocess.Popen')
+  def test_windows_stacktrace_symbolization(self, mock_popen, _):
+    """Test that Windows stack traces with backslashes and .exe are symbolized."""
+    windows_stacktrace = (
+        '    #0 0x7ff60660c969  (c:\\bot\\builds\\tint_wgsl_fuzzer.exe+0x14006c969)\n'
+    )
+    mock_llvm_stdin = mock.Mock()
+    mock_llvm_process = mock.Mock()
+    mock_llvm_process.stdin = mock_llvm_stdin
+    mock_llvm_process.stdout = mock.Mock()
+    mock_llvm_process.stdout.readline.side_effect = [
+        b'tint::wgsl::reader::Parse\n',
+        b'third_party/dawn/src/tint/reader.cc:123\n',
+        b'\n',
+    ]
+    mock_llvm_process.stderr = mock.Mock()
+    mock_llvm_process.stderr.readline.return_value = b''
+    mock_llvm_process.poll.return_value = None
+    mock_popen.return_value = mock_llvm_process
+
+    actual_output = stack_symbolizer.symbolize_stacktrace(windows_stacktrace)
+    expected_output = ('    #0 0x7ff60660c969 in tint::wgsl::reader::Parse '
+                       'third_party/dawn/src/tint/reader.cc:123\n')
+    self.assertEqual(expected_output, actual_output)
+
   @mock.patch('subprocess.Popen')
   @mock.patch('sys.platform', 'linux')
   def test_llvm_inline_frames(self, mock_popen):
@@ -492,6 +520,17 @@ class SymbolizeStacktraceChainTest(unittest.TestCase):
     result = stack_symbolizer.symbolize_stacktrace('unsymbolized_input')
 
     self.mock_loop.process_trusty_stacktrace.assert_not_called()
+    self.mock_loop.process_stacktrace.assert_called_once_with(
+        'unsymbolized_input')
+    self.assertEqual('final_symbolized_output', result)
+
+  def test_symbolize_stacktrace_on_windows(self):
+    """Tests that on Windows, symbolize_stacktrace executes process_stacktrace and is not bypassed."""
+    self.mock.platform.return_value = 'WINDOWS'
+    self.mock.is_android_emulator.return_value = False
+
+    result = stack_symbolizer.symbolize_stacktrace('unsymbolized_input')
+
     self.mock_loop.process_stacktrace.assert_called_once_with(
         'unsymbolized_input')
     self.assertEqual('final_symbolized_output', result)

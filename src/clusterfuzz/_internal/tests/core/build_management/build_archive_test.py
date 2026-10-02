@@ -380,12 +380,63 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     to_extract = [f.name for f in to_extract]
     self.assertCountEqual(to_extract, needed_files)
 
+  def test_windows_symbolizer_unpacked_schema_v1(self):
+    """Tests that llvm-symbolizer.exe is unpacked in schema v1 even if not
+    listed in runtime_deps, regardless of its directory location."""
+    self._set_archive_schema_version(1)
+    deps_entries = ['./my_fuzzer', 'my_fuzzer.runtime_deps']
+    deps_files = self._resolve_relative_dependency_paths(deps_entries)
+    archive_files = deps_files + [
+        'out/build/llvm-symbolizer.exe',
+        'out/build/my_fuzzer.exe',
+    ]
+    self._add_files_to_archive(archive_files)
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertIn('out/build/llvm-symbolizer.exe', to_extract)
+
+  def test_windows_symbolizer_unpacked_legacy(self):
+    """Tests that llvm-symbolizer.exe is unpacked under legacy schema even if
+    not listed in runtime_deps."""
+    deps_entries = ['my_fuzzer']
+    needed_files = [
+        'build/my_fuzzer.exe',
+        'build/llvm-symbolizer.exe',
+    ]
+    self._add_files_to_archive(needed_files)
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertIn('build/llvm-symbolizer.exe', to_extract)
+
+  def test_symbolizer_with_backslash_paths(self):
+    """Tests that llvm-symbolizer.exe and llvm-symbolizer with backslash path
+    separators are correctly unpacked."""
+    self._set_archive_schema_version(1)
+    deps_entries = ['./my_fuzzer', 'my_fuzzer.runtime_deps']
+    deps_files = self._resolve_relative_dependency_paths(deps_entries)
+    archive_files = deps_files + [
+        r'out\build\llvm-symbolizer.exe',
+        'out/build/my_fuzzer.exe',
+    ]
+    self._add_files_to_archive(archive_files)
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertIn(r'out\build\llvm-symbolizer.exe', to_extract)
+
 
 class ChromeBuildArchiveManifestTest(unittest.TestCase):
   """Test for reading clusterfuzz_manifest.json for Chrome archives."""
 
   def setUp(self):
     test_helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.metrics.logs.warning',
         'clusterfuzz._internal.system.archive.ArchiveReader.file_exists',
         'clusterfuzz._internal.system.archive.ArchiveReader',
         'clusterfuzz._internal.system.archive.open',
@@ -445,6 +496,25 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     # Ensure list_members was never called for fuzz target discovery.
     self.mock_archive_reader.list_members.assert_not_called()
 
+  def test_manifest_fuzz_targets_with_root_dir(self):
+    """Tests that manifest is read when archive has a root directory prefix."""
+    self.mock_archive_reader.root_dir.return_value = 'build'
+
+    def _mock_file_exists(_, path):
+      return path == 'build/clusterfuzz_manifest.json'
+
+    self.mock.file_exists.side_effect = _mock_file_exists
+    self._generate_manifest({
+        'archive_schema_version': 1,
+        'fuzz_targets': ['out/build/my_fuzzer', 'out/build/other_fuzzer']
+    })
+
+    test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
+    self.assertEqual(test_archive.archive_schema_version(), 1)
+    self.assertCountEqual(test_archive.list_fuzz_targets(),
+                          ['my_fuzzer', 'other_fuzzer'])
+
   def test_manifest_fuzz_targets_invalid(self):
     """Tests that invalid fuzz_targets (e.g. dict) in the manifest are ignored
     and we fallback to discovery."""
@@ -477,33 +547,31 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     self.mock_archive_reader.list_members.assert_called_once()
 
   def test_manifest_fuzz_targets_empty(self):
-    """Tests that empty fuzz_targets list in the manifest is ignored
-    and we fallback to discovery."""
+    """Tests that empty fuzz_targets list in the manifest returns empty list
+    without falling back to discovery."""
     self.mock.file_exists.return_value = True
     self._generate_manifest({'archive_schema_version': 1, 'fuzz_targets': []})
-    self.mock_archive_reader.list_members.return_value = []
 
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
 
     self.assertEqual(test_archive.archive_schema_version(), 1)
-    test_archive.list_fuzz_targets()
-    self.mock_archive_reader.list_members.assert_called_once()
+    self.assertEqual(test_archive.list_fuzz_targets(), [])
+    self.mock_archive_reader.list_members.assert_not_called()
 
   def test_manifest_fuzz_targets_all_invalid(self):
-    """Tests that fuzz_targets list with only invalid entries in the manifest is
-    ignored and we fallback to discovery."""
+    """Tests that fuzz_targets list with only invalid entries in the manifest
+    returns empty list without falling back to discovery."""
     self.mock.file_exists.return_value = True
     self._generate_manifest({
         'archive_schema_version': 1,
         'fuzz_targets': [1, 2]
     })
-    self.mock_archive_reader.list_members.return_value = []
 
     test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
 
     self.assertEqual(test_archive.archive_schema_version(), 1)
-    test_archive.list_fuzz_targets()
-    self.mock_archive_reader.list_members.assert_called_once()
+    self.assertEqual(test_archive.list_fuzz_targets(), [])
+    self.mock_archive_reader.list_members.assert_not_called()
 
   def test_manifest_fuzz_targets_mixed(self):
     """Tests that fuzz_targets list with mixed valid and invalid entries in the

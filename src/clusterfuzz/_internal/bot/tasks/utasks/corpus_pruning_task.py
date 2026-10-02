@@ -33,6 +33,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
+from clusterfuzz._internal.bot.fuzzers.libFuzzer import fuzzer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
@@ -86,10 +87,6 @@ CORPUS_SIZE_LIMIT_FOR_FAILURES = 10 * 1024 * 1024 * 1024  # 10 GB.
 
 # Maximum number of units to restore from quarantine in one run.
 MAX_QUARANTINE_UNITS_TO_RESTORE = 128
-
-# Memory limits for testcase.
-RSS_LIMIT = 2560
-RSS_LIMIT_MB_FLAG = '-rss_limit_mb=%d'
 
 # Flag to enforce length limit for a single corpus element.
 MAX_LEN_FLAG = '-max_len=%d'
@@ -400,21 +397,14 @@ class LibFuzzerRunner(BaseRunner):
 
   def get_fuzzer_flags(self):
     """Get default libFuzzer options for pruning."""
-    rss_limit = RSS_LIMIT
+    rss_limit = fuzzer.get_rss_limit_mb(self.fuzzer_options)
+
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
     detect_leaks = 1
-    arguments = options.FuzzerArguments()
-    arguments[constants.TIMEOUT_FLAGNAME] = SINGLE_UNIT_TIMEOUT
-
     if self.fuzzer_options:
       # Default values from above can be customized for a given fuzz target.
       libfuzzer_arguments = self.fuzzer_options.get_engine_arguments(
           'libfuzzer')
-
-      custom_rss_limit = libfuzzer_arguments.get(
-          'rss_limit_mb', constructor=int)
-      if custom_rss_limit:
-        rss_limit = custom_rss_limit
 
       custom_max_len = libfuzzer_arguments.get('max_len', constructor=int)
       if custom_max_len and custom_max_len < max_len:
@@ -427,10 +417,13 @@ class LibFuzzerRunner(BaseRunner):
       if custom_detect_leaks is not None:
         detect_leaks = custom_detect_leaks
 
-    arguments[constants.RSS_LIMIT_FLAGNAME] = rss_limit
-    arguments[constants.MAX_LEN_FLAGNAME] = max_len
-    arguments[constants.DETECT_LEAKS_FLAGNAME] = detect_leaks
-    arguments[constants.VALUE_PROFILE_FLAGNAME] = 1
+    arguments = options.FuzzerArguments({
+        constants.TIMEOUT_FLAGNAME: SINGLE_UNIT_TIMEOUT,
+        constants.RSS_LIMIT_FLAGNAME: rss_limit,
+        constants.MAX_LEN_FLAGNAME: max_len,
+        constants.DETECT_LEAKS_FLAGNAME: detect_leaks,
+        constants.VALUE_PROFILE_FLAGNAME: 1,
+    })
 
     return arguments.list()
 
@@ -887,8 +880,8 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
       absolute_testcase_path = os.path.join(
           environment.get_value('FUZZ_INPUTS'), 'testcase')
 
-      # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on
-      # the job when we start doing untrusted fuzzing.
+      # TODO(b/556173460): Set trusted based on
+      # the job when we start doing untrusted engine fuzzing
       testcase_id = data_handler.store_testcase(
           crash=crash,
           fuzzed_keys=key,
@@ -923,7 +916,9 @@ def _process_corpus_crashes(output: uworker_msg_pb2.Output):  # pylint: disable=
               creation_origin=events.TestcaseOrigin.CORPUS_PRUNING))
 
       if output.issue_metadata:
-        for key, value in json.loads(output.issue_metadata).items():
+        issue_metadata = data_handler.sanitize_issue_metadata(
+            json.loads(output.issue_metadata))
+        for key, value in issue_metadata.items():
           testcase.set_metadata(key, value, update_testcase=False)
 
         testcase.put()
@@ -1155,6 +1150,35 @@ def _create_backup_urls(fuzz_target: data_types.FuzzTarget,
   corpus_pruning_task_input.dated_backup_signed_url = dated_backup_signed_url
 
 
+def _should_use_threaded_ops(fuzzer_name: str) -> bool:
+  """Returns True if threaded storage ops should be used."""
+  threaded_ops_flag = (
+      feature_flags.FeatureFlags.STORAGE_THREADED_OPS_FUZZ_TARGETS)
+  if not threaded_ops_flag.enabled:
+    return False
+
+  threaded_ops_targets = threaded_ops_flag.string_value.strip()
+  if not threaded_ops_targets:
+    return False
+
+  allowed_targets = [
+      t.strip().lower() for t in threaded_ops_targets.split(',') if t.strip()
+  ]
+
+  if '*' in allowed_targets:
+    # TODO(paulovlb): Remove this once fixed.
+    logs.info('[Corpus Fix] Enabled threaded storage ops for ALL targets.')
+    return True
+
+  if fuzzer_name.lower() in allowed_targets:
+    # TODO(paulovlb): Remove this once fixed.
+    logs.info(f'[Corpus Fix] Enabled threaded storage ops for target: '
+              f'{fuzzer_name}')
+    return True
+
+  return False
+
+
 def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Runs preprocessing for corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
@@ -1217,19 +1241,8 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   if uworker_env is None:
     uworker_env = {}
 
-  threaded_ops_flag = (
-      feature_flags.FeatureFlags.STORAGE_THREADED_OPS_FUZZ_TARGETS)
-  if threaded_ops_flag.enabled:
-    threaded_ops_targets = threaded_ops_flag.string_value
-    if threaded_ops_targets:
-      allowed_targets = [
-          t.strip() for t in threaded_ops_targets.split(',') if t.strip()
-      ]
-      if fuzzer_name in allowed_targets:
-        uworker_env['USE_THREADED_STORAGE_OPS'] = 'True'
-        # TODO(paulovlb): Remove this once fixed.
-        logs.info(f'[Corpus Fix] Enabled threaded storage ops for target: '
-                  f'{fuzzer_name}')
+  if _should_use_threaded_ops(fuzzer_name):
+    uworker_env['USE_THREADED_STORAGE_OPS'] = 'True'
 
   logs.info('done preprocess')
   return uworker_msg_pb2.Input(  # pylint: disable=no-member

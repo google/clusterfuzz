@@ -315,12 +315,10 @@ def _get_deployment_zip_release_suffix(release):
   return suffix
 
 
-def get_platform_deployment_filename(platform, release):
-  """Return the platform deployment filename."""
-  # Expects linux, macos or windows.
-  base_filename = platform
+def get_deployment_target_filename(deployment_target, release):
+  """Return the deployment filename for the given target."""
   release_filename_suffix = _get_deployment_zip_release_suffix(release)
-  return f'{base_filename}{release_filename_suffix}.zip'
+  return f'{deployment_target}{release_filename_suffix}.zip'
 
 
 def get_remote_manifest_filename(release):

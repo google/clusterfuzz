@@ -118,12 +118,11 @@ RUN apt update && apt install libc6:i386 -y
 
 ENV CLOUDSDK_PYTHON=python3.11
 
-RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
+RUN curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | tee /usr/share/keyrings/cloud.google.asc >/dev/null && \
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.asc] https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-    | apt-key add - && \
     apt-get update -y && \
-    apt-get install -y google-cloud-sdk
+    apt-get install -y google-cloud-cli
 
 # Common environment variables.
 ENV USER=clusterfuzz

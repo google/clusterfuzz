@@ -32,6 +32,7 @@ from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
@@ -252,10 +253,11 @@ class ConvertDependencyUrlToLocalPathTest(unittest.TestCase):
   def test_file_match_android(self):
     """Tests matching a file URL."""
     self.mock.platform.return_value = 'ANDROID'
+    testcases_dir = android.app.get_testcases_directory()
     self.assertEqual(
         '/mnt/scratch0/test.html',
         testcase_manager.convert_dependency_url_to_local_path(
-            'file:///sdcard/fuzzer-testcases/test.html'))
+            f'file://{testcases_dir}/test.html'))
     self.mock.normalize_path.assert_called_once_with('/mnt/scratch0/test.html')
 
   def test_file_match_linux(self):
@@ -767,6 +769,79 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash is reproducible.'),
     ])
 
+  def test_test_for_reproducibility_with_ignore_pattern(self):
+    """Test test_for_reproducibility fails when ignore signatures match."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.crash_analysis.crash_analyzer.ignore_stacktrace'
+    ])
+    self.mock.ignore_stacktrace.return_value = True
+    self.mock.run_process.return_value = (1, 1,
+                                          'crash\nCaught harmless ASan fault')
+    fuzz_target = _get_fuzz_target_from_preprocess(self.blackbox_testcase)
+    result = testcase_manager.test_for_reproducibility(
+        fuzz_target,
+        '/fuzz-testcase',
+        'type',
+        'state',
+        expected_security_flag=False,
+        test_timeout=10,
+        http_flag=False,
+        gestures=None)
+    self.assertFalse(result)
+
+    # Bails out after 2 runs because it needs at least 2 successes out of 3.
+    self.assertEqual(2, self.mock.run_process.call_count)
+    self.mock.info.assert_has_calls([
+        mock.call('Beginning a reproducibility test.'),
+        mock.call(
+            'Crash occurred in 1 seconds (round 1). State:\nstate',
+            output='crash\nCaught harmless ASan fault'),
+        mock.call('Crash stacktrace matched ignore signatures, ignored.'),
+        mock.call(
+            'Crash occurred in 1 seconds (round 2). State:\nstate',
+            output='crash\nCaught harmless ASan fault'),
+        mock.call('Crash stacktrace matched ignore signatures, ignored.'),
+        mock.call('Crash is not reproducible. Crash count: 0/3.')
+    ])
+
+  def test_test_for_reproducibility_succeed_after_ignored_run(self):
+    """Test test_for_reproducibility properly updates expected_state when start
+    is empty and first run is ignored."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.crash_analysis.crash_analyzer.ignore_stacktrace'
+    ])
+
+    # Mock get_crash_data to return a state representation from the output.
+    def custom_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-argument
+      state = stacktraces.CrashInfo()
+      state.crash_state = output.strip()
+      # Pick any type from CRASH_TYPES_NON_SECURITY to match expected_security_flag=False.
+      state.crash_type = 'Timeout'
+      state.crash_stacktrace = output.strip()
+      return state
+
+    self.mock.get_crash_data.side_effect = custom_get_crash_data
+
+    # Scenario: Run 1 encounters an ignorable crash. Runs 2 & 3 encounter the real crash.
+    self.mock.ignore_stacktrace.side_effect = [True, False, False]
+    self.mock.run_process.side_effect = [
+        (1, 1, 'AAAAA'),
+        (1, 1, 'BBBBB'),
+        (1, 1, 'BBBBB'),
+    ]
+    fuzz_target = _get_fuzz_target_from_preprocess(self.blackbox_testcase)
+
+    result = testcase_manager.test_for_reproducibility(
+        fuzz_target,
+        '/fuzz-testcase',
+        'type',
+        None,
+        expected_security_flag=False,
+        test_timeout=10,
+        http_flag=False,
+        gestures=None)
+    self.assertTrue(result)
+
   def test_test_for_reproducibility_blackbox_succeed_after_multiple_tries(self):
     """Test test_for_reproducibility with failure on first run and then succeed
     on remaining runs (blackbox)."""
@@ -1015,7 +1090,7 @@ class UntrustedEngineReproduceTest(
 
     self.assertEqual([
         os.path.join(environment.get_value('BUILD_DIR'), 'test_fuzzer'),
-        '-runs=100',
+        '-rss_limit_mb=2560', '-runs=100',
         file_host.rebase_to_worker_root(testcase_file_path)
     ], result.command)
     self.assertEqual(result.return_code,
@@ -1162,3 +1237,97 @@ class FuzzerRunOutputDataTest(fake_filesystem_unittest.TestCase):
     """Tests that get_output returns None when neither output nor file path is set."""
     output_data = testcase_manager.FuzzerRunOutputData()
     self.assertIsNone(output_data.get_output())
+
+
+class CheckForBadBuildTest(unittest.TestCase):
+  """Tests for check_for_bad_build."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.bot.testcase_manager.get_command_line_for_application',
+        'clusterfuzz._internal.platforms.android.app.get_package_name',
+        'clusterfuzz._internal.platforms.android.adb.get_process_and_child_pids',
+        'clusterfuzz._internal.system.process_handler.run_process',
+        'clusterfuzz._internal.system.process_handler.terminate_stale_application_instances',
+    ])
+    self.mock.get_command_line_for_application.return_value = 'adb shell am start ...'
+    environment.set_value('BAD_BUILD_CHECK', True)
+    environment.set_value('APP_NAME', 'chrome.apk')
+    environment.set_value('APP_PATH', '/path/to/chrome.apk')
+
+  def test_android_invalid_apk_not_running(self):
+    """Test that an Android APK that dies on launch is detected as a bad build."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (
+        0, 1.0, 'Starting: Intent ...\nProcess org.chromium.chrome has died')
+    self.mock.get_package_name.return_value = 'org.chromium.chrome'
+    self.mock.get_process_and_child_pids.return_value = []
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='aluminium_asan_chrome_public', crash_revision=123)
+
+    self.assertTrue(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)
+
+  def test_android_valid_apk_running(self):
+    """Test that a working Android APK that is running is not marked as a bad build."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
+    self.mock.get_package_name.return_value = 'org.chromium.chrome'
+    self.mock.get_process_and_child_pids.return_value = [2155]
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='aluminium_asan_chrome_public', crash_revision=123)
+
+    self.assertFalse(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)
+
+  def test_android_no_package_name_skips_process_check(self):
+    """Test that Android fuzzing without an APK package (e.g. a native binary
+    target) does not run the package process-liveness check at all. Expects
+    get_process_and_child_pids to never be called and, with a clean run, the
+    build not to be flagged as bad."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (0, 1.0, 'Running 1 inputs...')
+    self.mock.get_package_name.return_value = None
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='android_libfuzzer_target', crash_revision=123)
+
+    self.mock.get_process_and_child_pids.assert_not_called()
+    self.assertFalse(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)
+
+  def test_android_no_package_name_still_detects_crash(self):
+    """Test that skipping the package check does not disable generic bad build
+    detection: an Android run with no APK package that crashes on startup must
+    still be flagged as a bad build via the crash result path."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (
+        1, 1.0,
+        'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000')
+    self.mock.get_package_name.return_value = None
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='android_libfuzzer_target', crash_revision=123)
+
+    self.mock.get_process_and_child_pids.assert_not_called()
+    self.assertTrue(build_data.is_bad_build)
+    self.assertEqual(build_data.revision, 123)
+
+  def test_android_apk_running_still_detects_crash(self):
+    """Test that a live APK process does not mask a real startup crash: when
+    the process is running but the run produced a memory tool crash, the build
+    must still be reported as bad through the crash result path."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (
+        1, 1.0,
+        'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000')
+    self.mock.get_package_name.return_value = 'org.chromium.chrome'
+    self.mock.get_process_and_child_pids.return_value = [2155]
+
+    build_data = testcase_manager.check_for_bad_build(
+        job_type='aluminium_asan_chrome_public', crash_revision=123)
+
+    self.assertTrue(build_data.is_bad_build)

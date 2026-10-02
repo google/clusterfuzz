@@ -665,6 +665,46 @@ class FilterStackTraceTest(fake_filesystem_unittest.TestCase):
     data_types.STACKTRACE_LENGTH_LIMIT = self.limit
 
 
+class SanitizeIssueMetadataTest(unittest.TestCase):
+  """Test sanitize_issue_metadata."""
+
+  def test_non_revision_keys_pass_through(self):
+    """Ensure keys that are not revisions are left alone."""
+    metadata = {'issue_labels': 'a,b', 'issue_owners': 'someone@example.com'}
+    self.assertEqual(metadata, data_handler.sanitize_issue_metadata(metadata))
+
+  def test_revision_keys_coerced_to_int(self):
+    """Ensure revision keys are coerced to int."""
+    sanitized = data_handler.sanitize_issue_metadata({
+        'last_tested_crash_revision': '1337',
+        'last_progression_min': 42,
+    })
+    self.assertEqual({
+        'last_tested_crash_revision': 1337,
+        'last_progression_min': 42,
+    }, sanitized)
+
+  def test_non_integer_revisions_dropped(self):
+    """Ensure revision values that are not integers are dropped.
+
+    These end up interpolated into REVISION_VARS_URL and rendered on the
+    testcase detail page, so an untrusted worker must not control them."""
+    for value in [
+        'refs/changes/12/12345/1/x/DEPS?format=text#',
+        '<img src=x onerror=alert(1)>',
+        None,
+        ['1337'],
+        {},
+    ]:
+      for key in data_handler.NUMERIC_METADATA_KEYS:
+        sanitized = data_handler.sanitize_issue_metadata({key: value})
+        self.assertEqual({}, sanitized, f'{key}={value!r} was not dropped')
+
+  def test_non_string_keys_dropped(self):
+    """Ensure non-string keys are dropped."""
+    self.assertEqual({}, data_handler.sanitize_issue_metadata({1: 'a'}))
+
+
 @test_utils.with_cloud_emulators('datastore')
 class AddBuildMetadataTest(unittest.TestCase):
   """Test add_build_metadata."""
@@ -1115,6 +1155,36 @@ class TestTrustedVsUntrusted(unittest.TestCase):
         None, None, None, None, None, None, None, None, None, None, None, None,
         None)
     self.assertFalse(data_handler.get_testcase_by_id(testcase_id).trusted)
+
+  def test_user_uploaded_trusted(self):
+    """Tests that uploads from a signed trusted agreement are trusted."""
+    gestures = []
+    testcase_id = data_handler.create_user_uploaded_testcase(
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        self.job,
+        None,
+        None,
+        gestures,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        trusted=True)
+    self.assertTrue(data_handler.get_testcase_by_id(testcase_id).trusted)
 
   def test_fuzzer_created(self):
     """Tests that fuzzer created testcases are marked as such."""

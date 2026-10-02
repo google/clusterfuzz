@@ -65,7 +65,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     logs.warning(f'Testcase {testcase_id} no longer exists.')
     return None
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
-    uworker_io.check_handling_testcase_safe(testcase)
 
     if (environment.is_engine_fuzzer_job(testcase.job_type) !=
         environment.is_engine_fuzzer_job(job_type)):
@@ -110,6 +109,7 @@ def utask_main(uworker_input):
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
+    uworker_io.check_handling_testcase_safe(testcase)
     if environment.is_engine_fuzzer_job(testcase.job_type):
       # Remove put() method to avoid updates. DO NOT REMOVE THIS.
       # Repeat this because the in-memory executor may allow puts.

@@ -652,6 +652,71 @@ class IssueFilerTests(unittest.TestCase):
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
 
+  def test_filed_issues_external_fuzzer_author(self):
+    """Tests issue filing for external fuzzer author."""
+    self.mock.get.return_value = CHROMIUM_POLICY
+
+    data_types.Fuzzer(
+        name='fuzzer',
+        external_contribution=True,
+        primary_owner='owner@example.com').put()
+
+    mock_client = mock.Mock()
+    issue_tracker = google_issue_tracker.IssueTracker('chromium', mock_client, {
+        'default_component_id': '123',
+        'url': 'mock'
+    })
+
+    issue_tracker._execute = mock.Mock(return_value={
+        'issueId': 12345,
+        'issueState': {
+            'componentId': '123',
+            'type': 'BUG',
+        },
+    })
+
+    self.testcase1.security_flag = True
+    self.testcase1.put()
+
+    issue_filer.file_issue(
+        self.testcase1, issue_tracker, user_email='reporter@example.com')
+
+    mock_create = mock_client.issues.return_value.create
+    body = mock_create.call_args[1]['body']
+    self.assertEqual('owner@example.com',
+                     body['issueState']['reporter']['emailAddress'])
+
+  def test_filed_issues_external_fuzzer_no_author(self):
+    """Tests issue filing for external fuzzer without author."""
+    self.mock.get.return_value = CHROMIUM_POLICY
+
+    data_types.Fuzzer(name='fuzzer', external_contribution=True).put()
+
+    mock_client = mock.Mock()
+    issue_tracker = google_issue_tracker.IssueTracker('chromium', mock_client, {
+        'default_component_id': '123',
+        'url': 'mock'
+    })
+
+    issue_tracker._execute = mock.Mock(return_value={
+        'issueId': 12345,
+        'issueState': {
+            'componentId': '123',
+            'type': 'BUG',
+        },
+    })
+
+    self.testcase1.security_flag = True
+    self.testcase1.put()
+
+    issue_filer.file_issue(
+        self.testcase1, issue_tracker, user_email='reporter@example.com')
+
+    mock_create = mock_client.issues.return_value.create
+    body = mock_create.call_args[1]['body']
+    self.assertEqual('reporter@example.com',
+                     body['issueState']['reporter']['emailAddress'])
+
   def test_testcase_metadata_labels_and_components(self):
     """Tests issue filing with additional labels and components."""
     self.mock.get.return_value = CHROMIUM_POLICY

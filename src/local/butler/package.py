@@ -98,7 +98,7 @@ def package(revision,
 
   target_zip_name = constants.LEGACY_ZIP_NAME
   if platform_name:
-    target_zip_name = utils.get_platform_deployment_filename(
+    target_zip_name = utils.get_deployment_target_filename(
         platform_name, release)
 
   target_zip_path = os.path.join(target_zip_dir, target_zip_name)
@@ -139,7 +139,7 @@ def package(revision,
   if platform_name and release == 'prod':
     # Copy prod package into additional releases.
     for add_release in constants.ADDITIONAL_RELEASES:
-      add_target_zip_name = utils.get_platform_deployment_filename(
+      add_target_zip_name = utils.get_deployment_target_filename(
           platform_name, release=add_release)
       add_target_zip_path = os.path.join(target_zip_dir, add_target_zip_name)
       _clear_zip(add_target_zip_path, clear_manifest=False)
@@ -153,7 +153,7 @@ def package(revision,
 def execute(args):
   """Execute the butler package command."""
   if args.platform == 'all':
-    for platform_name in list(constants.PLATFORMS.keys()):
+    for platform_name in list(constants.DEPLOYMENT_TARGETS.keys()):
       package(
           revision=common.compute_staging_revision(),
           platform_name=platform_name,

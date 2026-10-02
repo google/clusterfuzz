@@ -29,38 +29,43 @@ def get_extra_env(fuzzer_path):
   return None
 
 
+def get_rss_limit_mb(fuzzer_options=None) -> int:
+  """Returns the rss_limit_mb to use for a target with the given options."""
+  rss_limit_mb = None
+  if fuzzer_options:
+    rss_limit_mb = fuzzer_options.get_engine_arguments('libfuzzer').get(
+        'rss_limit_mb', constructor=int)
+
+  if rss_limit_mb is None:
+    if utils.is_chromium() or utils.default_project_name() == 'google':
+      return 0
+    return constants.DEFAULT_RSS_LIMIT_MB
+
+  # psutil gives the total amount of memory in bytes, but we're only dealing
+  # with options that are counting memory space in MB, so we need to do the
+  # conversion first.
+  max_memory_limit_mb = (psutil.virtual_memory().total //
+                         (1 << 20)) - constants.MEMORY_OVERHEAD
+  # Custom rss_limit_mb value shouldn't be greater than the actual memory
+  # allocated on the machine.
+  return min(rss_limit_mb, max_memory_limit_mb)
+
+
 def get_arguments(fuzzer_path) -> options.FuzzerArguments:
   """Get arguments for a given fuzz target."""
   arguments = options.FuzzerArguments()
-  rss_limit_mb = None
   timeout = None
 
   fuzzer_options = options.get_fuzz_target_options(fuzzer_path)
 
   if fuzzer_options:
     arguments = fuzzer_options.get_engine_arguments('libfuzzer')
-    rss_limit_mb = arguments.get('rss_limit_mb', constructor=int)
     timeout = arguments.get('timeout', constructor=int)
 
   if timeout is None:
     arguments[constants.TIMEOUT_FLAGNAME] = constants.DEFAULT_TIMEOUT_LIMIT
 
-  if not rss_limit_mb and (utils.is_chromium() or
-                           utils.default_project_name() == 'google'):
-    # TODO(metzman/alhijazi): Monitor if we are crashing the bots.
-    arguments[constants.RSS_LIMIT_FLAGNAME] = 0
-  elif not rss_limit_mb:
-    arguments[constants.RSS_LIMIT_FLAGNAME] = constants.DEFAULT_RSS_LIMIT_MB
-  else:
-    # psutil gives the total amount of memory in bytes, but we're only dealing
-    # with options that are counting memory space in MB, so we need to do the
-    # conversion first.
-    max_memory_limit_mb = (psutil.virtual_memory().total //
-                           (1 << 20)) - constants.MEMORY_OVERHEAD
-    # Custom rss_limit_mb value shouldn't be greater than the actual memory
-    # allocated on the machine.
-    if rss_limit_mb > max_memory_limit_mb:
-      arguments[constants.RSS_LIMIT_FLAGNAME] = max_memory_limit_mb
+  arguments[constants.RSS_LIMIT_FLAGNAME] = get_rss_limit_mb(fuzzer_options)
 
   return arguments
 
