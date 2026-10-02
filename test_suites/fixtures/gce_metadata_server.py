@@ -53,10 +53,10 @@ server.
 """
 
 import contextlib
+from http import HTTPStatus
 import json
 import os
 import tempfile
-import uuid
 
 import requests
 from wiremock.client import HttpMethods
@@ -66,6 +66,8 @@ from wiremock.client import MappingResponse
 from wiremock.client import Mappings
 from wiremock.constants import Config
 from wiremock.testing.testcontainer import wiremock_container
+
+from test_suites.fixtures.common import wiremock_faults
 
 _REQUEST_TIMEOUT = 5
 _DEFAULT_EXPIRES_IN_SECONDS = 3600
@@ -213,47 +215,26 @@ def _json_value_mapping(path: str,
   )
 
 
-def _fault_mapping(path: str,
-                   status_code: int,
-                   delay_ms: int | None = None,
-                   scenario_name: str | None = None,
-                   required_state: str | None = None,
-                   new_state: str | None = None) -> Mapping:
-  """Returns a non-persistent Mapping that injects an HTTP fault for path."""
-  response_kwargs = {
-      'status': status_code,
-      'body': f'injected fault for {path}\n',
-      'headers': _TEXT_HEADERS,
-  }
-  if delay_ms is not None:
-    response_kwargs['fixed_delay_milliseconds'] = delay_ms
-
-  return Mapping(
-      persistent=False,
-      scenario_name=scenario_name,
-      required_scenario_state=required_state,
-      new_scenario_state=new_state,
-      metadata={
-          'fault': True,
-          'fault_path': path,
-      },
-      request=MappingRequest(
-          method=HttpMethods.GET,
-          url_path=f'/computeMetadata/v1/{path}',
-          headers=_REQUIRED_HEADER_MATCHER,
-      ),
-      response=MappingResponse(**response_kwargs),
-  )
-
-
 class MetadataEmulatorClient:
   """Talks to a running WireMock metadata emulator."""
 
-  def __init__(self, hostport: str, config: dict):
+  def __init__(
+      self,
+      hostport: str,
+      config: dict,
+      fault_injector: wiremock_faults.FaultInjector | None = None,
+  ):
     self.hostport = hostport
     self.admin_url = f'http://{hostport}/__admin'
     self._baseline_instance_attributes = set()
     self._runtime_instance_attributes = set()
+    self._fault_injector = (
+        fault_injector or wiremock_faults.WireMockFaultInjector(
+            admin_url=self.admin_url,
+            path_prefix='/computeMetadata/v1/',
+            request_headers=_REQUIRED_HEADER_MATCHER,
+            response_headers=_TEXT_HEADERS,
+        ))
 
     # Loopback traffic must not be handed to an ambient http_proxy, which
     # would answer with its own error instead of reaching the emulator.
@@ -284,14 +265,6 @@ class MetadataEmulatorClient:
   def _create_mapping(self, mapping: Mapping) -> None:
     Config.base_url = self.admin_url
     Mappings.create_mapping(mapping)
-
-  def _all_mappings(self) -> list[Mapping]:
-    Config.base_url = self.admin_url
-    return Mappings.retrieve_all_mappings().mappings
-
-  def _delete_mapping(self, mapping_id: str) -> None:
-    Config.base_url = self.admin_url
-    Mappings.delete_mapping(mapping_id)
 
   def _reset_mappings(self) -> None:
     Config.base_url = self.admin_url
@@ -437,18 +410,14 @@ class MetadataEmulatorClient:
     response.raise_for_status()
     return response.text
 
-  def _remove_existing_faults_for_path(self, path: str) -> None:
-    """Removes any active fault mappings targeting path."""
-    for mapping in self._all_mappings():
-      metadata = mapping.metadata or {}
-      if metadata.get('fault') and metadata.get('fault_path') == path:
-        self._delete_mapping(mapping.id)
-
-  def inject_fault(self,
-                   path: str,
-                   status: int = 500,
-                   times: int = 1,
-                   delay_seconds: float = 0) -> None:
+  def inject_fault(
+      self,
+      path: str,
+      status: int = HTTPStatus.INTERNAL_SERVER_ERROR,
+      times: int = 1,
+      delay_seconds: float = 0,
+      method: str = HttpMethods.GET,
+  ) -> None:
     """Makes the emulator fail a metadata path.
 
     Args:
@@ -457,33 +426,20 @@ class MetadataEmulatorClient:
       times: How many requests to affect. 0 means indefinitely until
         clear_faults() is called.
       delay_seconds: How long the emulator should stall before responding.
+      method: HTTP method to match (defaults to HttpMethods.GET).
     """
-    status_code = status or 500
-    delay_ms = int(delay_seconds * 1000) if delay_seconds > 0 else None
-    if times < 0:
-      raise ValueError(f'times must be >= 0, got {times}')
-
-    self._remove_existing_faults_for_path(path)
-
-    if times == 0:
-      self._create_mapping(_fault_mapping(path, status_code, delay_ms))
-      return
-
-    scenario_name = f'fault-{path}-{uuid.uuid4().hex}'
-    for i in range(times):
-      self._create_mapping(
-          _fault_mapping(
-              path,
-              status_code,
-              delay_ms=delay_ms,
-              scenario_name=scenario_name,
-              required_state='Started' if i == 0 else f'step_{i}',
-              new_state=f'step_{i + 1}',
-          ))
+    self._fault_injector.inject_fault(
+        path=path,
+        status=status,
+        times=times,
+        delay_seconds=delay_seconds,
+        method=method,
+    )
 
   def clear_faults(self) -> None:
     """Removes every injected fault and runtime metadata override."""
     self._runtime_instance_attributes.clear()
+    self._fault_injector.clear_faults()
     self._reset_mappings()
 
 
