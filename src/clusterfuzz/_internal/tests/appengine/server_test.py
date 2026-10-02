@@ -19,7 +19,16 @@ import unittest
 
 from clusterfuzz._internal.tests.test_libs import helpers
 
-_SUBPROCESS_CODE = r'''
+# This regex is used to match modules excluded by .gcloudignore.
+# The module must begin with either a full module path or an empty string,
+# then must contain `name` and end immediately.
+# For instance, this avoids abc.github, github.xyz matching against git,
+# meanwhile it allows for clusterfuzz._internal.bot to match against _internal.bot.
+# This also ignores submodules whose parent module was already detected
+# from being detected as well.
+_REGEX_MODULE = r'(.+\.|^){name}$'
+
+_SUBPROCESS_CODE = '''
 import re
 import sys
 sys.path = {sys_path}  # List of string.
@@ -30,16 +39,11 @@ env.is_running_on_app_engine = lambda: True
 import server
 
 excluded_modules = {excluded_modules}  # List of string.
+REGEX_MODULE = r'{REGEX_MODULE}'  # String.
 return_code = 0
 
 for excluded in excluded_modules:
-  # The module must begin with either a full module path or an empty string,
-  # then must contain `excluded` and end immediately.
-  # For instance, this avoids abc.github, github.xyz matching against git,
-  # meanwhile it allows for clusterfuzz._internal.bot to match against _internal.bot.
-  # This also ignores submodules whose parent module was already detected
-  # from being detected as well.
-  pattern = re.compile(r'(.+\.|^)' + re.escape(excluded) + '$')
+  pattern = re.compile(REGEX_MODULE.format(name=re.escape(excluded)))
   for module in sys.modules:
     if pattern.match(module):
       print('SUBPROCESS_MARKER_STRING ' + module)
@@ -65,12 +69,14 @@ class ServerTest(unittest.TestCase):
     self.assertIsNotNone(server.cron_routes)
     self.assertIsNotNone(server.app)
 
-  def test_excluded_modules_import(self):
-    """Check for imports of modules excluded by .gcloudignore."""
-    # Parse .gcloudignore to figure out module names.
-    # It does not detect if some pattern actually matches a python module,
-    # it just treats every pattern as a possible module and assumes that,
-    # if they aren't, then the server will never import them as well.
+  def _get_gcloudignore_modules(self):
+    """Parse .gcloudignore to figure out module names.
+
+    It does not detect if some pattern actually matches a python module,
+    it just treats every pattern as a possible module and assumes that,
+    if they aren't, then the server will never import them as well.
+    """
+
     excluded_modules = []
     file_path = os.path.abspath(
         os.path.join('src', 'appengine', '.gcloudignore'))
@@ -88,8 +94,15 @@ class ServerTest(unittest.TestCase):
         line = line.strip('/').replace('/', '.')
         excluded_modules.append(line)
 
+    return excluded_modules
+
+  def test_excluded_modules_import(self):
+    """Check for imports of modules excluded by .gcloudignore."""
+    excluded_modules = self._get_gcloudignore_modules()
     code = _SUBPROCESS_CODE.format(
-        sys_path=str(sys.path), excluded_modules=str(excluded_modules))
+        sys_path=str(sys.path),
+        excluded_modules=str(excluded_modules),
+        REGEX_MODULE=_REGEX_MODULE)
 
     # Uses the same working directory and env vars as the current process.
     result = subprocess.run(
