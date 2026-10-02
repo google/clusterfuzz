@@ -210,3 +210,29 @@ class SwarmingAPITest(unittest.TestCase):
     self.mock.post_url.return_value = 'invalid json'
     with self.assertRaises(SwarmingApiError):
       self.api.push_task(swarming_pb2.NewTaskRequest())
+
+  def test_init_accepts_http_and_https_urls(self):
+    """Tests that SwarmingApi accepts valid http:// and https:// URLs."""
+    for server, expected_base_url in [
+        ('http://127.0.0.1:9014', 'http://127.0.0.1:9014'),
+        ('https://server-name/', 'https://server-name'),
+    ]:
+      mock_config = mock.MagicMock()
+      mock_config.get.return_value = server
+      api = SwarmingApi(mock_config)
+      self.assertEqual(api._base_url, expected_base_url)  # pylint: disable=protected-access
+
+  def test_init_rejects_malformed_swarming_server(self):
+    """Tests that SwarmingApi raises ValueError when swarming_server is malformed."""
+    for invalid_server in [
+        None,
+        '',
+        'server-name',
+        'ftp://server-name',
+        'http://',
+        'https://',
+    ]:
+      mock_config = mock.MagicMock()
+      mock_config.get.return_value = invalid_server
+      with self.assertRaises(ValueError):
+        SwarmingApi(mock_config)
