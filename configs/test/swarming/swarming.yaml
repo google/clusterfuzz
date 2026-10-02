@@ -89,7 +89,7 @@ mapping:
         value: 'VALUE1'
       - key: 'ENV_VAR2'
         value: 'VALUE2'
-swarming_server: 'server-name'
+swarming_server: 'https://server-name'
 swarming_pool: 'pool-name'
 swarming_realm: 'realm-name'
 logs_project_id: 'project_id'
