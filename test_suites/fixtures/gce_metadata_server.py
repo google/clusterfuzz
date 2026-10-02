@@ -53,6 +53,7 @@ server.
 """
 
 import contextlib
+from http import HTTPStatus
 import json
 import os
 import tempfile
@@ -65,6 +66,8 @@ from wiremock.client import MappingResponse
 from wiremock.client import Mappings
 from wiremock.constants import Config
 from wiremock.testing.testcontainer import wiremock_container
+
+from test_suites.fixtures.common import wiremock_faults
 
 _REQUEST_TIMEOUT = 5
 _DEFAULT_EXPIRES_IN_SECONDS = 3600
@@ -215,10 +218,23 @@ def _json_value_mapping(path: str,
 class MetadataEmulatorClient:
   """Talks to a running WireMock metadata emulator."""
 
-  def __init__(self, hostport: str, config: dict):
+  def __init__(
+      self,
+      hostport: str,
+      config: dict,
+      fault_injector: wiremock_faults.FaultInjector | None = None,
+  ):
     self.hostport = hostport
     self.admin_url = f'http://{hostport}/__admin'
     self._baseline_instance_attributes = set()
+    self._runtime_instance_attributes = set()
+    self._fault_injector = (
+        fault_injector or wiremock_faults.WireMockFaultInjector(
+            admin_url=self.admin_url,
+            path_prefix='/computeMetadata/v1/',
+            request_headers=_REQUIRED_HEADER_MATCHER,
+            response_headers=_TEXT_HEADERS,
+        ))
 
     # Loopback traffic must not be handed to an ambient http_proxy, which
     # would answer with its own error instead of reaching the emulator.
@@ -249,14 +265,6 @@ class MetadataEmulatorClient:
   def _create_mapping(self, mapping: Mapping) -> None:
     Config.base_url = self.admin_url
     Mappings.create_mapping(mapping)
-
-  def _all_mappings(self) -> list[Mapping]:
-    Config.base_url = self.admin_url
-    return Mappings.retrieve_all_mappings().mappings
-
-  def _delete_mapping(self, mapping_id: str) -> None:
-    Config.base_url = self.admin_url
-    Mappings.delete_mapping(mapping_id)
 
   def _reset_mappings(self) -> None:
     Config.base_url = self.admin_url
@@ -313,7 +321,10 @@ class MetadataEmulatorClient:
         _text_value_mapping(
             f'project/attributes/{key}', value, persistent=persistent))
 
-    if key not in self._baseline_instance_attributes:
+    overridden_on_instance = (
+        key in self._baseline_instance_attributes or
+        key in self._runtime_instance_attributes)
+    if not overridden_on_instance:
       self._create_mapping(
           _text_value_mapping(
               f'instance/attributes/{key}', value, persistent=persistent))
@@ -333,6 +344,8 @@ class MetadataEmulatorClient:
     """Sets 'instance/attributes/<key>', shadowing any project attribute."""
     if persistent:
       self._baseline_instance_attributes.add(key)
+    else:
+      self._runtime_instance_attributes.add(key)
     self._create_mapping(
         _text_value_mapping(
             f'instance/attributes/{key}', value, persistent=persistent))
@@ -396,6 +409,38 @@ class MetadataEmulatorClient:
         timeout=_REQUEST_TIMEOUT)
     response.raise_for_status()
     return response.text
+
+  def inject_fault(
+      self,
+      path: str,
+      status: int = HTTPStatus.INTERNAL_SERVER_ERROR,
+      times: int = 1,
+      delay_seconds: float = 0,
+      method: str = HttpMethods.GET,
+  ) -> None:
+    """Makes the emulator fail a metadata path.
+
+    Args:
+      path: A metadata path without the /computeMetadata/v1/ prefix.
+      status: The HTTP status to return.
+      times: How many requests to affect. 0 means indefinitely until
+        clear_faults() is called.
+      delay_seconds: How long the emulator should stall before responding.
+      method: HTTP method to match (defaults to HttpMethods.GET).
+    """
+    self._fault_injector.inject_fault(
+        path=path,
+        status=status,
+        times=times,
+        delay_seconds=delay_seconds,
+        method=method,
+    )
+
+  def clear_faults(self) -> None:
+    """Removes every injected fault and runtime metadata override."""
+    self._runtime_instance_attributes.clear()
+    self._fault_injector.clear_faults()
+    self._reset_mappings()
 
 
 def bootstrap() -> None:
