@@ -56,6 +56,84 @@ INVALID_REVISIONS = [
 ]
 
 
+class FormatRevisionListTest(unittest.TestCase):
+  """Tests for format_revision_list, focused on the escaping of
+  component/link_text/link_url -- these can come from a DEPS file's own
+  dependency keys and 'rev'/'url' string literals, which
+  deps_to_revisions_dict's AST-based parser restricts by *operation* (no
+  exec()), not by *content*. This is the same untrusted-content boundary
+  _get_revision_range_html in show.py escapes for its own fallback string,
+  since the result of this function is likewise bound with inner-h-t-m-l
+  there. No cloud emulator needed: this function is pure.
+  """
+
+  def test_escapes_malicious_component(self):
+    """A crafted DEPS dependency name/key must not inject markup."""
+    result = revisions.format_revision_list([{
+        'component': '"><script>alert(document.cookie)</script>',
+        'link_text': 'irrelevant',
+    }])
+    self.assertNotIn('<script>alert(document.cookie)</script>', result)
+    self.assertIn(
+        '&quot;&gt;&lt;script&gt;alert(document.cookie)&lt;/script&gt;',
+        result)
+
+  def test_escapes_malicious_link_text(self):
+    """A crafted 'rev' value must not inject markup via link_text."""
+    result = revisions.format_revision_list([{
+        'component': 'src/v8',
+        'link_text': '"><img src=x onerror=alert(1)>',
+    }])
+    self.assertNotIn('<img src=x onerror=alert(1)>', result)
+    self.assertIn('&quot;&gt;&lt;img src=x onerror=alert(1)&gt;', result)
+
+  def test_escapes_malicious_link_url_breakout(self):
+    """A crafted 'url' value must not be able to break out of the href
+    attribute it is placed in."""
+    result = revisions.format_revision_list([{
+        'component': 'src/v8',
+        'link_text': 'irrelevant',
+        'link_url': 'https://x/" onmouseover="alert(1)',
+    }])
+    self.assertNotIn('" onmouseover="alert(1)', result)
+    self.assertIn('&quot; onmouseover=&quot;alert(1)', result)
+
+  def test_escapes_ampersand_in_legitimate_url(self):
+    """A real query string, e.g. Gitiles' '?pretty=fuller&n=10000', must be
+    escaped to &amp; -- browsers decode this correctly when following the
+    link, so this does not break legitimate URLs."""
+    result = revisions.format_revision_list([{
+        'component': 'V8',
+        'link_text': 'abc123:def456',
+        'link_url': ('https://chromium.googlesource.com/v8/v8/+log/'
+                     'abc123..def456?pretty=fuller&n=10000'),
+    }])
+    self.assertIn('pretty=fuller&amp;n=10000', result)
+    self.assertNotIn('pretty=fuller&n=10000', result)
+
+  def test_use_html_false_is_unaffected(self):
+    """The plain-text path (use_html=False) is for non-HTML consumers and
+    must not be escaped."""
+    result = revisions.format_revision_list(
+        [{
+            'component': 'src/v8',
+            'link_text': 'abc123',
+        }], use_html=False)
+    self.assertEqual(result, 'src/v8: abc123\n')
+
+  def test_legitimate_case_still_renders_a_working_link(self):
+    """Confirms the fix does not break normal, non-malicious output."""
+    result = revisions.format_revision_list([{
+        'component': 'src/v8',
+        'link_text': 'abc123..def456',
+        'link_url': 'https://chromium.googlesource.com/v8/v8/+log/abc123..def456',
+    }])
+    self.assertEqual(
+        result, 'src/v8: <a target="_blank" '
+        'href="https://chromium.googlesource.com/v8/v8/+log/abc123..def456">'
+        'abc123..def456</a><br />')
+
+
 @test_utils.with_cloud_emulators('datastore')
 class RevisionsTestcase(unittest.TestCase):
   """Revisions tests."""
