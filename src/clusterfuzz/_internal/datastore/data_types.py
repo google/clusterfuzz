@@ -322,7 +322,9 @@ class Fuzzer(Model):
   # Supported platforms.
   supported_platforms = ndb.StringProperty()
 
-  # Custom script that should be used to launch chrome for this fuzzer.
+  # Custom script path (relative to archive root) used to launch the target
+  # binary when executing testcases. Distinct from executable_path, which runs
+  # the fuzzer itself. Not used for blackbox fuzzing.
   launcher_script = ndb.StringProperty()
 
   # Result from the last fuzzer run showing the number of testcases generated.
