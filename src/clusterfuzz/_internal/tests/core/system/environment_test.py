@@ -677,8 +677,10 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
                      environment.get_llvm_symbolizer_path())
 
   def test_build_symbolizer_wrong_arch(self):
-    """Test fallback to the default llvm-symbolizer when the build one can't be
-    executed (e.g. wrong architecture)."""
+    """Test fallback to the default llvm-symbolizer on OSError.
+
+    E.g. the build llvm-symbolizer was built for the wrong architecture.
+    """
     # macOS EBADARCH (not in the errno module on Linux): binary built for
     # another arch.
     self.mock.call.side_effect = OSError(86, 'Bad CPU type in executable')
