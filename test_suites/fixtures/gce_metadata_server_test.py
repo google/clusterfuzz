@@ -125,8 +125,7 @@ class TestGceMetadataEmulator:
     assert compute_metadata.is_gce()
 
   def test_unknown_attribute_is_a_404(self):
-    """Verifies that a key absent from both instance and project attributes is a
-    404."""
+    """Verifies that a key absent throws 404."""
     with pytest.raises(requests.exceptions.HTTPError) as caught:
       self.tworker.get('instance/attributes/does-not-exist')
 
