@@ -114,7 +114,7 @@ class TestSwarmingEmulator:
     )
     self.api = SwarmingApi.create()
     yield
-    self.swarming_server.reset_mappings()
+    self.swarming_server.reset_task_count()
 
   def test_default_task_counts_are_zero(self):
     """Verifies that all StateQuery counts start at 0."""
@@ -156,8 +156,8 @@ class TestSwarmingEmulator:
     assert response.task_id == 'fake-task-1'
     assert response.HasField('created_ts')
 
-  def test_reset_mappings_resets_counts_and_clears_errors(self):
-    """Verifies that reset_mappings() drops set_task_count() overrides and
+  def test_reset_task_count_resets_counts_and_clears_errors(self):
+    """Verifies that reset_task_count() drops set_task_count() overrides and
     injected errors: CountTasks serves 0 again and NewTask succeeds."""
     self.swarming_server.set_task_count(swarming_pb2.QUERY_PENDING, 5)
     self.swarming_server.inject_error(
@@ -166,7 +166,7 @@ class TestSwarmingEmulator:
         times=0,
     )
 
-    self.swarming_server.reset_mappings()
+    self.swarming_server.reset_task_count()
 
     pending = self.api.count_tasks(
         swarming_pb2.TasksCountRequest(state=swarming_pb2.QUERY_PENDING))
@@ -248,7 +248,7 @@ class TestSwarmingEmulator:
       self.api.push_task(_sample_new_task_request())
 
   def test_clear_errors_keeps_task_counts(self):
-    """Verifies that clear_errors(), unlike reset_mappings(), only removes the
+    """Verifies that clear_errors(), unlike reset_task_count(), only removes the
     injected errors: NewTask succeeds again and set_task_count() overrides are
     still served."""
     self.swarming_server.set_task_count(swarming_pb2.QUERY_PENDING, 3)
