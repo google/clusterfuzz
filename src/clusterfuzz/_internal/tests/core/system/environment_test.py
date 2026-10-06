@@ -666,12 +666,12 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
     self.mock.exists.return_value = True
 
   def test_build_symbolizer_works(self):
-    """Test that a working build llvm-symbolizer is used."""
+    """Test that a working packaged llvm-symbolizer is used."""
     self.mock.call.return_value = 0
     self.assertEqual('/build/llvm-symbolizer',
                      environment.get_llvm_symbolizer_path())
 
-  def test_build_symbolizer_fails(self):
+  def test_packaged_symbolizer_fails(self):
     """Test fallback to the default llvm-symbolizer on non-zero exit."""
     self.mock.call.return_value = 1
     self.assertEqual('/default/llvm-symbolizer',
@@ -681,7 +681,7 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
   def test_build_symbolizer_wrong_arch(self):
     """Test fallback to the default llvm-symbolizer on OSError.
 
-    E.g. the build llvm-symbolizer was built for the wrong architecture.
+    E.g. the packaged llvm-symbolizer was built for the wrong architecture.
     """
     # macOS EBADARCH (not in the errno module on Linux): binary built for
     # another arch.
