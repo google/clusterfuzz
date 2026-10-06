@@ -67,7 +67,7 @@ from wiremock.client import Mappings
 from wiremock.constants import Config
 from wiremock.testing.testcontainer import wiremock_container
 
-from test_suites.fixtures.common import wiremock_faults
+from test_suites.fixtures.common import wiremock_errors
 
 _REQUEST_TIMEOUT = 5
 _DEFAULT_EXPIRES_IN_SECONDS = 3600
@@ -222,14 +222,14 @@ class MetadataEmulatorClient:
       self,
       hostport: str,
       config: dict,
-      fault_injector: wiremock_faults.FaultInjector | None = None,
+      error_injector: wiremock_errors.ErrorInjector | None = None,
   ):
     self.hostport = hostport
     self.admin_url = f'http://{hostport}/__admin'
     self._baseline_instance_attributes = set()
     self._runtime_instance_attributes = set()
-    self._fault_injector = (
-        fault_injector or wiremock_faults.WireMockFaultInjector(
+    self._error_injector = (
+        error_injector or wiremock_errors.WireMockErrorInjector(
             admin_url=self.admin_url,
             path_prefix='/computeMetadata/v1/',
             request_headers=_REQUIRED_HEADER_MATCHER,
@@ -410,7 +410,7 @@ class MetadataEmulatorClient:
     response.raise_for_status()
     return response.text
 
-  def inject_fault(
+  def inject_error(
       self,
       path: str,
       status: int = HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -424,11 +424,11 @@ class MetadataEmulatorClient:
       path: A metadata path without the /computeMetadata/v1/ prefix.
       status: The HTTP status to return.
       times: How many requests to affect. 0 means indefinitely until
-        clear_faults() is called.
+        clear_errors() is called.
       delay_seconds: How long the emulator should stall before responding.
       method: HTTP method to match (defaults to HttpMethods.GET).
     """
-    self._fault_injector.inject_fault(
+    self._error_injector.inject_error(
         path=path,
         status=status,
         times=times,
@@ -436,10 +436,10 @@ class MetadataEmulatorClient:
         method=method,
     )
 
-  def clear_faults(self) -> None:
-    """Removes every injected fault and runtime metadata override."""
+  def clear_errors(self) -> None:
+    """Removes every injected error and runtime metadata override."""
     self._runtime_instance_attributes.clear()
-    self._fault_injector.clear_faults()
+    self._error_injector.clear_errors()
     self._reset_mappings()
 
 

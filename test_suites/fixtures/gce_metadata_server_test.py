@@ -52,8 +52,8 @@ class TestGceMetadataEmulator:
   @pytest.fixture(autouse=True)
   def clean_up_after_each_test(self):
     yield
-    self.tworker.clear_faults()
-    self.uworker.clear_faults()
+    self.tworker.clear_errors()
+    self.uworker.clear_errors()
 
   def test_default_credentials_come_from_the_trusted_emulator(self):
     """Verifies that google.auth.default() resolves Compute Engine credentials
@@ -176,9 +176,9 @@ class TestGceMetadataEmulator:
       with gce_metadata_server.untrusted_as_default():
         pass
 
-  def test_a_fault_stops_after_the_configured_request_count(self):
-    """Verifies that a fault budgeted for one request breaks only that one."""
-    self.tworker.inject_fault('instance/zone', status=500, times=1)
+  def test_an_error_stops_after_the_configured_request_count(self):
+    """Verifies that an error budgeted for one request breaks only that one."""
+    self.tworker.inject_error('instance/zone', status=500, times=1)
 
     with pytest.raises(requests.exceptions.HTTPError) as caught:
       self.tworker.get('instance/zone')
@@ -187,15 +187,15 @@ class TestGceMetadataEmulator:
     assert self.tworker.get('instance/zone') == (
         'projects/1234567890/zones/us-central1-f')
 
-  def test_compute_metadata_get_retries_itself_past_transient_faults(self):
+  def test_compute_metadata_get_retries_itself_past_transient_errors(self):
     """Verifies that get() retries itself, and only fails past its budget."""
     budget = compute_metadata._RETRIES  # pylint: disable=protected-access
 
-    self.tworker.inject_fault('instance/zone', status=500, times=budget)
+    self.tworker.inject_error('instance/zone', status=500, times=budget)
     assert compute_metadata.get('instance/zone') == (
         'projects/1234567890/zones/us-central1-f')
 
-    self.tworker.inject_fault('instance/zone', status=500, times=budget + 1)
+    self.tworker.inject_error('instance/zone', status=500, times=budget + 1)
     with pytest.raises(requests.exceptions.HTTPError) as caught:
       compute_metadata.get('instance/zone')
     assert caught.value.response.status_code == 500

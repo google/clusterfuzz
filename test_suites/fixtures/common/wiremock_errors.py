@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Shared WireMock fault injection for service emulators."""
+"""Shared WireMock error injection for service emulators."""
 
 import abc
 from http import HTTPStatus
@@ -29,11 +29,11 @@ _DEFAULT_RESPONSE_HEADERS = {
 }
 
 
-class FaultInjector(abc.ABC):
-  """Interface for injecting and clearing HTTP faults in service emulators."""
+class ErrorInjector(abc.ABC):
+  """Interface for injecting and clearing HTTP errors in service emulators."""
 
   @abc.abstractmethod
-  def inject_fault(
+  def inject_error(
       self,
       path: str,
       status: int = HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -44,12 +44,12 @@ class FaultInjector(abc.ABC):
     """Makes the emulator fail requests to path."""
 
   @abc.abstractmethod
-  def clear_faults(self) -> None:
-    """Removes every injected fault."""
+  def clear_errors(self) -> None:
+    """Removes every injected error."""
 
 
-class WireMockFaultInjector(FaultInjector):
-  """Injects and clears HTTP faults in a running WireMock container."""
+class WireMockErrorInjector(ErrorInjector):
+  """Injects and clears HTTP errors in a running WireMock container."""
 
   def __init__(
       self,
@@ -75,7 +75,7 @@ class WireMockFaultInjector(FaultInjector):
     Config.base_url = self._admin_url
     Mappings.delete_mapping(mapping_id)
 
-  def _fault_mapping(
+  def _error_mapping(
       self,
       path: str,
       status_code: int,
@@ -85,7 +85,7 @@ class WireMockFaultInjector(FaultInjector):
       required_state: str | None = None,
       new_state: str | None = None,
   ) -> Mapping:
-    """Returns a non-persistent Mapping that injects an HTTP fault for path."""
+    """Returns a non-persistent Mapping that injects an HTTP error for path."""
     request_kwargs: dict = {
         'method': method,
         'url_path': f'{self._path_prefix}{path}',
@@ -95,7 +95,7 @@ class WireMockFaultInjector(FaultInjector):
 
     response_kwargs: dict = {
         'status': status_code,
-        'body': f'injected fault for {path}\n',
+        'body': f'injected error for {path}\n',
         'headers': self._response_headers,
     }
     if delay_ms is not None:
@@ -107,21 +107,21 @@ class WireMockFaultInjector(FaultInjector):
         required_scenario_state=required_state,
         new_scenario_state=new_state,
         metadata={
-            'fault': True,
-            'fault_path': path,
+            'error': True,
+            'error_path': path,
         },
         request=MappingRequest(**request_kwargs),
         response=MappingResponse(**response_kwargs),
     )
 
-  def _remove_existing_faults_for_path(self, path: str) -> None:
-    """Removes any active fault mappings targeting path."""
+  def _remove_existing_errors_for_path(self, path: str) -> None:
+    """Removes any active error mappings targeting path."""
     for mapping in self._all_mappings():
       metadata = mapping.metadata or {}
-      if metadata.get('fault') and metadata.get('fault_path') == path:
+      if metadata.get('error') and metadata.get('error_path') == path:
         self._delete_mapping(mapping.id)
 
-  def inject_fault(
+  def inject_error(
       self,
       path: str,
       status: int = HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -135,7 +135,7 @@ class WireMockFaultInjector(FaultInjector):
       path: Endpoint path (relative to path_prefix if configured).
       status: The HTTP status to return.
       times: How many requests to affect. 0 means indefinitely until
-        clear_faults() is called.
+        clear_errors() is called.
       delay_seconds: How long the emulator should stall before responding.
       method: HTTP method to match (defaults to HttpMethods.ANY).
     """
@@ -144,18 +144,18 @@ class WireMockFaultInjector(FaultInjector):
     if times < 0:
       raise ValueError(f'times must be >= 0, got {times}')
 
-    self._remove_existing_faults_for_path(path)
+    self._remove_existing_errors_for_path(path)
 
     if times == 0:
       self._create_mapping(
-          self._fault_mapping(
+          self._error_mapping(
               path, status_code, method=method, delay_ms=delay_ms))
       return
 
-    scenario_name = f'fault-{path}-{uuid.uuid4().hex}'
+    scenario_name = f'error-{path}-{uuid.uuid4().hex}'
     for i in range(times):
       self._create_mapping(
-          self._fault_mapping(
+          self._error_mapping(
               path,
               status_code,
               method=method,
@@ -165,9 +165,9 @@ class WireMockFaultInjector(FaultInjector):
               new_state=f'step_{i + 1}',
           ))
 
-  def clear_faults(self) -> None:
-    """Removes every injected fault mapping."""
+  def clear_errors(self) -> None:
+    """Removes every injected error mapping."""
     for mapping in self._all_mappings():
       metadata = mapping.metadata or {}
-      if metadata.get('fault'):
+      if metadata.get('error'):
         self._delete_mapping(mapping.id)
