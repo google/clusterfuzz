@@ -376,7 +376,7 @@ def get_sanitizer_options_for_display():
 def get_llvm_symbolizer_path():
   """Get the path of the llvm-symbolizer binary."""
   # Imported here to avoid a circular import (logs imports environment).
-  # TODO(crbug.com/570547357): Find a cleaner solutionto handle logs in this
+  # TODO(crbug.com/570547357): Find a cleaner solution to handle logs in this
   # function/module.
   from clusterfuzz._internal.metrics import logs
 
