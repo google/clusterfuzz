@@ -60,23 +60,8 @@ _TEXT_HEADERS = {
     'Content-Type': 'text/plain; charset=utf-8',
 }
 
-_ALL_QUERY_STATES: list[swarming_pb2.StateQuery.ValueType] = [
-    swarming_pb2.QUERY_PENDING,
-    swarming_pb2.QUERY_RUNNING,
-    swarming_pb2.QUERY_PENDING_RUNNING,
-    swarming_pb2.QUERY_COMPLETED,
-    swarming_pb2.QUERY_COMPLETED_SUCCESS,
-    swarming_pb2.QUERY_COMPLETED_FAILURE,
-    swarming_pb2.QUERY_EXPIRED,
-    swarming_pb2.QUERY_TIMED_OUT,
-    swarming_pb2.QUERY_BOT_DIED,
-    swarming_pb2.QUERY_CANCELED,
-    swarming_pb2.QUERY_ALL,
-    swarming_pb2.QUERY_DEDUPED,
-    swarming_pb2.QUERY_KILLED,
-    swarming_pb2.QUERY_NO_RESOURCE,
-    swarming_pb2.QUERY_CLIENT_ERROR,
-]
+_ALL_QUERY_STATES: list[
+    swarming_pb2.StateQuery.ValueType] = swarming_pb2.StateQuery.values()
 
 
 def _now_timestamp() -> timestamp_pb2.Timestamp:
@@ -242,7 +227,7 @@ class SwarmingEmulatorClient:
       _add_count_tasks(self.admin_url, task_state, count=0, persistent=True)
     _add_new_task(self.admin_url, persistent=True)
 
-  def reset_mappings(self) -> None:
+  def reset_task_count(self) -> None:
     """Clears all non-persistent mappings and resets task counts to 0."""
     for task_state in _ALL_QUERY_STATES:
       self._task_counts[task_state] = 0
