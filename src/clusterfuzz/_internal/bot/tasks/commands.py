@@ -323,7 +323,7 @@ def process_command_impl(task_name,
 
     job_base_queue_suffix = tasks.queue_suffix_for_platform(
         environment.base_platform(job.platform))
-    bot_platform = environment.platform().lower()
+    bot_platform = environment.get_platform_group().lower()
     bot_base_queue_suffix = tasks.queue_suffix_for_platform(
         environment.base_platform(bot_platform))
 

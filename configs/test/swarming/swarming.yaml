@@ -89,6 +89,38 @@ mapping:
         value: 'VALUE1'
       - key: 'ENV_VAR2'
         value: 'VALUE2'
+  MAC_ARM64:
+    priority: 1
+    command:
+      - 'luci-auth'
+      - 'context'
+      - '--'
+      - './mac_entry_point.sh'
+    cas_input_root:
+      cas_instance: 'projects/server-name/instances/instance_name'
+      digest:
+        hash: 'mac_entry_point_archive_hash'
+        size_bytes: 456
+    service_account_email: test-clusterfuzz-service-account-email
+    preemptible: false
+    expiration_secs: 86400
+    execution_timeout_secs: 86400
+    cipd_input:
+      packages:
+        - package_name: 'package1_name'
+          version: 'package1_version'
+          path: 'package_install_path'
+    env_prefixes:
+      - key: 'PATH'
+        value:
+          - 'package_install_path'
+          - 'package_install_path/bin'
+    dimensions:
+      - key: 'cpu'
+        value: 'arm64'
+    env:
+      - key: 'QUEUE_OVERRIDE'
+        value: 'MAC_ARM64'
 swarming_server: 'server-name'
 swarming_pool: 'pool-name'
 swarming_realm: 'realm-name'
