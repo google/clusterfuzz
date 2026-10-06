@@ -285,7 +285,7 @@ class SwarmingEmulatorClient:
         constants.COUNT_TASKS_ENDPOINT or constants.NEW_TASK_ENDPOINT).
       status: The HTTP status to return.
       times: How many requests to affect. 0 means indefinitely until
-        clear_errors() or reset_mappings() is called.
+        clear_errors() or reset_task_count() is called.
       delay_seconds: How long the emulator should stall before responding.
       method: HTTP method to match (defaults to HttpMethods.POST).
 
