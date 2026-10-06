@@ -241,6 +241,99 @@ class TrackFuzzTimeTest(unittest.TestCase):
     self._test(True)
 
 
+class TrackSyncCorpusTimeTest(unittest.TestCase):
+  """Test SYNC_CORPUS_TIME metric emission during corpus sync."""
+
+  def setUp(self):
+    monitor.metrics_store().reset_for_testing()
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus',
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.system.environment.get_runtime',
+        'time.time',
+    ])
+    self.mock.platform.return_value = 'some_platform'
+    self.mock.get_runtime.return_value = (
+        environment.UtaskMainRuntime.KATA_CONTAINER)
+    self.mock_time = helpers.MockTime(start_time=10.0)
+    self.mock.time.side_effect = self.mock_time.time
+
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name='libFuzzer',
+        job_type='libfuzzer_asan_test',
+        fuzz_task_input=uworker_msg_pb2.FuzzTaskInput())
+    self.session = fuzz_task.FuzzingSession(uworker_input, 10)
+    self.session.fuzz_target = data_types.FuzzTarget(
+        engine='libFuzzer', binary='test_target')
+    self.session.data_directory = '/data'
+
+  def _get_metric(self, success, is_upload):
+    return monitoring_metrics.SYNC_CORPUS_TIME.get({
+        'fuzzer': 'libFuzzer_test_target',
+        'platform': 'some_platform',
+        'runtime': 'kata_container',
+        'success': success,
+        'is_upload': is_upload,
+    })
+
+  def test_sync_corpus_success(self):
+    """Test metric recorded when sync_corpus succeeds."""
+
+    def sync_side_effect():
+      self.mock_time.advance(5.8)
+      return True
+
+    self.mock.GcsCorpus.return_value.sync_from_gcs.side_effect = (
+        sync_side_effect)
+
+    self.session.sync_corpus('/corpus')
+    self.assertEqual(5, self._get_metric(success=True, is_upload=False))
+
+  def test_sync_corpus_failure(self):
+    """Test metric recorded when sync_corpus fails and raises FuzzTaskError."""
+
+    def sync_side_effect():
+      self.mock_time.advance(5.8)
+      return False
+
+    self.mock.GcsCorpus.return_value.sync_from_gcs.side_effect = (
+        sync_side_effect)
+
+    with self.assertRaises(fuzz_task.FuzzTaskError):
+      self.session.sync_corpus('/corpus')
+
+    self.assertEqual(5, self._get_metric(success=False, is_upload=False))
+
+  def test_sync_new_corpus_files_success(self):
+    """Test metric recorded when sync_new_corpus_files succeeds."""
+    self.session.gcs_corpus = mock.MagicMock()
+    self.session.gcs_corpus.get_new_files.return_value = []
+
+    def upload_side_effect(_):
+      self.mock_time.advance(5.8)
+      return [True, True]
+
+    self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
+
+    self.session.sync_new_corpus_files()
+    self.assertEqual(5, self._get_metric(success=True, is_upload=True))
+
+  def test_sync_new_corpus_files_failure(self):
+    """Test metric recorded when sync_new_corpus_files fails."""
+    self.session.gcs_corpus = mock.MagicMock()
+    self.session.gcs_corpus.get_new_files.return_value = []
+
+    def upload_side_effect(_):
+      self.mock_time.advance(5.8)
+      return [True, False]
+
+    self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
+
+    self.session.sync_new_corpus_files()
+    self.assertEqual(5, self._get_metric(success=False, is_upload=True))
+
+
 class GetFuzzerMetadataFromOutputTest(unittest.TestCase):
   """Test get_fuzzer_metadata_from_output."""
 
