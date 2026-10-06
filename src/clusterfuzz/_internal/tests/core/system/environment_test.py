@@ -655,6 +655,7 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.warning',
         'clusterfuzz._internal.system.environment.get_default_tool_path',
         'os.chmod',
         'os.path.exists',
@@ -675,6 +676,7 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
     self.mock.call.return_value = 1
     self.assertEqual('/default/llvm-symbolizer',
                      environment.get_llvm_symbolizer_path())
+    self.mock.warning.assert_called_once()
 
   def test_build_symbolizer_wrong_arch(self):
     """Test fallback to the default llvm-symbolizer on OSError.
@@ -686,3 +688,4 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
     self.mock.call.side_effect = OSError(86, 'Bad CPU type in executable')
     self.assertEqual('/default/llvm-symbolizer',
                      environment.get_llvm_symbolizer_path())
+    self.mock.warning.assert_called_once()
