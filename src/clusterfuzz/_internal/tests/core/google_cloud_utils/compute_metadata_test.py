@@ -13,58 +13,84 @@
 # limitations under the License.
 """Unit tests for compute_metadata."""
 
+import contextlib
+import http.server
 import importlib
 import os
-import socket
+import threading
 import unittest
 from unittest import mock
 
 from clusterfuzz._internal.google_cloud_utils import compute_metadata
 
 
-class ComputeMetadataTest(unittest.TestCase):
-  """Tests for compute_metadata host and port resolution."""
+@contextlib.contextmanager
+def _metadata_server(paths):
+  """Runs a local HTTP metadata server serving 200 only for |paths|."""
 
-  def test_host_port_split(self):
-    """Verifies that _metadata_host_port() defaults to port 80 for bare hostnames and parses explicit host:port values."""
-    with mock.patch.object(compute_metadata, '_METADATA_SERVER',
-                           'metadata.google.internal'):
-      host, port = compute_metadata._metadata_host_port()  # pylint: disable=protected-access
-      self.assertEqual('metadata.google.internal', host)
-      self.assertEqual(80, port)
+  class Handler(http.server.BaseHTTPRequestHandler):
+    """Serves the configured metadata paths and 404s everything else."""
 
-    with mock.patch.object(compute_metadata, '_METADATA_SERVER',
-                           '127.0.0.1:41234'):
-      host, port = compute_metadata._metadata_host_port()  # pylint: disable=protected-access
-      self.assertEqual('127.0.0.1', host)
-      self.assertEqual(41234, port)
+    def do_GET(self):  # pylint: disable=invalid-name
+      """Handles a metadata GET request."""
+      path = self.path.removeprefix('/computeMetadata/v1/')
+      if path in paths:
+        body = paths[path].encode()
+        self.send_response(200)
+        self.send_header('Metadata-Flavor', 'Google')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+      else:
+        self.send_error(404)
 
-  def test_host_port_split_ipv6(self):
-    """Verifies that _metadata_host_port() strips brackets from IPv6 hosts and parses an optional port."""
-    with mock.patch.object(compute_metadata, '_METADATA_SERVER',
-                           '[fd20:ce::254]'):
-      host, port = compute_metadata._metadata_host_port()  # pylint: disable=protected-access
-      self.assertEqual('fd20:ce::254', host)
-      self.assertEqual(80, port)
+    def log_message(self, *args):  # pylint: disable=arguments-differ
+      pass
 
-    with mock.patch.object(compute_metadata, '_METADATA_SERVER', '[::1]:41234'):
-      host, port = compute_metadata._metadata_host_port()  # pylint: disable=protected-access
-      self.assertEqual('::1', host)
-      self.assertEqual(41234, port)
+  server = http.server.HTTPServer(('127.0.0.1', 0), Handler)
+  thread = threading.Thread(target=server.serve_forever, daemon=True)
+  thread.start()
+  try:
+    host = f'127.0.0.1:{server.server_address[1]}'
+    # Avoid routing localhost through any HTTP(S)_PROXY set on the machine.
+    with mock.patch.dict(os.environ, {'NO_PROXY': '127.0.0.1',
+                                      'no_proxy': '127.0.0.1'}), \
+        mock.patch.object(compute_metadata, '_METADATA_URL',
+                          f'http://{host}/computeMetadata/v1/'):
+      yield
+  finally:
+    server.shutdown()
+    server.server_close()
+    thread.join()
 
-  def test_is_gce_on_non_default_port(self):
-    """Verifies that compute_metadata.is_gce() connects to the port in _METADATA_SERVER rather than hardcoding port 80."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
-      listener.bind(('127.0.0.1', 0))
-      listener.listen(1)
-      port = listener.getsockname()[1]
 
-      with mock.patch.object(compute_metadata, '_METADATA_SERVER',
-                             f'127.0.0.1:{port}'):
-        self.assertTrue(compute_metadata.is_gce())
+class IsGceTest(unittest.TestCase):
+  """Tests for is_gce()."""
 
-    with mock.patch.object(compute_metadata, '_METADATA_SERVER', '127.0.0.1:1'):
+  def test_real_metadata_server(self):
+    """Verifies that a server returning instance/id is treated as GCE."""
+    with _metadata_server({'instance/id': '1234'}):
+      self.assertTrue(compute_metadata.is_gce())
+
+  def test_token_only_emulator(self):
+    """Verifies that a token-only emulator (e.g. LUCI's local auth server
+    exported via GCE_METADATA_HOST on Swarming) is not treated as GCE."""
+    with _metadata_server({
+        'project/project-id': 'none',
+        'instance/name': 'lin-19-h709',
+        'instance/service-accounts/default/token': '{}',
+    }):
       self.assertFalse(compute_metadata.is_gce())
+
+  def test_unreachable_server(self):
+    """Verifies that an unreachable metadata server is not treated as GCE."""
+    with mock.patch.object(compute_metadata, '_METADATA_URL',
+                           'http://127.0.0.1:1/computeMetadata/v1/'):
+      self.assertFalse(compute_metadata.is_gce())
+
+
+class MetadataHostTest(unittest.TestCase):
+  """Tests for GCE_METADATA_HOST handling."""
 
   def test_gce_metadata_host_env_override(self):
     """Verifies that GCE_METADATA_HOST overrides the default metadata server and URL."""

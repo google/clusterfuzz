@@ -14,8 +14,6 @@
 """GCE metadata."""
 
 import os
-import socket
-from urllib.parse import urlsplit
 
 import requests
 
@@ -30,6 +28,11 @@ _METADATA_URL = 'http://{}/computeMetadata/v1/'.format(_METADATA_SERVER)
 
 _RETRIES = 3
 _DELAY = 1
+
+# Probed by is_gce(). Real GCE always serves it; LUCI's token-only emulator
+# does not.
+_GCE_PROBE_PATH = 'instance/id'
+_GCE_PROBE_TIMEOUT = 5
 
 
 def _get_raw(path, timeout=None):
@@ -53,21 +56,17 @@ def get(path):
   return _get_raw(path)
 
 
-def _metadata_host_port():
-  """Splits _METADATA_SERVER into (host, port), defaulting to port 80."""
-  parsed = urlsplit('//' + _METADATA_SERVER)
-  return parsed.hostname, parsed.port or 80
-
-
 def is_gce():
-  """Return whether or not we're on GCE."""
+  """Return whether or not we're on GCE.
+
+  A TCP connection to the metadata server is not enough: LUCI's local auth
+  server (exported by Swarming through GCE_METADATA_HOST) only emulates the
+  token endpoints. Require an instance value that real GCE always serves.
+  """
   try:
-    host, port = _metadata_host_port()
-    logs.info(f'Connecting to metadata server at {host}:{port}')
-    sock = socket.create_connection((host, port))
-    sock.close()
+    _get_raw(_GCE_PROBE_PATH, timeout=_GCE_PROBE_TIMEOUT)
   except Exception as e:
-    logs.info(f'Bot not marked as GCE: {e}')
+    logs.info(f'Bot not marked as GCE ({_METADATA_URL}): {e}')
     return False
 
   return True
