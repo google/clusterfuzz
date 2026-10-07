@@ -16,6 +16,7 @@
 
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from handlers import base_handler
+from libs import access
 from libs import helpers
 
 
@@ -25,6 +26,15 @@ class Handler(base_handler.Handler):
   def get(self, testcase_id=None):
     """Redirect user to the correct URL."""
     testcase = helpers.get_testcase(testcase_id)
+
+    # Do not disclose the existence or identifiers of a security-confidential
+    # testcase to a user who is not allowed to access it. The same policy is
+    # applied to crash queries and to testcase downloads. Testcases that are
+    # not security-confidential keep redirecting without a session, which is
+    # what this handler exists for (crbug.com/665652).
+    if testcase.security_flag and not access.can_user_access_testcase(testcase):
+      raise helpers.AccessDeniedError()
+
     issue_url = helpers.get_or_exit(
         lambda: issue_tracker_utils.get_issue_url(testcase),
         'Issue tracker for testcase (id=%s) is not found.' % testcase_id,
