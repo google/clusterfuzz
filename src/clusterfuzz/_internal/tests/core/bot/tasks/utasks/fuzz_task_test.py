@@ -332,6 +332,61 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     self.session.sync_new_corpus_files()
     self.assertEqual(5, self._get_metric(success=False))
 
+  def _patch_preprocess(self):
+    """Patch dependencies of _utask_preprocess."""
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
+        'clusterfuzz._internal.bot.tasks.trials.preprocess_get_db_trials',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._preprocess_get_fuzz_target',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.preprocess_store_fuzzer_run_results',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task_knobs.do_multiarmed_bandit_strategy_selection',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.entity_to_protobuf',
+        'clusterfuzz._internal.datastore.data_handler.get_project_name',
+        'clusterfuzz._internal.fuzzing.corpus_manager.get_fuzz_target_corpus',
+        'clusterfuzz._internal.google_cloud_utils.blobs.generate_new_blob_name',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
+    ])
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = (
+        uworker_msg_pb2.SetupInput())
+    self.mock.entity_to_protobuf.return_value = (
+        uworker_msg_pb2.FuzzTaskInput().fuzz_target)
+    self.mock.get_project_name.return_value = 'test_project'
+    self.mock._preprocess_get_fuzz_target.return_value = (
+        self.session.fuzz_target)
+    self.mock.preprocess_get_db_trials.return_value = []
+    self.mock.generate_new_blob_name.return_value = 'blob_key'
+    self.mock.get_signed_upload_url.return_value = 'https://signed_url'
+
+  def test_preprocess_sync_corpus_success(self):
+    """Test metric recorded during _utask_preprocess when getting corpus."""
+    self._patch_preprocess()
+
+    def get_corpus_side_effect(*args, **kwargs):  # pylint: disable=unused-argument
+      self.mock_time.advance(5.8)
+      mock_corpus = mock.MagicMock()
+      mock_corpus.serialize.return_value = uworker_msg_pb2.FuzzTargetCorpus()
+      return mock_corpus
+
+    self.mock.get_fuzz_target_corpus.side_effect = get_corpus_side_effect
+
+    fuzz_task._utask_preprocess('libFuzzer', 'libfuzzer_asan_test', {})
+    self.assertEqual(5, self._get_metric(success=True))
+
+  def test_preprocess_sync_corpus_failure(self):
+    """Test metric recorded when get_fuzz_target_corpus raises in preprocess."""
+    self._patch_preprocess()
+
+    def get_corpus_side_effect(*args, **kwargs):  # pylint: disable=unused-argument
+      self.mock_time.advance(5.8)
+      raise RuntimeError('GCS failure')
+
+    self.mock.get_fuzz_target_corpus.side_effect = get_corpus_side_effect
+
+    with self.assertRaises(RuntimeError):
+      fuzz_task._utask_preprocess('libFuzzer', 'libfuzzer_asan_test', {})
+
+    self.assertEqual(5, self._get_metric(success=False))
+
 
 class GetFuzzerMetadataFromOutputTest(unittest.TestCase):
   """Test get_fuzzer_metadata_from_output."""
