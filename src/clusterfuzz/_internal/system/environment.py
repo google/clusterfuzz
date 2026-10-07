@@ -375,23 +375,42 @@ def get_sanitizer_options_for_display():
 
 def get_llvm_symbolizer_path():
   """Get the path of the llvm-symbolizer binary."""
+  # Imported here to avoid a circular import (logs imports environment).
+  # TODO(crbug.com/570547357): Find a cleaner solution to handle logs in this
+  # function/module.
+  from clusterfuzz._internal.metrics import logs
+
   llvm_symbolizer_path = get_value('LLVM_SYMBOLIZER_PATH')
 
   if llvm_symbolizer_path and os.path.exists(llvm_symbolizer_path):
     # Make sure that llvm symbolizer binary is executable.
     os.chmod(llvm_symbolizer_path, 0o750)
 
-    return_code = subprocess.call(
-        [llvm_symbolizer_path, '--help'],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL)
+    try:
+      return_code = subprocess.call(
+          [llvm_symbolizer_path, '--help'],
+          stdout=subprocess.DEVNULL,
+          stderr=subprocess.DEVNULL)
+    except OSError as e:
+      # E.g. the binary was built for the wrong architecture.
+      logs.warning(f'Failed to execute build llvm-symbolizer at '
+                   f'{llvm_symbolizer_path}, falling back to the default '
+                   f'one. Exception: {e}')
+      return_code = None
+
     if return_code == 0:
       # llvm-symbolize works, return it.
       return llvm_symbolizer_path
 
+    if return_code is not None:
+      logs.warning(f'Failed to execute build llvm-symbolizer at '
+                   f'{llvm_symbolizer_path}, falling back to the default '
+                   f'one. Return code: {return_code}')
+
   # Either
   # 1. llvm-symbolizer was not found in build archive. OR
-  # 2. llvm-symbolizer fails due to dependency issue, clang regression, etc.
+  # 2. llvm-symbolizer fails due to dependency issue, clang regression, wrong
+  #    architecture, etc.
   # So, use our own version of llvm-symbolizer.
   llvm_symbolizer_path = get_default_tool_path('llvm-symbolizer')
 
