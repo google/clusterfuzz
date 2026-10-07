@@ -29,11 +29,6 @@ _METADATA_URL = 'http://{}/computeMetadata/v1/'.format(_METADATA_SERVER)
 _RETRIES = 3
 _DELAY = 1
 
-# Probed by is_gce(). Real GCE always serves it; LUCI's token-only emulator
-# does not.
-_GCE_PROBE_PATH = 'instance/id'
-_GCE_PROBE_TIMEOUT = 5
-
 
 def _get_raw(path, timeout=None):
   """Internal helper to get metadata without retries."""
@@ -59,12 +54,11 @@ def get(path):
 def is_gce():
   """Return whether or not we're on GCE.
 
-  A TCP connection to the metadata server is not enough: LUCI's local auth
-  server (exported by Swarming through GCE_METADATA_HOST) only emulates the
-  token endpoints. Require an instance value that real GCE always serves.
+  A TCP connection to the metadata server is not enough, so we
+  Require an instance value that real GCE always serves.
   """
   try:
-    _get_raw(_GCE_PROBE_PATH, timeout=_GCE_PROBE_TIMEOUT)
+    _get_raw('instance/id', timeout=5)
   except Exception as e:
     logs.info(f'Bot not marked as GCE ({_METADATA_URL}): {e}')
     return False
