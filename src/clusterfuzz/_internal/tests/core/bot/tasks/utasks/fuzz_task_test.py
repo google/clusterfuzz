@@ -268,13 +268,12 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
         engine='libFuzzer', binary='test_target')
     self.session.data_directory = '/data'
 
-  def _get_metric(self, success, is_upload):
+  def _get_metric(self, success):
     return monitoring_metrics.SYNC_CORPUS_TIME.get({
         'fuzzer': 'libFuzzer_test_target',
         'platform': 'some_platform',
         'runtime': 'kata_container',
         'success': success,
-        'is_upload': is_upload,
     })
 
   def test_sync_corpus_success(self):
@@ -288,7 +287,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
         sync_side_effect)
 
     self.session.sync_corpus('/corpus')
-    self.assertEqual(5, self._get_metric(success=True, is_upload=False))
+    self.assertEqual(5, self._get_metric(success=True))
 
   def test_sync_corpus_failure(self):
     """Test metric recorded when sync_corpus fails and raises FuzzTaskError."""
@@ -303,7 +302,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     with self.assertRaises(fuzz_task.FuzzTaskError):
       self.session.sync_corpus('/corpus')
 
-    self.assertEqual(5, self._get_metric(success=False, is_upload=False))
+    self.assertEqual(5, self._get_metric(success=False))
 
   def test_sync_new_corpus_files_success(self):
     """Test metric recorded when sync_new_corpus_files succeeds."""
@@ -317,7 +316,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
 
     self.session.sync_new_corpus_files()
-    self.assertEqual(5, self._get_metric(success=True, is_upload=True))
+    self.assertEqual(5, self._get_metric(success=True))
 
   def test_sync_new_corpus_files_failure(self):
     """Test metric recorded when sync_new_corpus_files fails."""
@@ -331,7 +330,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
 
     self.session.sync_new_corpus_files()
-    self.assertEqual(5, self._get_metric(success=False, is_upload=True))
+    self.assertEqual(5, self._get_metric(success=False))
 
 
 class GetFuzzerMetadataFromOutputTest(unittest.TestCase):

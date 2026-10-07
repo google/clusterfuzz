@@ -96,6 +96,9 @@ def _create_time_series(name: str, time_series: List[_TimeSeries]):
 class _MockMetric:
   """Mock metric object, used for when monitoring isn't available."""
 
+  def __init__(self, expected_class=None):
+    self.expected_class = expected_class
+
   def _mock_method(self, *args, **kwargs):  # pylint: disable=unused-argument
     pass
 
@@ -584,6 +587,51 @@ class _CumulativeDistributionMetric(Metric):
     value.monitoring_v3_distribution(point.distribution_value)
 
 
+class TimeMetricTracker:
+  """Context manager to track time for any metric."""
+
+  def __init__(self, metric, labels=None, has_success_label: bool = False):
+    # If |has_success_label| is true, a "success" label will be added upon exit,
+    # which is true iff |fail()| was not called and no exception was raised.
+    self.metric = metric
+    self.labels = dict(labels) if labels else {}
+    self.has_success_label = has_success_label
+    self.start_time = None
+    self.failed = False
+
+    metric_type_error = TypeError(
+        'TimeMetricTracker only supports CounterMetric and '
+        'CumulativeDistributionMetric.')
+    supported_metrics = (_CounterMetric, _CumulativeDistributionMetric)
+    if isinstance(self.metric, _MockMetric):
+      if self.metric.expected_class not in supported_metrics:
+        raise metric_type_error
+      self.is_counter = self.metric.expected_class == _CounterMetric
+    else:
+      if not isinstance(self.metric, supported_metrics):
+        raise metric_type_error
+      self.is_counter = isinstance(self.metric, _CounterMetric)
+
+  def __enter__(self):
+    self.start_time = time.time()
+    self.failed = False
+    return self
+
+  def __exit__(self, exc_type, value, traceback):
+    duration = time.time() - self.start_time
+    success = not self.failed and exc_type is None
+    if self.has_success_label:
+      self.labels['success'] = success
+
+    if self.is_counter:
+      self.metric.increment_by(int(duration), labels=self.labels)
+    else:
+      self.metric.add(duration, labels=self.labels)
+
+  def fail(self):
+    self.failed = True
+
+
 # Global state.
 _metrics_store = _MetricsStore()
 _monitoring_v3_client = None
@@ -604,7 +652,7 @@ def check_module_loaded(module):
   return module is not None
 
 
-def stub_unavailable(module):
+def stub_unavailable(module, expected_class):
   """Decorator to stub out functions on failed imports."""
 
   def decorator(func):
@@ -614,7 +662,7 @@ def stub_unavailable(module):
       if check_module_loaded(module):
         return func(*args, **kwargs)
 
-      return _MockMetric()
+      return _MockMetric(expected_class)
 
     return wrapper
 
@@ -707,19 +755,19 @@ def _get_region(bot_name):
   return 'unknown'
 
 
-@stub_unavailable(monitoring_v3)
+@stub_unavailable(monitoring_v3, _CounterMetric)
 def CounterMetric(name, description, field_spec):
   """Build _CounterMetric."""
   return _CounterMetric(name, field_spec=field_spec, description=description)
 
 
-@stub_unavailable(monitoring_v3)
+@stub_unavailable(monitoring_v3, _GaugeMetric)
 def GaugeMetric(name, description, field_spec):
   """Build _CounterMetric."""
   return _GaugeMetric(name, field_spec=field_spec, description=description)
 
 
-@stub_unavailable(monitoring_v3)
+@stub_unavailable(monitoring_v3, _CumulativeDistributionMetric)
 def CumulativeDistributionMetric(name, description, bucketer, field_spec):
   """Build _CounterMetric."""
   return _CumulativeDistributionMetric(

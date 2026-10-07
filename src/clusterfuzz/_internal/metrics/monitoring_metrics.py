@@ -43,7 +43,6 @@ SYNC_CORPUS_TIME = monitor.CounterMetric(
         monitor.StringField('platform'),
         monitor.StringField('runtime'),
         monitor.BooleanField('success'),
-        monitor.BooleanField('is_upload'),
     ])
 
 CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
