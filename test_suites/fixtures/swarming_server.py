@@ -30,12 +30,9 @@ Usage:
 # pylint: disable=no-member
 
 import contextlib
-from datetime import datetime
-from datetime import timezone
 from http import HTTPStatus
 
 from google.protobuf import json_format
-from google.protobuf import timestamp_pb2
 from wiremock.client import HttpMethods
 from wiremock.client import Mapping
 from wiremock.client import MappingRequest
@@ -62,13 +59,6 @@ _TEXT_HEADERS = {
 
 _ALL_QUERY_STATES: list[
     swarming_pb2.StateQuery.ValueType] = swarming_pb2.StateQuery.values()
-
-
-def _now_timestamp() -> timestamp_pb2.Timestamp:
-  """Returns the current UTC time as a protobuf Timestamp."""
-  timestamp = timestamp_pb2.Timestamp()
-  timestamp.FromDatetime(datetime.now(timezone.utc))
-  return timestamp
 
 
 def _register_mapping(admin_url: str, mapping: Mapping) -> None:
@@ -120,7 +110,7 @@ def _add_count_tasks(
   """Adds a Mapping serving a TasksCount pRPC response for task_state."""
   # TODO(fuzzing-infra): Support filtering task counts by tags
   # (e.g. pool, os).
-  response_proto = swarming_pb2.TasksCount(count=count, now=_now_timestamp())
+  response_proto = swarming_pb2.TasksCount(count=count)
   body = constants.XSSI_PREFIX + json_format.MessageToJson(response_proto)
 
   if task_state == swarming_pb2.QUERY_PENDING:
@@ -155,16 +145,11 @@ def _add_new_task(
     persistent: bool = False,
 ) -> None:
   """Adds a Mapping serving a TaskRequestMetadataResponse for NewTask."""
-  now = _now_timestamp()
   response_proto = swarming_pb2.TaskRequestMetadataResponse(
       task_id=task_id,
-      request=swarming_pb2.TaskRequestResponse(
-          task_id=task_id,
-          created_ts=now,
-      ),
+      request=swarming_pb2.TaskRequestResponse(task_id=task_id,),
       task_result=swarming_pb2.TaskResultResponse(
           task_id=task_id,
-          created_ts=now,
           state=swarming_pb2.PENDING,
       ),
   )
