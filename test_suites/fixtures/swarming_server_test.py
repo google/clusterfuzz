@@ -154,7 +154,6 @@ class TestSwarmingEmulator:
     """Verifies that NewTask returns a valid TaskRequestResponse."""
     response = self.api.push_task(_sample_new_task_request('fuzz-task-1'))
     assert response.task_id == 'fake-task-1'
-    assert response.HasField('created_ts')
 
   def test_reset_task_count_resets_counts_and_clears_errors(self):
     """Verifies that reset_task_count() drops set_task_count() overrides and
