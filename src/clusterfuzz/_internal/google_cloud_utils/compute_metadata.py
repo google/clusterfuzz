@@ -61,6 +61,11 @@ def _metadata_host_port():
 
 def is_gce():
   """Return whether or not we're on GCE."""
+  # On Swarming, GCE_METADATA_HOST points to luci-auth's local emulator, which
+  # only serves tokens (e.g. no instance/zone or instance/id).
+  if environment.is_running_on_swarming():
+    return False
+
   try:
     host, port = _metadata_host_port()
     logs.info(f'Connecting to metadata server at {host}:{port}')
