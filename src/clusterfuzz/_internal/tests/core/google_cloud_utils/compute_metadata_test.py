@@ -13,80 +13,31 @@
 # limitations under the License.
 """Unit tests for compute_metadata."""
 
-import contextlib
-import http.server
 import importlib
 import os
-import threading
 import unittest
 from unittest import mock
+
+import requests
 
 from clusterfuzz._internal.google_cloud_utils import compute_metadata
 
 
-@contextlib.contextmanager
-def _metadata_server(paths):
-  """Runs a local HTTP metadata server serving 200 only for |paths|."""
-
-  class Handler(http.server.BaseHTTPRequestHandler):
-    """Serves the configured metadata paths and 404s everything else."""
-
-    def do_GET(self):  # pylint: disable=invalid-name
-      """Handles a metadata GET request."""
-      path = self.path.removeprefix('/computeMetadata/v1/')
-      if path in paths:
-        body = paths[path].encode()
-        self.send_response(200)
-        self.send_header('Metadata-Flavor', 'Google')
-        self.send_header('Content-Length', str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-      else:
-        self.send_error(404)
-
-    def log_message(self, *args):  # pylint: disable=arguments-differ
-      pass
-
-  server = http.server.HTTPServer(('127.0.0.1', 0), Handler)
-  thread = threading.Thread(target=server.serve_forever, daemon=True)
-  thread.start()
-  try:
-    host = f'127.0.0.1:{server.server_address[1]}'
-    # Avoid routing localhost through any HTTP(S)_PROXY set on the machine.
-    with mock.patch.dict(os.environ, {'NO_PROXY': '127.0.0.1',
-                                      'no_proxy': '127.0.0.1'}), \
-        mock.patch.object(compute_metadata, '_METADATA_URL',
-                          f'http://{host}/computeMetadata/v1/'):
-      yield
-  finally:
-    server.shutdown()
-    server.server_close()
-    thread.join()
-
-
+@mock.patch.object(compute_metadata, '_get_raw')
 class IsGceTest(unittest.TestCase):
   """Tests for is_gce()."""
 
-  def test_real_metadata_server(self):
-    """Verifies that a server returning instance/id is treated as GCE."""
-    with _metadata_server({'instance/id': '1234'}):
-      self.assertTrue(compute_metadata.is_gce())
+  def test_instance_id_served(self, mock_get_raw):
+    """Verifies that is_gce() is True when instance/id is served."""
+    mock_get_raw.return_value = '1234'
+    self.assertTrue(compute_metadata.is_gce())
+    mock_get_raw.assert_called_once_with('instance/id', timeout=5)
 
-  def test_token_only_emulator(self):
-    """Verifies that a token-only emulator (e.g. LUCI's local auth server
-    exported via GCE_METADATA_HOST on Swarming) is not treated as GCE."""
-    with _metadata_server({
-        'project/project-id': 'none',
-        'instance/name': 'lin-19-h709',
-        'instance/service-accounts/default/token': '{}',
-    }):
-      self.assertFalse(compute_metadata.is_gce())
-
-  def test_unreachable_server(self):
-    """Verifies that an unreachable metadata server is not treated as GCE."""
-    with mock.patch.object(compute_metadata, '_METADATA_URL',
-                           'http://127.0.0.1:1/computeMetadata/v1/'):
-      self.assertFalse(compute_metadata.is_gce())
+  def test_instance_id_missing(self, mock_get_raw):
+    """Verifies that is_gce() is False when instance/id is not served (e.g.
+    luci-auth's token-only server on Swarming)."""
+    mock_get_raw.side_effect = requests.exceptions.HTTPError('404')
+    self.assertFalse(compute_metadata.is_gce())
 
 
 class MetadataHostTest(unittest.TestCase):
