@@ -184,3 +184,78 @@ class FileImplTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(0, len(list(response)))
     context.set_trailing_metadata.assert_called_with([('result',
                                                        'invalid-path')])
+
+  def test_rejects_paths_outside_worker_roots(self):
+    """Test file_impl rejects paths outside worker-owned roots."""
+    os.makedirs('/worker/bot_tmp')
+    os.makedirs('/secret')
+    self.fs.create_file('/secret/file', contents='secret')
+
+    with mock.patch.dict(
+        os.environ, {
+            'WORKER_ROOT_DIR': '/worker',
+            'WORKER_BOT_TMPDIR': '/worker/bot_tmp',
+        }):
+      response = file_impl.create_directory(
+          untrusted_runner_pb2.CreateDirectoryRequest(
+              path='/secret/new_dir', create_intermediates=True), None)
+      self.assertFalse(response.result)
+      self.assertFalse(os.path.exists('/secret/new_dir'))
+
+      response = file_impl.remove_directory(
+          untrusted_runner_pb2.RemoveDirectoryRequest(
+              path='/secret', recreate=False), None)
+      self.assertFalse(response.result)
+      self.assertTrue(os.path.isdir('/secret'))
+
+      response = file_impl.list_files(
+          untrusted_runner_pb2.ListFilesRequest(path='/secret'), None)
+      self.assertEqual([], response.file_paths)
+
+      response = file_impl.stat(
+          untrusted_runner_pb2.StatRequest(path='/secret/file'), None)
+      self.assertFalse(response.result)
+
+      context = mock.MagicMock()
+      context.invocation_metadata.return_value = (('path-bin',
+                                                   b'/secret/out'),)
+      response = file_impl.copy_file_to_worker(
+          (untrusted_runner_pb2.FileChunk(data=b'A'),), context)
+      self.assertFalse(response.result)
+      self.assertFalse(os.path.exists('/secret/out'))
+
+      context = mock.MagicMock()
+      response = file_impl.copy_file_from_worker(
+          untrusted_runner_pb2.CopyFileFromRequest(path='/secret/file'),
+          context)
+      self.assertEqual([], list(response))
+      context.set_trailing_metadata.assert_called_with([('result',
+                                                         'invalid-path')])
+
+      response = file_impl.get_fuzz_targets(
+          untrusted_runner_pb2.GetFuzzTargetsRequest(path='/secret'), None)
+      self.assertEqual([], response.fuzz_target_paths)
+
+  def test_rejects_worker_root_symlink_escape(self):
+    """Test file_impl rejects worker-root paths resolving outside the root."""
+    os.makedirs('/worker')
+    os.makedirs('/secret')
+    self.fs.create_file('/secret/file', contents='secret')
+    os.symlink('/secret', '/worker/link')
+
+    with mock.patch.dict(os.environ, {'WORKER_ROOT_DIR': '/worker'}):
+      context = mock.MagicMock()
+      context.invocation_metadata.return_value = (('path-bin',
+                                                   b'/worker/link/out'),)
+      response = file_impl.copy_file_to_worker(
+          (untrusted_runner_pb2.FileChunk(data=b'A'),), context)
+      self.assertFalse(response.result)
+      self.assertFalse(os.path.exists('/secret/out'))
+
+      context = mock.MagicMock()
+      response = file_impl.copy_file_from_worker(
+          untrusted_runner_pb2.CopyFileFromRequest(path='/worker/link/file'),
+          context)
+      self.assertEqual([], list(response))
+      context.set_trailing_metadata.assert_called_with([('result',
+                                                         'invalid-path')])
