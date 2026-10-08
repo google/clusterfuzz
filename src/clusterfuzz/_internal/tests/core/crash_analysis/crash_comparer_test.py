@@ -120,6 +120,32 @@ class CrashComparerTest(unittest.TestCase):
     crash_state_2 = 'third\nsecond\nfirst\n'
     self.is_similar_helper(crash_state_1, crash_state_2, False)
 
+  def test_fuzzer_hash_requires_exact_match_either_side(self):
+    """A state carrying a fuzzer hash compares exactly, whichever side it is on.
+
+    grouper._group_testcases_with_similar_states always passes the higher
+    testcase id first, so a hashed state on the second side used to skip the
+    exact-comparison rule and fall through to the fuzzy line match below,
+    grouping an older hashed testcase with an unrelated crash.
+    """
+    hashed = 'FuzzerHash=abc123\nfoo\nbar'
+    unhashed = 'foo\nbar'
+
+    self.is_similar_helper(hashed, unhashed, False)
+    self.is_similar_helper(unhashed, hashed, False)
+
+  def test_different_fuzzer_hashes_are_not_similar(self):
+    """Two states whose hashes differ are distinct even with the same frames."""
+    self.is_similar_helper('FuzzerHash=abc123\nfoo\nbar',
+                           'FuzzerHash=def456\nfoo\nbar', False)
+    self.is_similar_helper('FuzzerHash=def456\nfoo\nbar',
+                           'FuzzerHash=abc123\nfoo\nbar', False)
+
+  def test_identical_fuzzer_hash_states_are_similar(self):
+    """An exact match still compares equal before the hash rule applies."""
+    state = 'FuzzerHash=abc123\nfoo\nbar'
+    self.is_similar_helper(state, state, True)
+
   def test_is_similar_null_string(self):
     """Test is_similar with "NULL" strings."""
     crash_state_1 = 'first\nsecond\nthird\n'
