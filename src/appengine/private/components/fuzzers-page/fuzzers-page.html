@@ -87,6 +87,21 @@
       .create {
         padding-bottom: 10px;
       }
+
+      .disabled-badge {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 1px 8px;
+        border-radius: 10px;
+        background-color: #f6d5d3;
+        color: #a35d5a;
+        font-size: 11px;
+        vertical-align: middle;
+      }
+
+      .disabled-result {
+        font-weight: bold;
+      }
     </style>
 
     <edit-form id="editForm" field-values="[[fieldValues]]" fuzzer="[[fuzzer]]">
@@ -109,6 +124,9 @@
             <div class="flex">
               <div class="left name">
                 [[item.name]]
+                <template is="dom-if" if="[[hasNoJobs(item.jobs)]]">
+                  <span class="disabled-badge" title="This fuzzer is not assigned to any jobs.">Disabled</span>
+                </template>
               </div>
               <div class="mid">
                 <table>
@@ -142,6 +160,15 @@
                     <td class="label">Last result:</td>
                     <td>
                       [[formatResult(item.result)]]
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="label">Jobs:</td>
+                    <td>
+                      <if-else condition="[[hasNoJobs(item.jobs)]]">
+                        <span slot="t" class="disabled-result">Disabled</span>
+                        <span slot="f">[[item.jobs.length]]</span>
+                      </if-else>
                     </td>
                   </tr>
                 </table>
@@ -217,7 +244,9 @@
       editTapped(e) {
         this.$.editForm.create = false;
         this.$.editForm.opened = true;
-        this.fuzzer = e.target.fuzzer;
+        // Edit a copy so unsaved changes are discarded when the dialog closes.
+        const fuzzer = e.target.fuzzer;
+        this.fuzzer = Object.assign({}, fuzzer, {jobs: (fuzzer.jobs || []).slice()});
       },
       deleteTapped(e) {
         this.$.deleteDialog.opened = true;
@@ -225,6 +254,9 @@
       },
       formatDate(timestamp) {
         return new Date(timestamp * 1000).toLocaleString();
+      },
+      hasNoJobs(jobs) {
+        return !jobs || jobs.length == 0;
       },
       formatResult(result) {
         if (result)
