@@ -66,6 +66,18 @@ class ComputeMetadataTest(unittest.TestCase):
     with mock.patch.object(compute_metadata, '_METADATA_SERVER', '127.0.0.1:1'):
       self.assertFalse(compute_metadata.is_gce())
 
+  def test_is_gce_on_swarming(self):
+    """Verifies that is_gce() is False on Swarming bots even if the metadata host (luci-auth's emulator) is reachable."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+      listener.bind(('127.0.0.1', 0))
+      listener.listen(1)
+      port = listener.getsockname()[1]
+
+      with mock.patch.object(compute_metadata, '_METADATA_SERVER',
+                             f'127.0.0.1:{port}'), \
+          mock.patch.dict(os.environ, {'SWARMING_BOT': 'True'}):
+        self.assertFalse(compute_metadata.is_gce())
+
   def test_gce_metadata_host_env_override(self):
     """Verifies that GCE_METADATA_HOST overrides the default metadata server and URL."""
     with mock.patch.dict(
