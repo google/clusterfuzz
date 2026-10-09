@@ -74,6 +74,15 @@ def extend_request(req, params):
 
 def extend_json_request(req):
   """Extends a request to support JSON."""
+  # A cross-origin HTML form can only produce the three CORS-safelisted media
+  # types, and of those only text/plain leaves the body bytes untouched, so it
+  # is the one that can carry a valid JSON document cross-site without a
+  # preflight. A handler that declares a JSON request body never legitimately
+  # receives it; handlers that accept form submissions declare handler.FORM.
+  if req.mimetype == 'text/plain':
+    raise helpers.EarlyExitError(
+        'Unexpected content type for a JSON request body.', 400)
+
   try:
     params = json.loads(req.data)
   except ValueError as e:

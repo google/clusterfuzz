@@ -14,6 +14,7 @@
 """Login page."""
 
 import datetime
+import time
 
 from flask import request
 
@@ -26,6 +27,12 @@ from libs import helpers
 
 DEFAULT_REDIRECT = '/'
 SESSION_EXPIRY_DAYS = 14
+
+# A session cookie is only issued for a sign-in that just happened. Firebase
+# documents this check for applications that exchange an ID token for a
+# long-lived session cookie:
+# https://firebase.google.com/docs/auth/admin/manage-cookies
+MAX_SIGN_IN_AGE_SECONDS = 5 * 60
 
 
 class Handler(base_handler.Handler):
@@ -54,6 +61,18 @@ class SessionLoginHandler(base_handler.Handler):
     """Handle a post request."""
     id_token = request.get('idToken')
     expires_in = datetime.timedelta(days=SESSION_EXPIRY_DAYS)
+
+    try:
+      claims = auth.verify_id_token(id_token)
+    except auth.AuthError:
+      raise helpers.EarlyExitError('Invalid ID token.', 401)
+
+    # Without this, any unexpired ID token can be exchanged for a session that
+    # outlives it by two weeks, and the exchange can be driven by a request the
+    # signed-in user did not make.
+    if time.time() - claims.get('auth_time', 0) > MAX_SIGN_IN_AGE_SECONDS:
+      raise helpers.EarlyExitError('Recent sign-in required.', 401)
+
     try:
       session_cookie = auth.create_session_cookie(id_token, expires_in)
     except auth.AuthError:
@@ -62,7 +81,12 @@ class SessionLoginHandler(base_handler.Handler):
     expires = datetime.datetime.now() + expires_in
     response = self.render_json({'status': 'success'})
     response.set_cookie(
-        'session', session_cookie, expires=expires, httponly=True, secure=True)
+        'session',
+        session_cookie,
+        expires=expires,
+        httponly=True,
+        secure=True,
+        samesite='Lax')
     return response
 
 
