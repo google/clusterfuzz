@@ -727,7 +727,7 @@ class GcsCorpus:
 
     return result
 
-  def upload_files(self, new_files):
+  def upload_files(self, new_files) -> bool | list[bool]:
     """Update state after files are uploaded."""
     result = self.gcs_corpus.upload_files(new_files)
     self._synced_files.update(new_files)
@@ -1632,7 +1632,6 @@ class FuzzingSession:
                    self.fuzz_target.project_qualified_name(), self.job_type))
 
       upload_success = self.gcs_corpus.upload_files(filtered_new_files)
-      # ProtoFuzzTargetCorpus.upload_files returns a list of bools
       if isinstance(upload_success, list):
         success = all(upload_success)
       else:
