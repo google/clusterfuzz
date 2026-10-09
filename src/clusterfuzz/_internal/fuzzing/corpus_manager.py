@@ -232,7 +232,7 @@ class GcsCorpus:
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
 
-  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT):
+  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT) -> bool:
     """Upload files to the GCS.
 
     Args:
@@ -517,7 +517,8 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     # TODO(metzman): Add timeout and tolerance for missing URLs.
     return fails < MAX_SYNC_ERRORS
 
-  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT) -> bool:
+  def upload_files(self, file_paths,
+                   timeout=CORPUS_FILES_SYNC_TIMEOUT) -> list[bool]:
     del timeout
     num_upload_urls = len(self.proto_corpus.corpus.upload_urls)
     if len(file_paths) > num_upload_urls:
