@@ -123,6 +123,10 @@ CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL = (
     'Test-Predator-Wrong-Components')
 CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL = 'Test-Predator-Wrong-CLs'
 
+# These labels should signal that the issue should not be moved to a new
+# component.
+CHROMIUM_ISSUE_NO_COMPONENT_ROUTING_LABELS = {'prodsec-sheepdog-reproduce'}
+
 MISSING_VALUE_STRING = '---'
 
 COVERAGE_INFORMATION_DATE_FORMAT = '%Y%m%d'
