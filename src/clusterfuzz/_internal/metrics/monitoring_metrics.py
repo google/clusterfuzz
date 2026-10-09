@@ -36,8 +36,8 @@ BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
 
 SYNC_CORPUS_TIME = monitor.CounterMetric(
     'task/fuzz/sync_corpus_time',
-    description=('The total time spent synchronizing corpus files with GCS '
-                 'in seconds.'),
+    description=('The total time spent setting up and synchronizing corpus '
+                 'files with GCS in seconds.'),
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.StringField('platform'),

@@ -623,6 +623,17 @@ def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
       })
 
 
+def _track_sync_corpus_metric(fuzzer):
+  """Context manager to track time spent synchronizing corpus with GCS."""
+  labels = {
+      'fuzzer': fuzzer,
+      'platform': environment.platform(),
+      'runtime': environment.get_runtime().value,
+  }
+  return monitor.TimeMetricTracker(
+      monitoring_metrics.SYNC_CORPUS_TIME, labels, has_success_label=True)
+
+
 def _last_sync_time(sync_file_path):
   """Read and parse the last sync file for the GCS corpus."""
   if not os.path.exists(sync_file_path):
@@ -1530,17 +1541,6 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   fuzzer_utils.cleanup()
 
   return result, fuzzer_metadata, options.strategies
-
-
-def _track_sync_corpus_metric(fuzzer):
-  """Context manager to track time spent synchronizing corpus with GCS."""
-  labels = {
-      'fuzzer': fuzzer,
-      'platform': environment.platform(),
-      'runtime': environment.get_runtime().value,
-  }
-  return monitor.TimeMetricTracker(
-      monitoring_metrics.SYNC_CORPUS_TIME, labels, has_success_label=True)
 
 
 class FuzzingSession:

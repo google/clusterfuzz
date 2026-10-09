@@ -619,8 +619,8 @@ class TimeMetricTracker:
 
   def __exit__(self, exc_type, value, traceback):
     duration = time.time() - self.start_time
-    success = not self.failed and exc_type is None
     if self.has_success_label:
+      success = not self.failed and exc_type is None
       self.labels['success'] = success
 
     if self.is_counter:
