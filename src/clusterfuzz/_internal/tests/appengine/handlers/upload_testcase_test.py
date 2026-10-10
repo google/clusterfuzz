@@ -711,6 +711,63 @@ class UploadOAuthTest(unittest.TestCase):
                          data_handler.get_fuzz_target('libFuzzer_proj_target')
                          ._to_dict())
 
+  def _upload_to_platform(self, platform, trusted_agreement):
+    """Uploads a testcase to a new job on |platform|, in a Chrome deployment
+    where only Linux jobs support untrusted workloads."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.'
+        'is_remotely_executing_utasks',
+    ])
+    self.mock.is_chromium.return_value = True
+    self.mock.is_remotely_executing_utasks.return_value = True
+
+    email = 'uploader@email'
+    data_types.Config(privileged_users=email).put()
+    data_types.ExternalUserPermission(
+        email=email,
+        entity_name=None,
+        entity_kind=data_types.PermissionEntityKind.UPLOADER,
+        is_prefix=False,
+        auto_cc=data_types.AutoCCType.NONE).put()
+    job_name = f'libfuzzer_proj_{platform.lower()}'
+    data_types.Job(
+        name=job_name,
+        environment_string=f'PROJECT_NAME = proj\nJOB_NAME = {job_name}',
+        platform=platform).put()
+
+    data = {
+        'job': job_name,
+        'target': 'target',
+        'revision': '1337',
+        'file': (io.BytesIO(b'contents'), 'file'),
+    }
+    if trusted_agreement:
+      data['trustedAgreement'] = upload_testcase.TRUSTED_AGREEMENT_TEXT
+    with self.app.test_client() as client:
+      return client.post('/', data=data)
+
+  def test_linux_upload_with_agreement_is_untrusted(self):
+    """Tests that Linux uploads stay untrusted even with the agreement, since
+    they can run on uworkers."""
+    response = self._upload_to_platform('LINUX', trusted_agreement=True)
+    self.assertEqual(200, response.status_code, response.data)
+    testcase = data_handler.get_testcase_by_id(response.json['id'])
+    self.assertFalse(testcase.trusted)
+
+  def test_mac_upload_with_agreement_is_trusted(self):
+    """Tests that uploads to jobs without uworkers are trusted when the
+    agreement is signed."""
+    response = self._upload_to_platform('MAC', trusted_agreement=True)
+    self.assertEqual(200, response.status_code, response.data)
+    testcase = data_handler.get_testcase_by_id(response.json['id'])
+    self.assertTrue(testcase.trusted)
+
+  def test_windows_upload_without_agreement_is_rejected(self):
+    """Tests that uploads to jobs without uworkers require the agreement."""
+    response = self._upload_to_platform('WINDOWS', trusted_agreement=False)
+    self.assertEqual(400, response.status_code, response.data)
+
 
 # pylint: disable=protected-access
 @test_utils.with_cloud_emulators('datastore')

@@ -42,6 +42,7 @@ EXIT_ON_CRASH_FLAGNAME = 'exit_on_crash'
 MAX_LEN_FLAGNAME = 'max_len'
 NUM_RUNS_FLAGNAME = 'num_runs'
 BATCH_SIZE_FLAGNAME = 'batch_size'
+STOP_AFTER_FLAGNAME = 'stop_after'
 
 SYMBOLIZER_PATH_FLAGNAME = 'symbolizer_path'
 SYMBOLIZER_PATH_DEFAULT = '/dev/null'

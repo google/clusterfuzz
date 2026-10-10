@@ -16,6 +16,8 @@
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.platforms.android import constants
+from clusterfuzz._internal.platforms.android import util
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 
@@ -149,3 +151,88 @@ class TerminateProcessesMatchingPathTest(unittest.TestCase):
   def test_process_1_no_kill_with_wrong_case(self):
     process_handler.terminate_processes_matching_cmd_line('/a/b/C', kill=True)
     self.assertEqual(0, self.mock.terminate_process.call_count)
+
+
+class RunProcessAndroidTest(unittest.TestCase):
+  """Tests run_process on Android platform."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.platforms.android.logger.clear_log',
+        'clusterfuzz._internal.platforms.android.logger.log_output',
+        'clusterfuzz._internal.platforms.android.adb.time_since_last_reboot',
+        'clusterfuzz._internal.platforms.android.adb.run_command',
+        'clusterfuzz._internal.platforms.android.adb.get_ps_output',
+        'clusterfuzz._internal.platforms.android.app.get_package_name',
+        'clusterfuzz._internal.platforms.android.app.stop',
+        'clusterfuzz._internal.platforms.android.util.get_latest_pid_for_package',
+        'clusterfuzz._internal.platforms.android.util.get_exit_info_for_pid',
+        'clusterfuzz._internal.platforms.android.util.activity_crashed',
+        'time.sleep',
+    ])
+
+    self.mock.platform.return_value = 'ANDROID'
+    self.mock.get_package_name.return_value = 'com.example.app'
+    self.mock.time_since_last_reboot.return_value = 100.0
+    self.mock.log_output.return_value = ''
+    self.mock.run_command.return_value = ''
+    self.mock.get_ps_output.return_value = ''
+
+  def test_run_process_android_activity_crashed(self):
+    """Checks that run_process sets return_code from exit_info.reason and logs warning when an Android activity crash is detected."""
+    exit_info = util.ProcessExitInfo(
+        reason=constants.ExitReason.CRASH_NATIVE,
+        reason_name='APP CRASH(NATIVE)',
+        subreason=0,
+        subreason_name='',
+        status=constants.ExitStatus.SIGSEGV)
+    self.mock.get_latest_pid_for_package.return_value = 1234
+    self.mock.get_exit_info_for_pid.return_value = exit_info
+    self.mock.activity_crashed.return_value = True
+
+    return_code, _, _ = process_handler.run_process(
+        'am start -n com.example.app/.MainActivity')
+    self.mock.activity_crashed.assert_called_once_with(exit_info)
+    self.assertEqual(return_code, 5)
+
+  def test_run_process_android_no_crash(self):
+    """Checks that run_process returns 0 return_code when Android activity has not crashed."""
+    self.mock.get_latest_pid_for_package.return_value = 1234
+    self.mock.get_exit_info_for_pid.return_value = None
+    self.mock.activity_crashed.return_value = False
+
+    return_code, _, _ = process_handler.run_process(
+        'am start -n com.example.app/.MainActivity')
+    self.assertEqual(return_code, 0)
+
+  def test_run_process_android_no_package_name_skips_exit_info(self):
+    """Checks that, when no APK package name is resolvable (non-APK fuzzing,
+    e.g. a native binary pushed to the device), run_process skips the
+    package-scoped exit info lookups entirely, treats exit_info as None and
+    still returns a 0 return_code instead of failing."""
+    self.mock.get_package_name.return_value = None
+    self.mock.activity_crashed.return_value = False
+
+    return_code, _, _ = process_handler.run_process('/data/local/tmp/fuzzer')
+
+    self.mock.get_latest_pid_for_package.assert_not_called()
+    self.mock.get_exit_info_for_pid.assert_not_called()
+    self.mock.activity_crashed.assert_called_once_with(None)
+    self.assertEqual(return_code, 0)
+
+  def test_run_process_android_no_pid_for_package(self):
+    """Checks the edge case where the package exists but has no recorded pid
+    (the app never started). Expects exit info to still be queried with a None
+    pid, no crash to be reported and a 0 return_code."""
+    self.mock.get_latest_pid_for_package.return_value = None
+    self.mock.get_exit_info_for_pid.return_value = None
+    self.mock.activity_crashed.return_value = False
+
+    return_code, _, _ = process_handler.run_process(
+        'am start -n com.example.app/.MainActivity')
+
+    self.mock.get_exit_info_for_pid.assert_called_once_with(
+        'com.example.app', None)
+    self.assertEqual(return_code, 0)

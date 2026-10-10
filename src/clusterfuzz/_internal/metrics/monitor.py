@@ -27,6 +27,8 @@ import threading
 import time
 from typing import List
 
+import requests
+
 try:
   from google.cloud import monitoring_v3
 except (ImportError, RuntimeError):
@@ -49,6 +51,7 @@ from clusterfuzz._internal.system import environment
 
 CUSTOM_METRIC_PREFIX = 'custom.googleapis.com/'
 FLUSH_INTERVAL_SECONDS = 10 * 60  # 10 minutes.
+PREEMPTION_CHECK_INTERVAL = 15  # seconds
 RETRY_DEADLINE_SECONDS = 5 * 60  # 5 minutes.
 INITIAL_DELAY_SECONDS = 16
 MAXIMUM_DELAY_SECONDS = 2 * 60  # 2 minutes.
@@ -135,10 +138,29 @@ def _flush_metrics():
       logs.error(f'Failed to flush metrics: {e}')
 
 
-def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
-  logs.info('Handling sigterm, stopping monitoring daemon.')
+_on_sigterm_callbacks = []
+
+
+def register_on_sigterm(callback):
+  """Register a callback to be called on SIGTERM."""
+  _on_sigterm_callbacks.append(callback)
+
+
+def _trigger_shutdown_cleanup():
+  """Runs registered callbacks and stops the monitoring daemon."""
+  for callback in _on_sigterm_callbacks:
+    try:
+      callback()
+    except Exception as e:
+      logs.error(f'Error in callback: {e}')
+  logs.info('Stopping monitoring daemon.')
   stop()
-  logs.info('Sigterm handled, metrics flushed.')
+
+
+def handle_sigterm(signo, stack_frame):  #pylint: disable=unused-argument
+  logs.info('Handling SIGTERM.')
+  _trigger_shutdown_cleanup()
+  logs.info('SIGTERM handled, metrics flushed.')
 
 
 @contextlib.contextmanager
@@ -179,6 +201,47 @@ class _MonitoringDaemon():
   def stop(self):
     self._flushing_thread_stop_event.set()
     self._flushing_thread.join()
+
+
+class _PreemptionPoller():
+  """Background thread to poll GCP metadata for preemption."""
+
+  def __init__(self, check_interval):
+    self._check_interval = check_interval
+    self._poller_thread = threading.Thread(
+        name='preemption_poller', target=self._poll_loop, daemon=True)
+    self._poller_thread_stop_event = threading.Event()
+
+  def _poll_loop(self):
+    """Polls GCP metadata for preemption status."""
+    if not compute_metadata.is_gce():
+      return
+
+    while True:
+      should_stop = self._poller_thread_stop_event.wait(
+          timeout=self._check_interval)
+      if should_stop:
+        break
+
+      try:
+        status = compute_metadata.get_preempted_status()
+        if status and status.strip().upper() == 'TRUE':
+          logs.info('Preemption detected via metadata!')
+          _trigger_shutdown_cleanup()
+          break
+      except requests.exceptions.HTTPError as e:
+        if e.response.status_code != 404:
+          logs.warning(f'HTTP error checking preemption metadata: {e}')
+      except Exception as e:
+        logs.warning(f'Unknown error checking preemption metadata: {e}')
+
+  def start(self):
+    self._poller_thread.start()
+
+  def stop(self):
+    self._poller_thread_stop_event.set()
+    if threading.current_thread() != self._poller_thread:
+      self._poller_thread.join()
 
 
 _StoreValue = collections.namedtuple(
@@ -525,6 +588,7 @@ class _CumulativeDistributionMetric(Metric):
 _metrics_store = _MetricsStore()
 _monitoring_v3_client = None
 _monitoring_daemon = None
+_preemption_poller = None
 _monitored_resource = None
 
 # Add fields very conservatively here. There is a limit of 10 labels per metric
@@ -592,6 +656,7 @@ def initialize():
   """Initialize if monitoring is enabled for this bot."""
   global _monitoring_v3_client
   global _monitoring_daemon
+  global _preemption_poller
 
   if environment.get_value('LOCAL_DEVELOPMENT'):
     return
@@ -607,11 +672,17 @@ def initialize():
                                            FLUSH_INTERVAL_SECONDS)
     _monitoring_daemon.start()
 
+    if compute_metadata.is_preemptible():
+      _preemption_poller = _PreemptionPoller(PREEMPTION_CHECK_INTERVAL)
+      _preemption_poller.start()
+
 
 def stop():
   """Stops monitoring and cleans up (only if monitoring is enabled)."""
   if _monitoring_daemon:
     _monitoring_daemon.stop()
+  if _preemption_poller:
+    _preemption_poller.stop()
 
 
 def metrics_store():

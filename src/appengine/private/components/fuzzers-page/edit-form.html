@@ -113,6 +113,13 @@
         </paper-input>
       </div>
       <div class="inline narrow">
+        <paper-input
+            label="Primary owner (email)"
+            value="{{fuzzer.primary_owner}}"
+            title="Primary owner for VRP rewards.">
+        </paper-input>
+      </div>
+      <div class="inline narrow">
         <paper-menu-button
             class="job-select dropdown-filter"
             no-animations="true"
@@ -220,11 +227,16 @@
       </div>
       <div class="inline narrow">
         <paper-checkbox checked="{{fuzzer.external_contribution}}">External contribution</paper-checkbox>
-
-        <!-- TODO: Re-enable after the differential fuzzing is implemented.
-        <paper-checkbox checked="{{fuzzer.differential}}">Differential fuzzer</paper-checkbox>
-        -->
       </div>
+      <div class="inline narrow">
+        <paper-checkbox checked="{{fuzzer.trusted}}">Trusted</paper-checkbox>
+      </div>
+
+      <!-- TODO: Re-enable after the differential fuzzing is implemented.
+      <div class="inline narrow">
+        <paper-checkbox checked="{{fuzzer.differential}}">Differential fuzzer</paper-checkbox>
+      </div>
+      -->
     </ajax-dialog>
     <iron-ajax
       id="ajaxFinish"
@@ -252,11 +264,13 @@
                 'differential',
                 'executable_path',
                 'external_contribution',
+                'primary_owner',
                 'jobs',
                 'launcher_script',
                 'max_testcases',
                 'name',
                 'timeout',
+                'trusted',
             ],
           },
           file: Object,

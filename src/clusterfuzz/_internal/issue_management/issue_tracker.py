@@ -202,6 +202,11 @@ class Issue:
     """Save the issue."""
     raise NotImplementedError
 
+  @property
+  def is_unrestricted(self):
+    """Whether the issue has no view restrictions (i.e. is public)."""
+    return False
+
   # pylint: disable=unused-argument
   def apply_extension_fields(self, extension_fields):
     """Applies _ext_ prefixed extension fields to the issue."""

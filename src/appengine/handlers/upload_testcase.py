@@ -28,7 +28,6 @@ from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -410,17 +409,17 @@ class UploadHandlerCommon:
       helpers.log(f'User {email} does not have access', helpers.VIEW_OPERATION)
       raise helpers.AccessDeniedError()
 
-    # Chrome is the only ClusterFuzz deployment where there are trusted bots
-    # running utasks. This check also fails on oss-fuzz because of the way it
-    # abuses platform.
-    if (not trusted_agreement_signed and utils.is_chromium() and
-        task_utils.is_remotely_executing_utasks() and
-        ((platform_id and platform_id != 'Linux') or
-         job.platform.lower() != 'linux')):
-      # Trusted agreement was not signed even though the job has privileges and
-      # there are other jobs that don't have privileges.
-      raise helpers.EarlyExitError(
-          'Sign the trusted job statement or upload to a trusted job.', 400)
+    # Only jobs that can't run untrusted workloads (no uworkers, e.g.
+    # Mac/Windows) get trusted testcases, and they require the trusted
+    # agreement. Everything else stays untrusted and runs on uworkers, even if
+    # the agreement was signed.
+    try:
+      data_handler.check_job_supports_untrusted_workloads(job_type, platform_id)
+      trusted = False
+    except ValueError as e:
+      if not trusted_agreement_signed:
+        raise helpers.EarlyExitError(str(e), 400)
+      trusted = True
 
     crash_data = None
     if job.is_external():
@@ -623,7 +622,8 @@ class UploadHandlerCommon:
         bug_summary_update_flag,
         quiet_flag,
         additional_metadata=testcase_metadata,
-        crash_data=crash_data)
+        crash_data=crash_data,
+        trusted=trusted)
 
     testcase = data_handler.get_testcase_by_id(testcase_id)
     events.emit(
@@ -785,7 +785,6 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
             gestures=message_data.get('gestures', '[]'),
             http_flag=message_data.get('http_flag', None),
             platform_id='Linux',
-            trusted_agreement_signed=True,
         )
         monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
             'fuzzer': fuzzer,

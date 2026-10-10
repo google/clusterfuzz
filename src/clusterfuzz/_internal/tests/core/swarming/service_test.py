@@ -30,7 +30,8 @@ class SwarmingServiceTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.swarming.is_swarming_task',
+        'clusterfuzz._internal.swarming.is_swarming_enabled',
+        'clusterfuzz._internal.swarming.is_swarming_job',
         'clusterfuzz._internal.swarming.api.SwarmingApi.create',
         'clusterfuzz._internal.swarming.create_new_task_request',
         'clusterfuzz._internal.base.tasks.task_utils.get_command_from_module',
@@ -39,6 +40,7 @@ class SwarmingServiceTest(unittest.TestCase):
     ])
     self.mock_api = mock.MagicMock()
     self.mock.create.return_value = self.mock_api
+    self.mock.is_swarming_enabled.return_value = True
     self.service = service.SwarmingService()
 
     self.mock_request = swarming_pb2.NewTaskRequest(task_slices=[
@@ -59,7 +61,7 @@ class SwarmingServiceTest(unittest.TestCase):
   def test_create_utask_main_job_success(self):
     """Test creating a single task successfully."""
     self.mock.get_command_from_module.return_value = 'fuzz'
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
 
     result = self.service.create_utask_main_job('fuzz_task', 'job_type',
                                                 'http://url')
@@ -72,7 +74,7 @@ class SwarmingServiceTest(unittest.TestCase):
   def test_create_utask_main_job_failure(self):
     """Test creating a single task that is not a swarming task."""
     self.mock.get_command_from_module.return_value = 'fuzz'
-    self.mock.is_swarming_task.return_value = False
+    self.mock.is_swarming_job.return_value = False
 
     result = self.service.create_utask_main_job('fuzz_task', 'job_type',
                                                 'http://url')
@@ -91,7 +93,7 @@ class SwarmingServiceTest(unittest.TestCase):
     ]
 
     # job1 succeeds, job2 fails (not a swarming task), job3 succeeds
-    self.mock.is_swarming_task.side_effect = [True, False, True]
+    self.mock.is_swarming_job.side_effect = [True, False, True]
 
     self.mock_api.push_task.return_value = swarming_pb2.TaskRequestResponse(
         task_id='123')
@@ -113,7 +115,7 @@ class SwarmingServiceTest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
         remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
     ]
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
 
@@ -126,7 +128,7 @@ class SwarmingServiceTest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
         remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
     ]
-    self.mock.is_swarming_task.return_value = False
+    self.mock.is_swarming_job.return_value = False
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
 
@@ -139,10 +141,24 @@ class SwarmingServiceTest(unittest.TestCase):
     self.assertEqual(unscheduled, [])
     self.mock_api.push_task.assert_not_called()
 
+  def test_create_utask_main_jobs_swarming_disabled(self):
+    """Test that all tasks are returned as unscheduled when swarming is
+    disabled."""
+    tasks = [
+        remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
+        remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
+    ]
+    self.mock.is_swarming_enabled.return_value = False
+
+    unscheduled = self.service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(unscheduled, tasks)
+    self.mock_api.push_task.assert_not_called()
+
   def test_create_utask_main_jobs_returns_unscheduled_on_empty_response(self):
     """Verifies that tasks are returned when swarming didn't schedule them due to empty response."""
     tasks = [remote_task_types.RemoteTask('fuzz', 'job1', 'url1')]
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
     self.mock_api.push_task.return_value = None
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
@@ -153,7 +169,7 @@ class SwarmingServiceTest(unittest.TestCase):
   def test_create_utask_main_jobs_returns_unscheduled_on_no_task_id(self):
     """Verifies that tasks are returned when swarming didn't schedule them due to missing task_id."""
     tasks = [remote_task_types.RemoteTask('fuzz', 'job1', 'url1')]
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
 
     mock_response = swarming_pb2.TaskRequestResponse()
     self.mock_api.push_task.return_value = mock_response
@@ -175,7 +191,7 @@ class SwarmingServiceTest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
     ]
 
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
     self.mock_api.push_task.side_effect = Exception('error')
 
     with self.assertRaises(Exception):
@@ -187,7 +203,7 @@ class SwarmingServiceTest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
     ]
 
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
     self.mock_api.push_task.side_effect = SwarmingApiError('api error')
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
@@ -201,7 +217,7 @@ class SwarmingServiceTest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
         remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
     ]
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
 
     # 25 is the limit
     self.mock_api.count_tasks.side_effect = [
@@ -224,7 +240,7 @@ class SwarmingServiceTest(unittest.TestCase):
         remote_task_types.RemoteTask('fuzz', 'job1', 'url1'),
         remote_task_types.RemoteTask('fuzz', 'job2', 'url2'),
     ]
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
     self.mock_api.count_tasks.side_effect = SwarmingApiError('api error')
 
     unscheduled = self.service.create_utask_main_jobs(tasks)
@@ -241,7 +257,7 @@ class SwarmingServiceTest(unittest.TestCase):
     """
 
     self.mock.get_command_from_module.return_value = 'fuzz'
-    self.mock.is_swarming_task.return_value = True
+    self.mock.is_swarming_job.return_value = True
 
     # Request with missing dimensions (e.g., missing 'os')
     invalid_request = swarming_pb2.NewTaskRequest(task_slices=[

@@ -24,7 +24,8 @@ class BaseMinimizerTester(unittest.TestCase):
 
   def _mock_test_function(self, data_file):
     """Mock test function to reduce time minimizer takes and simplify tests."""
-    data = open(data_file, 'rb').read()
+    with open(data_file, 'rb') as f:
+      data = f.read()
     if b'error' in data:
       return False
     return True

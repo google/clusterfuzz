@@ -85,6 +85,13 @@ class RunCommandTest(unittest.TestCase):
         ('progression_utask_preprocess',
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_preprocess'
         ),
+        ('corpus_pruning_utask_main',
+         'clusterfuzz._internal.bot.tasks.utasks.corpus_pruning_task.utask_main'
+        ),
+        ('corpus_pruning_utask_preprocess',
+         'clusterfuzz._internal.bot.tasks.utasks.corpus_pruning_task.utask_preprocess'
+        ),
+        'clusterfuzz._internal.bot.tasks.commands.cleanup_task_state',
         'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
         'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
@@ -209,6 +216,37 @@ class RunCommandTest(unittest.TestCase):
         'time': test_utils.CURRENT_TIME,
     }, task_status.to_dict())
 
+  def test_process_command_impl_short_circuit_deleted_testcase(self):
+    """Test process_command_impl short-circuits for non-existent testcase."""
+    job_name = 'job'
+    data_types.Job(name=job_name, platform='LINUX').put()
+
+    result = commands.process_command_impl(
+        task_name='progression',
+        task_argument='99999',
+        job_name=job_name,
+        high_end=False,
+        is_command_override=False)
+
+    self.assertIsNone(result)
+    self.assertEqual(0, self.mock.progression_utask_preprocess.call_count)
+
+  def test_process_command_impl_corpus_pruning_not_short_circuited(self):
+    """Test process_command_impl does not short-circuit for corpus_pruning."""
+    job_name = 'job'
+    data_types.Job(name=job_name, platform='LINUX').put()
+    self.mock.corpus_pruning_utask_preprocess.return_value = (
+        uworker_msg_pb2.Input(job_type=job_name, fuzzer_name='libfuzzer_proj'))
+
+    commands.process_command_impl(
+        task_name='corpus_pruning',
+        task_argument='libfuzzer_proj',
+        job_name=job_name,
+        high_end=False,
+        is_command_override=False)
+
+    self.assertEqual(1, self.mock.corpus_pruning_utask_preprocess.call_count)
+
   def test_run_command_already_running_expired(self):
     """Test run_command with another instance currently running, but its lease
     has expired."""
@@ -257,3 +295,49 @@ class UpdateEnvironmentForJobTest(unittest.TestCase):
         'FUZZ_TEST_TIMEOUT = 123\nMAX_TESTCASES = 5\n')
     self.assertEqual(9001, environment.get_value('FUZZ_TEST_TIMEOUT'))
     self.assertEqual(42, environment.get_value('MAX_TESTCASES'))
+
+
+class IsSupportedCpuArchForJobTest(unittest.TestCase):
+  """Tests for is_supported_cpu_arch_for_job."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.get_target_cpu_arch',
+    ])
+
+  def test_no_bot_cpu_arch(self):
+    """Test when no cpu arch is defined on bot."""
+    self.mock.get_target_cpu_arch.return_value = None
+    environment.set_value('CPU_ARCH', 'arm64')
+    self.assertTrue(commands.is_supported_cpu_arch_for_job())
+
+  def test_no_job_cpu_arch_requirement(self):
+    """Test when job specifies no CPU_ARCH requirement."""
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
+    environment.set_value('CPU_ARCH', None)
+    self.assertTrue(commands.is_supported_cpu_arch_for_job())
+
+  def test_matching_single_string(self):
+    """Test when job specifies matching single string CPU_ARCH."""
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
+    environment.set_value('CPU_ARCH', 'arm64')
+    self.assertTrue(commands.is_supported_cpu_arch_for_job())
+
+  def test_non_matching_single_string(self):
+    """Test when job specifies non-matching single string CPU_ARCH."""
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
+    environment.set_value('CPU_ARCH', 'x86_64')
+    self.assertFalse(commands.is_supported_cpu_arch_for_job())
+
+  def test_matching_comma_separated_string(self):
+    """Test when job specifies comma-separated CPU_ARCH."""
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
+    environment.set_value('CPU_ARCH', 'x86_64, arm64')
+    self.assertTrue(commands.is_supported_cpu_arch_for_job())
+
+  def test_matching_list(self):
+    """Test when job specifies a list of supported architectures."""
+    self.mock.get_target_cpu_arch.return_value = 'arm64'
+    environment.set_value('CPU_ARCH', ['x86_64', 'arm64'])
+    self.assertTrue(commands.is_supported_cpu_arch_for_job())

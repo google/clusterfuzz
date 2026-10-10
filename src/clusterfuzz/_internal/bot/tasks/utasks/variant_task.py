@@ -59,9 +59,12 @@ def _get_variant_testcase_for_job(testcase, job_type):
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run a test case with a different job type to see if they reproduce."""
-  testcase = data_handler.get_testcase_by_id(testcase_id)
+  try:
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+  except errors.InvalidTestcaseError:
+    logs.warning(f'Testcase {testcase_id} no longer exists.')
+    return None
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
-    uworker_io.check_handling_testcase_safe(testcase)
 
     if (environment.is_engine_fuzzer_job(testcase.job_type) !=
         environment.is_engine_fuzzer_job(job_type)):
@@ -73,20 +76,29 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     # a different fuzzing engine.
     original_job_type = testcase.job_type
     testcase = _get_variant_testcase_for_job(testcase, job_type)
-    setup_input = setup.preprocess_setup_testcase(
-        testcase, uworker_env, with_deps=False)
-    variant_input = uworker_msg_pb2.VariantTaskInput(  # pylint: disable=no-member
-        original_job_type=original_job_type)
 
-    uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
-        job_type=job_type,
-        testcase=uworker_io.entity_to_protobuf(testcase),
-        uworker_env=uworker_env,
-        testcase_id=testcase_id,
-        variant_task_input=variant_input,
-        setup_input=setup_input,
-    )
-    testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+    try:
+      setup_input = setup.preprocess_setup_testcase(
+          testcase, uworker_env, with_deps=False)
+      variant_input = uworker_msg_pb2.VariantTaskInput(  # pylint: disable=no-member
+          original_job_type=original_job_type)
+
+      uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
+          job_type=job_type,
+          testcase=uworker_io.entity_to_protobuf(testcase),
+          uworker_env=uworker_env,
+          testcase_id=str(testcase_id),
+          variant_task_input=variant_input,
+          setup_input=setup_input,
+      )
+      testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+    except (testcase_manager.TargetNotFoundError,
+            errors.InvalidFuzzerError) as error:
+      logs.warning(
+          f'Fuzz target or fuzzer not found for variant job {job_type}: {error}'
+      )
+      return None
+
     return uworker_input
 
 
@@ -97,6 +109,7 @@ def utask_main(uworker_input):
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
+    uworker_io.check_handling_testcase_safe(testcase)
     if environment.is_engine_fuzzer_job(testcase.job_type):
       # Remove put() method to avoid updates. DO NOT REMOVE THIS.
       # Repeat this because the in-memory executor may allow puts.
@@ -217,7 +230,12 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  try:
+    testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  except errors.InvalidTestcaseError:
+    logs.warning(
+        f'Testcase {output.uworker_input.testcase_id} no longer exists.')
+    return
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
       _ERROR_HANDLER.handle(output)

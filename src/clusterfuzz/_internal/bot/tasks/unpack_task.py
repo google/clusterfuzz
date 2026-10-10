@@ -89,9 +89,8 @@ def execute_task(metadata_id, job_type):
       continue
 
     try:
-      file_handle = open(absolute_file_path, 'rb')
-      blob_key = blobs.write_blob(file_handle)
-      file_handle.close()
+      with open(absolute_file_path, 'rb') as file_handle:
+        blob_key = blobs.write_blob(file_handle)
     except:
       blob_key = None
 

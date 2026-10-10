@@ -13,10 +13,25 @@
 # limitations under the License.
 """Download fuzzer config as a JSON file."""
 
+import argparse
 import json
+import os
 import sys
 
 from clusterfuzz._internal.datastore import data_types
+
+
+def _parse_script_args(script_args):
+  """Parses the script specific arguments."""
+  parser = argparse.ArgumentParser(prog='download_fuzzer_config')
+  parser.add_argument(
+      'fuzzer_names', nargs='+', help='Names of the fuzzers to download.')
+  parser.add_argument(
+      '--output-dir',
+      default='.',
+      help='Directory to write <fuzzer_name>_config.json files to. Created if '
+      'it does not exist. Defaults to the current working directory.')
+  return parser.parse_args(script_args)
 
 
 def execute(args):
@@ -25,12 +40,16 @@ def execute(args):
     print('Please provide a list of fuzzer names as script arguments.')
     sys.exit(1)
 
+  script_args = _parse_script_args(args.script_args)
+  fuzzer_names = script_args.fuzzer_names
+  output_dir = script_args.output_dir
+
   fuzzers = data_types.Fuzzer.query(
-      data_types.Fuzzer.name.IN(args.script_args)).fetch()
+      data_types.Fuzzer.name.IN(fuzzer_names)).fetch()
 
   existing_fuzzer_names = {fuzzer.name for fuzzer in fuzzers}
 
-  for fuzzer_name in args.script_args:
+  for fuzzer_name in fuzzer_names:
     if fuzzer_name not in existing_fuzzer_names:
       print(f'Fuzzer {fuzzer_name} not found.')
 
@@ -38,9 +57,12 @@ def execute(args):
     print('Skipping writes in dry-run mode.')
     return
 
+  if fuzzers:
+    os.makedirs(output_dir, exist_ok=True)
+
   for fuzzer in fuzzers:
     config = fuzzer.get_config_dict()
-    filename = f'{fuzzer.name}_config.json'
+    filename = os.path.join(output_dir, f'{fuzzer.name}_config.json')
 
     with open(filename, 'w') as f:
       json.dump(config, f, indent=4)

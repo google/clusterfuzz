@@ -90,8 +90,10 @@ sudo apt-get install -y \
 sudo apt-get install -y apt-transport-https software-properties-common
 
 if [ "$distro_codename" == "rodete" ]; then
-  glogin
-  sudo glinux-add-repo docker-ce-"$distro_codename"
+  if ! which docker > /dev/null 2>&1; then
+    glogin
+    sudo glinux-add-repo docker-ce-"$distro_codename"
+  fi
 else
   curl -fsSL https://download.docker.com/linux/${distro_id,,}/gpg | \
       sudo apt-key add -
@@ -102,11 +104,11 @@ else
 
   export CLOUD_SDK_REPO="cloud-sdk"
   export APT_FILE=/etc/apt/sources.list.d/google-cloud-sdk.list
-  export APT_LINE="deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main"
-  sudo bash -c "grep -x \"$APT_LINE\" $APT_FILE || (echo $APT_LINE | tee -a $APT_FILE)"
+  export APT_LINE="deb [signed-by=/usr/share/keyrings/cloud.google.asc] https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main"
+  sudo bash -c "grep -Fx \"$APT_LINE\" $APT_FILE || (echo \"$APT_LINE\" | tee $APT_FILE)"
 
-  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
-      sudo apt-key add -
+  curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+      sudo tee /usr/share/keyrings/cloud.google.asc >/dev/null
 
 fi
 
@@ -147,13 +149,20 @@ if gcloud components install --quiet beta; then
 else
   # Either Cloud SDK component manager is disabled (default on GCE), or google-cloud-cli package is
   # installed via apt-get.
-  sudo apt-get install -y \
-      google-cloud-cli-app-engine-go \
-      google-cloud-cli-app-engine-python \
-      google-cloud-cli-app-engine-python-extras \
-      google-cloud-cli \
-      google-cloud-cli-datastore-emulator \
-      google-cloud-cli-pubsub-emulator
+  # Note: app-engine-python, app-engine-python-extras, and pubsub-emulator apt packages are optional on rodete (b/414408644, b/484368884).
+  if [ "$distro_codename" == "rodete" ]; then
+    sudo apt-get install -y \
+        google-cloud-cli \
+        google-cloud-cli-datastore-emulator
+  else
+    sudo apt-get install -y \
+        google-cloud-cli \
+        google-cloud-cli-app-engine-go \
+        google-cloud-cli-app-engine-python \
+        google-cloud-cli-app-engine-python-extras \
+        google-cloud-cli-datastore-emulator \
+        google-cloud-cli-pubsub-emulator
+  fi
 fi
 
 dir=$(dirname "$0")

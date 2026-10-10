@@ -221,7 +221,7 @@ def _get_jobs_for_platforms(platforms: list[str]) -> list[data_types.Job]:
 
 def _get_swarming_jobs():
   """Returns all jobs that have swarming environment variables."""
-  jobs = _get_jobs_for_platforms(['ANDROID', 'LINUX'])
+  jobs = _get_jobs_for_platforms(['ANDROID', 'LINUX', 'ANDROID_EMULATOR'])
   return [
       job for job in jobs
       if swarming.has_swarming_env_vars(job.get_environment())
@@ -316,3 +316,4 @@ def schedule_fuzz_tasks():
 
 def main():
   schedule_fuzz_tasks()
+  return True

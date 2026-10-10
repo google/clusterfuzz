@@ -38,7 +38,7 @@ def get_value(key):
   value = config.__getattribute__(key)
 
   # Decode if the value is base64 encoded.
-  if value.startswith(BASE64_MARKER):
+  if isinstance(value, str) and value.startswith(BASE64_MARKER):
     return base64.b64decode(value[len(BASE64_MARKER):])
 
   return value

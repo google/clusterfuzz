@@ -42,6 +42,19 @@ REVISION_VARS_URL = (
     'https://commondatastorage.googleapis.com/blah-%s.srcmap.json\n'
     'v8;https://test-repository/src.git/+/%s?format=JSON')
 
+# Revisions that would let a poisoned metadata value reshape the url they are
+# interpolated into.
+INVALID_REVISIONS = [
+    'EVIL/DEPS?x=',
+    '../DEPS',
+    '123#fragment',
+    '123?query=1',
+    '123%20space',
+    '123 456',
+    'rev/path',
+    'rev\\path',
+]
+
 
 @test_utils.with_cloud_emulators('datastore')
 class RevisionsTestcase(unittest.TestCase):
@@ -450,6 +463,39 @@ class RevisionsTestcase(unittest.TestCase):
                                               'd00d')
     self.assertEqual(None, val)
 
+  def test_is_valid_revision(self):
+    """Test is_valid_revision helper with valid and invalid values."""
+    valid_revisions = [
+        0,
+        '0',
+        12345,
+        '12345',
+        '336903',
+        '35dc4dd0e14e3afb4a2c7e319a3f4110e20c7cf2',
+        '1.2.3.4',
+        'release-1.0_beta',
+    ]
+    for rev in valid_revisions:
+      self.assertTrue(revisions.is_valid_revision(rev), f'{rev!r} is valid')
+
+    for rev in INVALID_REVISIONS + [None, '', '   ']:
+      self.assertFalse(revisions.is_valid_revision(rev), f'{rev!r} is invalid')
+
+  @mock.patch(
+      'clusterfuzz._internal.build_management.revisions._get_url_content')
+  def test_invalid_revisions_rejected(self, mock_get_url_content):
+    """Test that revisions that reshape the url are rejected before fetching."""
+    for rev in INVALID_REVISIONS + ['']:
+      result = revisions.get_component_revisions_dict(rev, SRCMAP_JOB_TYPE)
+      self.assertIsNone(result, f'Expected None for revision {rev!r}')
+    mock_get_url_content.assert_not_called()
+
+  def test_zero_or_none_revision_returns_empty_dict(self):
+    """Test that zero or None revisions return an empty dict."""
+    for zero_rev in [0, '0', None]:
+      result = revisions.get_component_revisions_dict(zero_rev, SRCMAP_JOB_TYPE)
+      self.assertEqual(result, {})
+
 
 @test_utils.with_cloud_emulators('datastore')
 class GetComponentsListTest(unittest.TestCase):
@@ -583,3 +629,47 @@ class DepsToRevisionsDictTest(unittest.TestCase):
     deps_content = 'vars = {}'
     actual_revisions_dict = revisions.deps_to_revisions_dict(deps_content)
     self.assertEqual(None, actual_revisions_dict)
+
+  def test_malicious_deps_not_executed(self):
+    """Test that malicious python code in DEPS is not executed."""
+    malicious_deps = """
+import os
+os.environ['__MALICIOUS_DEPS_EXEC__'] = 'pwned'
+vars = {'chromium_git': 'https://chromium.googlesource.com'}
+deps = {'src/safe': Var('chromium_git') + '/safe.git@12345'}
+"""
+    expected_revisions_dict = {
+        'src/safe': {
+            'name': 'Safe',
+            'rev': '12345',
+            'url': 'https://chromium.googlesource.com/safe.git'
+        }
+    }
+    os.environ.pop('__MALICIOUS_DEPS_EXEC__', None)
+    actual_revisions_dict = revisions.deps_to_revisions_dict(malicious_deps)
+    self.assertNotIn('__MALICIOUS_DEPS_EXEC__', os.environ)
+    self.assertEqual(expected_revisions_dict, actual_revisions_dict)
+
+  def test_deps_os_parsed(self):
+    """Test that deps_os is correctly parsed."""
+    deps_content = """
+vars = {'chromium_git': 'https://chromium.googlesource.com'}
+deps = {'src/common': Var('chromium_git') + '/common.git@111'}
+deps_os = {
+    'win': {'src/win_dep': Var('chromium_git') + '/win.git@222'}
+}
+"""
+    expected_revisions_dict = {
+        'src/common': {
+            'name': 'Common',
+            'rev': '111',
+            'url': 'https://chromium.googlesource.com/common.git'
+        },
+        'src/win_dep': {
+            'name': 'Win_dep',
+            'rev': '222',
+            'url': 'https://chromium.googlesource.com/win.git'
+        }
+    }
+    actual_revisions_dict = revisions.deps_to_revisions_dict(deps_content)
+    self.assertEqual(expected_revisions_dict, actual_revisions_dict)
