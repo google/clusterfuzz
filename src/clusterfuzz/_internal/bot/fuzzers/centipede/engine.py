@@ -320,9 +320,21 @@ class Engine(engine.Engine):
 
     old_corpus_len = shell.get_directory_file_count(options.corpus_dir)
     logs.info(f'Corpus length before fuzzing: {old_corpus_len}')
-    logs.info(f'Launching a fuzzer run with arguments: {options.arguments}')
+
+    # Centipede is the only fuzzing engine to support fuzzing durations so set
+    # that here using the max_time.
+    # Note: Sending a SIGTERM is enough for Centipede to cleanly shut down but
+    # Windows bots can only do the equivalent of SIGKILL and will benefit from
+    # the fuzzing duration flag.
+    args = list(
+        options.arguments) + [f'--{constants.STOP_AFTER_FLAGNAME}={max_time}s']
+
+    logs.info(f'Launching a fuzzer run with arguments: {args}')
     fuzz_result = runner.run_and_wait(
-        additional_args=options.arguments, timeout=timeout)
+        additional_args=args,
+        timeout=timeout,
+        terminate_before_kill=True,
+        terminate_wait_time=_CLEAN_EXIT_SECS)
     log_lines = fuzz_result.output.splitlines()
     fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
@@ -618,6 +630,8 @@ class Engine(engine.Engine):
     minimum_testcase = min(testcases, key=os.path.getsize)
     return minimum_testcase
 
+  # FIXME(crbug.com/564526622): Investigate whether `minimize_testcase` needs
+  # to be used, or if it can be safely deleted
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
     """Minimizes a testcase.
@@ -634,14 +648,27 @@ class Engine(engine.Engine):
     """
     runner = _get_runner(target_path)
     workdir = engine_common.create_temp_fuzzing_dir('workdir')
-    args = [
+    timeout = max_time + _CLEAN_EXIT_SECS
+
+    # Centipede does not store arguments in the database, so the `arguments`
+    # parameter is safe to ignore
+    minimize_arguments = self._get_arguments(target_path)
+    self._strip_fuzzing_arguments(minimize_arguments)
+    # Remove `TIMEOUT_PER_INPUT` flag set by `_get_arguments`
+    del minimize_arguments[constants.TIMEOUT_PER_INPUT_FLAGNAME]
+    args = minimize_arguments.list() + [
         f'--binary={target_path}',
         f'--workdir={workdir}',
         f'--minimize_crash={input_path}',
         f'--num_runs={constants.NUM_RUNS_PER_MINIMIZATION}',
+        f'--{constants.STOP_AFTER_FLAGNAME}={max_time}s',
         '--seed=1',
     ]
-    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    result = runner.run_and_wait(
+        additional_args=args,
+        timeout=timeout,
+        terminate_before_kill=True,
+        terminate_wait_time=_CLEAN_EXIT_SECS)
     if result.timed_out:
       logs.warning(
           'Testcase minimization timed out.', fuzzer_output=result.output)

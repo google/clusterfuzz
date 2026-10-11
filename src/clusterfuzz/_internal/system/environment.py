@@ -17,6 +17,7 @@ import ast
 import enum
 import functools
 import os
+import platform as platform_util
 import re
 import socket
 import subprocess
@@ -52,6 +53,14 @@ COMMON_SANITIZER_OPTIONS = {
     'handle_sigill': 1,
     'print_summary': 1,
     'use_sigaltstack': 1,
+}
+
+# CPU architectures whose binaries live in the default unsuffixed platform
+# resource directory (e.g., `resources/platform/mac`) rather than an
+# architecture-suffixed directory (e.g., `resources/platform/mac_arm64`).
+_UNSUFFIXED_ARCHS = {
+    'x86_64',
+    'x86',
 }
 
 
@@ -196,9 +205,9 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   # Add common sanitizer options.
   asan_options.update(COMMON_SANITIZER_OPTIONS)
 
-  # FIXME: For Windows, rely on online symbolization since llvm-symbolizer.exe
-  # in build archive does not work.
-  asan_options['symbolize'] = int(bot_platform == 'WINDOWS')
+  # Disable online symbolization across all platforms; offline symbolizer is
+  # used instead.
+  asan_options['symbolize'] = 0
 
   # For Android, allow user defined segv handler to work.
   if is_android(bot_platform):
@@ -220,15 +229,28 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
   return asan_options
 
 
-def get_cpu_arch():
-  """Return cpu architecture."""
+def get_target_cpu_arch():
+  """Return target cpu architecture,
+  i.e. the cpu architecture where the fuzzer will run.
+  """
   if is_android():
     # FIXME: Handle this import in a cleaner way.
     from clusterfuzz._internal.platforms import android
-    return android.settings.get_cpu_arch()
+    return android.settings.get_target_cpu_arch()
 
-  # FIXME: Add support for desktop architectures as needed.
-  return None
+  return get_host_cpu_arch()
+
+
+def get_host_cpu_arch():
+  """Returns cpu architecture of the current host."""
+  machine = platform_util.machine().lower()
+  if machine in ('arm64', 'aarch64'):
+    return 'arm64'
+  if machine in ('x86_64', 'amd64'):
+    return 'x86_64'
+  if machine in ('i386', 'i686', 'x86'):
+    return 'x86'
+  return machine or None
 
 
 def get_current_memory_tool_var():
@@ -271,7 +293,7 @@ def get_instrumented_libraries_paths():
 
 
 def get_default_tool_path(tool_name):
-  """Get the default tool for this platform (from scripts/ dir)."""
+  """Get the default tool for this platform (from resources/ directory)."""
   if is_android():
     # For android devices, we do symbolization on the host machine, which is
     # linux. So, we use the linux version of llvm-symbolizer.
@@ -424,12 +446,19 @@ def get_resources_directory():
 def get_platform_resources_directory(platform_override=None):
   """Return the path to platform-specific resources directory."""
   plt = platform_override or platform()
+  platform_directory = os.path.join(get_resources_directory(), 'platform')
 
-  # Android resources share the same android directory.
-  if is_android(plt):
-    plt = 'ANDROID'
+  # All Android variants share the same android directory. It holds host-side
+  # tools (adb, aapt) and device-side payloads (.apk), neither of which is
+  # keyed by host arch, so it is never arch-split.
+  if is_android(plt.upper()):
+    return os.path.join(platform_directory, 'android')
 
-  return os.path.join(get_resources_directory(), 'platform', plt.lower())
+  arch = get_host_cpu_arch()
+  if (not arch or arch in _UNSUFFIXED_ARCHS):
+    return os.path.join(platform_directory, plt.lower())
+
+  return os.path.join(platform_directory, f'{plt.lower()}_{arch}')
 
 
 def get_suppressions_directory():

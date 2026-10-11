@@ -123,6 +123,10 @@ CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL = (
     'Test-Predator-Wrong-Components')
 CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL = 'Test-Predator-Wrong-CLs'
 
+# These labels should signal that the issue should not be moved to a new
+# component.
+CHROMIUM_ISSUE_NO_COMPONENT_ROUTING_LABELS = {'prodsec-sheepdog-reproduce'}
+
 MISSING_VALUE_STRING = '---'
 
 COVERAGE_INFORMATION_DATE_FORMAT = '%Y%m%d'
@@ -322,7 +326,9 @@ class Fuzzer(Model):
   # Supported platforms.
   supported_platforms = ndb.StringProperty()
 
-  # Custom script that should be used to launch chrome for this fuzzer.
+  # Custom script path (relative to archive root) used to launch the target
+  # binary when executing testcases. Distinct from executable_path, which runs
+  # the fuzzer itself. Not used for blackbox fuzzing.
   launcher_script = ndb.StringProperty()
 
   # Result from the last fuzzer run showing the number of testcases generated.
@@ -347,11 +353,24 @@ class Fuzzer(Model):
   # reward flags.
   external_contribution = ndb.BooleanProperty(default=False)
 
+  # Primary owner for this fuzzer (e.g. for VRP attribution).
+  # Note: Setting this overrides the bug reporter on filed issues in the issue
+  # tracker, which may affect downstream workflows or automations expecting the
+  # default ClusterFuzz reporter email.
+  primary_owner = ndb.StringProperty()
+
   # Max testcases to generate for this fuzzer.
   max_testcases = ndb.IntegerProperty()
 
   # Does it run un-trusted content ? Examples including running live sites.
   untrusted_content = ndb.BooleanProperty(default=False)
+
+  # Whether this fuzzer is trusted or not.
+  # Untrusted fuzzers can only execute on unprivileged bots, as
+  # they might produce malicious outputs. All the testcases they
+  # produce are also treated as untrusted.
+  # See also `data_handler.check_job_supports_untrusted_workloads()`.
+  trusted = ndb.BooleanProperty(default=True)
 
   # Data bundle name.
   data_bundle_name = ndb.StringProperty(default='')
@@ -883,6 +902,10 @@ class Config(Model):
   # functional bugs.
   relax_security_bug_restrictions = ndb.BooleanProperty(default=False)
 
+  # TODO(b/422775458) - Clean up after completing the migration to V4
+  # Flag to use the V4 Android Build API instead of V3.
+  use_android_build_api_v4 = ndb.BooleanProperty(default=False)
+
   # Coverage reports bucket.
   coverage_reports_bucket = ndb.StringProperty(default='')
 
@@ -1332,7 +1355,7 @@ def fuzz_target_project_qualified_name(project, binary):
 
 class FuzzTargetsCount(Model):
   """Fuzz targets count for every job. Key IDs are the job name."""
-  count = ndb.IntegerProperty(indexed=False)
+  count = ndb.IntegerProperty()
 
 
 class FuzzTargetJob(Model):

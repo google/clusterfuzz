@@ -192,6 +192,28 @@ class HighlightCommonStackFramesTest(unittest.TestCase):
     self.assertEqual(show.highlight_common_stack_frames(stack), stack)
 
 
+class GetRevisionRangeHtmlTest(unittest.TestCase):
+  """Test _get_revision_range_html."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.revisions.'
+        'get_component_range_list',
+    ])
+
+  def test_no_component_revisions_escapes_revisions(self):
+    """Ensure revisions are escaped when no component revisions are found.
+
+    The revisions can come from testcase metadata written by an untrusted
+    worker, and the result is bound with inner-h-t-m-l."""
+    self.mock.get_component_range_list.return_value = []
+    result = show._get_revision_range_html('job', 'platform',
+                                           '<img src=x onerror=alert(1)>', '2')
+    self.assertEqual(
+        '&lt;img src=x onerror=alert(1)&gt;:2 '
+        '(No component revisions found!)', result)
+
+
 class FilterStacktraceTest(unittest.TestCase):
   """Test filter_stacktrace."""
 

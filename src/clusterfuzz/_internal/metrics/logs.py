@@ -53,6 +53,8 @@ _logger = None
 _is_already_handling_uncaught = False
 _default_extras = {}
 
+BASE_LOGGING_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+
 
 def _increment_error_count():
   """"Increment the error count metric."""
@@ -95,6 +97,13 @@ def _cloud_logging_enabled() -> bool:
           not environment.is_running_unit_tests() and not _is_local())
 
 
+def _allow_clusterfuzz_only(record: logging.LogRecord) -> bool:
+  """Only allow logs originating from ClusterFuzz code."""
+  if 'site-packages' in record.pathname or 'third_party' in record.pathname:
+    return False
+  return True
+
+
 def suppress_unwanted_warnings():
   """Suppress unwanted warnings."""
   # See https://github.com/googleapis/google-api-python-client/issues/299
@@ -115,7 +124,7 @@ def get_handler_config(filename, backup_count):
 
   return {
       'class': 'logging.handlers.RotatingFileHandler',
-      'level': logging.INFO,
+      'level': BASE_LOGGING_LEVEL,
       'formatter': 'simple',
       'filename': file_path,
       'maxBytes': max_bytes,
@@ -396,7 +405,7 @@ def json_fields_filter(record):
 
 def configure_appengine():
   """Configure logging for App Engine."""
-  logging.getLogger().setLevel(logging.INFO)
+  logging.getLogger().setLevel(BASE_LOGGING_LEVEL)
 
   if os.getenv('LOCAL_DEVELOPMENT') or environment.is_running_unit_tests():
     return
@@ -406,6 +415,7 @@ def configure_appengine():
   handler = client.get_default_handler()
   handler.addFilter(json_fields_filter)
   logging.getLogger().addHandler(handler)
+  logging.getLogger().addFilter(_allow_clusterfuzz_only)
 
 
 def configure_k8s():
@@ -458,12 +468,13 @@ def configure_k8s():
     return True
 
   handler.addFilter(k8s_label_filter)
-  handler.setLevel(logging.INFO)
+  handler.setLevel(BASE_LOGGING_LEVEL)
   formatter = JsonFormatter()
   handler.setFormatter(formatter)
 
   logging.getLogger().addHandler(handler)
-  logging.getLogger().setLevel(logging.INFO)
+  logging.getLogger().setLevel(BASE_LOGGING_LEVEL)
+  logging.getLogger().addFilter(_allow_clusterfuzz_only)
 
 
 def configure_cloud_logging():
@@ -527,11 +538,12 @@ def configure_cloud_logging():
     return True
 
   handler.addFilter(cloud_label_filter)
-  handler.setLevel(logging.INFO)
+  handler.setLevel(BASE_LOGGING_LEVEL)
   formatter = JsonFormatter()
   handler.setFormatter(formatter)
 
   logging.getLogger().addHandler(handler)
+  logging.getLogger().addFilter(_allow_clusterfuzz_only)
 
 
 def configure_swarming(name: str, extras: dict[str, str] | None = None) -> None:
@@ -549,7 +561,7 @@ def configure_swarming(name: str, extras: dict[str, str] | None = None) -> None:
     configure_cloud_logging()
 
   logger = logging.getLogger(name)
-  logger.setLevel(logging.INFO)
+  logger.setLevel(BASE_LOGGING_LEVEL)
   set_logger(logger)
 
   sys.excepthook = uncaught_exception_handler
@@ -574,13 +586,14 @@ def configure(name, extras=None):
     return
 
   if _console_logging_enabled():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=BASE_LOGGING_LEVEL)
   if _file_logging_enabled():
     config.dictConfig(get_logging_config_dict(name))
   if _cloud_logging_enabled():
     configure_cloud_logging()
   logger = logging.getLogger(name)
-  logger.setLevel(logging.INFO)
+  logger.setLevel(BASE_LOGGING_LEVEL)
+  logger.addFilter(_allow_clusterfuzz_only)
   set_logger(logger)
 
   # Set _default_extras so they can be used later.
@@ -767,6 +780,11 @@ def info(message, **extras):
 def warning(message, **extras):
   """Logs the warning message."""
   emit(logging.WARN, message, exc_info=sys.exc_info(), **extras)
+
+
+def debug(message, **extras):
+  """Logs the debug message."""
+  emit(logging.DEBUG, message, **extras)
 
 
 def error(message, **extras):

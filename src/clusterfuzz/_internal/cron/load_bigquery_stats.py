@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cron job used for loading bigquery data."""
 
+import argparse
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import random
@@ -116,14 +117,13 @@ def _poll_completion(bigquery, project_id, job_id):
   return response
 
 
-def _load_data(fuzzer):
-  """Load yesterday's stats into BigQuery."""
+def _load_data(fuzzer, target_date):
+  """Load stats into BigQuery."""
   bigquery = big_query.get_api_client()
   project_id = utils.get_application_id()
 
-  yesterday = (_utc_now().date() - datetime.timedelta(days=1))
-  date_string = yesterday.strftime('%Y%m%d')
-  timestamp = utils.utc_date_to_timestamp(yesterday)
+  date_string = target_date.strftime('%Y%m%d')
+  timestamp = utils.utc_date_to_timestamp(target_date)
 
   dataset_id = fuzzer_stats.dataset_name(fuzzer)
   if not _create_dataset_if_needed(bigquery, dataset_id):
@@ -193,8 +193,25 @@ def _load_data(fuzzer):
         logs.error(f'Failed to load: {str(e)}')
 
 
-def main():
+def main(argv=None):
   """Load bigquery stats from GCS."""
+  parser = argparse.ArgumentParser(prog='load_bigquery_stats')
+  parser.add_argument(
+      '--date',
+      help=('Date for loading stats (YYYY-MM-DD). Defaults to yesterday '
+            'UTC.'),
+      type=str)
+  args = parser.parse_args(argv if argv is not None else [])
+
+  if args.date:
+    try:
+      target_date = datetime.datetime.strptime(args.date, '%Y-%m-%d').date()
+    except ValueError:
+      parser.error(f'Invalid date format: {args.date}. Expected YYYY-MM-DD.')
+  else:
+    # Default to yesterday.
+    target_date = _utc_now().date() - datetime.timedelta(days=1)
+
   if not big_query.get_bucket():
     logs.error('Loading stats to BigQuery failed: missing bucket name.')
     return False
@@ -205,7 +222,7 @@ def main():
   # as we create the load jobs.
   for fuzzer in list(data_types.Fuzzer.query()):
     logs.info('Loading stats to BigQuery for %s.' % fuzzer.name)
-    thread_pool.submit(_load_data, fuzzer.name)
+    thread_pool.submit(_load_data, fuzzer.name, target_date)
 
   thread_pool.shutdown(wait=True)
   logs.info('Load big query task finished successfully.')

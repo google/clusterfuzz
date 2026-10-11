@@ -28,15 +28,13 @@ class SwarmingConfigErrorTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.swarming.FeatureFlags',
         'clusterfuzz._internal.google_cloud_utils.compute_metadata.get',
     ])
     helpers.patch_environ(self)
-    self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
     self.mock.get.return_value = None
 
-  def test_is_swarming_task_bad_config(self):
-    """Tests that is_swarming_task returns False when there's a BadConfigError."""
+  def test_is_swarming_job_bad_config(self):
+    """Tests that is_swarming_job returns False when there's a BadConfigError."""
     with mock.patch('clusterfuzz._internal.config.local_config.SwarmingConfig'
                    ) as mock_config:
       mock_config.side_effect = BadConfigError('test')
@@ -45,7 +43,7 @@ class SwarmingConfigErrorTest(unittest.TestCase):
           platform='LINUX',
           environment_string='IS_SWARMING_JOB = True')
       job.put()
-      self.assertFalse(swarming.is_swarming_task(job.name))
+      self.assertFalse(swarming.is_swarming_job(job.name))
 
   def test_create_new_task_request_bad_config(self):
     """Tests that create_new_task_request returns None when there's a BadConfigError."""

@@ -372,7 +372,11 @@ def _get_minimize_task_input(testcase):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Preprocess in a trusted bot."""
   # Locate the testcase associated with the id.
-  testcase = data_handler.get_testcase_by_id(testcase_id)
+  try:
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+  except errors.InvalidTestcaseError:
+    logs.warning(f'Testcase {testcase_id} no longer exists.')
+    return None
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     # Allow setting up a different fuzzer.
     minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
@@ -879,7 +883,12 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
   # Retrive the testcase early for logs context.
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  try:
+    testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  except errors.InvalidTestcaseError:
+    logs.warning(
+        f'Testcase {output.uworker_input.testcase_id} no longer exists.')
+    return
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     testcase_utils.emit_testcase_triage_duration_metric(
         int(output.uworker_input.testcase_id),
@@ -1028,67 +1037,70 @@ def store_minimized_testcase(
 
   # Prepare the file.
   zip_path = None
+  testcase_filepath = None
   if testcase.archive_state:
     if len(file_list) > 1:
       testcase.archive_state |= data_types.ArchiveStatus.MINIMIZED
       minimize_task_output.archive_state = testcase.archive_state
       zip_path = os.path.join(
           environment.get_value('INPUT_DIR'), '%d.zip' % testcase.key.id())
-      zip_file = zipfile.ZipFile(zip_path, 'w')
-      count = 0
-      filtered_file_list = []
-      for file_name in file_list:
-        absolute_filename = os.path.join(base_directory, file_name)
-        is_file = os.path.isfile(absolute_filename)
-        if file_to_run_data and is_file and os.path.getsize(
-            absolute_filename) == 0 and (os.path.basename(
-                absolute_filename).encode('utf-8') not in file_to_run_data):
-          continue
-        if not os.path.exists(absolute_filename):
-          continue
-        zip_file.write(absolute_filename, file_name, zipfile.ZIP_DEFLATED)
-        if is_file:
-          count += 1
-          filtered_file_list.append(absolute_filename)
+      with zipfile.ZipFile(zip_path, 'w') as zip_file:
+        count = 0
+        filtered_file_list = []
+        for file_name in file_list:
+          absolute_filename = os.path.join(base_directory, file_name)
+          is_file = os.path.isfile(absolute_filename)
+          if file_to_run_data and is_file and os.path.getsize(
+              absolute_filename) == 0 and (os.path.basename(
+                  absolute_filename).encode('utf-8') not in file_to_run_data):
+            continue
+          if not os.path.exists(absolute_filename):
+            continue
+          zip_file.write(absolute_filename, file_name, zipfile.ZIP_DEFLATED)
+          if is_file:
+            count += 1
+            filtered_file_list.append(absolute_filename)
 
-      zip_file.close()
-      try:
         if count > 1:
-          file_handle = open(zip_path, 'rb')
+          testcase_filepath = zip_path
         else:
           if not filtered_file_list:
             # We minimized everything. The only thing needed to reproduce is the
             # interaction gesture.
-            file_path = file_list[0]
-            file_handle = open(file_path, 'wb')
-            file_handle.close()
+            with open(file_list[0], 'wb'):
+              # Open it to clear the file contents.
+              pass
           else:
-            file_path = filtered_file_list[0]
-          file_handle = open(file_path, 'rb')
-          testcase.absolute_path = os.path.join(base_directory,
-                                                os.path.basename(file_path))
+            testcase_filepath = filtered_file_list[0]
+          testcase.absolute_path = os.path.join(
+              base_directory, os.path.basename(testcase_filepath))
           minimize_task_output.absolute_path = testcase.absolute_path
           testcase.archive_state &= ~data_types.ArchiveStatus.MINIMIZED
           minimize_task_output.archive_state = testcase.archive_state
-      except OSError:
-        logs.error('Unable to open archive for blobstore write.')
-        return
     else:
       absolute_filename = os.path.join(base_directory, file_list[0])
-      file_handle = open(absolute_filename, 'rb')
+      testcase_filepath = absolute_filename
       testcase.archive_state &= ~data_types.ArchiveStatus.MINIMIZED
       minimize_task_output.archive_state = testcase.archive_state
   else:
-    file_handle = open(file_list[0], 'rb')
+    testcase_filepath = file_list[0]
     testcase.archive_state &= ~data_types.ArchiveStatus.MINIMIZED
     minimize_task_output.archive_state = testcase.archive_state
 
-  # Store the testcase.
-  data = file_handle.read()
-  storage.upload_signed_url(data, minimize_task_input.testcase_upload_url)
-  minimized_keys = minimize_task_input.testcase_blob_name
-  file_handle.close()
+  if not testcase_filepath:
+    logs.error('Unable to find file to read')
+    return
 
+  try:
+    # Store the testcase.
+    with open(testcase_filepath, 'rb') as file_handle:
+      data = file_handle.read()
+      storage.upload_signed_url(data, minimize_task_input.testcase_upload_url)
+  except OSError:
+    logs.error('Unable to open archive for blobstore write.')
+    return
+
+  minimized_keys = minimize_task_input.testcase_blob_name
   testcase.minimized_keys = minimized_keys
   minimize_task_output.minimized_keys = minimized_keys
 
@@ -1318,9 +1330,8 @@ def do_ipc_dump_minimization(test_function, get_temp_file, file_path, deadline,
       return b''
 
     # TODO(mbarbella): Allow token combining functions to write files directly.
-    handle = open(combined_file_path, 'rb')
-    result = handle.read()
-    handle.close()
+    with open(combined_file_path, 'rb') as handle:
+      result = handle.read()
 
     shell.remove_file(combined_file_path)
     return result

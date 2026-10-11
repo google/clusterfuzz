@@ -77,6 +77,70 @@ enum StateQuery {
   QUERY_CLIENT_ERROR = 14;
 }
 
+// Represents the current task state.
+//
+// Some states are still mutable: PENDING and RUNNING. The others are final and
+// will not change afterward.
+//
+// A task is guaranteed to be in exactly one state at any point of time.
+//
+// Do not confuse StateQuery and TaskState. StateQuery is to query tasks
+// via the API. TaskState is the current task state.
+//
+// As you read the following constants, astute readers may wonder why these
+// constants look like a bitmask. This is because of historical reasons and this
+// is effectively an enum, not a bitmask.
+enum TaskState {
+  // Invalid state, do not use.
+  INVALID = 0x00;
+  // The task is currently running. This is in fact 3 phases: the initial
+  // overhead to fetch input files, the actual task running, and the tear down
+  // overhead to archive output files to the server.
+  RUNNING = 0x10;
+  // The task is currently pending. This means that no bot reaped the task. It
+  // will stay in this state until either a task reaps it or the expiration
+  // elapsed. The task pending expiration is specified as
+  // TaskSlice.expiration_secs, one per task slice.
+  PENDING = 0x20;
+  // The task is not pending anymore, and never ran due to lack of capacity. This
+  // means that other higher priority tasks ran instead and that not enough bots
+  // were available to run this task for TaskSlice.expiration_secs seconds.
+  EXPIRED = 0x30;
+  // The task ran for longer than the allowed time in
+  // TaskProperties.execution_timeout_secs or TaskProperties.io_timeout_secs.
+  // This means the bot forcefully killed the task process as described in the
+  // graceful termination dance in the documentation.
+  TIMED_OUT = 0x40;
+  // The task ran but the bot had an internal failure, unrelated to the task
+  // itself. It can be due to the server being unavailable to get task update,
+  // the host on which the bot is running crashing or rebooting, etc.
+  BOT_DIED = 0x50;
+  // The task never ran, and was manually cancelled via the 'cancel' API before
+  // it was reaped.
+  CANCELED = 0x60;
+  // The task ran and completed normally. The task process exit code may be 0 or
+  // another value.
+  COMPLETED = 0x70;
+  // The task ran but was manually killed via the 'cancel' API. This means the
+  // bot forcefully killed the task process as described in the graceful
+  // termination dance in the documentation.
+  KILLED = 0x80;
+  // The task was never set to PENDING and was immediately refused, as the server
+  // determined that there is no bot capacity to run this task. This happens
+  // because no bot exposes a superset of the requested task dimensions.
+  //
+  // Set TaskSlice.wait_for_capacity to True to force the server to keep the task
+  // slice pending even in this case. Generally speaking, the task will
+  // eventually switch to EXPIRED, as there's no bot to run it. That said, there
+  // are situations where it is known that in some not-too-distant future a wild
+  // bot will appear that will be able to run this task.
+  NO_RESOURCE = 0x100;
+  // The task run into an issue that was caused by the client. It can be due to
+  // a bad CIPD or CAS package. Retrying the task with the same parameters will
+  // not change the result.
+  CLIENT_ERROR = 0x200;
+}
+
 // Messages
 
 // Represents a mapping of string to a string.
@@ -147,6 +211,16 @@ message CipdInput {
 
   // List of CIPD packages to install.
   repeated CipdPackage packages = 3;
+}
+
+// Defines pinned CIPD packages that were installed during the task.
+message CipdPins {
+  // The pinned package + version of the CIPD client that was actually used.
+  CipdPackage client_package = 1;
+
+  // List of CIPD packages that were installed in the task with fully resolved
+  // package names and versions.
+  repeated CipdPackage packages = 2;
 }
 
 // Describes a named cache that should be present on the bot.
@@ -302,6 +376,21 @@ message TaskSlice {
   bool wait_for_capacity = 3;
 }
 
+// ResultDB properties of a completed task.
+message ResultDBInfo {
+  // ResultDB hostname, e.g. "results.api.cr.dev"
+  string hostname = 1;
+
+  // Name of the task's ResultDB invocation.
+  //
+  // For example "invocations/task-chromium-swarm.appspot.com-deadbeef1".
+  // Unset if Swarming:ResultDB integration was not enabled for this task.
+  //
+  // If the task was deduplicated, this equals invocation name of the original
+  // task.
+  string invocation = 2;
+}
+
 // Swarming:ResultDB integration configuration for a task.
 // See NewTaskRequest.resultdb for more details.
 message ResultDBCfg {
@@ -406,6 +495,14 @@ message NewTaskRequest {
   string realm = 18;
 }
 
+// Provides the ID of the requested TaskRequest.
+message TaskRequestMetadataResponse {
+  string task_id = 1;
+  TaskRequestResponse request = 2;
+  // Set to finished task result in case task was deduplicated.
+  TaskResultResponse task_result = 3;
+}
+
 // Description of a task request as registered by the server.
 // This message is used when retrieving information about an existing task.
 // See NewTaskRequest for more details.
@@ -438,6 +535,100 @@ message TaskRequestResponse {
   string rbe_instance = 18;
 }
 
+// Representation of the TaskResultSummary or TaskRunResult ndb model.
+message TaskResultResponse {
+  reserved 7;
+  reserved "children_task_ids";
+
+  // Summary task ID (ending with '0') when creating a new task.
+  string task_id = 1;
+  // Time when the task was abandoned instead of normal completion (e.g.
+  // EXPIRED, BOT_DIED, KILLED).
+  //
+  // The same key cannot be repeated.
+  repeated StringListPair bot_dimensions = 2;
+  // Unique ID of the bot.
+  string bot_id = 3;
+  // Time the bot became ready for a next task.
+  google.protobuf.Timestamp bot_idle_since_ts = 4;
+  // Hash of the bot code which ran the task.
+  string bot_version = 5;
+  // The cloud project id where the bot saves its logs.
+  string bot_logs_cloud_project = 6;
+  // Time the task completed normally. Only one of abandoned_ts or completed_ts
+  // can be set except for state == KILLED.
+  //
+  // In case of KILLED, completed_ts is the time the task completed.
+  google.protobuf.Timestamp completed_ts = 8;
+  // $ saved for task with state DEDUPED.
+  float cost_saved_usd = 9;
+  // Time the task was requested.
+  google.protobuf.Timestamp created_ts = 10;
+  // Task ID which results was reused for state DEDUPED.
+  string deduped_from = 11;
+  // Duration of the task in seconds. This excludes overheads.
+  float duration = 12;
+  // Process exit code if relevant. May be forcibly set to -1 in exceptional
+  // cases.
+  int64 exit_code = 13;
+  // True if exit_code != 0.
+  bool failure = 14;
+  // True if state is BOT_DIED.
+  bool internal_failure = 15;
+  // Time the results was last updated in the DB.
+  google.protobuf.Timestamp modified_ts = 16;
+  // CAS Digest of the output root uploaded to RBE-CAS.
+  // This MUST be digest of [build.bazel.remote.execution.v2.Directory].
+  CASReference cas_output_root = 17;
+  // Server versions that touched this task.
+  repeated string server_versions = 18;
+  // Time the task started being run by a bot.
+  google.protobuf.Timestamp started_ts = 19;
+  // Current state of the task (e.g. PENDING, RUNNING, COMPLETED, EXPIRED, etc).
+  TaskState state = 20;
+  // In the case of KILLED, this records the time the user requested the task to
+  // stop.
+  google.protobuf.Timestamp abandoned_ts = 21;
+
+  // Can be multiple values only in TaskResultSummary.
+  repeated float costs_usd = 22;
+  // Name of the task. Only set when requesting task ID summary, ending with '0'.
+  string name = 23;
+  // Tags associated with the task when it was requested. Only set when
+  // requesting task ID summary, ending with '0'.
+  repeated string tags = 24;
+  // User on behalf this task was requested. Only set when requesting task ID
+  // summary, ending with '0'.
+  string user = 25;
+  // Statistics about overhead for an isolated task. Only sent when requested.
+  PerformanceStats performance_stats = 26;
+
+  // Listing of the ACTUAL pinned CipdPackages that the task used. These can vary
+  // from the input packages if the inputs included non-identity versions (e.g. a
+  // ref like "latest").
+  CipdPins cipd_pins = 27;
+  // Actual executed task id that this task represents. For deduped tasks, it is
+  // the same value as deduped_from. This value can be empty if there is no
+  // execution, for example the task was cancelled.
+  string run_id = 28;
+
+  // Index in the TaskRequest.task_slices (TaskSlice instance) that this result
+  // represents. This is updated when a TaskSlice is enqueued to run.
+  //
+  // The TaskSlice contains a TaskProperties, which defines what is run.
+  int32 current_task_slice = 29;
+
+  // ResultDB related information.
+  // None if the integration was not enabled for this task.
+  ResultDBInfo resultdb_info = 30;
+
+  // Reported missing CAS packages on CLIENT_ERROR state
+  repeated CASReference missing_cas = 31;
+
+  // Reported missing CIPD packages on CLIENT_ERROR state
+  repeated CipdPackage missing_cipd = 32;
+}
+
 message TasksCountRequest {
   google.protobuf.Timestamp start = 1;
   google.protobuf.Timestamp end = 2;
@@ -449,4 +640,40 @@ message TasksCountRequest {
 message TasksCount {
   int32 count = 1;
   google.protobuf.Timestamp now = 2;
+}
+
+// Performance stats of task execution.
+// See task_result.PerformanceStats for details.
+message PerformanceStats {
+  float bot_overhead = 1;
+  CASOperationStats isolated_download = 2;
+  CASOperationStats isolated_upload = 3;
+  OperationStats package_installation = 4;
+  OperationStats cache_trim = 5;
+  OperationStats named_caches_install = 6;
+  OperationStats named_caches_uninstall = 7;
+  OperationStats cleanup = 8;
+}
+
+message OperationStats {
+  // Duration in seconds.
+  float duration = 1;
+}
+
+message CASOperationStats {
+  // Duration in seconds.
+  float duration = 1;
+  int32 initial_number_items = 2;
+  int64 initial_size = 3;
+  // These buffers are compressed as deflate'd delta-encoded varints. They are
+  // all the items for an isolated operation, which can scale in the 100k range.
+  // So can be large! See //client/utils/large.py for the code to handle these.
+  bytes items_cold = 4;
+  bytes items_hot = 5;
+  // Corresponding summaries; for each list above, sum of the number of files
+  // and the sum bytes of the files.
+  int64 num_items_cold = 6;
+  int64 total_bytes_items_cold = 7;
+  int64 num_items_hot = 8;
+  int64 total_bytes_items_hot = 9;
 }

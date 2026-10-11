@@ -248,11 +248,11 @@ class UpdateSourceCodeIntegrationTest(unittest.TestCase):
     zipfile_path = os.path.join(self._make_temp_dir(), 'linux.zip')
     storage.copy_file_from('gs://clusterfuzz-deployment/linux-3.zip',
                            zipfile_path)
-    archive = zipfile.ZipFile(zipfile_path)
-    for file in archive.namelist():
-      if os.path.basename(file) == 'adb':
-        continue
-      self.assertTrue(os.path.exists(os.path.join(self.temp_directory, file)))
+    with zipfile.ZipFile(zipfile_path) as archive:
+      for file in archive.namelist():
+        if os.path.basename(file) == 'adb':
+          continue
+        self.assertTrue(os.path.exists(os.path.join(self.temp_directory, file)))
 
   def test_archive_execute_permission_is_respected(self):
     """Tests that the exectuable bit is correctly propagated to source files."""
@@ -260,11 +260,47 @@ class UpdateSourceCodeIntegrationTest(unittest.TestCase):
     zipfile_path = os.path.join(self._make_temp_dir(), 'linux.zip')
     storage.copy_file_from('gs://clusterfuzz-deployment/linux-3.zip',
                            zipfile_path)
-    archive = zipfile.ZipFile(zipfile_path)
-    for member in archive.infolist():
-      if os.path.basename(member.filename) == 'adb':
-        continue
-      mode = (member.external_attr >> 16) & 0o7777
-      filepath = os.path.join(self.temp_directory, member.filename)
-      if mode & 0o100:
-        self.assertTrue(os.access(filepath, os.X_OK))
+    with zipfile.ZipFile(zipfile_path) as archive:
+      for member in archive.infolist():
+        if os.path.basename(member.filename) == 'adb':
+          continue
+        mode = (member.external_attr >> 16) & 0o7777
+        filepath = os.path.join(self.temp_directory, member.filename)
+        if mode & 0o100:
+          self.assertTrue(os.access(filepath, os.X_OK))
+
+
+class GetSourceUrlTest(unittest.TestCase):
+  """Tests for get_source_url."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.ProjectConfig',
+        'clusterfuzz._internal.base.utils.get_clusterfuzz_release',
+        'platform.machine',
+        'platform.system',
+    ])
+    self.mock.ProjectConfig().get.return_value = 'deployment-bucket'
+    self.mock.get_clusterfuzz_release.return_value = 'prod'
+
+  def test_linux(self):
+    """Test get_source_url for linux."""
+    self.mock.system.return_value = 'Linux'
+    self.mock.machine.return_value = 'x86_64'
+    self.assertEqual('gs://deployment-bucket/linux-3.zip',
+                     update_task.get_source_url())
+
+  def test_mac_x86_64(self):
+    """Test get_source_url for mac x86_64."""
+    self.mock.system.return_value = 'Darwin'
+    self.mock.machine.return_value = 'x86_64'
+    self.assertEqual('gs://deployment-bucket/macos-3.zip',
+                     update_task.get_source_url())
+
+  def test_mac_arm64(self):
+    """Test get_source_url for mac arm64."""
+    self.mock.system.return_value = 'Darwin'
+    self.mock.machine.return_value = 'arm64'
+    self.assertEqual('gs://deployment-bucket/macos_arm64-3.zip',
+                     update_task.get_source_url())

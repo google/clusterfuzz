@@ -15,8 +15,10 @@
 
 import base64
 import collections
+import dataclasses
 import datetime
 import os
+import queue
 import re
 import zlib
 
@@ -330,9 +332,18 @@ def run_testcase(thread_index, file_path, gestures, env_copy):
     app_directory = environment.get_value('APP_DIR')
     environment.set_value('PIDS', '[]')
 
+    logs.info(
+        f'Running testcase (thread {thread_index}): file_path={file_path}, '
+        f'needs_http={needs_http}, gestures={gestures}')
+
     # Get command line options.
+
     command = get_command_line_for_application(
         file_path, user_profile_index=thread_index, needs_http=needs_http)
+
+    logs.debug(
+        f'[TestcaseManager] Running testcase (thread {thread_index}): '
+        f'command={command}, needs_http={needs_http}, gestures={gestures}')
 
     # Run testcase.
     return process_handler.run_process(
@@ -354,6 +365,70 @@ class Crash(
   """Represents a crash in a queue. This class is transformed into
     fuzz_task.Crash. Therefore, please be careful when adding/removing
     fields."""
+
+
+@dataclasses.dataclass
+class FuzzerRunOutputData:
+  """Output metadata for a single fuzzer run.
+
+  - This class should be constructed either via `from_file_path()` or
+  `from_output()` - directly using the constructor is not recommended.
+
+  - `_output` and `_file_path` are mutually exclusive (oneof); exactly one of
+    them should be set.
+  """
+  _output: str | bytes | None = None
+  _file_path: str | None = None
+  crash_path: str | None = None
+  return_code: int = 0
+  log_time: datetime.datetime | None = None
+
+  @classmethod
+  def from_file_path(cls,
+                     file_path: str,
+                     crash_path: str | None = None,
+                     return_code: int = 0,
+                     log_time: datetime.datetime | None = None):
+    return cls(
+        _file_path=file_path,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+
+  @classmethod
+  def from_memory(cls,
+                  output: str | bytes,
+                  crash_path: str | None = None,
+                  return_code: int = 0,
+                  log_time: datetime.datetime | None = None):
+    return cls(
+        _output=output,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+
+  def get_output(self) -> str | None:
+    """Reads or decodes the fuzzer output text."""
+    if self._file_path:
+      output = utils.read_data_from_file_and_remove(
+          self._file_path, eval_data=False)
+      self._output = output if output is not None else None
+      self._file_path = None
+
+    if self._output is None:
+      return None
+
+    if isinstance(self._output, bytes):
+      self._output = self._output.decode('utf-8', errors='replace')
+
+    return self._output
+
+
+@dataclasses.dataclass
+class TestcaseRunResult:
+  """Result of a testcase execution queued for processing."""
+  crash: Crash | None = None
+  fuzzer_run_output_data: FuzzerRunOutputData | None = None
 
 
 def get_resource_paths(output):
@@ -393,7 +468,7 @@ def convert_dependency_url_to_local_path(url):
 
       # Convert remote to local path for android.
       if environment.is_android():
-        remote_testcases_directory = android.constants.DEVICE_TESTCASES_DIR
+        remote_testcases_directory = android.app.get_testcases_directory()
         local_testcases_directory = environment.get_value('FUZZ_INPUTS')
         local_path = local_path.replace(remote_testcases_directory,
                                         local_testcases_directory)
@@ -421,7 +496,7 @@ def _get_testcase_time(testcase_path):
   if stats:
     return datetime.datetime.utcfromtimestamp(float(stats.timestamp))
 
-  return None
+  return datetime.datetime.utcnow()
 
 
 def upload_testcase(testcase_path, testcase_data, log_time, fuzzer_name=None):
@@ -462,12 +537,9 @@ def _get_crash_output(output):
   return output[:crash_stacktrace_end_marker_index]
 
 
-def run_testcase_and_return_result_in_queue(crash_queue,
-                                            thread_index,
-                                            file_path,
-                                            gestures,
-                                            env_copy,
-                                            upload_output=False):
+def run_testcase_and_return_result_in_queue(
+    crash_queue: queue.Queue, thread_index: int, file_path: str,
+    gestures: list[str], env_copy: dict) -> None:
   """Run a single testcase and return crash results in the crash queue."""
   # Since this is running in its own process, initialize the log handler again.
   # This is needed for Windows where instances are not shared across child
@@ -479,21 +551,13 @@ def run_testcase_and_return_result_in_queue(crash_queue,
 
   # Also reinitialize NDB context for the same reason as above.
   with ndb_init.context():
-    _do_run_testcase_and_return_result_in_queue(
-        crash_queue,
-        thread_index,
-        file_path,
-        gestures,
-        env_copy,
-        upload_output=upload_output)
+    _do_run_testcase_and_return_result_in_queue(crash_queue, thread_index,
+                                                file_path, gestures, env_copy)
 
 
-def _do_run_testcase_and_return_result_in_queue(crash_queue,
-                                                thread_index,
-                                                file_path,
-                                                gestures,
-                                                env_copy,
-                                                upload_output=False):
+def _do_run_testcase_and_return_result_in_queue(
+    crash_queue: queue.Queue, thread_index: int, file_path: str,
+    gestures: list[str], env_copy: dict) -> None:
   """Run a single testcase and return crash results in the crash queue."""
   try:
     # Run testcase and check whether a crash occurred or not.
@@ -511,9 +575,9 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
 
     # To provide consistency between stats and logs, we use timestamp taken
     # from stats when uploading logs and testcase.
-    if upload_output:
-      log_time = _get_testcase_time(file_path)
+    log_time = _get_testcase_time(file_path)
 
+    crash = None
     if crash_result.is_crash():
       # Initialize resource list with the testcase path.
       resource_list = [file_path]
@@ -526,28 +590,36 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
                                      utils.string_hash(file_path))
       utils.write_data_to_file(crash_output, stack_file_path)
 
-      # Put crash/no-crash results in the crash queue.
-      crash_queue.put(
-          Crash(
-              file_path=file_path,
-              crash_time=crash_time,
-              return_code=return_code,
-              resource_list=resource_list,
-              gestures=gestures,
-              stack_file_path=stack_file_path))
+      crash = Crash(
+          file_path=file_path,
+          crash_time=crash_time,
+          return_code=return_code,
+          resource_list=resource_list,
+          gestures=gestures,
+          stack_file_path=stack_file_path)
 
-      # Don't upload uninteresting testcases (no crash) or if there is no log to
-      # correlate it with (not upload_output).
-      if upload_output:
-        upload_testcase(file_path, None, log_time)
-
-    if upload_output:
-      # Include full output for uploaded logs (crash output, merge output, etc).
-      crash_result_full = CrashResult(return_code, crash_time, output)
-      upload_log(crash_result_full.get_stacktrace(), return_code, log_time)
-  except Exception:
-    logs.error('Exception occurred while running '
-               'run_testcase_and_return_result_in_queue.')
+    # Save raw, unsymbolized execution output for deferred postprocessing.
+    crash_result_full = CrashResult(return_code, crash_time, output)
+    unsymbolized_output = crash_result_full.get_stacktrace()
+    crash_path = file_path if crash else None
+    log_file_path = utils.create_temp_file(
+        directory=environment.get_value('BOT_TMPDIR'),
+        prefix='fuzzer_output_',
+        suffix='.log')
+    utils.write_data_to_file(unsymbolized_output, log_file_path)
+    fuzzer_run_output_data = FuzzerRunOutputData.from_file_path(
+        file_path=log_file_path,
+        crash_path=crash_path,
+        return_code=return_code,
+        log_time=log_time)
+    crash_queue.put(
+        TestcaseRunResult(
+            crash=crash, fuzzer_run_output_data=fuzzer_run_output_data))
+  except Exception as e:
+    logs.error(
+        'Exception occurred while running '
+        'run_testcase_and_return_result_in_queue.',
+        exception=e)
 
 
 def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
@@ -746,6 +818,10 @@ class TestcaseRunner:
       if not crash_result.is_crash():
         continue
 
+      if crash_result.should_ignore():
+        logs.info('Crash stacktrace matched ignore signatures, ignored.')
+        continue
+
       # If we don't have an expected crash state, set it to the one from initial
       # crash.
       if not expected_state:
@@ -932,7 +1008,7 @@ def get_command_line_for_application(file_to_run='',
   apps_argument = environment.get_value('APPS_ARG')
   crash_stacks_directory = environment.get_value('CRASH_STACKTRACES_DIR')
   debugger = environment.get_value('DEBUGGER_PATH')
-  device_testcases_directory = android.constants.DEVICE_TESTCASES_DIR
+  device_testcases_directory = android.app.get_testcases_directory()
   fuzzer_directory = environment.get_value('FUZZER_DIR')
   extension_argument = environment.get_value('EXTENSION_ARG')
   input_directory = environment.get_value('INPUT_DIR')
@@ -1180,7 +1256,8 @@ def check_for_bad_build(job_type: str,
     os.environ['APP_ARGS'] = job_default_args
 
   try:
-    command = get_command_line_for_application(file_to_run='', needs_http=False)
+    command = get_command_line_for_application(
+        file_to_run='', needs_http=False, write_command_line_file=True)
   finally:
     if orig_app_args is not None:
       os.environ['APP_ARGS'] = orig_app_args
@@ -1210,19 +1287,41 @@ def check_for_bad_build(job_type: str,
   process_handler.terminate_stale_application_instances()
 
   # Check if the build is bad.
+  logs.info(
+      f'Starting bad build check for {job_type} at r{crash_revision} with '
+      f'command: {command} (timeout={fast_warmup_timeout})')
   return_code, crash_time, output = process_handler.run_process(
       command,
       timeout=fast_warmup_timeout,
       current_working_directory=app_directory)
   crash_result = CrashResult(return_code, crash_time, output)
+  logs.info(
+      f'Bad build check run_process completed: return_code={return_code}, '
+      f'is_crash={crash_result.is_crash(ignore_state=True)}, '
+      f'crash_type={crash_result.get_type()}')
 
+  # On Android, if we have an APK package and the application process is not
+  # running after startup, the build is bad.
+  if (environment.is_android() and
+      (package_name := android.app.get_package_name()) and
+      not android.adb.get_process_and_child_pids(package_name)):
+    is_bad_build = True
+    build_run_console_output = utils.get_crash_stacktrace_output(
+        command, output, output)
+    logs.info(
+        f'Bad build for {job_type} detected at r{crash_revision}: '
+        f'application process for {package_name} is not running after '
+        'startup.',
+        raw_output=output,
+        output=build_run_console_output)
   # 1. Need to account for startup crashes with no crash state. E.g. failed to
   #    load shared library. So, ignore state for comparison.
   # 2. Ignore leaks as they don't block a build from reporting regular crashes
   #    and also don't impact regression range calculations.
-  if (crash_result.is_crash(ignore_state=True) and
-      not crash_result.should_ignore() and
-      not crash_result.get_type() in ['Direct-leak', 'Indirect-leak']):
+  elif (crash_result.is_crash(ignore_state=True) and
+        not crash_result.should_ignore() and
+        not crash_result.get_type() in ['Direct-leak', 'Indirect-leak']):
+
     is_bad_build = True
     build_run_console_output = utils.get_crash_stacktrace_output(
         command,

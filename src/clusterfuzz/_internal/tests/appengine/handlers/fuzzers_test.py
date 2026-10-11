@@ -15,7 +15,10 @@
 # pylint: disable=protected-access
 
 import datetime
+import io
 import unittest
+from unittest import mock
+import zipfile
 
 import flask
 import webtest
@@ -26,6 +29,7 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers import fuzzers
 from libs import form
+from libs import helpers
 
 
 class BaseEditHandlerTest(unittest.TestCase):
@@ -63,6 +67,104 @@ class BaseEditHandlerTest(unittest.TestCase):
     self.assertNotIn('sample_testcase:', state_str)
     self.assertNotIn('stats_columns:', state_str)
     self.assertNotIn('stats_column_descriptions:', state_str)
+
+
+class GetExecutablePathTest(unittest.TestCase):
+  """Tests for BaseEditHandler._get_executable_path."""
+
+  def setUp(self):
+    self.handler = fuzzers.BaseEditHandler()
+
+    # Flask's `request` is a LocalProxy. An active test request context is
+    # required so that introspecting `request` during mock.patch doesn't fail
+    # with RuntimeError("Working outside of request context.").
+    flaskapp = flask.Flask('testflask')
+    self.request_context = flaskapp.test_request_context()
+    self.request_context.push()
+    self.addCleanup(self.request_context.pop)
+
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage.read_data',
+    ])
+
+    request_patcher = mock.patch(
+        'handlers.fuzzers.request', new_callable=mock.MagicMock)
+    self.mock.request = request_patcher.start()
+    self.addCleanup(request_patcher.stop)
+
+  def _create_zip(self, file_names):
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w') as zip_file:
+      for file_name in file_names:
+        zip_file.writestr(file_name, 'content')
+    return buffer.getvalue()
+
+  def test_get_executable_path_exact_match(self):
+    """Test that an exact match in the archive is returned."""
+    self.mock.request.get.return_value = 'fuzz.py'
+    self.mock.read_data.return_value = self._create_zip(
+        ['fuzz.py', 'helper.py'])
+    upload_info = mock.Mock(
+        size=100, filename='fuzzer.zip', gcs_path='/gcs/fuzzer.zip')
+
+    self.assertEqual('fuzz.py', self.handler._get_executable_path(upload_info))
+
+  def test_get_executable_path_not_found(self):
+    """Test that missing executable in archive raises EarlyExitError 400."""
+    self.mock.request.get.return_value = 'missing.py'
+    self.mock.read_data.return_value = self._create_zip(
+        ['fuzz.py', 'helper.py'])
+    upload_info = mock.Mock(
+        size=100, filename='fuzzer.zip', gcs_path='/gcs/fuzzer.zip')
+
+    with self.assertRaises(helpers.EarlyExitError) as cm:
+      self.handler._get_executable_path(upload_info)
+
+    self.assertEqual(400, cm.exception.status)
+    self.assertEqual(
+        'Failed to find an executable in the archive. Please specify an '
+        'executable path that matches a file in the archive.',
+        str(cm.exception))
+
+  def test_get_executable_path_fallback_to_run(self):
+    """Test fallback to 'run' when executable_path is empty."""
+    self.mock.request.get.return_value = ''
+    self.mock.read_data.return_value = self._create_zip(['run.py', 'helper.py'])
+    upload_info = mock.Mock(
+        size=100, filename='fuzzer.zip', gcs_path='/gcs/fuzzer.zip')
+
+    self.assertEqual('run.py', self.handler._get_executable_path(upload_info))
+
+  def test_get_executable_path_fallback_none_found(self):
+    """Test fallback raises EarlyExitError 400 when empty and no 'run' matches."""
+    self.mock.request.get.return_value = ''
+    self.mock.read_data.return_value = self._create_zip(
+        ['exec.py', 'helper.py'])
+    upload_info = mock.Mock(
+        size=100, filename='fuzzer.zip', gcs_path='/gcs/fuzzer.zip')
+
+    with self.assertRaises(helpers.EarlyExitError) as cm:
+      self.handler._get_executable_path(upload_info)
+
+    self.assertEqual(400, cm.exception.status)
+    self.assertEqual(
+        'Failed to find an executable in the archive. Please specify an '
+        'executable path that matches a file in the archive.',
+        str(cm.exception))
+
+  def test_get_executable_path_no_upload_info(self):
+    """Test returning request value directly when there is no upload info."""
+    self.mock.request.get.return_value = 'fuzz.py'
+    self.assertEqual('fuzz.py', self.handler._get_executable_path(None))
+
+  def test_get_executable_path_oversized_archive(self):
+    """Test returning request value directly for oversized archives."""
+    self.mock.request.get.return_value = 'fuzz.py'
+    upload_info = mock.Mock(
+        size=fuzzers.ARCHIVE_READ_SIZE_LIMIT + 1,
+        filename='fuzzer.zip',
+        gcs_path='/gcs/fuzzer.zip')
+    self.assertEqual('fuzz.py', self.handler._get_executable_path(upload_info))
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -125,6 +227,8 @@ class EditHandlerTest(unittest.TestCase):
         'handlers.fuzzers.EditHandler.get_upload',
         'handlers.fuzzers.EditHandler._get_executable_path',
         'handlers.fuzzers.EditHandler._get_launcher_script',
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
     ])
     self.mock.has_access.return_value = True
     self.mock.get_current_user().email = 'editor@example.com'
@@ -134,6 +238,8 @@ class EditHandlerTest(unittest.TestCase):
 
     self.mock._get_executable_path.return_value = 'executable'
     self.mock._get_launcher_script.return_value = 'launcher'
+    self.mock.is_chromium.return_value = True
+    self.mock.is_remotely_executing_utasks.return_value = True
 
     self.mock_time = datetime.datetime(2026, 1, 1, tzinfo=None)
     self.mock.datetime.datetime.now.return_value = self.mock_time
@@ -162,6 +268,7 @@ class EditHandlerTest(unittest.TestCase):
         'csrf_token': form.generate_csrf_token(),
         'data_bundle_name': 'test_bundle',
         'external_contribution': True,
+        'primary_owner': 'owner@example.com',
         'jobs': [],
         'key': fuzzer.key.id(),
         'max_testcases': 100,
@@ -179,6 +286,8 @@ class EditHandlerTest(unittest.TestCase):
             'additional_environment_string': 'args=123',
             'data_bundle_name': 'test_bundle',
             'external_contribution': True,
+            'primary_owner': 'owner@example.com',
+            'trusted': False,
             'executable_path': 'executable',
             'last_edited_by': 'editor@example.com',
             'launcher_script': 'launcher',
@@ -188,3 +297,70 @@ class EditHandlerTest(unittest.TestCase):
             'source': 'original@example.com',
             'timeout': 30,
         })
+
+  def test_update_fuzzer_untrusted_success(self):
+    """Test updating a fuzzer to untrusted with a Linux job succeeds."""
+    # Create a Linux job.
+    job = data_types.Job(name='linux_job', platform='LINUX')
+    job.put()
+
+    fuzzer_name = 'test_fuzzer'
+    fuzzer = data_types.Fuzzer(
+        name=fuzzer_name,
+        jobs=[],
+        revision=1,
+        source='original@example.com',
+        timeout=10,
+        trusted=True,
+    )
+    fuzzer.put()
+
+    request_payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': fuzzer.key.id(),
+        'name': fuzzer_name,
+        'trusted': False,
+        'jobs': ['linux_job'],
+    }
+
+    resp = self.app.post_json('/fuzzers/edit', request_payload)
+    self.assertEqual(302, resp.status_int)  # Redirects to /fuzzers
+
+    fuzzer = fuzzer.key.get()
+    self.assertFalse(fuzzer.trusted)
+    self.assertEqual(fuzzer.jobs, ['linux_job'])
+
+  def test_update_fuzzer_untrusted_failure_non_linux(self):
+    """Test updating a fuzzer to untrusted with a non-Linux job fails."""
+    # Create a Windows job.
+    job = data_types.Job(name='windows_job', platform='WINDOWS')
+    job.put()
+
+    fuzzer_name = 'test_fuzzer'
+    fuzzer = data_types.Fuzzer(
+        name=fuzzer_name,
+        jobs=[],
+        revision=1,
+        source='original@example.com',
+        timeout=10,
+        trusted=True,
+    )
+    fuzzer.put()
+
+    request_payload = {
+        'csrf_token': form.generate_csrf_token(),
+        'key': fuzzer.key.id(),
+        'name': fuzzer_name,
+        'trusted': False,
+        'jobs': ['windows_job'],
+    }
+
+    resp = self.app.post_json(
+        '/fuzzers/edit', request_payload, expect_errors=True)
+    self.assertEqual(400, resp.status_int)
+    self.assertIn('does not support running untrusted workloads',
+                  resp.normal_body.decode())
+
+    # Verify fuzzer was not updated (remained trusted).
+    fuzzer = fuzzer.key.get()
+    self.assertTrue(fuzzer.trusted)

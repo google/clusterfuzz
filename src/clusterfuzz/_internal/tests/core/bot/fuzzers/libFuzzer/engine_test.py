@@ -142,6 +142,13 @@ class PrepareTest(fake_fs_unittest.TestCase):
         '-dict=/path/target.dict'
     ], options.arguments)
 
+  @mock.patch('clusterfuzz._internal.base.utils.is_chromium', return_value=True)
+  def test_prepare_chromium(self, _):
+    """Test prepare on Chromium defaults rss_limit_mb to 0."""
+    engine_impl = engine.Engine()
+    options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
+    self.assertIn('-rss_limit_mb=0', options.arguments)
+
 
 class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
   """fuzz_additional_processing_timeout tests."""
@@ -440,6 +447,77 @@ def mock_get_directory_file_count(dir_path):
     return 1
 
   return _get_directory_file_count_orig(dir_path)
+
+
+class EngineArgumentsTest(unittest.TestCase):
+  """Tests that Engine methods default and pass arguments properly."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.bot.fuzzers.libfuzzer.get_runner',
+        'clusterfuzz._internal.bot.fuzzers.libfuzzer.set_sanitizer_options',
+        'clusterfuzz._internal.bot.fuzzers.libFuzzer.fuzzer.get_rss_limit_mb',
+        'clusterfuzz._internal.bot.fuzzers.options.get_fuzz_target_options',
+    ])
+    self.runner = mock.MagicMock()
+    self.mock.get_runner.return_value = self.runner
+    self.mock.get_rss_limit_mb.return_value = 0
+    self.engine = engine.Engine()
+
+  def test_reproduce_defaults_rss_limit(self):
+    """Test that reproduce defaults rss_limit_mb when missing."""
+    self.runner.run_single_testcase.return_value = new_process.ProcessResult(
+        command=['/target'], return_code=0, output='', time_executed=1)
+    self.engine.reproduce('/target', '/input', ['-some_arg=1'], 30)
+    self.runner.run_single_testcase.assert_called_once_with(
+        '/input',
+        timeout=30,
+        additional_args=['-some_arg=1', '-rss_limit_mb=0', '-runs=100'])
+
+  def test_reproduce_preserves_existing_rss_limit(self):
+    """Test that reproduce preserves existing rss_limit_mb."""
+    self.runner.run_single_testcase.return_value = new_process.ProcessResult(
+        command=['/target'], return_code=0, output='', time_executed=1)
+    self.engine.reproduce('/target', '/input',
+                          ['-some_arg=1', '-rss_limit_mb=4096'], 30)
+    self.runner.run_single_testcase.assert_called_once_with(
+        '/input',
+        timeout=30,
+        additional_args=['-some_arg=1', '-rss_limit_mb=4096', '-runs=100'])
+
+  def test_minimize_testcase_defaults_rss_limit(self):
+    """Test that minimize_testcase defaults rss_limit_mb when missing."""
+    self.runner.minimize_crash.return_value = new_process.ProcessResult(
+        command=['/target'], return_code=0, output='', time_executed=1)
+    self.engine.minimize_testcase('/target', [], '/input', '/output', 30)
+    self.runner.minimize_crash.assert_called_once()
+    _, kwargs = self.runner.minimize_crash.call_args
+    self.assertIn('-rss_limit_mb=0', kwargs['additional_args'])
+
+  def test_cleanse_defaults_rss_limit(self):
+    """Test that cleanse defaults rss_limit_mb when missing."""
+    self.runner.cleanse_crash.return_value = new_process.ProcessResult(
+        command=['/target'], return_code=0, output='', time_executed=1)
+    self.engine.cleanse('/target', [], '/input', '/output', 30)
+    self.runner.cleanse_crash.assert_called_once()
+    _, kwargs = self.runner.cleanse_crash.call_args
+    self.assertIn('-rss_limit_mb=0', kwargs['additional_args'])
+
+  def test_unparseable_arguments_are_passed_through(self):
+    """Test that arguments which cannot be parsed are left untouched.
+
+    Uploaded testcases can have arbitrary arguments that do not match
+    FuzzerArguments' parsing regex. Running without rss_limit_mb is preferable
+    to failing the task.
+    """
+    self.runner.minimize_crash.return_value = new_process.ProcessResult(
+        command=['/target'], return_code=0, output='', time_executed=1)
+    self.engine.minimize_testcase('/target', ['--disable-logging'], '/input',
+                                  '/output', 30)
+    self.runner.minimize_crash.assert_called_once()
+    _, kwargs = self.runner.minimize_crash.call_args
+    self.assertEqual(['--disable-logging'], kwargs['additional_args'])
 
 
 class BaseIntegrationTest(unittest.TestCase):

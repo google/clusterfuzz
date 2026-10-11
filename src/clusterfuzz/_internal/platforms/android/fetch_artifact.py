@@ -15,28 +15,29 @@
 minor modifications, especially without any google3 specific library
 dependencies)."""
 
-import io
 import json
 import os
 import re
 from typing import List
 from typing import Optional
 
-import apiclient
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2 import service_account
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.platforms.android.android_build_v4_api import \
+    AndroidBuildV4Api
 from clusterfuzz._internal.system import environment
-
-from . import adb
-
-# 20 MB default chunk size.
-DEFAULT_CHUNK_SIZE = 20 * 1024 * 1024
 
 # Maximum number of retries for artifact access.
 MAX_RETRIES = 5
+
+ANDROID_BUILD_API_SCOPES = [
+    'https://www.googleapis.com/auth/androidbuild.internal',
+    'https://www.googleapis.com/auth/cloud-platform'
+]
 
 STABLE_CUTTLEFISH_BUILD = {
     'bid': '11655237',
@@ -47,45 +48,51 @@ STABLE_CUTTLEFISH_BUILD = {
 DEFAULT_STABLE_CUTTLEFISH_BUILD_INFO = (
     "gs://android-haiku/target-cuttlefish/stable_build_info.json")
 
-
-def execute_request_with_retries(request):
-  """Executes request and retries on failure."""
-  result = None
-  for _ in range(MAX_RETRIES):
-    try:
-      result = request.execute()
-      break
-    except Exception as e:
-      logs.error(f'Error calling endpoint {request.uri}: Error {e}')
-
-  return result
+API_VERSION = 'V4'
 
 
-def download_artifact(client, bid, target, attempt_id, name, output_directory,
-                      output_filename):
+def _call_android_api_enabled():
+  """Return True if we should call the Android Build API, enabled by default,
+  Disabled always if invoked in a uworker
+  """
+  if environment.is_uworker():
+    logs.debug('AndroidBuildAPI access disabled for uworker.')
+    return False
+
+  flag = feature_flags.FeatureFlags.CALL_ANDROID_API.flag
+  return flag.enabled if flag else True
+
+
+def _download_artifact(client, bid, target, attempt_id, name, output_directory,
+                       output_filename):
   """Download one artifact."""
-  logs.info('reached download_artifact')
-  logs.info('artifact to download: %s' % name)
-  logs.info('output_directory: %s' % output_directory)
-  logs.info('output_filename: %s' % output_filename)
-  artifact_query = client.buildartifact().get(
-      buildId=bid, target=target, attemptId=attempt_id, resourceId=name)
-  artifact = execute_request_with_retries(artifact_query)
+  logs.debug('Artifact to download: %s' % name)
+
+  artifact = client.get_artifact_metadata(bid, target, attempt_id, name)
+
   if artifact is None:
-    logs.error(f'Artifact unreachable with name {name}, target {target} '
-               f'and build id {bid}.')
+    logs.error(
+        'AndroidBuildAPI download_artifact failed: artifact metadata '
+        'unreachable.',
+        api_version=API_VERSION,
+        operation='download_artifact',
+        build_id=bid,
+        target=target,
+        attempt_id=attempt_id,
+        artifact_name=name,
+        status='failed')
     return None
 
-  # Lucky us, we always have the size.
   size = int(artifact['size'])
-
-  chunksize = -1
-  if size >= DEFAULT_CHUNK_SIZE:
-    chunksize = DEFAULT_CHUNK_SIZE
-
-  # Just like get, except get_media.
-  dl_request = client.buildartifact().get_media(
-      buildId=bid, target=target, attemptId=attempt_id, resourceId=name)
+  logs.info(
+      'AndroidBuildAPI download_artifact metadata retrieved successfully.',
+      api_version=API_VERSION,
+      operation='download_artifact',
+      build_id=bid,
+      target=target,
+      attempt_id=attempt_id,
+      artifact_name=name,
+      size=size)
 
   if output_filename:
     file_name = output_filename
@@ -95,97 +102,112 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
   output_path = os.path.join(output_directory, file_name)
   # If the artifact already exists, then bail out.
   if os.path.exists(output_path) and os.path.getsize(output_path) == size:
-    logs.info('Artifact %s already exists, skipping download.' % name)
+    logs.info(
+        'AndroidBuildAPI download_artifact skipped (file already exists).',
+        api_version=API_VERSION,
+        operation='download_artifact',
+        build_id=bid,
+        target=target,
+        attempt_id=attempt_id,
+        artifact_name=name,
+        output_path=output_path,
+        status='skipped_exists')
     return output_path
 
-  logs.info('Downloading artifact %s.' % name)
   output_dir = os.path.dirname(output_path)
-  logs.info('Output dir: %s' % output_dir)
   if not os.path.exists(output_dir):
     logs.info(f'Creating directory {output_dir}')
-    os.mkdir(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
 
-  with io.FileIO(output_path, mode='wb') as file_handle:
-    downloader = apiclient.http.MediaIoBaseDownload(
-        file_handle, dl_request, chunksize=chunksize)
-    done = False
+  success = client.download_artifact_file(bid, target, attempt_id, name,
+                                          output_path)
+  if not success:
+    logs.warning(
+        'AndroidBuildAPI download_artifact failed.',
+        api_version=API_VERSION,
+        operation='download_artifact',
+        build_id=bid,
+        target=target,
+        attempt_id=attempt_id,
+        artifact_name=name,
+        output_path=output_path,
+        status='failed')
+    return None
 
-    while not done:
-      status, done = downloader.next_chunk()
-      if status:
-        size_completed = int(status.resumable_progress)
-        if size != 0:
-          percent_completed = (size_completed * 100.0) / size
-          logs.info('%.1f%% complete.' % percent_completed)
-
+  logs.info(
+      'AndroidBuildAPI download_artifact completed successfully.',
+      api_version=API_VERSION,
+      operation='download_artifact',
+      build_id=bid,
+      target=target,
+      attempt_id=attempt_id,
+      artifact_name=name,
+      output_path=output_path,
+      status='success')
   return output_path
 
 
-def get_artifacts_for_build(client,
-                            bid: str,
-                            target: str,
-                            attempt_id: str = 'latest',
-                            regexp: Optional[str] = None) -> List[str]:
+def _get_artifacts_for_build(client,
+                             bid: str,
+                             target: str,
+                             attempt_id: str = 'latest',
+                             regexp: Optional[str] = None) -> List[str]:
   """Return list of artifacts for a given build."""
   if not regexp:
-    request = client.buildartifact().list(
-        buildId=bid, target=target, attemptId=attempt_id)
-  else:
-    request = client.buildartifact().list(
-        buildId=bid,
-        target=target,
-        attemptId=attempt_id,
-        nameRegexp=regexp,
-        maxResults=100)
+    logs.warning(
+        'Regexp is empty, returning early to avoid querying all artifacts.',
+        bid=bid,
+        target=target)
+    return []
 
-  request_str = (f'{request.uri}, {request.method}, '
-                 f'{request.body}, {request.methodId}')
+  artifacts = client.list_artifacts(bid, target, attempt_id, regexp=regexp)
 
-  artifacts = []
-  results = []
-  while request:
-    result = execute_request_with_retries(request)
-    if not result:
-      break
-    results.append(result)
-    if result and 'artifacts' in result:
-      for artifact in result['artifacts']:
-        artifacts.append(artifact)
-    request = client.buildartifact().list_next(request, result)
+  logs.info(
+      'AndroidBuildAPI get_artifacts_for_build completed.',
+      api_version=API_VERSION,
+      operation='get_artifacts_for_build',
+      build_id=bid,
+      target=target,
+      attempt_id=attempt_id,
+      regexp=regexp,
+      artifacts_count=len(artifacts),
+      status='success' if artifacts else 'empty')
 
   if not artifacts:
-    logs.error(f'No artifact found for target {target}, build id {bid}.\n'
-               f'request {request_str}, results {results}')
-    adb.bad_state_reached()
+    logs.error(f'No artifact found for target {target}, build id {bid}.')
 
   return artifacts
 
 
-def get_client():
+def _get_client():
   """Return client with connection to build apiary."""
   # Connect using build apiary service account credentials.
   build_apiary_service_account_private_key = db_config.get_value(
       'build_apiary_service_account_private_key')
   if not build_apiary_service_account_private_key:
-    logs.info(
+    logs.warning(
         'Android build apiary credentials are not set, skip artifact fetch.')
     return None
 
-  credentials = ServiceAccountCredentials.from_json_keyfile_dict(
-      json.loads(build_apiary_service_account_private_key),
-      scopes='https://www.googleapis.com/auth/androidbuild.internal')
-  client = apiclient.discovery.build(
-      'androidbuildinternal',
-      'v3',
-      credentials=credentials,
-      static_discovery=False)
+  key_dict = json.loads(build_apiary_service_account_private_key)
+
+  logs.debug(
+      'AndroidBuildAPI client initialization started.', api_version=API_VERSION)
+
+  try:
+    credentials = service_account.Credentials.from_service_account_info(
+        key_dict, scopes=ANDROID_BUILD_API_SCOPES)
+    client = AndroidBuildV4Api.create_authenticated(credentials)
+  except Exception as e:
+    logs.error(f'Failed to initialize AndroidBuildV4Api: {e}')
+    return None
 
   return client
 
 
-def get_stable_build_info():
+def _get_stable_build_info():
   """Return stable artifact for cuttlefish branch and target."""
-  logs.info('Reached get_stable_build_info')
+  logs.debug('Reached get_stable_build_info')
   stable_build_info = STABLE_CUTTLEFISH_BUILD
 
   try:
@@ -203,14 +225,19 @@ def get_stable_build_info():
 
 def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
   """Return latest artifact for a branch and target."""
-  client = get_client()
+  if not _call_android_api_enabled():
+    logs.debug(
+        'Android build API is disabled by feature flag call_android_api.')
+    return None
+
+  client = _get_client()
   if not client:
     return None
 
   # TODO(https://github.com/google/clusterfuzz/issues/3950)
   # After stabilizing the Cuttlefish image, revert this
   if environment.is_android_cuttlefish() and stable_build:
-    build_info = get_stable_build_info()
+    build_info = _get_stable_build_info()
     # Use tip-of-tree build if 'bid' is missing or 0.
     # Setting 'bid' to 0 in stable_build_info.json
     # allows for easy switching between stable build
@@ -218,36 +245,46 @@ def get_latest_artifact_info(branch, target, signed=False, stable_build=False):
     if 'bid' in build_info and build_info['bid'] != '0':
       return build_info
 
-  request = client.build().list(  # pylint: disable=no-member
-      buildType='submitted',
-      branch=branch,
-      target=target,
-      successful=True,
-      maxResults=1,
-      signed=signed)
-  request_str = (f'{request.uri}, {request.method}, '
-                 f'{request.body}, {request.methodId}')
+  builds = client.list_builds(branch, target, signed)
 
-  builds = execute_request_with_retries(request)
   if not builds:
-    logs.error(f'No build found for target {target}, branch {branch}, '
-               f'request: {request_str}.')
+    logs.error(
+        'AndroidBuildAPI get_latest_artifact_info failed: no builds found.',
+        api_version=API_VERSION,
+        operation='get_latest_artifact_info',
+        branch=branch,
+        target=target,
+        signed=signed,
+        status='failed')
     return None
 
   build = builds['builds'][0]
   bid = build['buildId']
   target = build['target']['name']
+
+  logs.info(
+      'AndroidBuildAPI get_latest_artifact_info completed.',
+      api_version=API_VERSION,
+      operation='get_latest_artifact_info',
+      branch=branch,
+      target=target,
+      signed=signed,
+      build_id=bid,
+      status='success')
   return {'bid': bid, 'branch': branch, 'target': target}
 
 
 def get(bid, target, regex, output_directory, output_filename=None):
   """Return artifact for a given build id, target and file regex."""
-  client = get_client()
+  if not _call_android_api_enabled():
+    return None
+
+  client = _get_client()
   if not client:
     return None
 
   # Run the script to fetch the artifact.
-  return run_script(
+  return _run_script(
       client=client,
       bid=bid,
       target=target,
@@ -256,9 +293,9 @@ def get(bid, target, regex, output_directory, output_filename=None):
       output_filename=output_filename)
 
 
-def run_script(client, bid, target, regex, output_directory, output_filename):
+def _run_script(client, bid, target, regex, output_directory, output_filename):
   """Download artifacts as specified."""
-  artifacts = get_artifacts_for_build(
+  artifacts = _get_artifacts_for_build(
       client=client, bid=bid, target=target, attempt_id='latest', regexp=regex)
   if not artifacts:
     logs.error(f'Artifact could not be fetched for target {target}, '
@@ -276,7 +313,7 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
       continue
 
     if regex.match(artifact_name):
-      loop_result = download_artifact(
+      loop_result = _download_artifact(
           client=client,
           bid=bid,
           target=target,

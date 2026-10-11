@@ -147,7 +147,8 @@ class UpdateJob(base_handler.GcsUploadHandler):
           'Job name can only contain letters, numbers, dashes and underscores.',
           400)
 
-    fuzzers = request.form.get('fuzzers', []).split(',')
+    fuzzers_string = request.form.get('fuzzers')
+    fuzzers = fuzzers_string.split(',') if fuzzers_string else []
     templates = request.form.get('templates', '').splitlines()
     for template in templates:
       if not data_types.JobTemplate.query(

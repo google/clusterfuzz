@@ -450,9 +450,14 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
         self._filenames_to_delete_urls_mapping)) or
             len(filenames_to_delete) < 1_000)
 
-    logs.info('Deleting files.')
-    storage.delete_signed_urls(filenames_to_delete)
-    logs.info('Done files.')
+    if delete:
+      logs.info('Deleting files.')
+      storage.delete_signed_urls(filenames_to_delete)
+      logs.info('Done files.')
+      for filename, delete_url in filenames_to_delete_dict.items():
+        if delete_url and filename in self._filenames_to_delete_urls_mapping:
+          del self._filenames_to_delete_urls_mapping[filename]
+
     logs.info(f'Corpus. {results.count(True)} uploaded. '
               f'{len(filenames_to_delete)} deleted. '
               f'{len(self._filenames_to_delete_urls_mapping)} originally.')
@@ -480,17 +485,21 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     shell.create_directory(directory, create_intermediates=True)
     if corpus.backup_url:
       tmpdir = environment.get_value('FUZZ_INPUTS')
-      with tempfile.NamedTemporaryFile(
-          dir=tmpdir, suffix='.zip') as temp_zipfile:
-        try:
-          storage.download_signed_url_to_file(corpus.backup_url,
-                                              temp_zipfile.name)
-          with archive.open(temp_zipfile.name) as reader:
-            reader.extract_all(directory)
-            for member in reader.list_members():
-              self._filenames_to_delete_urls_mapping[member.name] = None
-        except RuntimeError:
-          logs.warning('Couldn\'t download corpus backup')
+      # To avoid opening the file multiple times on Windows, manually close the
+      # file after write and delete it after extraction.
+      temp_zipfile = tempfile.NamedTemporaryFile(
+          dir=tmpdir, suffix='.zip', delete=False)
+      try:
+        storage.download_signed_url_to_file(corpus.backup_url, temp_zipfile)
+        temp_zipfile.close()
+        with archive.open(temp_zipfile.name) as reader:
+          reader.extract_all(directory)
+          for member in reader.list_members():
+            self._filenames_to_delete_urls_mapping[member.name] = None
+      except RuntimeError:
+        logs.warning('Couldn\'t download corpus backup')
+      finally:
+        os.unlink(temp_zipfile.name)
 
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     fails = 0
@@ -658,13 +667,14 @@ def get_proto_data_bundle_corpus(
 
 
 def sync_data_bundle_corpus_to_disk(data_bundle_corpus, directory):
+  """Syncs |data_bundle_corpus| to |directory|."""
   if (not task_types.task_main_runs_on_uworker() and
       not environment.is_uworker()):
     # Fast path for when we don't need an untrusted worker to run a task.
     return gsutil.GSUtilRunner().rsync(
         data_bundle_corpus.gcs_url, directory, delete=False).return_code == 0
-  results = storage.download_signed_urls(data_bundle_corpus.corpus_urls,
-                                         directory)
+  results = storage.download_signed_urls_preserving_paths(
+      data_bundle_corpus.corpus_urls, directory, data_bundle_corpus.gcs_url)
   fails = [result.url for result in results if not result.url]
   return len(fails) < MAX_SYNC_ERRORS
 

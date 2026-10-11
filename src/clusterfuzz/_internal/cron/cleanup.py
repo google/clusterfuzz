@@ -1166,25 +1166,41 @@ def update_component_labels_and_id(policy, testcase, issue):
           data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)):
     return
 
-  for filtered_component in filtered_components:
-    issue.components.add(filtered_component)
-
-  # This is very specific to google_issue_tracker, so this attribute might not
-  # be available for other issue trackers.
-  if component_id and hasattr(issue, 'component_id'):
-    issue.component_id = component_id
-
   issue.labels.add(
       policy.substitution_mapping(
           data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL))
-  label_text = issue.issue_tracker.label_text(
-      policy.substitution_mapping(
-          data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL))
-  issue_comment = (
-      'Automatically applying components based on crash stacktrace and '
-      'information from OWNERS files.\n\n'
-      f'If this is incorrect, please apply the {label_text}.')
-  issue.save(new_comment=issue_comment, notify=True)
+
+  skip_component_change_for_label = None
+  # If issue has one of these labels, it should be assumed to already be in the
+  # correct component and should not be moved.
+  for label in data_types.CHROMIUM_ISSUE_NO_COMPONENT_ROUTING_LABELS:
+    # was_label_added() checks if the label was *ever* added to the issue.
+    if issue_tracker_utils.was_label_added(issue,
+                                           policy.substitution_mapping(label)):
+      skip_component_change_for_label = label
+
+  if skip_component_change_for_label is None:
+    for filtered_component in filtered_components:
+      issue.components.add(filtered_component)
+
+    # This is very specific to google_issue_tracker, so this attribute might not
+    # be available for other issue trackers.
+    if component_id and hasattr(issue, 'component_id'):
+      issue.component_id = component_id
+
+    label_text = issue.issue_tracker.label_text(
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL))
+    issue_comment = (
+        'Automatically applying components based on crash stacktrace and '
+        'information from OWNERS files.\n\n'
+        f'If this is incorrect, please apply the {label_text}.')
+  else:
+    issue_comment = ('Skipping component reassignment because of label '
+                     f'{skip_component_change_for_label}')
+
+  issue.save(
+      new_comment=issue_comment, notify=skip_component_change_for_label is None)
 
 
 def _sanitize_ccs_list(ccs_list):

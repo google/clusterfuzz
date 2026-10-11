@@ -158,6 +158,30 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
+FUZZER_PREEMPTED_TOTAL_FUZZ_TIME = monitor.CounterMetric(
+    'task/fuzz/fuzzer/preempted_total_time',
+    description=('The total fuzz time wasted due to preemption in seconds '
+                 '(grouped by fuzzer).'),
+    field_spec=[
+        monitor.StringField('fuzzer'),
+        monitor.StringField('platform'),
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
+    ],
+)
+
+JOB_PREEMPTED_TOTAL_FUZZ_TIME = monitor.CounterMetric(
+    'task/fuzz/job/preempted_total_time',
+    description=('The total fuzz time wasted due to preemption in seconds '
+                 '(grouped by job).'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
+    ],
+)
+
 # This metric tracks fuzzer setup and data bundle update,
 # fuzzing time and crash processing on the worker
 FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(

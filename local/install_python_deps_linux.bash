@@ -54,6 +54,9 @@ fi
 
 # Install other dependencies (e.g. bower).
 nodeenv -p --prebuilt
+# Re-activate virtual environment after nodeenv modifies activate scripts and PATH
+# so that global node npm packages (like bower) install into the virtual environment bin directory.
+source "$(${PYTHON} -m pipenv --venv)/bin/activate"
 # Unsafe perm flag allows bower and polymer-bundler install for root users as well.
 npm install --unsafe-perm -g bower polymer-bundler
 bower --allow-root install

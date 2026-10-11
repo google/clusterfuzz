@@ -435,9 +435,9 @@
                     <if-else condition="[[shouldShowDuplicateStatus(info)]]">
                       <span slot="t">
                         <a href="/testcase-detail/[[info.testcase.duplicate_of]]">Duplicate of testcase [[info.testcase.duplicate_of]]</a>
-                        <template is="dom-if" if="[[info.is_admin]]">
-                          <paper-icon-button icon="highlight-off" toggles active="{{removeDuplicateDialogOpened}}" title="Remove the duplicate status"></paper-icon-button>
-                        </template>
+                        <span title="Remove the duplicate status (admin only).">
+                          <paper-icon-button icon="highlight-off" toggles disabled$="[[!info.is_admin]]" active="{{removeDuplicateDialogOpened}}"></paper-icon-button>
+                        </span>
                       </span>
                       <span slot="f">
                         <if-else condition="[[shouldShowPendingStatus(info)]]">

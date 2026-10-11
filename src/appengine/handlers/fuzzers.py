@@ -98,15 +98,26 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     if upload_info.size > ARCHIVE_READ_SIZE_LIMIT:
       return executable_path
 
-    if not executable_path:
-      executable_path = 'run'  # Check for default.
-
     reader = self._read_to_bytesio(upload_info.gcs_path)
     with archive.open(upload_info.filename, reader) as archive_reader:
-      return archive_reader.get_first_file_matching(executable_path)
+      # Fallback to executable file named 'run'.
+      if not executable_path:
+        executable_path = archive_reader.get_first_file_matching('run')
+
+      # Verify that there is a matching executable before updating the fuzzer.
+      if not executable_path or not archive_reader.file_exists(executable_path):
+        raise helpers.EarlyExitError(
+            'Failed to find an executable in the archive. Please specify an '
+            'executable path that matches a file in the archive.', 400)
+
+      return executable_path
 
   def _get_launcher_script(self, upload_info):
-    """Get launcher script path."""
+    """Get launcher script path.
+
+    Note: Launcher scripts are used to launch the target binary when executing
+    testcases (distinct from executable_path). Not used for blackbox fuzzing.
+    """
     launcher_script = request.get('launcher_script')
     if not upload_info:
       return launcher_script
@@ -173,10 +184,12 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     jobs = request.get('jobs', [])
     timeout = self._get_integer_value('timeout')
     max_testcases = self._get_integer_value('max_testcases')
-    external_contribution = request.get('external_contribution', False)
-    differential = request.get('differential', False)
+    external_contribution = bool(request.get('external_contribution', False))
+    trusted = bool(request.get('trusted', False))
+    differential = bool(request.get('differential', False))
     environment_string = request.get('additional_environment_string')
     data_bundle_name = request.get('data_bundle_name')
+    primary_owner = request.get('primary_owner')
 
     # Save the fuzzer file metadata.
     if upload_info:
@@ -192,8 +205,10 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     fuzzer.result = None
     fuzzer.sample_testcase = None
     fuzzer.console_output = None
-    fuzzer.external_contribution = bool(external_contribution)
-    fuzzer.differential = bool(differential)
+    fuzzer.external_contribution = external_contribution
+    fuzzer.primary_owner = primary_owner
+    fuzzer.trusted = trusted
+    fuzzer.differential = differential
     fuzzer.additional_environment_string = environment_string
     fuzzer.timestamp = datetime.datetime.now(tz=datetime.timezone.utc).replace(
         tzinfo=None)
@@ -207,6 +222,13 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     # launcher script.
     if launcher_script:
       fuzzer.launcher_script = launcher_script
+
+    if not fuzzer.trusted:
+      for job_name in jobs:
+        try:
+          data_handler.check_job_supports_untrusted_workloads(job_name)
+        except ValueError as e:
+          raise helpers.EarlyExitError(str(e), 400)
 
     fuzzer.put()
 

@@ -134,6 +134,9 @@ def get_access(need_privileged_access=False, job_type=None, fuzzer_name=None):
   if not user:
     return UserAccess.Redirected
 
+  if not user.email_verified:
+    return UserAccess.Denied
+
   email = user.email
   if _is_blacklisted_user(email):
     return UserAccess.Denied

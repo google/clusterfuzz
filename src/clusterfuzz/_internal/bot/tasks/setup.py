@@ -101,7 +101,7 @@ def _copy_testcase_to_device_and_setup_environment(testcase,
     relative_testcase_file_path = (
         testcase_file_path[len(local_testcases_directory) + 1:])
     device_testcase_file_path = os.path.join(
-        android.constants.DEVICE_TESTCASES_DIR, relative_testcase_file_path)
+        android.app.get_testcases_directory(), relative_testcase_file_path)
     android.adb.run_shell_command(['chmod', '0755', device_testcase_file_path])
 
 
@@ -368,7 +368,7 @@ def _is_testcase_minimized(testcase):
 
 def download_testcase(testcase_download_url, dst):
   """Downloads a testcase from a signed url"""
-  return storage.download_signed_url_to_file(testcase_download_url, dst)
+  return storage.download_signed_url_to_filepath(testcase_download_url, dst)
 
 
 def unpack_testcase(testcase, testcase_download_url):
@@ -491,7 +491,21 @@ def update_data_bundle(
   """Updates a data bundle to the latest version."""
   data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
-  logs.info('Setting up data bundle %s.' % data_bundle)
+  num_urls = len(data_bundle_corpus.corpus_urls)
+
+  # If this is executing on an untrusted worker, we require signed URLs
+  # Missing the signed URLs results in attempting to run the fuzzer without its
+  # required data bundle
+  # Search index data bundles are the exception, which don't sync via this path.
+  if (environment.is_uworker() and
+      not _is_search_index_data_bundle(data_bundle.name) and num_urls == 0):
+    logs.error(
+        f'Uworker missing required signed URLs for data bundle '
+        f'{data_bundle.name}, and the fuzzer is configured with '
+        f'{fuzzer.data_bundle_name}. The Tworker failed to generate signed URLs'
+        ' during preprocess.')
+  else:
+    logs.info(f'Setting up data bundle {data_bundle.name}.')
   data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
 
   if not _should_update_data_bundle(data_bundle, data_bundle_directory):
@@ -601,6 +615,11 @@ def preprocess_update_fuzzer_and_data_bundles(
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
   if not fuzzer.builtin:
+    if not fuzzer.blobstore_key:
+      logs.error(f'Blackbox fuzzer {fuzzer_name} does not have a '
+                 'blobstore_key.')
+      raise errors.InvalidFuzzerError
+
     update_input.fuzzer_download_url = blobs.get_signed_download_url(
         fuzzer.blobstore_key)
 
@@ -637,8 +656,8 @@ def _update_fuzzer(
 
   # Copy the archive to local disk and unpack it.
   archive_path = os.path.join(fuzzer_directory, fuzzer.filename)
-  if not storage.download_signed_url_to_file(update_input.fuzzer_download_url,
-                                             archive_path):
+  if not storage.download_signed_url_to_filepath(
+      update_input.fuzzer_download_url, archive_path):
     logs.error('Failed to copy fuzzer archive.')
     return False
 
@@ -841,11 +860,14 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
 
   logs.info(f'Testcase and related files :\n{resource_list}')
 
+  upload_file_path = testcase_path
   if len(resource_list) <= 1:
     # If this does not have any resources, just save the testcase.
     # TODO(flowerhack): Update this when we teach CF how to download testcases.
     try:
-      file_handle = open(testcase_path, 'rb')
+      with open(testcase_path, 'rb') as _:
+        # Verify file can be opened.
+        pass
     except OSError:
       logs.error(f'Unable to open testcase {testcase_path}.')
       return None, None, None
@@ -879,15 +901,17 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
 
     # Create the archive.
     zip_path = os.path.join(environment.get_value('INPUT_DIR'), zip_filename)
-    zip_file = zipfile.ZipFile(zip_path, 'w')
-    for file_name in resource_list:
-      if os.path.exists(file_name):
-        relative_filename = file_name[base_len:]
-        zip_file.write(file_name, relative_filename, zipfile.ZIP_DEFLATED)
-    zip_file.close()
+    with zipfile.ZipFile(zip_path, 'w') as zip_file:
+      for file_name in resource_list:
+        if os.path.exists(file_name):
+          relative_filename = file_name[base_len:]
+          zip_file.write(file_name, relative_filename, zipfile.ZIP_DEFLATED)
 
     try:
-      file_handle = open(zip_path, 'rb')
+      with open(zip_path, 'rb') as _:
+        # Verify file can be opened.
+        pass
+      upload_file_path = zip_path
     except OSError:
       logs.error(f'Unable to open testcase archive {zip_path}.')
       return None, None, None
@@ -895,15 +919,16 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
     archived = True
     absolute_filename = testcase_path[base_len:]
 
-  if not storage.upload_signed_url(file_handle, upload_url):
-    logs.error('Failed to upload testcase.')
-    return None, None, None
+  try:
+    with open(upload_file_path, 'rb') as file_handle:
+      if not storage.upload_signed_url(file_handle, upload_url):
+        logs.error('Failed to upload testcase.')
+        return None, None, None
 
-  file_handle.close()
-
-  # Don't need the archive after writing testcase to blobstore.
-  if zip_path:
-    shell.remove_file(zip_path)
+  finally:
+    # Don't need the archive after writing testcase to blobstore.
+    if zip_path:
+      shell.remove_file(zip_path)
 
   return archived, absolute_filename, zip_filename
 

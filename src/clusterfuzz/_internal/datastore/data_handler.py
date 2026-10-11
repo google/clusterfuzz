@@ -35,6 +35,7 @@ from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -57,6 +58,20 @@ MEMCACHE_TTL_IN_SECONDS = 30 * 60
 
 NUM_TESTCASE_QUALITY_BITS = 3
 MAX_TESTCASE_QUALITY = 2**NUM_TESTCASE_QUALITY_BITS - 1
+
+# Testcase metadata keys that must hold an integer revision. These end up
+# interpolated into the admin-configured REVISION_VARS_URL template (see
+# revisions.get_component_revisions_dict) and rendered on the testcase detail
+# page, so untrusted workers must never be able to store arbitrary strings in
+# them.
+NUMERIC_METADATA_KEYS = frozenset({
+    'last_progression_max',
+    'last_progression_min',
+    'last_regression_max',
+    'last_regression_min',
+    'last_tested_crash_revision',
+    'last_tested_revision',
+})
 
 # Value and dimension map for some crash types (timeout, ooms).
 CRASH_TYPE_VALUE_REGEX_MAP = {
@@ -1078,10 +1093,6 @@ def get_value_from_fuzzer_environment_string(fuzzer_name,
                                              variable_pattern,
                                              default=None):
   """Get a specific environment variable's value for a fuzzer."""
-  # Short-circuit: UWORKERs do not have Datastore access.
-  if environment.is_uworker():
-    return environment.get_value(variable_pattern, default)
-
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
   if not fuzzer or not fuzzer.additional_environment_string:
     return default
@@ -1215,14 +1226,40 @@ def bot_run_timed_out():
 # ------------------------------------------------------------------------------
 
 
+def check_job_supports_untrusted_workloads(job_name: str,
+                                           platform_id: str = None) -> None:
+  """Checks that the named job can run untrusted testcases or fuzzers.
+
+  Raises:
+    ValueError: if the job can run on privileged bots and should never run
+      an untrusted workload.
+  """
+  job = data_types.Job.query(data_types.Job.name == job_name).get()
+  if not job:
+    raise ValueError(f'Job "{job_name}" not found.')
+
+  # 1. This restriction is currently specific to Chromium deployments.
+  if not utils.is_chromium():
+    return
+
+  # 2. It only applies when running with Remote Utasks (e.g., GCP Batch),
+  # where privilege separation (tworkers vs uworkers) is enforced.
+  if not task_utils.is_remotely_executing_utasks():
+    return
+
+  # 3. In remote mode, unprivileged uworkers (where untrusted code must run)
+  # are implemented as Linux containers. Thus, non-Linux jobs cannot support
+  # untrusted workloads in this setup.
+
+  if (platform_id or job.platform).lower() != 'linux':
+    raise ValueError(
+        f'Job "{job_name}" does not support running untrusted workloads. '
+        'Untrusted workloads on Chrome are only supported on Linux.')
+
+
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_component_name(job_type):
   """Gets component name for a job type."""
-  # Short-circuit: UWORKERs do not have Datastore access. The TWORKER has
-  # already injected all job variables into the local environment.
-  if environment.is_uworker():
-    return environment.get_value('COMPONENT_NAME', '')
-
   job = data_types.Job.query(data_types.Job.name == job_type).get()
   if not job:
     return ''
@@ -1239,10 +1276,6 @@ def get_component_name(job_type):
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_repository_for_component(component):
   """Get the repository based on component."""
-  # Short-circuit: UWORKERs do not have Datastore access.
-  if environment.is_uworker():
-    return ''
-
   default_repository = ''
   repository = ''
   repository_mappings = db_config.get_value('component_repository_mappings')
@@ -1365,7 +1398,8 @@ def create_user_uploaded_testcase(key,
                                   bug_summary_update_flag,
                                   quiet_flag,
                                   additional_metadata=None,
-                                  crash_data=None):
+                                  crash_data=None,
+                                  trusted=False):
   """Create a testcase object, metadata, and task for a user uploaded test."""
   testcase = data_types.Testcase()
   if crash_data:
@@ -1410,7 +1444,7 @@ def create_user_uploaded_testcase(key,
   testcase.http_flag = bool(http_flag)
   testcase.archive_state = archive_state
   testcase.project_name = get_project_name(job.name)
-  testcase.trusted = False
+  testcase.trusted = trusted
 
   if archive_state or bundled:
     testcase.absolute_path = file_path_input
@@ -1900,6 +1934,29 @@ def clear_progression_pending(testcase):
     return
 
   testcase.delete_metadata('progression_pending', update_testcase=False)
+
+
+def sanitize_issue_metadata(metadata):
+  """Return |metadata| with entries an untrusted worker must not control
+  dropped. Revision keys are coerced to int, and entries that cannot be coerced
+  are dropped."""
+  sanitized = {}
+  for key, value in metadata.items():
+    if not isinstance(key, str):
+      logs.warning(f'Ignoring non-string issue metadata key: {key!r}')
+      continue
+
+    if key in NUMERIC_METADATA_KEYS:
+      try:
+        value = int(value)
+      except (TypeError, ValueError):
+        logs.warning(
+            f'Ignoring non-integer issue metadata for {key}: {value!r}')
+        continue
+
+    sanitized[key] = value
+
+  return sanitized
 
 
 def update_progression_completion_metadata(testcase,
