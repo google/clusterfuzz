@@ -19,6 +19,7 @@
 #   ARCH=x86_64|arm64 ./build.sh <fuzzer_file>
 #   Example: ./build.sh clean_fuzzer.cc
 
+# TODO(crbug.com/573286220): Switch to build the fuzzers in CF's Ci pipeline instead
 if [ "$#" -ne 1 ]; then
   echo "Usage: ARCH=x86_64|arm64 $0 <fuzzer_file>" >&2
   exit 1
