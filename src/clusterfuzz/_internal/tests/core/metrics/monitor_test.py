@@ -470,25 +470,13 @@ class TimeMetricTrackerTest(unittest.TestCase):
     self.assertEqual(1, dist.count)
     self.assertAlmostEqual(2.5, dist.sum)
 
-  def test_unsupported_metric_raises_type_error(self):
-    """Test that GaugeMetric raises TypeError."""
-    gauge = monitor.GaugeMetric('test_gauge', description='test', field_spec=[])
-    with self.assertRaises(TypeError):
-      monitor.TimeMetricTracker(gauge)
+  def test_gauge_metric(self):
+    """Test tracking float duration with Gauge."""
+    metric = monitor.GaugeMetric(
+        'test_gauge',
+        description='test',
+        field_spec=[monitor.StringField('tag')])
+    with monitor.TimeMetricTracker(metric, {'tag': 'val'}):
+      self.mock_time.advance(3.7)
 
-  def test_mock_metrics(self):
-    """Test TimeMetricTracker when monitoring_v3 is unavailable."""
-    self.mock.check_module_loaded.return_value = False
-    counter = monitor.CounterMetric('c', description='test', field_spec=[])
-    dist = monitor.CumulativeDistributionMetric(
-        'd', description='test', bucketer=None, field_spec=[])
-    gauge = monitor.GaugeMetric('g', description='test', field_spec=[])
-
-    with monitor.TimeMetricTracker(counter, has_success_label=True):
-      self.mock_time.advance(1.0)
-
-    with monitor.TimeMetricTracker(dist):
-      self.mock_time.advance(1.0)
-
-    with self.assertRaises(TypeError):
-      monitor.TimeMetricTracker(gauge)
+    self.assertEqual(3, metric.get({'tag': 'val'}))

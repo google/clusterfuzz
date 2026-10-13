@@ -96,9 +96,6 @@ def _create_time_series(name: str, time_series: List[_TimeSeries]):
 class _MockMetric:
   """Mock metric object, used for when monitoring isn't available."""
 
-  def __init__(self, expected_class=None):
-    self.expected_class = expected_class
-
   def _mock_method(self, *args, **kwargs):  # pylint: disable=unused-argument
     pass
 
@@ -373,6 +370,10 @@ class Metric:
     except KeyError:
       return self.default_value
 
+  def insert(self, value, labels=None):
+    """Generic method for adding a value to the metric."""
+    raise NotImplementedError
+
   def monitoring_v3_metric(self, metric, labels=None):
     """Get the monitoring_v3 Metric."""
     metric.type = CUSTOM_METRIC_PREFIX + self.name
@@ -445,6 +446,9 @@ class _CounterMetric(Metric):
   def increment_by(self, count, labels=None):
     _metrics_store.increment(self, labels, count)
 
+  def insert(self, value: float, labels=None):
+    self.increment_by(int(value), labels=labels)
+
   def _set_value(self, point, value):
     """Get Point."""
     point.int64_value = value
@@ -467,6 +471,9 @@ class _GaugeMetric(Metric):
 
   def set(self, value, labels=None):
     _metrics_store.put(self, labels, value)
+
+  def insert(self, value: float, labels=None):
+    self.set(int(value), labels=labels)
 
   def _set_value(self, point, value):
     """Get Point."""
@@ -583,6 +590,9 @@ class _CumulativeDistributionMetric(Metric):
   def add(self, value, labels=None):
     _metrics_store.increment(self, labels, value)
 
+  def insert(self, value: float, labels=None):
+    self.add(value, labels=labels)
+
   def _set_value(self, point, value):
     value.monitoring_v3_distribution(point.distribution_value)
 
@@ -590,7 +600,10 @@ class _CumulativeDistributionMetric(Metric):
 class TimeMetricTracker:
   """Context manager to track time for any metric."""
 
-  def __init__(self, metric, labels=None, has_success_label: bool = False):
+  def __init__(self,
+               metric: Metric,
+               labels=None,
+               has_success_label: bool = False):
     # If |has_success_label| is true, a "success" label will be added upon exit,
     # which is true iff |fail()| was not called and no exception was raised.
     self.metric = metric
@@ -598,19 +611,6 @@ class TimeMetricTracker:
     self.has_success_label = has_success_label
     self.start_time = None
     self.failed = False
-
-    metric_type_error = TypeError(
-        'TimeMetricTracker only supports CounterMetric and '
-        'CumulativeDistributionMetric.')
-    supported_metrics = (_CounterMetric, _CumulativeDistributionMetric)
-    if isinstance(self.metric, _MockMetric):
-      if self.metric.expected_class not in supported_metrics:
-        raise metric_type_error
-      self.is_counter = self.metric.expected_class == _CounterMetric
-    else:
-      if not isinstance(self.metric, supported_metrics):
-        raise metric_type_error
-      self.is_counter = isinstance(self.metric, _CounterMetric)
 
   def __enter__(self):
     self.start_time = time.time()
@@ -623,10 +623,7 @@ class TimeMetricTracker:
       success = not self.failed and exc_type is None
       self.labels['success'] = success
 
-    if self.is_counter:
-      self.metric.increment_by(int(duration), labels=self.labels)
-    else:
-      self.metric.add(duration, labels=self.labels)
+    self.metric.insert(duration, labels=self.labels)
 
   def fail(self):
     self.failed = True
@@ -652,7 +649,7 @@ def check_module_loaded(module):
   return module is not None
 
 
-def stub_unavailable(module, expected_class):
+def stub_unavailable(module):
   """Decorator to stub out functions on failed imports."""
 
   def decorator(func):
@@ -662,7 +659,7 @@ def stub_unavailable(module, expected_class):
       if check_module_loaded(module):
         return func(*args, **kwargs)
 
-      return _MockMetric(expected_class)
+      return _MockMetric()
 
     return wrapper
 
@@ -755,19 +752,19 @@ def _get_region(bot_name):
   return 'unknown'
 
 
-@stub_unavailable(monitoring_v3, _CounterMetric)
+@stub_unavailable(monitoring_v3)
 def CounterMetric(name, description, field_spec):
   """Build _CounterMetric."""
   return _CounterMetric(name, field_spec=field_spec, description=description)
 
 
-@stub_unavailable(monitoring_v3, _GaugeMetric)
+@stub_unavailable(monitoring_v3)
 def GaugeMetric(name, description, field_spec):
   """Build _CounterMetric."""
   return _GaugeMetric(name, field_spec=field_spec, description=description)
 
 
-@stub_unavailable(monitoring_v3, _CumulativeDistributionMetric)
+@stub_unavailable(monitoring_v3)
 def CumulativeDistributionMetric(name, description, bucketer, field_spec):
   """Build _CounterMetric."""
   return _CumulativeDistributionMetric(
