@@ -554,6 +554,22 @@ class QueueNameGenerationTest(unittest.TestCase):
     mock_platform.return_value = 'MAC'
     self.assertEqual(tasks.default_queue_suffix(), '-mac')
 
+  def test_default_queue_suffix_mac_arm64_override(self, mock_platform,
+                                                   mock_env_get):
+    """Tests queue suffix for Mac with QUEUE_OVERRIDE=MAC_ARM64."""
+    mock_env_get.side_effect = lambda key, default='': {
+        'BASE_OS_VERSION': '',
+        'QUEUE_OVERRIDE': 'MAC_ARM64'
+    }.get(key, default)
+    mock_platform.return_value = 'MAC'
+    self.assertEqual(tasks.default_queue_suffix(), '-mac-arm64')
+
+  def test_queue_suffix_for_platform_mac_arm64(self, mock_platform,
+                                               mock_env_get):
+    """Tests queue_suffix_for_platform for MAC_ARM64."""
+    del mock_platform, mock_env_get
+    self.assertEqual(tasks.queue_suffix_for_platform('MAC_ARM64'), '-mac-arm64')
+
 
 class TworkerGetTaskTest(unittest.TestCase):
   """Tests for tworker_get_task."""

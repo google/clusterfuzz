@@ -247,6 +247,24 @@ class RunCommandTest(unittest.TestCase):
 
     self.assertEqual(1, self.mock.corpus_pruning_utask_preprocess.call_count)
 
+  def test_process_command_impl_queue_override_matches_job_platform(self):
+    """Test process_command_impl accepts job when QUEUE_OVERRIDE matches job.platform."""
+    job_name = 'mac_arm64_job'
+    data_types.Job(name=job_name, platform='MAC_ARM64').put()
+    os.environ['OS_OVERRIDE'] = 'MAC'
+    os.environ['QUEUE_OVERRIDE'] = 'MAC_ARM64'
+    self.mock.corpus_pruning_utask_preprocess.return_value = (
+        uworker_msg_pb2.Input(job_type=job_name, fuzzer_name='libfuzzer_proj'))
+
+    commands.process_command_impl(
+        task_name='corpus_pruning',
+        task_argument='libfuzzer_proj',
+        job_name=job_name,
+        high_end=False,
+        is_command_override=False)
+
+    self.assertEqual(1, self.mock.corpus_pruning_utask_preprocess.call_count)
+
   def test_run_command_already_running_expired(self):
     """Test run_command with another instance currently running, but its lease
     has expired."""
