@@ -109,6 +109,8 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     else:
       self._preprocess_start_time_ns = None
 
+    self._previous_subtask_end_time_ns = None
+
     # Events-related metadata.
     self._event_data = None
     # Error type from utask main handled in postprocess.
@@ -123,7 +125,8 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       execution_mode: Mode,
       platform: str,
       preprocess_start_time: Optional[Timestamp] = None,
-      task_argument: Optional[str | uworker_msg_pb2.Input] = None):  # pylint: disable=no-member
+      task_argument: Optional[str | uworker_msg_pb2.Input] = None,  # pylint: disable=no-member
+      previous_subtask_end_time: Optional[Timestamp] = None):
     """Sets task details that might not be known at instantation time.
 
     Must be called once for metrics to be recorded when exiting the context.
@@ -141,6 +144,8 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       task_argument: Task argument, which for preprocess is usually the
       `testcase_id` or `fuzzer_name`, and for main/postprocess is the uworker
       input proto.
+      previous_subtask_end_time: Timestamp at which the previous subtask for
+        this task finished executing. None if there is no previous subtask.
     """
     task_command = task_utils.get_command_from_module(utask_module.__name__)
     self._labels = {
@@ -160,6 +165,11 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     else:
       # Ensure we always have a value after this method returns.
       assert self._preprocess_start_time_ns is not None
+
+    if previous_subtask_end_time is not None:
+      end_time = previous_subtask_end_time.ToNanoseconds()
+      if end_time > 0:
+        self._previous_subtask_end_time_ns = end_time
 
   def emit_utask_events(self, task_status: str,
                         task_outcome: str | None = None) -> None:
@@ -236,6 +246,12 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     e2e_duration_secs = (now - self._preprocess_start_time_ns) / 10**9
     monitoring_metrics.UTASK_SUBTASK_E2E_DURATION_SECS.add(
         e2e_duration_secs, self._labels)
+
+    if self._previous_subtask_end_time_ns is not None:
+      wait_duration_secs = max(
+          0, (self.start_time_ns - self._previous_subtask_end_time_ns) / 10**9)
+      monitoring_metrics.UTASK_SUBTASK_WAIT_DURATION_SECS.add(
+          wait_duration_secs, self._labels)
 
     # The only case where a task might fail without throwing, is in
     # utask_main, by returning an ErrorType proto which indicates
@@ -340,6 +356,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
     if not uworker_input:
       return None
 
+    uworker_input.preprocess_end_time.FromNanoseconds(time.time_ns())
     return uworker_io.serialize_uworker_input(uworker_input)
 
 
@@ -356,9 +373,13 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
     uworker_input.uworker_env.clear()
     task_utils.reset_task_stage_env()
 
-    recorder.set_task_details(utask_module, uworker_input.job_type, Mode.QUEUE,
-                              environment.platform(),
-                              uworker_input.preprocess_start_time)
+    recorder.set_task_details(
+        utask_module,
+        uworker_input.job_type,
+        Mode.QUEUE,
+        environment.platform(),
+        uworker_input.preprocess_start_time,
+        previous_subtask_end_time=uworker_input.preprocess_end_time)
 
     uworker_output = utask_module.utask_main(uworker_input)
     if uworker_output is None:
@@ -428,7 +449,9 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
     # to pass to the batch job and for the local executor to download locally,
     # and the uworker output download URL for the local executor to download
     # the output after local execution of `utask_main`.
-    return uworker_io.serialize_and_upload_uworker_input(uworker_input)
+    urls = uworker_io.prepare_uworker_io_urls()
+    uworker_input.preprocess_end_time.FromNanoseconds(time.time_ns())
+    return uworker_io.serialize_and_upload_uworker_input(uworker_input, urls)
 
 
 def set_uworker_env(uworker_env: dict) -> None:
@@ -463,8 +486,12 @@ def uworker_main(input_download_url) -> None:
     execution_mode = Mode.SWARMING if environment.is_running_on_swarming(
     ) else Mode.BATCH
     recorder.set_task_details(
-        utask_module, uworker_input.job_type, execution_mode,
-        environment.platform(), uworker_input.preprocess_start_time)
+        utask_module,
+        uworker_input.job_type,
+        execution_mode,
+        environment.platform(),
+        uworker_input.preprocess_start_time,
+        previous_subtask_end_time=uworker_input.preprocess_end_time)
 
     logs.info('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)

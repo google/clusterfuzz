@@ -374,6 +374,22 @@ UTASK_SUBTASK_DURATION_SECS = monitor.CumulativeDistributionMetric(
     ],
 )
 
+UTASK_SUBTASK_WAIT_DURATION_SECS = monitor.CumulativeDistributionMetric(
+    'utask/subtask_wait_duration_secs',
+    description=(
+        'Time elapsed between the previous subtask finishing and the current '
+        'subtask starting, in seconds, per subtask. '
+        'Mode is "batch", "swarming", or "queue".'),
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
+    ],
+)
+
 ANDROID_UPTIME = monitor.CounterMetric(
     'android_device_uptime',
     description='Android device uptime',
