@@ -18,6 +18,7 @@ import os
 import time
 import unittest
 from unittest import mock
+import zlib
 
 from google.protobuf import timestamp_pb2
 import parameterized
@@ -42,6 +43,7 @@ class TworkerPreprocessTest(unittest.TestCase):
   OUTPUT_SIGNED_UPLOAD_URL = 'https://signed-upload-output'
   OUTPUT_DOWNLOAD_GCS_URL = '/download-output'
   INPUT_SIGNED_DOWNLOAD_URL = 'https://signed-download-input'
+  INPUT_UPLOAD_GCS_URL = '/upload-input'
   UWORKER_ENV = {'ENVVAR': 'VALUE'}
   TASK_ARGUMENT = '1'  # testcase_id
   JOB_TYPE = 'libfuzzer_asan'
@@ -51,16 +53,17 @@ class TworkerPreprocessTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks._get_execution_mode',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.get_uworker_input_urls',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.get_uworker_output_urls',
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
+        'clusterfuzz._internal.google_cloud_utils.storage.write_data',
         'clusterfuzz._internal.metrics.events.emit',
         'clusterfuzz._internal.metrics.events._get_datetime_now',
     ])
     self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
+    self.mock.get_uworker_input_urls.return_value = (
+        self.INPUT_SIGNED_DOWNLOAD_URL, self.INPUT_UPLOAD_GCS_URL)
     self.mock.get_uworker_output_urls.return_value = (
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
-    self.mock.serialize_and_upload_uworker_input.return_value = (
-        self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     os.environ['CF_TASK_ID'] = 'f61826c3-ca9a-4b97-9c1e-9e6f4e4f8868'
     os.environ['CF_TASK_NAME'] = 'mock_task'
 
@@ -88,12 +91,18 @@ class TworkerPreprocessTest(unittest.TestCase):
     module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
                                                self.JOB_TYPE, self.UWORKER_ENV)
 
-    self.mock.serialize_and_upload_uworker_input.assert_called_with(
-        uworker_input)
+    serial = zlib.compress(uworker_input.SerializeToString())
+    self.mock.write_data.assert_called_with(serial, self.INPUT_UPLOAD_GCS_URL)
     self.assertGreaterEqual(uworker_input.preprocess_start_time.ToNanoseconds(),
                             start_time_ns)
     self.assertLessEqual(uworker_input.preprocess_start_time.ToNanoseconds(),
                          end_time_ns)
+    self.assertGreaterEqual(uworker_input.preprocess_end_time.ToNanoseconds(),
+                            uworker_input.preprocess_start_time.ToNanoseconds())
+    self.assertLessEqual(uworker_input.preprocess_end_time.ToNanoseconds(),
+                         end_time_ns)
+    self.assertEqual(uworker_input.uworker_output_upload_url,
+                     self.OUTPUT_SIGNED_UPLOAD_URL)
 
     metric_labels = {
         'task': 'mock',
@@ -114,6 +123,10 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.assertLess(
         e2e_durations.sum * 10**9,
         end_time_ns - uworker_input.preprocess_start_time.ToNanoseconds())
+
+    wait_durations = monitoring_metrics.UTASK_SUBTASK_WAIT_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(wait_durations.count, 0)
 
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
@@ -240,6 +253,10 @@ class UworkerMainTest(unittest.TestCase):
     preprocess_start_timestamp = timestamp_pb2.Timestamp()
     preprocess_start_timestamp.FromNanoseconds(preprocess_start_time_ns)
 
+    preprocess_end_time_ns = start_time_ns - 20 * 10**9
+    preprocess_end_timestamp = timestamp_pb2.Timestamp()
+    preprocess_end_timestamp.FromNanoseconds(preprocess_end_time_ns)
+
     uworker_input = uworker_msg_pb2.Input(
         job_type='job_type-value',
         variant_task_input=uworker_msg_pb2.VariantTaskInput(
@@ -247,6 +264,7 @@ class UworkerMainTest(unittest.TestCase):
         uworker_env=self.UWORKER_ENV,
         uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
         preprocess_start_time=preprocess_start_timestamp,
+        preprocess_end_time=preprocess_end_timestamp,
     )
     self.mock.download_and_deserialize_uworker_input.return_value = (
         uworker_input)
@@ -283,6 +301,13 @@ class UworkerMainTest(unittest.TestCase):
     self.assertLess(e2e_durations.sum * 10**9,
                     end_time_ns - preprocess_start_time_ns)
     self.assertGreaterEqual(e2e_durations.sum, 42)
+
+    wait_durations = monitoring_metrics.UTASK_SUBTASK_WAIT_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(wait_durations.count, 1)
+    self.assertLess(wait_durations.sum * 10**9,
+                    end_time_ns - preprocess_end_time_ns)
+    self.assertGreaterEqual(wait_durations.sum, 20)
 
     # Asserts that task events were not emitted from main (as these may cause
     # a permission denied error if running in a untrusted worker).
