@@ -2108,6 +2108,11 @@ class FuzzingSession:
   def run(self):
     """Run the fuzzing session."""
     start_time = time.time()
+    _id = self.fuzz_task_input.crash_upload_urls[
+        0] if self.fuzz_task_input.crash_upload_urls else 'none'
+    logs.info(
+        f'Fuzz task id={_id} fuzzer={self.fuzzer_name} job={self.job_type} '
+        f'main started at {time.time()}s.')
     # Update LSAN local blacklist with global blacklist.
     global_blacklisted_functions = (
         self.uworker_input.fuzz_task_input.global_blacklisted_functions)
@@ -2476,6 +2481,11 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
     fuzz_task_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
 
+  _id = fuzz_task_input.crash_upload_urls[
+      0] if fuzz_task_input.crash_upload_urls else 'none'
+  logs.info(
+      f'Fuzz task id={_id} fuzzer={fuzzer_name} job={job_type} preprocess '
+      f'finished at {time.time()}s.')
   return uworker_msg_pb2.Input(  # pylint: disable=no-member
       fuzz_task_input=fuzz_task_input,
       job_type=job_type,

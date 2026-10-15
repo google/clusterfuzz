@@ -252,6 +252,7 @@ class _MetricRecorder(contextlib.AbstractContextManager):
           0, (self.start_time_ns - self._previous_subtask_end_time_ns) / 10**9)
       monitoring_metrics.UTASK_SUBTASK_WAIT_DURATION_SECS.add(
           wait_duration_secs, self._labels)
+      logs.info(f'Subtask wait: {wait_duration_secs}s.')
 
     # The only case where a task might fail without throwing, is in
     # utask_main, by returning an ErrorType proto which indicates
