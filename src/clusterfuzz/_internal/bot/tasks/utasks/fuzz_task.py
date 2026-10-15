@@ -2108,8 +2108,8 @@ class FuzzingSession:
   def run(self):
     """Run the fuzzing session."""
     start_time = time.time()
-    _id = self.fuzz_task_input.crash_upload_urls[
-        0] if self.fuzz_task_input.crash_upload_urls else 'none'
+    _id = self.uworker_input.fuzz_task_input.crash_upload_urls[
+        0] if self.uworker_input.ffuzz_task_input.crash_upload_urls else 'none'
     logs.info(
         f'Fuzz task id={_id} fuzzer={self.fuzzer_name} job={self.job_type} '
         f'main started at {time.time()}s.')
