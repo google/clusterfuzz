@@ -34,16 +34,12 @@ def _parse_script_args(script_args):
   return parser.parse_args(script_args)
 
 
-def execute(args):
-  """Download fuzzer config."""
-  if not args.script_args:
-    print('Please provide a list of fuzzer names as script arguments.')
-    sys.exit(1)
-
-  script_args = _parse_script_args(args.script_args)
-  fuzzer_names = script_args.fuzzer_names
-  output_dir = script_args.output_dir
-
+def download_fuzzer_configs(
+    fuzzer_names: list[str],
+    output_dir: str,
+    non_dry_run: bool = True,
+) -> list[data_types.Fuzzer]:
+  """Downloads fuzzer configs to output_dir."""
   fuzzers = data_types.Fuzzer.query(
       data_types.Fuzzer.name.IN(fuzzer_names)).fetch()
 
@@ -53,9 +49,9 @@ def execute(args):
     if fuzzer_name not in existing_fuzzer_names:
       print(f'Fuzzer {fuzzer_name} not found.')
 
-  if not args.non_dry_run:
+  if not non_dry_run:
     print('Skipping writes in dry-run mode.')
-    return
+    return fuzzers
 
   if fuzzers:
     os.makedirs(output_dir, exist_ok=True)
@@ -68,3 +64,19 @@ def execute(args):
       json.dump(config, f, indent=4)
 
     print(f'Saved config for {fuzzer.name} to {filename}.')
+
+  return fuzzers
+
+
+def execute(args):
+  """Download fuzzer config."""
+  if not args.script_args:
+    print('Please provide a list of fuzzer names as script arguments.')
+    sys.exit(1)
+
+  script_args = _parse_script_args(args.script_args)
+  download_fuzzer_configs(
+      fuzzer_names=script_args.fuzzer_names,
+      output_dir=script_args.output_dir,
+      non_dry_run=args.non_dry_run,
+  )
