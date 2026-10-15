@@ -25,15 +25,91 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 class MockProcess:
   """Mock process."""
 
-  def __init__(self, pid, name, cmdline):
+  def __init__(self, pid, name, cmdline, ppid=0):
     self._info = {
         'name': name,
         'pid': pid,
         'cmdline': cmdline,
+        'ppid': ppid,
     }
 
   def as_dict(self, attrs):  # pylint: disable=unused-argument
     return self._info
+
+
+class RedactCommandLineTest(unittest.TestCase):
+  """Tests redact_command_line."""
+
+  def test_no_password_flag(self):
+    """Test that command lines without a password flag are left untouched."""
+    command_line = [
+        'tool', '--token', 'value', '--password-file', 'x', 'mypassword', 'y'
+    ]
+    self.assertEqual(command_line,
+                     process_handler.redact_command_line(command_line))
+
+  def test_password_value(self):
+    """Test that the value of a password flag is redacted."""
+    self.assertEqual(
+        ['launcher', '-username', 'user', '-password', '<redacted>', 'job'],
+        process_handler.redact_command_line(
+            ['launcher', '-username', 'user', '-password', 'secret123', 'job']))
+
+  def test_password_value_with_spaces(self):
+    """Test that a password value containing spaces is fully redacted."""
+    self.assertEqual(['tool', '-password', '<redacted>', 'arg'],
+                     process_handler.redact_command_line(
+                         ['tool', '-password', 'secret with spaces', 'arg']))
+
+  def test_prefixes_and_case(self):
+    """Test the supported flag prefixes and casing."""
+    self.assertEqual(
+        [
+            'tool', '--Password', '<redacted>', '/PASSWORD', '<redacted>',
+            '-password', '<redacted>'
+        ],
+        process_handler.redact_command_line(
+            ['tool', '--Password', 'a', '/PASSWORD', 'b', '-password', 'c']))
+
+  def test_inline_password_value(self):
+    """Test that password values passed inline with `=` or `:` are redacted."""
+    self.assertEqual([
+        'tool', '--password=<redacted>', '/Password:<redacted>',
+        '-password=<redacted>', 'arg'
+    ],
+                     process_handler.redact_command_line([
+                         'tool', '--password=secret123', '/Password:secret:456',
+                         '-password=a b', 'arg'
+                     ]))
+
+  def test_password_flag_last(self):
+    """Test that a password flag without a value does not fail."""
+    self.assertEqual(['tool', '-password'],
+                     process_handler.redact_command_line(['tool', '-password']))
+
+
+class GetRuntimeSnapshotTest(unittest.TestCase):
+  """Tests get_runtime_snapshot."""
+
+  def setUp(self):
+    test_helpers.patch(self, ['psutil.process_iter'])
+
+  def test_redacts_passwords(self):
+    """Test that passwords in command lines do not end up in the snapshot."""
+    self.mock.process_iter.return_value = [
+        MockProcess(2, 'child', ['child', '--arg', 'value'], 1),
+        MockProcess(1, 'launcher',
+                    ['launcher', '-username', 'user', '-password', 'secret123'],
+                    0),
+        MockProcess(3, 'idle', [], 0),
+    ]
+    snapshot = process_handler.get_runtime_snapshot()
+    self.assertNotIn('secret123', snapshot)
+    self.assertEqual(
+        'child (2, 1): child --arg value\n'
+        'idle (3, 0)\n'
+        'launcher (1, 0): launcher -username user -password <redacted>',
+        snapshot)
 
 
 class TerminateProcessesMatchingNameTest(unittest.TestCase):

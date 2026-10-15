@@ -17,6 +17,7 @@ import copy
 import datetime
 import os
 import queue
+import re
 import subprocess
 import sys
 import threading
@@ -62,6 +63,11 @@ LSAN_ANALYSIS_TIME = 1
 
 # Time to wait for thread cleanup (e.g. dumping coverage, etc).
 THREAD_FINISH_WAIT_TIME = 5
+
+# Matches a password flag whose value must be redacted before logging. The value
+# is either passed as the next argument (e.g. `-password value`) or inline after
+# `=` or `:` (e.g. `--password=value`, `/password:value`).
+PASSWORD_FLAG_REGEX = re.compile(r'((?:--?|/)password)([=:].*)?', re.IGNORECASE)
 
 
 class ProcessStatus:
@@ -402,6 +408,22 @@ def get_process():
   return multiprocessing.Process
 
 
+def redact_command_line(command_line: list[str]) -> list[str]:
+  """Return a copy of |command_line| (a list of arguments) with the values of
+  password flags redacted."""
+  redacted_command_line = list(command_line)
+  for i, arg in enumerate(command_line):
+    match = PASSWORD_FLAG_REGEX.fullmatch(arg)
+    if not match:
+      continue
+    flag, inline_value = match.groups()
+    if inline_value is not None:
+      redacted_command_line[i] = f'{flag}{inline_value[0]}<redacted>'
+    elif i + 1 < len(command_line):
+      redacted_command_line[i + 1] = '<redacted>'
+  return redacted_command_line
+
+
 def get_runtime_snapshot():
   """Return a list of current processes and their command lines as string."""
   process_strings = []
@@ -414,7 +436,8 @@ def get_runtime_snapshot():
           ppid=process_info['ppid'])
       process_cmd_line = process_info['cmdline']
       if process_cmd_line:
-        process_string += f': {" ".join(process_cmd_line)}'
+        # The snapshot is logged, so make sure no credentials end up in logs.
+        process_string += f': {" ".join(redact_command_line(process_cmd_line))}'
       process_strings.append(process_string)
     except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
       # Ignore the error, use whatever info is available for access.
