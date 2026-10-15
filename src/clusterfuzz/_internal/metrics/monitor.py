@@ -604,8 +604,15 @@ class TimeMetricTracker:
                metric: Metric,
                labels=None,
                has_success_label: bool = False):
-    # If |has_success_label| is true, a "success" label will be added upon exit,
-    # which is true iff |fail()| was not called and no exception was raised.
+    """Initializes the tracker.
+
+    Args:
+      metric: The metric which is being tracked.
+      labels: The dictionary containing the labels of the metric.
+      has_success_label: If True, a label 'success' is added to the labels
+        dictionary upon exit, which is True if and only if no exception
+        was raised and the fail method was not called.
+    """
     self.metric = metric
     self.labels = dict(labels) if labels else {}
     self.has_success_label = has_success_label
@@ -620,8 +627,7 @@ class TimeMetricTracker:
   def __exit__(self, exc_type, value, traceback):
     duration = time.time() - self.start_time
     if self.has_success_label:
-      success = not self.failed and exc_type is None
-      self.labels['success'] = success
+      self.labels['success'] = not self.failed and exc_type is None
 
     self.metric.insert(duration, labels=self.labels)
 
