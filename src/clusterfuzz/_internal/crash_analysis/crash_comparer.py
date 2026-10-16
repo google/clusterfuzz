@@ -95,9 +95,13 @@ class CrashComparer:
     if self.crash_state_1 == self.crash_state_2:
       return True
 
-    # If there is a fuzzer hash string in state, then rely on exact comparison.
-    # Since we failed the check above, our hashes don't match.
-    if 'FuzzerHash=' in self.crash_state_1:
+    # If there is a fuzzer hash string in either state, then rely on exact
+    # comparison. Since we failed the check above, our hashes don't match.
+    # Both sides are checked so the answer does not depend on argument order:
+    # the grouper always passes the higher testcase id first, so checking only
+    # one side let an older hashed state fall through to the fuzzy match below.
+    if ('FuzzerHash=' in self.crash_state_1 or
+        'FuzzerHash=' in self.crash_state_2):
       return False
 
     # TODO(aarya): Improve this algorithm and leverage other parts of
