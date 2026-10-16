@@ -370,6 +370,10 @@ class Metric:
     except KeyError:
       return self.default_value
 
+  def insert(self, value, labels=None):
+    """Generic method for adding a value to the metric."""
+    raise NotImplementedError
+
   def monitoring_v3_metric(self, metric, labels=None):
     """Get the monitoring_v3 Metric."""
     metric.type = CUSTOM_METRIC_PREFIX + self.name
@@ -442,6 +446,9 @@ class _CounterMetric(Metric):
   def increment_by(self, count, labels=None):
     _metrics_store.increment(self, labels, count)
 
+  def insert(self, value: float, labels=None):
+    self.increment_by(int(value), labels=labels)
+
   def _set_value(self, point, value):
     """Get Point."""
     point.int64_value = value
@@ -464,6 +471,9 @@ class _GaugeMetric(Metric):
 
   def set(self, value, labels=None):
     _metrics_store.put(self, labels, value)
+
+  def insert(self, value: float, labels=None):
+    self.set(int(value), labels=labels)
 
   def _set_value(self, point, value):
     """Get Point."""
@@ -580,8 +590,67 @@ class _CumulativeDistributionMetric(Metric):
   def add(self, value, labels=None):
     _metrics_store.increment(self, labels, value)
 
+  def insert(self, value: float, labels=None):
+    self.add(value, labels=labels)
+
   def _set_value(self, point, value):
     value.monitoring_v3_distribution(point.distribution_value)
+
+
+class SplitMetricHelper:
+  """Helper class to emit FUZZER_* and JOB_* metrics at once."""
+
+  def __init__(self, fuzzer_metric: Metric, job_metric: Metric):
+    self.fuzzer_metric = fuzzer_metric
+    self.job_metric = job_metric
+
+  def insert(self, value: float, labels=None):
+    labels = dict(labels) if labels else {}
+    assert 'fuzzer' in labels and 'job' in labels
+    job = labels.pop('job')
+    self.fuzzer_metric.insert(value, labels=labels)
+
+    del labels['fuzzer']
+    labels['job'] = job
+    self.job_metric.insert(value, labels=labels)
+
+
+class TimeMetricTracker:
+  """Context manager to track time for any metric."""
+
+  def __init__(self,
+               metric: Metric | SplitMetricHelper,
+               labels=None,
+               has_success_label: bool = False):
+    """Initializes the tracker.
+
+    Args:
+      metric: The metric which is being tracked.
+      labels: The dictionary containing the labels of the metric.
+      has_success_label: If True, a label 'success' is added to the labels
+        dictionary upon exit, which is True if and only if no exception
+        was raised and the fail method was not called.
+    """
+    self.metric = metric
+    self.labels = dict(labels) if labels else {}
+    self.has_success_label = has_success_label
+    self.start_time = None
+    self.failed = False
+
+  def __enter__(self):
+    self.start_time = time.time()
+    self.failed = False
+    return self
+
+  def __exit__(self, exc_type, value, traceback):
+    duration = time.time() - self.start_time
+    if self.has_success_label:
+      self.labels['success'] = not self.failed and exc_type is None
+
+    self.metric.insert(duration, labels=self.labels)
+
+  def fail(self):
+    self.failed = True
 
 
 # Global state.

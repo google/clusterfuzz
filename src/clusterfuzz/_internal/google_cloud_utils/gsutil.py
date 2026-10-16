@@ -301,7 +301,7 @@ class GSUtilRunner:
 
     return True
 
-  def upload_files_to_url(self, file_paths, gcs_url, timeout=None):
+  def upload_files_to_url(self, file_paths, gcs_url, timeout=None) -> bool:
     """Upload files to the given GCS url."""
     if not file_paths or not gcs_url:
       return False

@@ -400,3 +400,83 @@ class JonathanDebugTest(unittest.TestCase):
         2,
         1,
     ], result.buckets)
+
+
+class TimeMetricTrackerTest(unittest.TestCase):
+  """Tests for TimeMetricTracker."""
+
+  def setUp(self):
+    monitor.metrics_store().reset_for_testing()
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.monitor.check_module_loaded',
+        'time.time',
+    ])
+    self.mock.check_module_loaded.return_value = True
+    self.mock_time = helpers.MockTime(start_time=10.0)
+    self.mock.time.side_effect = self.mock_time.time
+
+  def test_counter_metric_success(self):
+    """Test tracking time with CounterMetric and has_success_label=True."""
+    metric = monitor.CounterMetric(
+        'test_counter',
+        description='test',
+        field_spec=[
+            monitor.StringField('tag'),
+            monitor.BooleanField('success'),
+        ])
+    labels = {'tag': 'val'}
+    with monitor.TimeMetricTracker(metric, labels, has_success_label=True):
+      self.mock_time.advance(4.9)
+
+    self.assertEqual({'tag': 'val'}, labels)
+    self.assertEqual(4, metric.get({'tag': 'val', 'success': True}))
+
+  def test_counter_metric_fail_called(self):
+    """Test tracking time when fail() is explicitly called."""
+    metric = monitor.CounterMetric(
+        'test_counter',
+        description='test',
+        field_spec=[monitor.BooleanField('success')])
+    with monitor.TimeMetricTracker(metric, has_success_label=True) as tracker:
+      self.mock_time.advance(3.2)
+      tracker.fail()
+
+    self.assertEqual(3, metric.get({'success': False}))
+
+  def test_counter_metric_exception_raised(self):
+    """Test tracking time when an exception is raised inside the block."""
+    metric = monitor.CounterMetric(
+        'test_counter',
+        description='test',
+        field_spec=[monitor.BooleanField('success')])
+    with self.assertRaises(RuntimeError):
+      with monitor.TimeMetricTracker(metric, has_success_label=True):
+        self.mock_time.advance(7.6)
+        raise RuntimeError('test error')
+
+    self.assertEqual(7, metric.get({'success': False}))
+
+  def test_cumulative_distribution_metric(self):
+    """Test tracking float duration with CumulativeDistributionMetric."""
+    metric = monitor.CumulativeDistributionMetric(
+        'test_dist',
+        description='test',
+        bucketer=monitor.FixedWidthBucketer(width=1.0, num_finite_buckets=5),
+        field_spec=[monitor.StringField('tag')])
+    with monitor.TimeMetricTracker(metric, {'tag': 'val'}):
+      self.mock_time.advance(2.5)
+
+    dist = metric.get({'tag': 'val'})
+    self.assertEqual(1, dist.count)
+    self.assertAlmostEqual(2.5, dist.sum)
+
+  def test_gauge_metric(self):
+    """Test tracking float duration with Gauge."""
+    metric = monitor.GaugeMetric(
+        'test_gauge',
+        description='test',
+        field_spec=[monitor.StringField('tag')])
+    with monitor.TimeMetricTracker(metric, {'tag': 'val'}):
+      self.mock_time.advance(3.7)
+
+    self.assertEqual(3, metric.get({'tag': 'val'}))
