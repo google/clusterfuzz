@@ -690,9 +690,16 @@ def scripts_are_running(expected_scripts):
   """Check if all target scripts are running as expected."""
   scripts_left = expected_scripts.copy()
   for process in psutil.process_iter():
+    try:
+      process_cmd_line = process.cmdline()
+    except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
+      # Some processes (e.g. protected system processes on Windows Server
+      # 2025) cannot be inspected; skip them instead of failing the check.
+      continue
+
     for expected_script in scripts_left:
       if any(expected_script == os.path.basename(cmdline)
-             for cmdline in process.cmdline()):
+             for cmdline in process_cmd_line):
         scripts_left.remove(expected_script)
         if not scripts_left:
           return True

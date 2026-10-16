@@ -18,6 +18,7 @@ import threading
 import unittest
 from unittest import mock
 
+import psutil
 import requests
 
 from python.bot.startup.health_check_responder import EXPECTED_SCRIPTS
@@ -83,6 +84,28 @@ class HealthCheckResponderTest(unittest.TestCase):
 
     self.assertEqual(
         500,
+        requests.get(f'{RESPONDER_ADDR}',
+                     timeout=HTTP_REQUEST_TIMEOUT).status_code)
+
+  @mock.patch(
+      'python.bot.startup.health_check_responder.process_handler.psutil')
+  def test_healthy_with_inaccessible_processes(self, mock_psutil):
+    """Testcase for processes whose cmdline cannot be read being skipped."""
+    mock_psutil.AccessDenied = psutil.AccessDenied
+    mock_psutil.NoSuchProcess = psutil.NoSuchProcess
+
+    mock_access_denied_process = mock.MagicMock()
+    mock_access_denied_process.cmdline.side_effect = psutil.AccessDenied()
+    mock_no_such_process = mock.MagicMock()
+    mock_no_such_process.cmdline.side_effect = psutil.NoSuchProcess(pid=1)
+
+    mock_psutil.process_iter.return_value = [
+        mock_access_denied_process, self.mock_run_process, mock_no_such_process,
+        self.mock_run_bot_process
+    ]
+
+    self.assertEqual(
+        200,
         requests.get(f'{RESPONDER_ADDR}',
                      timeout=HTTP_REQUEST_TIMEOUT).status_code)
 
