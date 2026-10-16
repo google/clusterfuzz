@@ -34,6 +34,33 @@ BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
         monitor.BooleanField('success'),
     ])
 
+FUZZER_SYNC_CORPUS_TIME = monitor.CounterMetric(
+    'task/fuzz/fuzzer/sync_corpus_time',
+    description=('The total time spent setting up and synchronizing corpus '
+                 'files with GCS in seconds (grouped by fuzzer).'),
+    field_spec=[
+        monitor.StringField('fuzzer'),
+        monitor.StringField('platform'),
+        monitor.StringField('runtime'),
+        monitor.StringField('stage'),
+        monitor.BooleanField('success'),
+    ])
+
+JOB_SYNC_CORPUS_TIME = monitor.CounterMetric(
+    'task/fuzz/job/sync_corpus_time',
+    description=('The total time spent setting up and synchronizing corpus '
+                 'files with GCS in seconds (grouped by job).'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('runtime'),
+        monitor.StringField('stage'),
+        monitor.BooleanField('success'),
+    ])
+
+SYNC_CORPUS_TIME = monitor.SplitMetricHelper(FUZZER_SYNC_CORPUS_TIME,
+                                             JOB_SYNC_CORPUS_TIME)
+
 CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
     'tip_boot_failure',
     description=
