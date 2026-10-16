@@ -268,14 +268,26 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
         engine='libFuzzer', binary='test_target')
     self.session.data_directory = '/data'
 
-  def _get_metric(self, stage, success):
-    return monitoring_metrics.SYNC_CORPUS_TIME.get({
-        'fuzzer': 'libFuzzer_test_target',
+  def _assert_metrics(self, expected_value, stage, success):
+    """Assert that both fuzzer and job sync corpus metrics match expected."""
+    common_labels = {
         'platform': 'some_platform',
         'runtime': 'kata_container',
         'stage': stage,
         'success': success,
-    })
+    }
+    self.assertEqual(
+        expected_value,
+        monitoring_metrics.FUZZER_SYNC_CORPUS_TIME.get({
+            **common_labels,
+            'fuzzer': 'libFuzzer_test_target',
+        }))
+    self.assertEqual(
+        expected_value,
+        monitoring_metrics.JOB_SYNC_CORPUS_TIME.get({
+            **common_labels,
+            'job': 'libfuzzer_asan_test',
+        }))
 
   def test_sync_corpus_success(self):
     """Test metric recorded when sync_corpus succeeds."""
@@ -288,7 +300,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
         sync_side_effect)
 
     self.session.sync_corpus('/corpus')
-    self.assertEqual(5, self._get_metric(stage='download', success=True))
+    self._assert_metrics(5, stage='download', success=True)
 
   def test_sync_corpus_failure(self):
     """Test metric recorded when sync_corpus fails and raises FuzzTaskError."""
@@ -303,7 +315,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     with self.assertRaises(fuzz_task.FuzzTaskError):
       self.session.sync_corpus('/corpus')
 
-    self.assertEqual(5, self._get_metric(stage='download', success=False))
+    self._assert_metrics(5, stage='download', success=False)
 
   def test_sync_new_corpus_files_success(self):
     """Test metric recorded when sync_new_corpus_files succeeds."""
@@ -317,7 +329,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
 
     self.session.sync_new_corpus_files()
-    self.assertEqual(5, self._get_metric(stage='upload', success=True))
+    self._assert_metrics(5, stage='upload', success=True)
 
   def test_sync_new_corpus_files_failure(self):
     """Test metric recorded when sync_new_corpus_files fails."""
@@ -331,7 +343,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
 
     self.session.sync_new_corpus_files()
-    self.assertEqual(5, self._get_metric(stage='upload', success=False))
+    self._assert_metrics(5, stage='upload', success=False)
 
   def _patch_preprocess(self):
     """Patch dependencies of _utask_preprocess."""
@@ -371,7 +383,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     self.mock.get_fuzz_target_corpus.side_effect = get_corpus_side_effect
 
     fuzz_task._utask_preprocess('libFuzzer', 'libfuzzer_asan_test', {})
-    self.assertEqual(5, self._get_metric(stage='preprocess', success=True))
+    self._assert_metrics(5, stage='preprocess', success=True)
 
   def test_preprocess_sync_corpus_failure(self):
     """Test metric recorded when get_fuzz_target_corpus raises in preprocess."""
@@ -386,7 +398,7 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     with self.assertRaises(RuntimeError):
       fuzz_task._utask_preprocess('libFuzzer', 'libfuzzer_asan_test', {})
 
-    self.assertEqual(5, self._get_metric(stage='preprocess', success=False))
+    self._assert_metrics(5, stage='preprocess', success=False)
 
 
 class GetFuzzerMetadataFromOutputTest(unittest.TestCase):

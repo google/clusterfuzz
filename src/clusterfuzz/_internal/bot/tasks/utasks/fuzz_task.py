@@ -631,10 +631,11 @@ class CorpusSyncStage(enum.Enum):
   UPLOAD = 'upload'
 
 
-def _track_sync_corpus_metric(fuzzer: str, stage: CorpusSyncStage):
+def _track_sync_corpus_metric(fuzzer: str, job: str, stage: CorpusSyncStage):
   """Context manager to track time spent synchronizing corpus with GCS."""
   labels = {
       'fuzzer': fuzzer,
+      'job': job,
       'platform': environment.platform(),
       'runtime': environment.get_runtime().value,
       'stage': stage.value,
@@ -1595,7 +1596,7 @@ class FuzzingSession:
   def sync_corpus(self, sync_corpus_directory):
     """Sync corpus from GCS."""
     with _track_sync_corpus_metric(self.fully_qualified_fuzzer_name,
-                                   CorpusSyncStage.DOWNLOAD):
+                                   self.job_type, CorpusSyncStage.DOWNLOAD):
       # Corpus should always be set at this point.
       self.gcs_corpus = GcsCorpus(self.fuzzer_name,
                                   self.fuzz_target.project_qualified_name(),
@@ -1619,6 +1620,7 @@ class FuzzingSession:
   def sync_new_corpus_files(self):
     """Sync new files from corpus to GCS."""
     with _track_sync_corpus_metric(self.fully_qualified_fuzzer_name,
+                                   self.job_type,
                                    CorpusSyncStage.UPLOAD) as tracker:
       new_files = self.gcs_corpus.get_new_files()
       new_files_count = len(new_files)
@@ -2480,7 +2482,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
     logs.log_contexts.add_metadata('fuzz_target', fuzz_target.binary)
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
-    with _track_sync_corpus_metric(fuzz_target.fully_qualified_name(),
+    with _track_sync_corpus_metric(fuzz_target.fully_qualified_name(), job_type,
                                    CorpusSyncStage.PREPROCESS):
       fuzz_task_input.corpus.CopyFrom(
           corpus_manager.get_fuzz_target_corpus(

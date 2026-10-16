@@ -597,11 +597,29 @@ class _CumulativeDistributionMetric(Metric):
     value.monitoring_v3_distribution(point.distribution_value)
 
 
+class SplitMetricHelper:
+  """Helper class to emit FUZZER_* and JOB_* metrics at once."""
+
+  def __init__(self, fuzzer_metric: Metric, job_metric: Metric):
+    self.fuzzer_metric = fuzzer_metric
+    self.job_metric = job_metric
+
+  def insert(self, value: float, labels=None):
+    labels = dict(labels) if labels else {}
+    assert 'fuzzer' in labels and 'job' in labels
+    job = labels.pop('job')
+    self.fuzzer_metric.insert(value, labels=labels)
+
+    del labels['fuzzer']
+    labels['job'] = job
+    self.job_metric.insert(value, labels=labels)
+
+
 class TimeMetricTracker:
   """Context manager to track time for any metric."""
 
   def __init__(self,
-               metric: Metric,
+               metric: Metric | SplitMetricHelper,
                labels=None,
                has_success_label: bool = False):
     """Initializes the tracker.
