@@ -42,6 +42,7 @@ SYNC_CORPUS_TIME = monitor.CounterMetric(
         monitor.StringField('fuzzer'),
         monitor.StringField('platform'),
         monitor.StringField('runtime'),
+        monitor.StringField('stage'),
         monitor.BooleanField('success'),
     ])
 
