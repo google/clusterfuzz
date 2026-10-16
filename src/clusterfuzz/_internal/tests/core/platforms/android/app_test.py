@@ -14,6 +14,7 @@
 """Tests for app functions."""
 
 import os
+import subprocess
 from unittest import mock
 from unittest import TestCase
 
@@ -64,6 +65,53 @@ class GetPackageNameTest(android_helpers.AndroidTest):
     """Test apk path passed as argument."""
     self.assertEqual(
         app.get_package_name(self.test_apk_path), self.test_apk_pkg_name)
+
+
+class GetPackageNameCommandTest(TestCase):
+  """Tests how get_package_name invokes aapt."""
+
+  def setUp(self):
+    super().setUp()
+    helpers.patch_environ(self)
+    environment.set_value('ROOT_DIR', '/root')
+    self.run_patcher = mock.patch(
+        'clusterfuzz._internal.platforms.android.app.subprocess.run')
+    self.mock_run = self.run_patcher.start()
+    self.addCleanup(self.run_patcher.stop)
+    self.mock_run.return_value = mock.Mock(
+        stdout=b"package: name='com.example.app' versionCode='1'")
+
+  def test_apk_path_is_passed_as_an_argument_not_a_shell_word(self):
+    """A path holding shell metacharacters reaches aapt verbatim.
+
+    |apk_path| comes from an extracted archive, so a directory inside it can be
+    named `payload$(touch /tmp/pwned)`. Built into a command string for bash,
+    that substitution runs on the host before aapt does (#5477). As an argument
+    list there is no shell to act on it.
+    """
+    apk_path = '/build/custom/payload$(touch /tmp/pwned)/app.apk'
+
+    self.assertEqual(app.get_package_name(apk_path), 'com.example.app')
+
+    args, kwargs = self.mock_run.call_args
+    command = args[0]
+    self.assertIsInstance(command, list)
+    self.assertEqual(command[1:], ['dump', 'badging', apk_path])
+    self.assertFalse(kwargs.get('shell', False))
+
+  def test_ordinary_path_still_resolves_the_package_name(self):
+    """The normal path goes through the same call and is unaffected."""
+    self.assertEqual(
+        app.get_package_name('/build/custom/app.apk'), 'com.example.app')
+
+    command = self.mock_run.call_args[0][0]
+    self.assertEqual(command[1:], ['dump', 'badging', '/build/custom/app.apk'])
+
+  def test_timeout_returns_none(self):
+    """aapt timing out leaves no output to match, so there is no package name."""
+    self.mock_run.side_effect = subprocess.TimeoutExpired(cmd='aapt', timeout=1)
+
+    self.assertIsNone(app.get_package_name('/build/custom/app.apk'))
 
 
 class InstallTest(TestCase):
