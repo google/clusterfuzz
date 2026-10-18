@@ -52,6 +52,7 @@ class CreateHandler(base_handler.Handler):
   """Create a corpus."""
 
   @handler.post(handler.FORM, handler.HTML)
+  @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
   def post(self):
@@ -65,6 +66,12 @@ class CreateHandler(base_handler.Handler):
           'Name can only contain letters, numbers, dashes and underscores.',
           400)
 
+    # Creating a corpus replaces the IAM members of its bucket, so never do that
+    # for a corpus that already exists.
+    if data_types.DataBundle.query(data_types.DataBundle.name == name).get():
+      raise helpers.EarlyExitError('A corpus named %s already exists.' % name,
+                                   400)
+
     user_email = helpers.get_user_email()
     bucket_name = data_handler.get_data_bundle_bucket_name(name)
 
@@ -72,11 +79,7 @@ class CreateHandler(base_handler.Handler):
       raise helpers.EarlyExitError('Failed to create bucket %s.' % bucket_name,
                                    400)
 
-    data_bundle = data_types.DataBundle.query(
-        data_types.DataBundle.name == name).get()
-
-    if not data_bundle:
-      data_bundle = data_types.DataBundle()
+    data_bundle = data_types.DataBundle()
     data_bundle.name = name
     data_bundle.bucket_name = bucket_name
     data_bundle.put()
@@ -98,6 +101,7 @@ class DeleteHandler(base_handler.Handler):
   """Delete a corpus."""
 
   @handler.post(handler.FORM, handler.HTML)
+  @handler.check_admin_access_if_oss_fuzz
   @handler.check_user_access(need_privileged_access=True)
   @handler.require_csrf_token
   def post(self):
