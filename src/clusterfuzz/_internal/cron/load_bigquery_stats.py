@@ -118,7 +118,7 @@ def _poll_completion(bigquery, project_id, job_id):
 
 
 def _load_data(fuzzer, target_date):
-  """Load stats into BigQuery."""
+  """Loads stats into BigQuery. Returns True on success, False otherwise."""
   bigquery = big_query.get_api_client()
   project_id = utils.get_application_id()
 
@@ -127,8 +127,9 @@ def _load_data(fuzzer, target_date):
 
   dataset_id = fuzzer_stats.dataset_name(fuzzer)
   if not _create_dataset_if_needed(bigquery, dataset_id):
-    return
+    return False
 
+  success = True
   for kind in STATS_KINDS:
     kind_name = kind.__name__
     table_id = kind_name
@@ -142,6 +143,7 @@ def _load_data(fuzzer, target_date):
       continue
 
     if not _create_table_if_needed(bigquery, dataset_id, table_id, schema):
+      success = False
       continue
 
     gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
@@ -184,6 +186,7 @@ def _load_data(fuzzer, target_date):
         errors = response['status'].get('errors')
         if errors:
           logs.error(f'Failed load for {job_id} with errors: {str(errors)})')
+          success = False
         else:
           # Successful write. Subsequent writes should be WRITE_APPEND.
           first_write = False
@@ -191,10 +194,13 @@ def _load_data(fuzzer, target_date):
         # Log exception here as otherwise it gets lost in the thread pool
         # worker.
         logs.error(f'Failed to load: {str(e)}')
+        success = False
+
+  return success
 
 
 def main(argv=None):
-  """Load bigquery stats from GCS."""
+  """Load bigquery stats from GCS. Returns True if all loads succeeded."""
   parser = argparse.ArgumentParser(prog='load_bigquery_stats')
   parser.add_argument(
       '--date',
@@ -217,13 +223,21 @@ def main(argv=None):
     return False
 
   thread_pool = ThreadPoolExecutor(max_workers=NUM_THREADS)
+  load_tasks = []
 
   # Retrieve list of fuzzers before iterating them, since the query can expire
   # as we create the load jobs.
   for fuzzer in list(data_types.Fuzzer.query()):
     logs.info('Loading stats to BigQuery for %s.' % fuzzer.name)
-    thread_pool.submit(_load_data, fuzzer.name, target_date)
+    load_tasks.append(thread_pool.submit(_load_data, fuzzer.name, target_date))
 
+  # Wait for all fuzzer load tasks to complete and verify success.
   thread_pool.shutdown(wait=True)
+  all_successful = all(
+      task.exception() is None and task.result() for task in load_tasks)
+  if not all_successful:
+    logs.error('One or more BigQuery load tasks failed.')
+    return False
+
   logs.info('Load big query task finished successfully.')
   return True
