@@ -554,6 +554,31 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 
   @parameterized.parameterized.expand(['True', 'False'])
+  def test_setup_fuzz_after_discovery_reunpacks(self, unpack_all):
+    """Tests that a discovery build is not reused as a complete build.
+
+    Discovery leaves the build dir empty but revision-stamped, so a later task
+    at that revision must unpack rather than reuse it.
+    """
+    os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = unpack_all
+    os.environ['TASK_NAME'] = 'fuzz'
+    self.mock.time.return_value = 1000.0
+
+    build = build_manager.setup_regular_build(2, fuzz_target=None)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+
+    unpack_mock = self.mock.open.return_value.__enter__.return_value.unpack
+    self.assertEqual(unpack_mock.call_count, 0)
+
+    # Now set up the same revision again, this time with a fuzz target.
+    fuzz_target = build_manager.pick_random_fuzz_target(
+        target_weights=self.target_weights)
+    build = build_manager.setup_regular_build(2, fuzz_target=fuzz_target)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(unpack_mock.call_count, 1)
+
+  @parameterized.parameterized.expand(['True', 'False'])
   def test_setup_fuzz(self, unpack_all):
     """Tests setting up a build during fuzzing."""
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = unpack_all
