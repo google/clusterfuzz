@@ -157,6 +157,11 @@ JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
         monitor.StringField('runtime')
     ])
 
+KNOWN_CRASH_COUNT = monitor.SplitMetricHelper(FUZZER_KNOWN_CRASH_COUNT,
+                                              JOB_KNOWN_CRASH_COUNT)
+NEW_CRASH_COUNT = monitor.SplitMetricHelper(FUZZER_NEW_CRASH_COUNT,
+                                            JOB_NEW_CRASH_COUNT)
+
 FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
     'task/fuzz/fuzzer/return_code_count',
     description=("Count of fuzz task's return codes "
@@ -185,6 +190,24 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
+JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
+    'task/fuzz/job/total_time',
+    description=('The total fuzz time in seconds '
+                 '(grouped by job)'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.BooleanField('timeout'),
+        monitor.StringField('platform'),
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
+    ],
+)
+
+TOTAL_FUZZ_TIME = monitor.SplitMetricHelper(FUZZER_TOTAL_FUZZ_TIME,
+                                            JOB_TOTAL_FUZZ_TIME)
+
 FUZZER_PREEMPTED_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     'task/fuzz/fuzzer/preempted_total_time',
     description=('The total fuzz time wasted due to preemption in seconds '
@@ -209,6 +232,9 @@ JOB_PREEMPTED_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
+PREEMPTED_TOTAL_FUZZ_TIME = monitor.SplitMetricHelper(
+    FUZZER_PREEMPTED_TOTAL_FUZZ_TIME, JOB_PREEMPTED_TOTAL_FUZZ_TIME)
+
 # This metric tracks fuzzer setup and data bundle update,
 # fuzzing time and crash processing on the worker
 FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
@@ -219,21 +245,6 @@ FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
         monitor.StringField('fuzzer'),
         monitor.StringField('job'),
         monitor.StringField('platform'),
-        monitor.StringField('runtime')
-    ],
-)
-
-JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
-    'task/fuzz/job/total_time',
-    description=('The total fuzz time in seconds '
-                 '(grouped by job)'),
-    field_spec=[
-        monitor.StringField('job'),
-        monitor.BooleanField('timeout'),
-        monitor.StringField('platform'),
-        # Even this label is duplicated with "runtime"
-        # we are keeping it to avoid missing the historical metrics.
-        monitor.StringField('is_batch'),
         monitor.StringField('runtime')
     ],
 )
