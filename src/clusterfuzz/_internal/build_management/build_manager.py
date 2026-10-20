@@ -505,8 +505,8 @@ class Build(BaseBuild):
     Returns:
         the build archive.
     """
-    # We only want to use remote unzipping if we're not unpacking everything and
-    # if the HTTP URL is compatible with remote unzipping.
+    # We only want to use remote unzipping if the HTTP URL is compatible with
+    # it. This applies even when unpacking everything.
     allow_unpack_over_http = environment.get_value(
         'ALLOW_UNPACK_OVER_HTTP', default_value=False)
     can_unpack_over_http = (
@@ -557,9 +557,12 @@ class Build(BaseBuild):
                                            self._build_type)
 
         if self.is_discovery:
-          # If no fuzz target is selected, we only needed the list of fuzz
-          # targets and can skip unpacking the archive entirely.
+          # We only needed the list of fuzz targets, so skip the unpack. The
+          # build dir was emptied above but setup() still stamps it with the
+          # revision, so mark it partial to stop the next task reusing it.
           logs.info('No fuzz target selected; skipping unpack for discovery.')
+          utils.write_data_to_file('',
+                                   os.path.join(build_dir, PARTIAL_BUILD_FILE))
           return True
 
         if not self._unpack_everything:

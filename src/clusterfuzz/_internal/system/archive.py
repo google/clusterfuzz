@@ -17,6 +17,7 @@ import abc
 import dataclasses
 import io
 import os
+import posixpath
 import tarfile
 from typing import BinaryIO
 from typing import Callable
@@ -242,7 +243,9 @@ class ArchiveReader(abc.ABC):
     """
     if not self.list_members():
       return ''
-    return os.path.commonpath([f.name for f in self.list_members()])
+    # Member names always use '/', whatever the host OS, so don't use os.path
+    # (ntpath on Windows, which would join the result with '\').
+    return posixpath.commonpath([f.name for f in self.list_members()])
 
   def file_exists(self, path: str) -> bool:
     """Returns whether the path exists in the archive. The path must exactly
