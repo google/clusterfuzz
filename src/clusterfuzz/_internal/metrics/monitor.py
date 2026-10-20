@@ -81,7 +81,7 @@ else:
     initial=INITIAL_DELAY_SECONDS,
     maximum=MAXIMUM_DELAY_SECONDS,
     deadline=RETRY_DEADLINE_SECONDS)
-def _create_time_series(name: str, time_series: List[_TimeSeries]):
+def _create_time_series(name: str, time_series: List[_TimeSeries]) -> bool:
   """Wraps `create_time_series()` from the monitoring client.
 
   Adds retries and logging.
@@ -91,6 +91,9 @@ def _create_time_series(name: str, time_series: List[_TimeSeries]):
   except Exception as e:
     logs.warning(f'Error uploading time series: {e}')
     logs.warning(f'Time series - {name} - contents: {time_series}')
+    return False
+
+  return True
 
 
 class _MockMetric:
@@ -113,22 +116,29 @@ def _flush_metrics():
       utils.get_application_id())
   try:
     time_series = []
-    end_time = time.time()
-    for metric, labels, start_time, value in _metrics_store.iter_values():
-      if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
-         ):
-        start_time = end_time
-      series = _TimeSeries()
-      metric.monitoring_v3_time_series(series, labels, start_time, end_time,
-                                       value)
-      time_series.append(series)
-      if len(time_series) == MAX_TIME_SERIES_PER_CALL:
+    with _metrics_store.acquire_lock_for_flush():
+      end_time = time.time()
+      success = True
+      for metric, labels, start_time, value in _metrics_store.iter_values():
+        if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
+           ):
+          start_time = end_time
+        series = _TimeSeries()
+        metric.monitoring_v3_time_series(series, labels, start_time, end_time,
+                                         value)
+        time_series.append(series)
+        if len(time_series) == MAX_TIME_SERIES_PER_CALL:
+          time_series.sort(key=_time_series_sort_key)
+          if not _create_time_series(project_path, time_series):
+            success = False
+          time_series = []
+      if time_series:
         time_series.sort(key=_time_series_sort_key)
-        _create_time_series(project_path, time_series)
-        time_series = []
-    if time_series:
-      time_series.sort(key=_time_series_sort_key)
-      _create_time_series(project_path, time_series)
+        if not _create_time_series(project_path, time_series):
+          success = False
+
+      if success:
+        _metrics_store.reset_non_gauge()
   except Exception as e:
     if environment.is_android():
       # FIXME: This exception is extremely common on Android. We are already
@@ -299,10 +309,22 @@ class _MetricsStore:
 
       self._store[key] = _StoreValue(metric, labels, start_time, value)
 
+  def reset_non_gauge(self):
+    """Reset all non-Gauge metrics."""
+    with self._lock:
+      self._store = {
+          key: value
+          for key, value in self._store.items()
+          if isinstance(value.metric, _GaugeMetric)
+      }
+
   def reset_for_testing(self):
     """Reset all data. Used for tests."""
     with self._lock:
       self._store.clear()
+
+  def acquire_lock_for_flush(self):
+    return self._lock
 
 
 class _Field:
