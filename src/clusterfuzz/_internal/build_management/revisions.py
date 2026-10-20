@@ -21,12 +21,17 @@ import re
 import time
 import urllib.parse
 
+from google.auth import credentials as google_auth_credentials
+from google.auth.transport import requests as google_auth_requests
+
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.build_management import overrides
 from clusterfuzz._internal.build_management import source_mapper
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -45,6 +50,10 @@ SOURCE_MAP_EXTENSION = '.srcmap.json'
 FIND_BRANCHED_FROM = re.compile(
     r'Cr-Branched-From:.*(?:master|main)@\{#(\d+)\}')
 REVISION_PATTERN = re.compile(r'^[a-zA-Z0-9._-]+$')
+
+# Git-on-Borg (*.googlesource.com) accepts cloud-platform scoped tokens, so the
+# default credentials of bots and App Engine work as they are.
+_GOB_SCOPES = ['https://www.googleapis.com/auth/cloud-platform']
 
 # Value types _SafeDepsEvaluator can produce from a DEPS file.
 _LiteralValue = str | int | float | bool
@@ -178,6 +187,48 @@ def _get_revision(component_revision_dict):
   return component_revision_dict['rev']
 
 
+def _is_googlesource_url(url):
+  """Returns whether |url| is an https URL on a googlesource.com host."""
+  parts = urllib.parse.urlsplit(url)
+  return (parts.scheme == 'https' and
+          (parts.hostname or '').endswith('.googlesource.com'))
+
+
+@memoize.wrap(memoize.FifoInMemory(1))
+def _get_gob_credentials():
+  """Returns the default credentials with the scopes googlesource.com needs.
+
+  Cached so all requests in the process share the credentials and their token,
+  which is only refreshed when it expires."""
+  creds, _ = credentials.get_default()
+  return google_auth_credentials.with_scopes_if_required(creds, _GOB_SCOPES)
+
+
+def _fetch_googlesource_url(url):
+  """Fetches a googlesource.com URL, with authentication when enabled.
+
+  Anonymous requests to googlesource.com are not covered by its SLO and are the
+  first ones dropped when it is overloaded."""
+  if not feature_flags.FeatureFlags.GOB_AUTHENTICATED_REQUESTS.enabled:
+    return utils.fetch_url(url)
+
+  creds = _get_gob_credentials()
+  if not creds.valid:
+    creds.refresh(google_auth_requests.Request())
+
+  # The /a/ path prefix makes googlesource.com authenticate the request. Add it
+  # to the start of the URL path, keeping the host and query as they are:
+  # https://<host>/chromium/src/... -> https://<host>/a/chromium/src/...
+  parts = urllib.parse.urlsplit(url)
+  authenticated_url = urllib.parse.urlunsplit(
+      parts._replace(path='/a' + parts.path))
+  logs.info(
+      f'Authenticated googlesource.com request for {authenticated_url}',
+      service_account=creds.service_account_email)
+  return utils.fetch_url(
+      authenticated_url, headers={'Authorization': f'Bearer {creds.token}'})
+
+
 def _get_url_content(url):
   """Read a potentially base64-encoded resource from the given URL."""
   if url.startswith(storage.GS_PREFIX):
@@ -188,9 +239,13 @@ def _get_url_content(url):
 
     url_content = url_data.decode('utf-8')
   else:
-    # Fetch a regular url without authentication.
     try:
-      url_content = utils.fetch_url(url)
+      if _is_googlesource_url(url):
+        # Fetch googlesource.com with authentication too (when enabled).
+        url_content = _fetch_googlesource_url(url)
+      else:
+        # Fetch a regular url without authentication.
+        url_content = utils.fetch_url(url)
     except Exception:
       logs.error(f'Failed to fetch URL {url}')
       return None
