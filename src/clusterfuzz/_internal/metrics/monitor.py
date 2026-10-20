@@ -607,12 +607,13 @@ class SplitMetricHelper:
   def insert(self, value: float, labels=None):
     labels = dict(labels) if labels else {}
     assert 'fuzzer' in labels and 'job' in labels
+    fuzzer = labels.pop('fuzzer')
     job = labels.pop('job')
-    self.fuzzer_metric.insert(value, labels=labels)
 
-    del labels['fuzzer']
-    labels['job'] = job
-    self.job_metric.insert(value, labels=labels)
+    fuzzer_labels = {**labels, 'fuzzer': fuzzer}
+    job_labels = {**labels, 'job': job}
+    self.fuzzer_metric.insert(value, labels=fuzzer_labels)
+    self.job_metric.insert(value, labels=job_labels)
 
 
 class TimeMetricTracker:
