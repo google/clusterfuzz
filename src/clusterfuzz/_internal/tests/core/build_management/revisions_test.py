@@ -21,6 +21,7 @@ from unittest import mock
 
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.tests.core.datastore import ds_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -30,6 +31,8 @@ BASIC_JOB_TYPE = 'linux_asan_chrome_mp'
 SRCMAP_JOB_TYPE = 'linux_asan_libass'
 CUSTOM_BINARY_JOB_TYPE = 'linux_asan_custom'
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'revisions_data')
+GOOGLESOURCE_DEPS_URL = (
+    'https://chromium.googlesource.com/chromium/src/+/abc123/DEPS?format=text')
 
 # For simplicity, the mocked URLs all end with the revision. They do not match
 # the ones in use in production exactly.
@@ -196,6 +199,30 @@ class RevisionsTestcase(unittest.TestCase):
     mock_fetch_url.side_effect = Exception('Network error')
     result = revisions._get_url_content('https://example.com/api')  # pylint: disable=protected-access
     self.assertIsNone(result)
+
+  @mock.patch('clusterfuzz._internal.base.utils.fetch_url')
+  def test_get_url_content_googlesource_anonymous(self, mock_fetch_url):
+    """Test that googlesource.com URLs are anonymous when the flag is off."""
+    mock_fetch_url.return_value = 'ZGVwcw=='  # base64 for 'deps'.
+    result = revisions._get_url_content(GOOGLESOURCE_DEPS_URL)  # pylint: disable=protected-access
+    self.assertEqual(b'deps', result)
+    mock_fetch_url.assert_called_once_with(GOOGLESOURCE_DEPS_URL)
+
+  @ds_test_utils.with_flags(gob_authenticated_requests=True)
+  @mock.patch(
+      'clusterfuzz._internal.google_cloud_utils.credentials.get_default')
+  @mock.patch('clusterfuzz._internal.base.utils.fetch_url')
+  def test_get_url_content_googlesource_authenticated(self, mock_fetch_url,
+                                                      mock_get_default):
+    """Test that googlesource.com URLs are authenticated when the flag is on."""
+    mock_get_default.return_value = (mock.Mock(valid=True, token='token'), '')
+    mock_fetch_url.return_value = 'ZGVwcw=='  # base64 for 'deps'.
+    result = revisions._get_url_content(GOOGLESOURCE_DEPS_URL)  # pylint: disable=protected-access
+    self.assertEqual(b'deps', result)
+    mock_fetch_url.assert_called_once_with(
+        'https://chromium.googlesource.com/a/chromium/src/+/abc123/DEPS'
+        '?format=text',
+        headers={'Authorization': 'Bearer token'})
 
   @mock.patch('clusterfuzz._internal.config.db_config.get')
   @mock.patch(
@@ -673,3 +700,23 @@ deps_os = {
     }
     actual_revisions_dict = revisions.deps_to_revisions_dict(deps_content)
     self.assertEqual(expected_revisions_dict, actual_revisions_dict)
+
+
+class GooglesourceUrlTest(unittest.TestCase):
+  """Tests for _is_googlesource_url."""
+
+  def test_is_googlesource_url(self):
+    """Test that only https URLs on googlesource.com hosts are accepted."""
+    for url in [
+        GOOGLESOURCE_DEPS_URL,
+        'https://skia.googlesource.com/skia.git/+/abc123?format=JSON',
+    ]:
+      self.assertTrue(revisions._is_googlesource_url(url), url)  # pylint: disable=protected-access
+
+    for url in [
+        'http://chromium.googlesource.com/chromium/src',
+        'https://googlesource.com.evil.com/chromium/src',
+        'https://chromium.googlesource.com@evil.com/chromium/src',
+        'https://cr-rev.appspot.com/_ah/api/crrev/v1/get_numbering',
+    ]:
+      self.assertFalse(revisions._is_googlesource_url(url), url)  # pylint: disable=protected-access
