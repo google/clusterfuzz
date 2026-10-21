@@ -626,15 +626,20 @@ class SplitMetricHelper:
     self.fuzzer_metric = fuzzer_metric
     self.job_metric = job_metric
 
-  def insert(self, value: float, labels=None):
-    labels = dict(labels) if labels else {}
-    assert 'fuzzer' in labels and 'job' in labels
-    job = labels.pop('job')
-    self.fuzzer_metric.insert(value, labels=labels)
+  def insert(self, value: float, labels: dict):
+    """Call insert with appropiate labels in the fuzzer and job metrics."""
+    if 'fuzzer' not in labels or 'job' not in labels:
+      logs.error('Missing "fuzzer" or "job" label in SplitMetricHelper.')
+      return
 
-    del labels['fuzzer']
-    labels['job'] = job
-    self.job_metric.insert(value, labels=labels)
+    labels = dict(labels)
+    fuzzer = labels.pop('fuzzer')
+    job = labels.pop('job')
+
+    fuzzer_labels = {**labels, 'fuzzer': fuzzer}
+    job_labels = {**labels, 'job': job}
+    self.fuzzer_metric.insert(value, labels=fuzzer_labels)
+    self.job_metric.insert(value, labels=job_labels)
 
 
 class TimeMetricTracker:
