@@ -450,28 +450,19 @@ class _TrackFuzzTime:
                      timeout=None,
                      is_preempted=False):
     """Helper to record metrics consistently."""
-    common_labels = {
+    labels = {
+        'fuzzer': fuzzer_name,
+        'job': job_type,
         'platform': environment.platform(),
         'is_batch': environment.is_uworker(),
         'runtime': environment.get_runtime().value,
     }
 
     if is_preempted:
-      fuzzer_metric = monitoring_metrics.FUZZER_PREEMPTED_TOTAL_FUZZ_TIME
-      job_metric = monitoring_metrics.JOB_PREEMPTED_TOTAL_FUZZ_TIME
-      fuzzer_labels = {**common_labels, 'fuzzer': fuzzer_name}
-      job_labels = {**common_labels, 'job': job_type}
+      monitoring_metrics.PREEMPTED_TOTAL_FUZZ_TIME.insert(duration, labels)
     else:
-      fuzzer_metric = monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME
-      job_metric = monitoring_metrics.JOB_TOTAL_FUZZ_TIME
-      fuzzer_labels = {
-          **common_labels, 'fuzzer': fuzzer_name,
-          'timeout': timeout
-      }
-      job_labels = {**common_labels, 'job': job_type, 'timeout': timeout}
-
-    fuzzer_metric.increment_by(int(duration), fuzzer_labels)
-    job_metric.increment_by(int(duration), job_labels)
+      labels['timeout'] = timeout
+      monitoring_metrics.TOTAL_FUZZ_TIME.insert(duration, labels)
 
   @classmethod
   def _preemption_callback(cls):
@@ -598,30 +589,14 @@ def _track_build_run_result(job_type, _, is_bad_build):
 def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
                                known_crash_count):
   """Track testcase run result."""
-  monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.increment_by(
-      known_crash_count, {
-          'fuzzer': fuzzer,
-          'platform': environment.platform(),
-          'runtime': environment.get_runtime().value
-      })
-  monitoring_metrics.FUZZER_NEW_CRASH_COUNT.increment_by(
-      new_crash_count, {
-          'fuzzer': fuzzer,
-          'platform': environment.platform(),
-          'runtime': environment.get_runtime().value
-      })
-  monitoring_metrics.JOB_KNOWN_CRASH_COUNT.increment_by(
-      known_crash_count, {
-          'job': job_type,
-          'platform': environment.platform(),
-          'runtime': environment.get_runtime().value
-      })
-  monitoring_metrics.JOB_NEW_CRASH_COUNT.increment_by(
-      new_crash_count, {
-          'job': job_type,
-          'platform': environment.platform(),
-          'runtime': environment.get_runtime().value
-      })
+  labels = {
+      'fuzzer': fuzzer,
+      'job': job_type,
+      'platform': environment.platform(),
+      'runtime': environment.get_runtime().value
+  }
+  monitoring_metrics.KNOWN_CRASH_COUNT.insert(known_crash_count, labels)
+  monitoring_metrics.NEW_CRASH_COUNT.insert(new_crash_count, labels)
 
 
 class CorpusSyncStage(enum.Enum):
