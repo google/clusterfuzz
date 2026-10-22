@@ -34,6 +34,9 @@ GIT_HASH_ARG=""
 PUSH="true"
 NEEDS_ROOT_PIPFILE=false
 
+INSTALL_BUILD_DEPS_GOB_URL='https://chromium.googlesource.com/a/chromium/src/+/main/build/install-build-deps.py?format=TEXT'
+INSTALL_BUILD_DEPS_GITHUB_URL='https://raw.githubusercontent.com/chromium/chromium/main/build/install-build-deps.py'
+
 # Set up a trap to clean up Pipfiles on exit.
 function cleanup() {
   if [[ "$NEEDS_ROOT_PIPFILE" == "true" ]]; then
@@ -41,6 +44,32 @@ function cleanup() {
   fi
 }
 trap cleanup EXIT
+
+# Prints an access token from the metadata server (available on Cloud Build).
+# The token only goes through pipes, so `bash -x` never prints it.
+function print_metadata_access_token {
+  curl -fsS -H 'Metadata-Flavor: Google' \
+    'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' |
+    sed -nE 's/.*"access_token" *: *"([^"]+)".*/\1/p'
+}
+
+# Fetches install-build-deps.py to $1. This is done here rather than in the
+# Dockerfiles because docker build steps can't reach the metadata server, and
+# requests to googlesource.com should be authenticated: anonymous ones are not
+# covered by its SLO. Falls back to the GitHub mirror (e.g. for local builds).
+function fetch_install_build_deps {
+  local output="$1"
+  if (set -o pipefail
+      print_metadata_access_token | sed 's/^/Authorization: Bearer /' |
+        curl -fsSL -H @- "$INSTALL_BUILD_DEPS_GOB_URL" | base64 -d > "$output") &&
+      [[ -s "$output" ]]; then
+    echo "Fetched install-build-deps.py from googlesource.com with authentication."
+    return
+  fi
+
+  echo "Failed to fetch install-build-deps.py from googlesource.com, using GitHub."
+  curl -fsSL "$INSTALL_BUILD_DEPS_GITHUB_URL" -o "$output"
+}
 
 # Parse command-line arguments
 # The first two arguments are positional for backwards compatibility.
@@ -84,6 +113,12 @@ if [ "$VERSION_TAG" == "latest" ]; then
 else
   stamp="$VERSION_TAG-$GIT_HASH-$DATE_STAMP"
 fi
+
+# Needed by the chromium/base and chromium/builder images. Not deleted on exit
+# (it's gitignored) because cloudbuild.yaml runs this script in parallel from
+# the same directory.
+fetch_install_build_deps chromium/base/install-build-deps.py
+cp chromium/base/install-build-deps.py chromium/builder/
 
 for image_name in "${IMAGES[@]}"; do
   image_dir=${image_name#gcr.io/clusterfuzz-images/}
