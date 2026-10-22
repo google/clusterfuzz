@@ -14,6 +14,7 @@
 """Tests for the revisions module."""
 
 import ast
+import base64
 import hashlib
 import os
 import unittest
@@ -203,26 +204,35 @@ class RevisionsTestcase(unittest.TestCase):
   @mock.patch('clusterfuzz._internal.base.utils.fetch_url')
   def test_get_url_content_googlesource_anonymous(self, mock_fetch_url):
     """Test that googlesource.com URLs are anonymous when the flag is off."""
-    mock_fetch_url.return_value = 'ZGVwcw=='  # base64 for 'deps'.
+    mock_fetch_url.return_value = base64.b64encode(b'deps').decode('utf-8')
     result = revisions._get_url_content(GOOGLESOURCE_DEPS_URL)  # pylint: disable=protected-access
     self.assertEqual(b'deps', result)
     mock_fetch_url.assert_called_once_with(GOOGLESOURCE_DEPS_URL)
 
   @ds_test_utils.with_flags(gob_authenticated_requests=True)
-  @mock.patch(
-      'clusterfuzz._internal.google_cloud_utils.credentials.get_default')
+  @mock.patch('clusterfuzz._internal.build_management.revisions.'
+              '_get_gob_credentials')
   @mock.patch('clusterfuzz._internal.base.utils.fetch_url')
   def test_get_url_content_googlesource_authenticated(self, mock_fetch_url,
-                                                      mock_get_default):
+                                                      mock_get_gob_credentials):
     """Test that googlesource.com URLs are authenticated when the flag is on."""
-    mock_get_default.return_value = (mock.Mock(valid=True, token='token'), '')
-    mock_fetch_url.return_value = 'ZGVwcw=='  # base64 for 'deps'.
+    mock_get_gob_credentials.return_value = mock.Mock(valid=True, token='token')
+    mock_fetch_url.return_value = base64.b64encode(b'deps').decode('utf-8')
     result = revisions._get_url_content(GOOGLESOURCE_DEPS_URL)  # pylint: disable=protected-access
     self.assertEqual(b'deps', result)
     mock_fetch_url.assert_called_once_with(
         'https://chromium.googlesource.com/a/chromium/src/+/abc123/DEPS'
         '?format=text',
         headers={'Authorization': 'Bearer token'})
+
+  @mock.patch(
+      'clusterfuzz._internal.google_cloud_utils.credentials.get_default')
+  def test_gob_credentials_cached(self, mock_get_default):
+    """Test that the googlesource.com credentials are reused between calls."""
+    mock_get_default.return_value = (mock.Mock(), '')
+    creds = revisions._get_gob_credentials(__memoize_force__=True)  # pylint: disable=protected-access
+    self.assertIs(creds, revisions._get_gob_credentials())  # pylint: disable=protected-access
+    mock_get_default.assert_called_once()
 
   @mock.patch('clusterfuzz._internal.config.db_config.get')
   @mock.patch(

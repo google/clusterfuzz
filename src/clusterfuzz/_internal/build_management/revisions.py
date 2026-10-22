@@ -194,6 +194,16 @@ def _is_googlesource_url(url):
           (parts.hostname or '').endswith('.googlesource.com'))
 
 
+@memoize.wrap(memoize.FifoInMemory(1))
+def _get_gob_credentials():
+  """Returns the default credentials with the scopes googlesource.com needs.
+
+  Cached so all requests in the process share the credentials and their token,
+  which is only refreshed when it expires."""
+  creds, _ = credentials.get_default()
+  return google_auth_credentials.with_scopes_if_required(creds, _GOB_SCOPES)
+
+
 def _fetch_googlesource_url(url):
   """Fetches a googlesource.com URL, with authentication when enabled.
 
@@ -202,8 +212,7 @@ def _fetch_googlesource_url(url):
   if not feature_flags.FeatureFlags.GOB_AUTHENTICATED_REQUESTS.enabled:
     return utils.fetch_url(url)
 
-  creds, _ = credentials.get_default()
-  creds = google_auth_credentials.with_scopes_if_required(creds, _GOB_SCOPES)
+  creds = _get_gob_credentials()
   if not creds.valid:
     creds.refresh(google_auth_requests.Request())
 
@@ -215,7 +224,7 @@ def _fetch_googlesource_url(url):
       parts._replace(path='/a' + parts.path))
   logs.info(
       f'Authenticated googlesource.com request for {authenticated_url}',
-      service_account=getattr(creds, 'service_account_email', None))
+      service_account=creds.service_account_email)
   return utils.fetch_url(
       authenticated_url, headers={'Authorization': f'Bearer {creds.token}'})
 
