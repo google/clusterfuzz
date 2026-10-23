@@ -13,9 +13,11 @@
 # limitations under the License.
 """archive tests."""
 import io
+import ntpath
 import os
 import tarfile
 import tempfile
+import types
 import unittest
 from unittest import mock
 import zipfile
@@ -230,3 +232,25 @@ class ArchiveReaderTest(unittest.TestCase):
             with reader.open(member.name) as f:
               actual_results[member.name] = f.read()
         self.assertEqual(actual_results, expected_results)
+
+  def test_root_dir_uses_forward_slashes(self):
+    """Tests that root_dir() joins path components with '/' whatever the host
+    OS, since archive member names always use '/'."""
+    with tempfile.NamedTemporaryFile(suffix='.zip') as tmp_zip_file:
+      zip_path = tmp_zip_file.name
+      _create_test_zip(zip_path, [
+          ('top/sub/a.txt', b'a', 0o100644 << 16),
+          ('top/sub/b/c.txt', b'c', 0o100644 << 16),
+      ])
+
+      # Stand-in for the `os` module on a Windows bot, where os.path is ntpath.
+      windows_os = types.ModuleType('windows_os')
+      windows_os.__dict__.update(os.__dict__)
+      windows_os.path = ntpath
+      windows_os.sep = ntpath.sep
+      windows_os.altsep = ntpath.altsep
+
+      with archive.open(zip_path) as reader:
+        self.assertEqual(reader.root_dir(), 'top/sub')
+        with mock.patch.object(archive, 'os', windows_os):
+          self.assertEqual(reader.root_dir(), 'top/sub')

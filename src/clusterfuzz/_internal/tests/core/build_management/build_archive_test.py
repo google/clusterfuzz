@@ -12,20 +12,46 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Build archive tests."""
+import contextlib
 import io
 import json
+import ntpath
 import os
+import posixpath
 import tempfile
+import types
 import unittest
+from unittest import mock
+import zipfile
 
 import parameterized
 
+from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.build_management import build_archive
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import shell
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 
 TESTDATA_PATH = os.path.join(os.path.dirname(__file__), 'build_archive_data')
+
+
+@contextlib.contextmanager
+def _emulate_host_os(path_module):
+  """Makes archive code use `path_module` (posixpath or ntpath) as os.path.
+
+  On Linux, os.path is posixpath, which hides bugs that only appear on Windows
+  bots, where os.path is ntpath. Only the `os` name inside the modules under
+  test is replaced; the global `os` module is left untouched.
+  """
+  host_os = types.ModuleType('host_os')
+  host_os.__dict__.update(os.__dict__)
+  host_os.path = path_module
+  host_os.sep = path_module.sep
+  host_os.altsep = path_module.altsep
+  with contextlib.ExitStack() as stack:
+    for module in (archive, build_archive, fuzzer_utils):
+      stack.enter_context(mock.patch.object(module, 'os', host_os))
+    yield
 
 
 class BuildArchiveTest(unittest.TestCase):
@@ -125,6 +151,28 @@ class DefaultBuildArchiveSelectiveUnpack(unittest.TestCase):
     to_extract = [f.name for f in to_extract]
     self.assertCountEqual(to_extract,
                           list(set(needed_files + other_fuzzer_match)))
+
+  @parameterized.parameterized.expand([('linux', posixpath), ('windows',
+                                                              ntpath)])
+  def test_dependencies_with_backslash_member_names(self, _, path_module):
+    """Tests that the default build handler extracts allowlisted binaries and
+    dependencies when archive member names use backslash separators, whatever
+    the host OS."""
+    needed_files = [
+        r'out\build\my_fuzzer.exe',
+        r'out\build\my_fuzzer.exe.pdb',
+        r'out\build\shared.dll',
+        r'out\build\llvm-symbolizer.exe',
+    ]
+    self._add_files_to_archive(needed_files + [
+        r'out\build\other_fuzzer.exe',
+        r'out\build\other_fuzzer.exe.pdb',
+    ])
+    with _emulate_host_os(path_module):
+      to_extract = [
+          f.name for f in self.build.get_target_dependencies('my_fuzzer')
+      ]
+    self.assertCountEqual(to_extract, needed_files)
 
 
 class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
@@ -230,6 +278,14 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
         buffer.write(dep.encode() + b'\n')
       buffer.seek(0)
       return buffer
+
+    self.mock_archive_reader.open.side_effect = _mock_open
+
+  def _set_archive_contents(self, contents):
+    """Makes the archive reader return `contents[name]` when opening `name`."""
+
+    def _mock_open(name):
+      return io.BytesIO(contents[name])
 
     self.mock_archive_reader.open.side_effect = _mock_open
 
@@ -429,6 +485,108 @@ class ChromeBuildArchiveSelectiveUnpack(unittest.TestCase):
     to_extract = [f.name for f in to_extract]
     self.assertIn(r'out\build\llvm-symbolizer.exe', to_extract)
 
+  def test_dependencies_with_backslash_member_names(self):
+    """Tests that runtime_deps entries match archive members stored with
+    backslash path separators (e.g. zips written by some Windows tools)."""
+    self._set_archive_schema_version(1)
+    deps_entries = ['./my_fuzzer.exe', './shared.dll', 'locales/en-US.pak']
+    self._add_files_to_archive([
+        'out/build/my_fuzzer.exe',
+        'out/build/my_fuzzer.runtime_deps',
+        r'out\build\shared.dll',
+        r'out\build\locales\en-US.pak',
+        r'out\build\locales\fr.pak',
+    ])
+    self._generate_runtime_deps(deps_entries)
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    to_extract = self.build.get_target_dependencies('my_fuzzer')
+    to_extract = [f.name for f in to_extract]
+    self.assertCountEqual(to_extract, [
+        'out/build/my_fuzzer.exe',
+        r'out\build\shared.dll',
+        r'out\build\locales\en-US.pak',
+    ])
+
+  @parameterized.parameterized.expand([('linux', posixpath), ('windows',
+                                                              ntpath)])
+  def test_fuzztest_wrapper_with_windows_manifest(self, _, path_module):
+    """Tests that a FuzzTest wrapper listed in the manifest with Windows path
+    separators unpacks the binary it launches, whatever the host OS."""
+    needed_files = [
+        'clusterfuzz_manifest.json',
+        'out/build/args.gn',
+        'out/build/my_fuzzer.exe',
+        'out/build/my_fuzzer.exe.pdb',
+        'out/build/inner_tests.exe',
+        'out/build/inner_tests.exe.pdb',
+        'out/build/angledata/icd.json',
+        'testing/test_env.py',
+    ]
+    self._add_files_to_archive(needed_files + [
+        'out/build/my_fuzzer.runtime_deps',
+        # Not listed in my_fuzzer.runtime_deps. Falling back to the default
+        # unpacker would unpack the DLL and skip inner_tests.exe.
+        'out/build/other_fuzzer.exe',
+        'out/build/unrelated.dll',
+    ])
+    self._set_archive_contents({
+        'clusterfuzz_manifest.json':
+            json.dumps({
+                'archive_schema_version': 1,
+                'fuzz_targets': ['out\\build\\my_fuzzer.exe'],
+            }).encode(),
+        'out/build/my_fuzzer.runtime_deps':
+            '\n'.join([
+                './my_fuzzer.exe',
+                './my_fuzzer.exe.pdb',
+                './inner_tests.exe',
+                './inner_tests.exe.pdb',
+                'angledata/icd.json',
+                '../../testing/test_env.py',
+            ]).encode(),
+    })
+    self.mock_archive_reader.root_dir.return_value = ''
+
+    with _emulate_host_os(path_module):
+      build = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+      to_extract = [f.name for f in build.get_target_dependencies('my_fuzzer')]
+
+    self.assertCountEqual(to_extract, needed_files)
+
+  @parameterized.parameterized.expand([('linux', posixpath), ('windows',
+                                                              ntpath)])
+  def test_legacy_subdirectory_dependencies(self, _, path_module):
+    """Tests that, under the legacy schema, runtime_deps entries located in
+    subdirectories or under `../../` are unpacked whatever the host OS."""
+    needed_files = [
+        'args.gn',
+        'my_fuzzer.exe',
+        'inner_tests.exe',
+        'angledata/icd.json',
+        'src_root/testing/test_env.py',
+    ]
+    self._add_files_to_archive(needed_files + [
+        'my_fuzzer.runtime_deps',
+        'unrelated.dll',
+    ])
+    self._set_archive_contents({
+        'my_fuzzer.runtime_deps':
+            '\n'.join([
+                './my_fuzzer.exe',
+                './inner_tests.exe',
+                'angledata/icd.json',
+                '../../testing/test_env.py',
+            ]).encode(),
+    })
+    self._declare_fuzzers(['my_fuzzer.exe'])
+    self.mock_archive_reader.root_dir.return_value = ''
+
+    with _emulate_host_os(path_module):
+      build = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+      to_extract = [f.name for f in build.get_target_dependencies('my_fuzzer')]
+
+    self.assertCountEqual(to_extract, needed_files)
+
 
 class ChromeBuildArchiveManifestTest(unittest.TestCase):
   """Test for reading clusterfuzz_manifest.json for Chrome archives."""
@@ -591,6 +749,26 @@ class ChromeBuildArchiveManifestTest(unittest.TestCase):
     # Ensure list_members was never called for fuzz target discovery.
     self.mock_archive_reader.list_members.assert_not_called()
 
+  def test_manifest_fuzz_targets_windows_separators(self):
+    """Tests that fuzz_targets written with Windows path separators are
+    converted to archive member paths, which always use '/'."""
+    self.mock.file_exists.return_value = True
+    self._generate_manifest({
+        'archive_schema_version':
+            1,
+        'fuzz_targets': [
+            'out\\build\\my_fuzzer.exe', 'out\\build\\other_fuzzer.exe'
+        ]
+    })
+
+    test_archive = build_archive.ChromeBuildArchive(self.mock_archive_reader)
+
+    self.assertCountEqual(test_archive.list_fuzz_targets(),
+                          ['my_fuzzer', 'other_fuzzer'])
+    self.assertEqual(
+        test_archive.get_path_for_target('my_fuzzer'),
+        'out/build/my_fuzzer.exe')
+
 
 class OpenWithReaderTest(unittest.TestCase):
   """Tests for open_with_reader."""
@@ -630,3 +808,19 @@ class OpenWithReaderTest(unittest.TestCase):
     self.mock_archive_reader.file_exists.return_value = False
     build = build_archive.open_with_reader(self.mock_archive_reader)
     self.assertIsInstance(build, build_archive.DefaultBuildArchive)
+
+  @parameterized.parameterized.expand([('linux', posixpath), ('windows',
+                                                              ntpath)])
+  def test_chrome_archive_with_root_dir(self, _, path_module):
+    """Tests that a Chrome archive whose members share a root directory is
+    detected whatever the host OS."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+      zip_path = os.path.join(temp_dir, 'build.zip')
+      with zipfile.ZipFile(zip_path, 'w') as zip_file:
+        zip_file.writestr('build/args.gn', '')
+        zip_file.writestr('build/my_fuzzer', '')
+
+      with archive.ZipArchiveReader(zip_path) as reader:
+        with _emulate_host_os(path_module):
+          build = build_archive.open_with_reader(reader)
+        self.assertIsInstance(build, build_archive.ChromeBuildArchive)
