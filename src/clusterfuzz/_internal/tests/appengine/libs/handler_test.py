@@ -221,6 +221,24 @@ class PostTest(unittest.TestCase):
     self.assertEqual(_JSON_CONTENT_TYPE, resp.headers['Content-Type'])
     self.assertEqual(400, resp.status_int)
 
+  def test_post_json_json_text_plain_rejected(self):
+    """A text/plain body is not accepted as a JSON request.
+
+    text/plain is the only CORS-safelisted media type whose raw body an HTML
+    form leaves untouched, so it is the one that lets a cross-origin form
+    deliver a JSON document without a preflight.
+    """
+    flaskapp = flask.Flask('testflask')
+    flaskapp.add_url_rule('/', view_func=JsonJsonPostHandler.as_view('/'))
+    self.app = webtest.TestApp(flaskapp)
+
+    resp = self.app.post(
+        '/',
+        json.dumps({'test': 123}),
+        content_type='text/plain',
+        expect_errors=True)
+    self.assertEqual(400, resp.status_int)
+
   def test_post_form_html(self):
     """Post Form-data and receive Html."""
     flaskapp = flask.Flask('testflask')
