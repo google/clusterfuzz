@@ -95,3 +95,7 @@ class MockTime:
   def time(self):
     """Get the current time."""
     return self.current_time
+
+  def time_ns(self):
+    """Get the current time in nanoseconds."""
+    return int(self.current_time * 10**9)
