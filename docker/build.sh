@@ -116,9 +116,10 @@ fi
 
 # Needed by the chromium/base and chromium/builder images. Not deleted on exit
 # (it's gitignored) because cloudbuild.yaml runs this script in parallel from
-# the same directory.
+# the same directory. For the same reason it's copied with cat: cp fails with
+# "File exists" when the parallel runs create the file at the same time.
 fetch_install_build_deps chromium/base/install-build-deps.py
-cp chromium/base/install-build-deps.py chromium/builder/
+cat chromium/base/install-build-deps.py > chromium/builder/install-build-deps.py
 
 for image_name in "${IMAGES[@]}"; do
   image_dir=${image_name#gcr.io/clusterfuzz-images/}
