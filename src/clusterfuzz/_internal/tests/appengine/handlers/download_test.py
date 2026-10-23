@@ -23,6 +23,9 @@ import webtest
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.issue_management import issue_tracker
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail import \
+    issue as monorail_issue_lib
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers import download
@@ -261,10 +264,48 @@ class DownloadTest(unittest.TestCase):
         expect_status=302,
         expect_blob=False)
 
+  def test_public_download_derestricted_chromium_no_reproducer_delay(self):
+    """Test that the OSS-Fuzz reproducer delay does not apply to Chromium."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_chromium.return_value = True
+    self.mock.is_oss_fuzz.return_value = False
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = True
+    mock_issue.closed_time = (
+        datetime.datetime.utcnow() - datetime.timedelta(days=1))
+
+    self._test_download(
+        self.minimized_key,
+        testcase_id=self.testcase.key.id(),
+        expect_filename='clusterfuzz-testcase-minimized-1.ext')
+
+  def test_public_download_chromium_monorail_issue_fails(self):
+    """Test that Monorail issues never allow public download.
+
+    is_chromium() also covers clusterfuzz-staging and clusterfuzz-development,
+    which use the (deprecated) Monorail tracker. Monorail issues must fall back
+    to the fail-closed base Issue.is_unrestricted, even without any
+    restrict-view labels.
+    """
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_chromium.return_value = True
+    self.mock.is_oss_fuzz.return_value = False
+    monorail_issue = monorail.Issue(monorail_issue_lib.Issue())
+    self.mock.get_issue_tracker_for_testcase(
+        None).get_issue.return_value = monorail_issue
+
+    self._test_download(
+        self.minimized_key,
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
   def test_public_download_non_chromium_unrestricted_bug(self):
-    """Test that unrestricted bugs on non-Chromium deployments don't expose
-    testcases. This guards against internal deployments where LIMIT_NONE means
-    'accessible to Googlers' rather than 'truly public'."""
+    """Test that unrestricted bugs on deployments other than Chromium and
+    OSS-Fuzz don't expose testcases. This guards against internal deployments
+    where LIMIT_NONE means 'accessible to Googlers' rather than 'truly public'.
+    """
     self.mock.get_user_email.return_value = ''
     self.mock.is_chromium.return_value = False
     self.mock.is_oss_fuzz.return_value = False
@@ -272,8 +313,8 @@ class DownloadTest(unittest.TestCase):
     mock_issue.labels = issue_tracker.LabelStore([])
     mock_issue.is_unrestricted = True
 
-    # Even though the bug is unrestricted, non-Chromium deployments should
-    # not serve the testcase publicly.
+    # Even though the bug is unrestricted, other deployments should not serve
+    # the testcase publicly.
     self._test_download(
         self.minimized_key,
         testcase_id=self.testcase.key.id(),
@@ -287,6 +328,7 @@ class DownloadTest(unittest.TestCase):
     self.mock.is_oss_fuzz.return_value = True
     mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
     mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = True
     mock_issue.closed_time = (
         datetime.datetime.utcnow() - datetime.timedelta(days=30))
 
@@ -346,6 +388,7 @@ class DownloadTest(unittest.TestCase):
     self.mock.is_oss_fuzz.return_value = True
     mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
     mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = True
     mock_issue.closed_time = (
         datetime.datetime.utcnow() - datetime.timedelta(days=29))
 
@@ -371,6 +414,182 @@ class DownloadTest(unittest.TestCase):
         self.minimized_key,
         testcase_id=self.testcase.key.id(),
         expect_filename='clusterfuzz-testcase-minimized-1.ext')
+
+  def test_public_download_oss_fuzz_open_restricted_bug_fails(self):
+    """Test that open view-restricted OSS-Fuzz bugs reject public downloads."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_oss_fuzz.return_value = True
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    # Emulates Google Issue Tracker where restrict-view-commit string label is
+    # stripped and view restriction is represented by is_unrestricted = False.
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = False
+    mock_issue.closed_time = None
+
+    self._test_download(
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+    self._test_download(
+        self.minimized_key,
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_oss_fuzz_open_unrestricted_bug_succeeds(self):
+    """Test that open unrestricted OSS-Fuzz bugs allow public download."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_oss_fuzz.return_value = True
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = True
+    mock_issue.closed_time = None
+
+    self._test_download(
+        testcase_id=self.testcase.key.id(),
+        expect_filename='clusterfuzz-testcase-minimized-1.ext')
+    self._test_download(
+        self.minimized_key,
+        testcase_id=self.testcase.key.id(),
+        expect_filename='clusterfuzz-testcase-minimized-1.ext')
+
+  def test_public_download_oss_fuzz_closed_restricted_bug_fails(self):
+    """Test that closed view-restricted OSS-Fuzz bugs reject downloads."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_oss_fuzz.return_value = True
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = False
+    mock_issue.closed_time = (
+        datetime.datetime.utcnow() - datetime.timedelta(days=60))
+
+    self._test_download(
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+    self._test_download(
+        self.minimized_key,
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_oss_fuzz_open_unrestricted_bug_raw_fuzzed_fails(
+      self):
+    """Test that requesting raw fuzzed reproducer for open bug fails."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_oss_fuzz.return_value = True
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = True
+    mock_issue.closed_time = None
+
+    # Requesting raw/unminimized fuzzed key must fail with AccessDenied (302).
+    self._test_download(
+        self.fuzzed_key,
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_oss_fuzz_testcase_no_bug_information_fails(self):
+    """Test that testcases without bug information reject public downloads."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_oss_fuzz.return_value = True
+
+    # Testcase with bug_information = None
+    no_bug_testcase = data_types.Testcase(
+        minimized_keys=self.minimized_key,
+        fuzzed_keys=self.fuzzed_key,
+        bug_information=None)
+    no_bug_testcase.put()
+
+    self._test_download(
+        testcase_id=no_bug_testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+    # Testcase with bug_information = ''
+    empty_bug_testcase = data_types.Testcase(
+        minimized_keys=self.minimized_key,
+        fuzzed_keys=self.fuzzed_key,
+        bug_information='')
+    empty_bug_testcase.put()
+
+    self._test_download(
+        testcase_id=empty_bug_testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_oss_fuzz_issue_not_found_fails(self):
+    """Test that public download fails when issue tracker returns None."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_oss_fuzz.return_value = True
+
+    # Issue tracker get_issue returns None (bug deleted or ID invalid)
+    mock_tracker = self.mock.get_issue_tracker_for_testcase(None)
+    mock_tracker.get_issue.return_value = None
+
+    self._test_download(
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+    # get_issue_tracker_for_testcase returns None (unconfigured tracker)
+    self.mock.get_issue_tracker_for_testcase.return_value = None
+    self._test_download(
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_oss_fuzz_deadline_exceeded_restricted_bug_fails(
+      self):
+    """Test that deadline-exceeded does not bypass view restrictions."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_oss_fuzz.return_value = True
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore(['deadline-exceeded'])
+    mock_issue.is_unrestricted = False
+    mock_issue.closed_time = None
+
+    self._test_download(
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_oss_fuzz_unminimized_testcase_fails(self):
+    """Test that unminimized testcases reject public downloads."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_oss_fuzz.return_value = True
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = True
+    mock_issue.closed_time = None
+
+    # Minimized keys set to 'NA'
+    unminimized_testcase = data_types.Testcase(
+        minimized_keys='NA',
+        fuzzed_keys=self.fuzzed_key,
+        bug_information='1337')
+    unminimized_testcase.put()
+
+    self._test_download(
+        testcase_id=unminimized_testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+  def test_public_download_oss_fuzz_future_closed_time_fails(self):
+    """Test that bugs with future closed_time reject public download."""
+    self.mock.get_user_email.return_value = ''
+    self.mock.is_oss_fuzz.return_value = True
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.is_unrestricted = True
+    mock_issue.closed_time = (
+        datetime.datetime.utcnow() + datetime.timedelta(days=5))
+
+    self._test_download(
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
 
   def test_download_invalid_id(self):
     """Test download with an invalid testcase ID."""
