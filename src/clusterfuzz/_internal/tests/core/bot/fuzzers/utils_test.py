@@ -235,6 +235,19 @@ class GetFuzzTargetsLocalTest(unittest.TestCase):
     targets = utils.get_fuzz_targets_local(self.temp_dir)
     self.assertEqual([], targets)
 
+  def test_manifest_windows_backslash_paths(self):
+    """Test that Windows backslash paths in manifest fuzz_targets are resolved."""
+    manifest_target = self._create_file(
+        'out/build/manifest_target.exe', contents=b'LLVMFuzzerTestOneInput')
+    manifest_contents = json.dumps({
+        'archive_schema_version': 1,
+        'fuzz_targets': [r'out\build\manifest_target.exe']
+    }).encode('utf-8')
+    self._create_file('clusterfuzz_manifest.json', contents=manifest_contents)
+
+    targets = utils.get_fuzz_targets_local(self.temp_dir)
+    self.assertEqual([manifest_target], targets)
+
 
 class ExtractFuzzTargetsFromManifestTest(unittest.TestCase):
   """Tests for extract_fuzz_targets_from_manifest."""
