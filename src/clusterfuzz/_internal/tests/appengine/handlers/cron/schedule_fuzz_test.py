@@ -233,3 +233,20 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
     self._setup_chrome_entities()
     task = self._run_and_get_task()
     self.assertIsNone(task.extra_info.get('base_os_version'))
+
+  def test_get_swarming_jobs_includes_mac_arm64(self):
+    """Tests that _get_swarming_jobs includes MAC_ARM64 swarming jobs."""
+    data_types.Job(
+        name='mac_arm64_swarming_job',
+        project='chrome',
+        platform='MAC_ARM64',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+    data_types.Job(
+        name='mac_arm64_non_swarming_job',
+        project='chrome',
+        platform='MAC_ARM64',
+        environment_string='').put()
+
+    swarming_jobs = schedule_fuzz._get_swarming_jobs()
+    self.assertEqual([job.name for job in swarming_jobs],
+                     ['mac_arm64_swarming_job'])
