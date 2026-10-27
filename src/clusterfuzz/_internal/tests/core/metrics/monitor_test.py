@@ -14,6 +14,7 @@
 """Tests for monitor."""
 # pylint: disable=protected-access
 
+import datetime
 import os
 import queue
 import time
@@ -480,3 +481,86 @@ class TimeMetricTrackerTest(unittest.TestCase):
       self.mock_time.advance(3.7)
 
     self.assertEqual(3, metric.get({'tag': 'val'}))
+
+
+class TimeStatTrackerTest(unittest.TestCase):
+  """Tests for TimeStatTracker."""
+
+  def setUp(self):
+    monitor.metrics_store().reset_for_testing()
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.monitor.check_module_loaded',
+        'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.metrics.logs.warning',
+        'time.time',
+    ])
+    self.mock.check_module_loaded.return_value = True
+    self.mock_time = helpers.MockTime(start_time=10.0)
+    self.mock.time.side_effect = self.mock_time.time
+    self.metric = monitor.CumulativeDistributionMetric(
+        'test_steps_duration',
+        description='test',
+        bucketer=monitor.FixedWidthBucketer(width=1.0, num_finite_buckets=10),
+        field_spec=[
+            monitor.StringField('tag'),
+            monitor.StringField('step'),
+            monitor.BooleanField('success'),
+        ])
+
+  def test_track_success(self):
+    """Test tracking step time on success."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('step_1'):
+      self.mock_time.advance(4.5)
+
+    self.assertEqual({'step_1': datetime.timedelta(seconds=4.5)}, tracker.stats)
+    dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': True})
+    self.assertEqual(1, dist.count)
+    self.assertAlmostEqual(4.5, dist.sum)
+
+  def test_track_failure_exception_not_reraised(self):
+    """Test TimeStatTrackerFailureException marks failure without re-raising."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('step_1'):
+      self.mock_time.advance(3.2)
+      raise monitor.TimeStatTrackerFailureException()
+
+    self.assertEqual({'step_1': datetime.timedelta(seconds=3.2)}, tracker.stats)
+    dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': False})
+    self.assertEqual(1, dist.count)
+    self.assertAlmostEqual(3.2, dist.sum)
+
+  def test_track_unhandled_exception_reraised(self):
+    """Test unhandled exception marks failure and is re-raised."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with self.assertRaises(RuntimeError):
+      with tracker.track('step_1'):
+        self.mock_time.advance(6.0)
+        raise RuntimeError('boom')
+
+    self.assertEqual({'step_1': datetime.timedelta(seconds=6.0)}, tracker.stats)
+    dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': False})
+    self.assertEqual(1, dist.count)
+    self.assertAlmostEqual(6.0, dist.sum)
+
+  def test_track_without_metric(self):
+    """Test tracking stats when metric is None."""
+    tracker = monitor.TimeStatTracker()
+    with tracker.track('step_1'):
+      self.mock_time.advance(2.0)
+
+    self.assertEqual({'step_1': datetime.timedelta(seconds=2.0)}, tracker.stats)
+
+  def test_missing_required_fields_in_metric(self):
+    """Test error logged and metric disabled when step/success fields missing."""
+    invalid_metric = monitor.CounterMetric(
+        'invalid_metric',
+        description='test',
+        field_spec=[monitor.StringField('tag')])
+    tracker = monitor.TimeStatTracker(invalid_metric, {'tag': 'val'})
+    self.assertIsNone(tracker.metric)
+    self.assertGreater(self.mock.error.call_count, 0)
+
+    with tracker.track('step_1'):
+      self.mock_time.advance(1.5)
+    self.assertEqual({'step_1': datetime.timedelta(seconds=1.5)}, tracker.stats)
