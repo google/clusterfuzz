@@ -115,6 +115,27 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     self.post_utask_main_failure = None
     # Whether preprocess returned the uworker input.
     self.preprocess_returned: bool | None = None
+    self.utask_main_returned: bool | None = None
+    self.utask_main_failure_reason: str | None = None
+    stage_name = (
+        logs.Stage.MAIN.value
+        if subtask == _Subtask.UWORKER_MAIN else subtask.value)
+    self._stage_tracker = logs.StageSummaryTracker(
+        stage_name, start_time_ns=self.start_time_ns)
+    logs.push_stage_tracker(self._stage_tracker)
+
+  def record_utask_main_output(self, uworker_output) -> None:
+    """Records outcome and failure details from `utask_main` output."""
+    if uworker_output is None:
+      self.utask_main_returned = False
+      return
+    self.utask_main_returned = True
+    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      self.utask_main_failure = uworker_output.error_type
+      error_message = getattr(uworker_output, 'error_message', None)
+      if error_message:
+        self.utask_main_failure_reason = (
+            str(error_message).strip().splitlines()[0][:500])
 
   def set_task_details(
       self,
@@ -222,12 +243,31 @@ class _MetricRecorder(contextlib.AbstractContextManager):
 
   def __exit__(self, _exc_type, _exc_value, _traceback):
     # Ignore exception details, let Python continue unwinding the stack.
+    now = time.time_ns()
+    exc_reason = None
+    if _exc_type is not None:
+      lines = str(_exc_value).strip().splitlines() if _exc_value else []
+      msg = lines[0] if lines else ''
+      exc_reason = f'{_exc_type.__name__}: {msg}' if msg else _exc_type.__name__
+      if (self._stage_tracker.active_step is not None and
+          not self._stage_tracker.active_step.finished):
+        self._stage_tracker.active_step.fail(exc_reason)
 
     if self._labels is None:
       # `set_task_details()` was not called, we are missing information.
+      try:
+        if _exc_type is not None or self._stage_tracker.steps:
+          exc_error_type = (
+              _exc_type.__name__ if _exc_type is not None else None)
+          logs.emit_stage_summary(
+              self._stage_tracker,
+              end_time_ns=now,
+              failed=bool(_exc_type),
+              error_type=exc_error_type,
+              failure_reason=exc_reason)
+      finally:
+        logs.pop_stage_tracker(self._stage_tracker)
       return
-
-    now = time.time_ns()
 
     duration_secs = (now - self.start_time_ns) / 10**9
     monitoring_metrics.UTASK_SUBTASK_DURATION_SECS.add(duration_secs,
@@ -268,6 +308,45 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(
         trimmed_labels)
 
+    # In `stage_summary` telemetry, `terminal=True` marks a legitimate early
+    # completion of the current stage (where remaining steps in the stage are
+    # intentionally skipped and any non-NO_ERROR `ErrorType` returned from
+    # `utask_main` is a benign outcome such as `ANALYZE_NO_CRASH`).
+    preprocess_failed = (
+        self._subtask == _Subtask.PREPROCESS and
+        self.preprocess_returned is False and not self._stage_tracker.terminal)
+    main_failed = (
+        self._subtask == _Subtask.UWORKER_MAIN and
+        not self._stage_tracker.terminal and
+        (self.utask_main_returned is False or
+         self.utask_main_failure is not None))
+    stage_failed = bool(_exc_type) or preprocess_failed or main_failed
+    stage_error_type = None
+    if preprocess_failed:
+      stage_error_type = events.TaskOutcome.PREPROCESS_NO_RETURN
+    elif self.utask_main_failure is not None:
+      stage_error_type = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+          self.utask_main_failure)
+    elif error_condition != 'N/A':
+      stage_error_type = error_condition
+
+    main_error_type = None
+    if (self.post_utask_main_failure is not None and
+        self.post_utask_main_failure != uworker_msg_pb2.ErrorType.NO_ERROR):  # pylint: disable=no-member
+      main_error_type = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+          self.post_utask_main_failure)
+
+    try:
+      logs.emit_stage_summary(
+          self._stage_tracker,
+          end_time_ns=now,
+          failed=stage_failed,
+          error_type=stage_error_type,
+          main_error_type=main_error_type,
+          failure_reason=exc_reason or self.utask_main_failure_reason)
+    finally:
+      logs.pop_stage_tracker(self._stage_tracker)
+
 
 def ensure_uworker_env_type_safety(uworker_env):
   """Converts all values in |uworker_env| to str types.
@@ -302,7 +381,8 @@ def _preprocess(utask_module, task_argument, job_type, uworker_env,
                                                 uworker_env)
   if not uworker_input:
     recorder.preprocess_returned = False
-    logs.error('No uworker_input returned from preprocess')
+    if not recorder._stage_tracker.terminal:  # pylint: disable=protected-access
+      logs.error('No uworker_input returned from preprocess')
     return None
   recorder.preprocess_returned = True
   logs.info('Preprocess finished.')
@@ -361,12 +441,11 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
                               uworker_input.preprocess_start_time)
 
     uworker_output = utask_module.utask_main(uworker_input)
+    recorder.record_utask_main_output(uworker_output)
     if uworker_output is None:
       return None
 
     # NOTE: Keep this in sync with `uworker_main()`.
-    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
-      recorder.utask_main_failure = uworker_output.error_type
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
     uworker_output.platform_id = environment.get_platform_id()
 
@@ -468,9 +547,7 @@ def uworker_main(input_download_url) -> None:
 
     logs.info('Starting utask_main: %s.' % utask_module)
     uworker_output = utask_module.utask_main(uworker_input)
-
-    if uworker_output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
-      recorder.utask_main_failure = uworker_output.error_type
+    recorder.record_utask_main_output(uworker_output)
 
     # NOTE: Keep this in sync with `uworker_main_no_io()`.
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')

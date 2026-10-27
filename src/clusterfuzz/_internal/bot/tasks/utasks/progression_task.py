@@ -258,6 +258,8 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
                                    testcase_file_path: str,
                                    uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-member
   """Simplified fixed check for test cases using custom binaries."""
+  logs.step(2, 'fetch_revisions').skip('Custom binary')
+  logs.step(3, 'setup_trunk_build')
   build_setup_result = build_manager.setup_build()
   # 'APP_REVISION' is set during setup_build().
   revision = environment.get_value('APP_REVISION')
@@ -270,6 +272,7 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
         error_message='Build setup failed for custom binary',
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)  # pylint: disable=no-member
 
+  logs.step(4, 'test_at_trunk')
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
   result = testcase_manager.test_for_crash_with_retries(
@@ -280,6 +283,8 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
       http_flag=testcase.http_flag)
   _log_output(revision, result)
 
+  logs.step(5, 'bisect_fixed_range').skip('Custom binary')
+  logs.step(6, 'package_output')
   # If this still crashes on the most recent build, it's not fixed. The task
   # will be rescheduled by a cron job and re-attempted eventually.
   if result.is_crash():
@@ -325,12 +330,18 @@ def _update_issue_metadata(testcase: data_types.Testcase,
 
 
 def _testcase_reproduces_in_revision(
-    testcase: data_types.Testcase, testcase_file_path: str, job_type: str,
-    revision: int, fuzz_target: data_types.FuzzTarget | None,
-    progression_task_output: uworker_msg_pb2.ProgressionTaskOutput):  # pylint: disable=no-member
+    testcase: data_types.Testcase,
+    testcase_file_path: str,
+    job_type: str,
+    revision: int,
+    fuzz_target: data_types.FuzzTarget | None,
+    progression_task_output: uworker_msg_pb2.ProgressionTaskOutput,  # pylint: disable=no-member
+    record_trunk_steps: bool = False):
   """Tests to see if a test case reproduces in the specified revision.
   Returns a tuple containing the (result, error) depending on whether
   there was an error."""
+  if record_trunk_steps:
+    logs.step(3, 'setup_trunk_build')
   try:
     fuzz_target_binary = fuzz_target.binary if fuzz_target else None
     build_setup_result = build_manager.setup_build(
@@ -361,6 +372,8 @@ def _testcase_reproduces_in_revision(
         error_message=error_message,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)  # pylint: disable=no-member
 
+  if record_trunk_steps:
+    logs.step(4, 'test_at_trunk')
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   result = testcase_manager.test_for_crash_with_retries(
       fuzz_target,
@@ -450,12 +463,16 @@ def _set_regression_testcase_upload_url(
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for progression task."""
+  step = logs.step(1, 'load_testcase')
   testcase = data_handler.get_testcase_by_id(testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     if not testcase:
+      step.fail('Testcase not found')
       return None
     if testcase.fixed:
       logs.error(f'Fixed range is already set as {testcase.fixed}, skip.')
+      step.complete_stage(
+          f'Fixed range is already set as {testcase.fixed}', skip=True)
       return None
 
     # Set a flag to indicate we are running progression task. This shows pending
@@ -463,6 +480,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     # triage cron.
     testcase.set_metadata('progression_pending', True)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+    logs.step(2, 'prepare_env')
     blob_name, blob_upload_url = blobs.get_blob_signed_upload_url()
     progression_input = uworker_msg_pb2.ProgressionTaskInput(  # pylint: disable=no-member
         custom_binary=build_manager.is_custom_binary(),
@@ -495,6 +513,7 @@ def find_fixed_range(uworker_input):
   setup_input = uworker_input.setup_input
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
 
+  logs.step(1, 'setup_testcase')
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       setup_input)
   if error:
@@ -505,6 +524,7 @@ def find_fixed_range(uworker_input):
     return _check_fixed_for_custom_binary(testcase, testcase_file_path,
                                           uworker_input)
 
+  logs.step(2, 'fetch_revisions')
   build_bucket_path = build_manager.get_primary_bucket_path()
   bad_revisions = uworker_input.progression_task_input.bad_revisions
 
@@ -566,8 +586,13 @@ def find_fixed_range(uworker_input):
   # Check to see if this testcase is still crashing now. If it is, then just
   # bail out.
   result, error = _testcase_reproduces_in_revision(
-      testcase, testcase_file_path, job_type, max_revision, fuzz_target,
-      progression_task_output)
+      testcase,
+      testcase_file_path,
+      job_type,
+      max_revision,
+      fuzz_target,
+      progression_task_output,
+      record_trunk_steps=True)
 
   issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
   issue_metadata = issue_metadata or {}
@@ -576,6 +601,8 @@ def find_fixed_range(uworker_input):
     return error
 
   if result.is_crash():
+    logs.step(5, 'bisect_fixed_range').skip('Still crashes at trunk')
+    logs.step(6, 'package_output')
     logs.info(f'Found crash with same signature on latest'
               f' revision r{max_revision}.')
     app_path = environment.get_value('APP_PATH')
@@ -603,6 +630,7 @@ def find_fixed_range(uworker_input):
 
   # Verify that we do crash in the min revision. This is assumed to be true
   # while we are doing the bisect.
+  logs.step(5, 'bisect_fixed_range')
   result, error = _testcase_reproduces_in_revision(
       testcase, testcase_file_path, job_type, min_revision, fuzz_target,
       progression_task_output)
@@ -629,6 +657,7 @@ def find_fixed_range(uworker_input):
     # If the min and max revisions are one apart this is as much as we can
     # narrow the range.
     if max_index - min_index == 1:
+      logs.step(6, 'package_output')
       testcase.open = False
       _store_testcase_for_regression_testing(
           testcase, testcase_file_path, uworker_input.progression_task_input)
@@ -730,6 +759,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
+  step = logs.step(1, 'update_metadata')
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     _maybe_clear_progression_last_min_max_metadata(testcase, output)
@@ -745,6 +775,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-mem
                              task_output.build_data_list)
 
     if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      step.complete_stage(output, skip=True)
       _ERROR_HANDLER.handle(output)
       return
 
@@ -752,6 +783,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-mem
     # Both regression and fixed ranges are requested once. Regression is also
     # requested here as the bisection service may require details that
     # are not yet available (e.g. issue ID) at the time regress_task completes.
+    logs.step(2, 'save_fixed_or_open')
     bisection.request_bisection(testcase)
 
     if task_output and task_output.crash_on_latest:

@@ -51,16 +51,19 @@ def handle_build_setup_error(output):
 
 def _utask_preprocess(testcase_id, job_type, uworker_env):
   """Run preprocessing for symbolize task."""
+  step = logs.step(1, 'load_testcase')
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   # We should atleast have a symbolized debug or release build.
   if not build_manager.has_symbolized_builds():
+    step.complete_stage('Job has no symbolized builds', skip=True)
     return None
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
+  logs.step(2, 'prepare_env')
   setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
   old_crash_stacktrace = data_handler.get_stacktrace(testcase)
@@ -91,6 +94,7 @@ def _utask_main(uworker_input):
   job_type = uworker_input.job_type
   setup_input = uworker_input.setup_input
 
+  logs.step(1, 'setup_release_build')
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       setup_input)
   if error:
@@ -129,6 +133,7 @@ def _utask_main(uworker_input):
   # ASAN tool settings (if the tool is used).
   # See if we can get better stacks with higher redzone sizes.
   # A UAF might actually turn out to be OOB read/write with a bigger redzone.
+  step = logs.step(2, 'search_asan_redzone')
   if environment.tool_matches('ASAN', job_type) and testcase.security_flag:
     redzone = MAX_REDZONE
     while redzone >= MIN_REDZONE:
@@ -180,9 +185,12 @@ def _utask_main(uworker_input):
           break
 
       redzone /= 2
+  else:
+    step.skip('Not ASAN security testcase')
 
   # We no longer need this build, delete it to save some disk space. We will
   # download a symbolized release build to perform the symbolization.
+  logs.step(3, 'setup_symbolized_build')
   build.delete()
 
   # We should have atleast a symbolized debug or a release build.
@@ -195,6 +203,7 @@ def _utask_main(uworker_input):
         error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)  # pylint: disable=no-member
 
   # Increase malloc_context_size to get all stack frames. Default is 30.
+  step = logs.step(4, 'reproduce_symbolized')
   environment.reset_current_memory_tool_options(
       redzone_size=sym_redzone,
       malloc_context_size=STACK_FRAME_COUNT,
@@ -209,7 +218,10 @@ def _utask_main(uworker_input):
   result, sym_crash_stacktrace = (
       get_symbolized_stacktraces(testcase_file_path, testcase,
                                  old_crash_stacktrace, sym_crash_state))
+  if not result:
+    step.skip('Unable to reproduce crash on symbolized build')
 
+  logs.step(5, 'package_output')
   symbolize_task_output = uworker_msg_pb2.SymbolizeTaskOutput(  # pylint: disable=no-member
       crash_type=testcase.crash_type,
       crash_address=sym_crash_address,
@@ -338,7 +350,9 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 
 def _utask_postprocess(output):
   """Handle the output from utask_main."""
+  step = logs.step(1, 'save_symbolized_stack')
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+    step.complete_stage(output, skip=True)
     _ERROR_HANDLER.handle(output)
     return
 

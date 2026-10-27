@@ -372,10 +372,12 @@ def _get_minimize_task_input(testcase):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Preprocess in a trusted bot."""
   # Locate the testcase associated with the id.
+  step = logs.step(1, 'load_testcase')
   try:
     testcase = data_handler.get_testcase_by_id(testcase_id)
-  except errors.InvalidTestcaseError:
+  except errors.InvalidTestcaseError as e:
     logs.warning(f'Testcase {testcase_id} no longer exists.')
+    step.fail(e)
     return None
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     # Allow setting up a different fuzzer.
@@ -387,9 +389,11 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     if not environment.is_minimization_supported():
       # TODO(ochang): More robust check for engine minimization support.
       _skip_minimization(testcase, 'Engine does not support minimization.')
+      step.complete_stage('Engine does not support minimization.', skip=True)
       return None
 
     # Update comments to reflect bot information.
+    logs.step(2, 'prepare_env')
     data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
     uworker_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
@@ -409,6 +413,10 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
                                              data_types.Testcase)
   with logs.testcase_log_context(
       testcase, testcase_manager.get_fuzz_target_from_input(uworker_input)):
+    job_name = uworker_input.job_type or environment.get_value('JOB_NAME')
+    logs.set_stage_variant(
+        'lf' if job_name and environment.is_libfuzzer_job(job_name) else 'bb')
+    logs.step(1, 'setup_build')
     uworker_io.check_handling_testcase_safe(testcase)
     minimize_task_input = uworker_input.minimize_task_input
     # Setup testcase and its dependencies.
@@ -448,6 +456,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
           ' should have been detected in preprocess.')
       return None
 
+    logs.step(2, 'warmup_and_verify')
     # TODO(alhijazi): re-install multithreaded runs
     # max_threads = utils.maximum_parallel_processes_allowed()
     # Temporarily run minimization single threaded.
@@ -536,6 +545,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
 
     logs.info(f'Starting minimization with overall {deadline}s timeout.')
 
+    step = logs.step(3, 'minimize_gestures')
     if should_attempt_phase(testcase, MinimizationPhase.GESTURES):
       logs.info('Starting gesture minimization phase.')
       gestures = minimize_gestures(test_runner, testcase)
@@ -568,8 +578,11 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
             error_message='Timed out during gesture minimization.')
 
       logs.info('Minimized gestures.')
+    else:
+      step.skip('Phase skipped')
 
     # Minimize the main file.
+    step = logs.step(4, 'minimize_main_file')
     data = utils.get_file_contents_with_fatal_error_on_failure(
         testcase_file_path)
     if should_attempt_phase(testcase, MinimizationPhase.MAIN_FILE):
@@ -589,10 +602,15 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
       testcase.set_metadata('minimization_phase', MinimizationPhase.FILE_LIST,
                             False)
       minimize_task_output.minimization_phase = MinimizationPhase.FILE_LIST
+    else:
+      step.skip('Phase skipped')
 
     # Minimize the file list.
+    step = logs.step(5, 'minimize_resources')
+    attempted_resources = False
     if should_attempt_phase(testcase, MinimizationPhase.FILE_LIST):
       if environment.get_value('MINIMIZE_FILE_LIST', True):
+        attempted_resources = True
         logs.info('Starting file list minimization phase.')
         file_list = minimize_file_list(test_runner, file_list, input_directory,
                                        testcase_file_path)
@@ -616,6 +634,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
     # Minimize any files remaining in the file list.
     if should_attempt_phase(testcase, MinimizationPhase.RESOURCES):
       if environment.get_value('MINIMIZE_RESOURCES', True):
+        attempted_resources = True
         logs.info('Starting resources minimization phase.')
         for dependency in file_list:
           minimize_resource(test_runner, dependency, input_directory,
@@ -637,7 +656,10 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
       testcase.set_metadata('minimization_phase', MinimizationPhase.ARGUMENTS,
                             False)
       minimize_task_output.minimization_phase = MinimizationPhase.ARGUMENTS
+    if not attempted_resources:
+      step.skip('Phase skipped')
 
+    step = logs.step(6, 'minimize_arguments')
     if should_attempt_phase(testcase, MinimizationPhase.ARGUMENTS):
       logs.info('Starting arguments minimization phase.')
       app_arguments = minimize_arguments(test_runner, app_arguments)
@@ -656,7 +678,10 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-memb
             minimize_task_output=minimize_task_output)
 
       logs.info('Minimized arguments.')
+    else:
+      step.skip('Phase skipped')
 
+    logs.step(7, 'store_minimized')
     logs.info('Finished minization.')
 
     command = testcase_manager.get_command_line_for_application(
@@ -883,11 +908,13 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
   # Retrive the testcase early for logs context.
+  step = logs.step(1, 'update_testcase')
   try:
     testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   except errors.InvalidTestcaseError:
     logs.warning(
         f'Testcase {output.uworker_input.testcase_id} no longer exists.')
+    step.skip('Testcase no longer exists')
     return
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     testcase_utils.emit_testcase_triage_duration_metric(
@@ -896,9 +923,11 @@ def utask_postprocess(output):
     update_testcase(output)
     _cleanup_unused_blobs_from_storage(output)
     if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      step.complete_stage(output, skip=True)
       _ERROR_HANDLER.handle(output)
       return
 
+    logs.step(2, 'finalize_and_fan_out')
     finalize_testcase(
         output.uworker_input.testcase_id,
         output.minimize_task_output.last_crash_result_dict,
@@ -1600,10 +1629,12 @@ def do_libfuzzer_minimization(
     testcase: data_types.Testcase,
     testcase_file_path: str) -> uworker_msg_pb2.Output:  # pylint: disable=no-member
   """Use libFuzzer's built-in minimizer where appropriate."""
+  logs.set_stage_variant('lf')
   timeout = environment.get_value('LIBFUZZER_MINIMIZATION_TIMEOUT', 600)
   rounds = environment.get_value('LIBFUZZER_MINIMIZATION_ROUNDS', 5)
 
   # Get initial crash state.
+  logs.step(2, 'verify_initial_crash')
   initial_crash_result = _run_libfuzzer_testcase(
       fuzz_target, testcase, testcase_file_path,
       crash_retries=None)  # Use default retries.
@@ -1622,6 +1653,7 @@ def do_libfuzzer_minimization(
   logs.info(f'Initial crash state: {expected_state.crash_state}\n')
 
   # Minimize *_OPTIONS env variable first.
+  logs.step(3, 'minimize_sanitizer_options')
   env = {}
   # A Dict[str, str] potentially containing options_env_var strings and the
   #  corresponding minimized_options_string to be parsed and set in testcase
@@ -1672,6 +1704,7 @@ def do_libfuzzer_minimization(
   if env:
     testcase.set_metadata('env', env, False)
 
+  logs.step(4, 'minimize_rounds')
   current_testcase_path = testcase_file_path
   last_crash_result = None
   last_minimized_keys = None
@@ -1710,6 +1743,7 @@ def do_libfuzzer_minimization(
 
   logs.info('LibFuzzer minimization succeeded.')
 
+  logs.step(5, 'package_output')
   if utils.is_oss_fuzz():
     # Scrub the testcase of non-essential data.
     cleansed_testcase_path, cleansed_minimized_keys = do_libfuzzer_cleanse(

@@ -1770,11 +1770,13 @@ class FuzzingSession:
                           self.fuzz_target.fully_qualified_name())
 
     # Synchronize corpus files with GCS
+    logs.step(4, 'sync_corpus')
     sync_corpus_directory = builtin.get_corpus_directory(
         self.data_directory, self.fuzz_target.project_qualified_name())
     self.sync_corpus(sync_corpus_directory)
 
     # Reset memory tool options.
+    step = logs.step(5, 'fuzz_and_upload_corpus')
     environment.reset_current_memory_tool_options(
         redzone_size=self.redzone, disable_ubsan=self.disable_ubsan)
 
@@ -1802,6 +1804,7 @@ class FuzzingSession:
         # recorded and hopefully fuzzed instead. The old targets will eventually
         # be garbage collected. Log this as an error to keep an eye on it.
         logs.error(f'{self.fuzz_target.binary} is not in the build.')
+        step.skip(f'{self.fuzz_target.binary} is not in the build.')
         return [], {}
 
       fuzzer_metadata.update(cur_fuzzer_metadata)
@@ -1923,6 +1926,7 @@ class FuzzingSession:
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
+    logs.step(4, 'generate_inputs')
     _TrackFuzzTime.reset_session(self.fully_qualified_fuzzer_name, job_type)
 
     # Set the thread timeout values.
@@ -1962,6 +1966,7 @@ class FuzzingSession:
     self._emit_testcase_generation_time_metric(
         testcase_generation_start, testcase_count, fuzzer.name, job_type)
 
+    logs.step(5, 'execute_inputs')
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
     # Initialize a list of crashes.
@@ -2116,6 +2121,9 @@ class FuzzingSession:
   def run(self):
     """Run the fuzzing session."""
     start_time = time.time()
+    is_engine = bool(engine.get(self.fuzzer_name))
+    logs.set_stage_variant('cg' if is_engine else 'bb')
+    logs.step(1, 'sync_bundle')
     # Update LSAN local blacklist with global blacklist.
     global_blacklisted_functions = (
         self.uworker_input.fuzz_task_input.global_blacklisted_functions)
@@ -2146,6 +2154,7 @@ class FuzzingSession:
       self.test_timeout = set_test_timeout(self.fuzzer.timeout,
                                            self.timeout_multiplier)
 
+    step = logs.step(2, 'fetch_build')
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
     fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
@@ -2162,6 +2171,8 @@ class FuzzingSession:
       if not self.fuzz_task_output.fuzz_targets:
         logs.error('No fuzz targets.')
       if not self.fuzz_target:
+        step.fail('No fuzz targets.' if not self.fuzz_task_output.
+                  fuzz_targets else 'No fuzz target selected.')
         return uworker_msg_pb2.Output(  # pylint: disable=no-member
             fuzz_task_output=self.fuzz_task_output,
             error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)  # pylint: disable=no-member
@@ -2174,6 +2185,7 @@ class FuzzingSession:
 
     # Check if we have a bad build, i.e. one that crashes on startup.
     # If yes, bail out.
+    logs.step(3, 'check_bad_build')
     logs.info('Checking for bad build.')
     crash_revision = environment.get_value('APP_REVISION')
 
@@ -2214,6 +2226,7 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
+    logs.step(6, 'process_crashes')
     logs.info('Finished processing test cases.')
 
     # For Android, bring back device to a good state before analyzing crashes.
@@ -2301,6 +2314,7 @@ class FuzzingSession:
     logs.info('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
               f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     uworker_input = uworker_output.uworker_input
+    logs.step(2, 'dedup_and_file_bugs')
     postprocess_process_crashes(uworker_input, uworker_output)
     postprocess_sample_testcases(uworker_input, uworker_output)
     if not environment.is_engine_fuzzer_job():
@@ -2384,9 +2398,10 @@ def utask_main(uworker_input):
 def handle_fuzz_no_fuzz_target_selected(output):
   save_fuzz_targets(output)
   # Try again now that there are some fuzz targets.
-  utask_preprocess(output.uworker_input.fuzzer_name,
-                   output.uworker_input.job_type,
-                   output.uworker_input.uworker_env)
+  with logs.stage_summary_context(logs.Stage.PREPROCESS, emit_log=False):
+    utask_preprocess(output.uworker_input.fuzzer_name,
+                     output.uworker_input.job_type,
+                     output.uworker_input.uworker_env)
 
 
 def _make_session(uworker_input):
@@ -2452,6 +2467,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
                         uworker_env)
   fuzz_target = _preprocess_get_fuzz_target(fuzzer_name, job_type)
   fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()  # pylint: disable=no-member
+  logs.step(2, 'sign_urls')
   if fuzz_target:
     # Add the chosen fuzz target to logs context.
     logs.log_contexts.add_metadata('fuzz_target', fuzz_target.binary)
@@ -2499,11 +2515,13 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Set logs context and preprocess untrusted task."""
   # Delay adding the fuzz target to logs context until it is chosen in
   # preprocess.
+  step = logs.step(1, 'select_target')
   with logs.fuzzer_log_context(fuzzer_name, job_type, fuzz_target=None):
     try:
       return _utask_preprocess(fuzzer_name, job_type, uworker_env)
     except errors.InvalidFuzzerError:
       logs.error('Fuzzer %s is invalid or no longer exists.' % fuzzer_name)
+      step.fail(f'Fuzzer {fuzzer_name} is invalid or no longer exists.')
       return None
 
 
@@ -2568,7 +2586,9 @@ def _upload_fuzzer_run_output(fuzzer_run_output, fuzzer_name):
 
 def _utask_postprocess(output):
   """Postprocesses fuzz_task."""
+  step = logs.step(1, 'record_stats')
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+    step.complete_stage(output, skip=True)
     _ERROR_HANDLER.handle(output)
     return
 
@@ -2580,6 +2600,7 @@ def _utask_postprocess(output):
   session.postprocess(output)
   # TODO(b/374776013): Refactor this code so the uploads happen during
   # utask_main.
+  logs.step(3, 'upload_logs')
   fuzzer_name = output.fuzz_task_output.fully_qualified_fuzzer_name
   for fuzzer_run_output in output.fuzz_task_output.fuzzer_run_outputs:
     _upload_fuzzer_run_output(fuzzer_run_output, fuzzer_name)

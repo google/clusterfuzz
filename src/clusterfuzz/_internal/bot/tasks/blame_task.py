@@ -271,6 +271,7 @@ def _clear_blame_result_and_set_pending_flag(testcase):
 
 def _execute_task(testcase_id):
   """Attempt to find the CL introducing the bug associated with testcase_id."""
+  step = logs.step(1, 'validate_testcase')
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
@@ -278,20 +279,24 @@ def _execute_task(testcase_id):
   topic = db_config.get_value('predator_crash_topic')
   if not topic:
     logs.info('Predator is not configured, skipping blame task.')
+    step.complete_stage('Predator is not configured', skip=True)
     return
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Prepare pubsub message to send to predator.
+  step = logs.step(2, 'compute_dependency_rolls')
   message = _prepare_predator_message(testcase)
   if not message:
     testcase = data_handler.get_testcase_by_id(testcase_id)
     data_handler.update_testcase_comment(
         testcase, data_types.TaskState.ERROR,
         'Failed to generate request for Predator')
+    step.fail('Failed to generate request for Predator')
     return
 
   # Clear existing results and mark blame result as pending.
+  logs.step(3, 'publish_to_predator')
   testcase = data_handler.get_testcase_by_id(testcase_id)
   _clear_blame_result_and_set_pending_flag(testcase)
 

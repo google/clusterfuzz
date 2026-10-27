@@ -1563,3 +1563,256 @@ class TestLogContextSingleton(unittest.TestCase):
 
     # Number of increments plus the common context.
     self.assertEqual(len(run_bot_logs.log_contexts.contexts), num_it + 1)
+
+
+class StageSummaryTest(unittest.TestCase):
+  """Tests for StageSummaryTracker, logs.step, and emit_stage_summary."""
+
+  def setUp(self):
+    logs.log_contexts.clear()
+    logs._clear_stage_tracker()  # pylint: disable=protected-access
+    helpers.patch(self, ['clusterfuzz._internal.metrics.logs.info'])
+
+  def tearDown(self):
+    logs._clear_stage_tracker()  # pylint: disable=protected-access
+    logs.log_contexts.clear()
+
+  def test_flat_steps_and_summary(self):
+    """Tests flat logs.step phase transitions and summary emission."""
+    with logs.stage_summary_context(logs.Stage.PREPROCESS):
+      logs.step(1, 'load_testcase')
+      logs.step(2, 'prepare_env')
+
+    self.mock.info.assert_called_once()
+    args, kwargs = self.mock.info.call_args
+    self.assertEqual(args[0], 'Stage preprocess finished.')
+    summary = kwargs['stage_summary']
+    self.assertEqual(summary['stage'], 'preprocess')
+    self.assertEqual(summary['status'], 'ok')
+    self.assertEqual(len(summary['steps']), 2)
+    self.assertEqual(summary['steps'][0]['n'], 1)
+    self.assertEqual(summary['steps'][0]['name'], 'load_testcase')
+    self.assertEqual(summary['steps'][0]['status'], 'ok')
+    self.assertEqual(summary['steps'][1]['n'], 2)
+    self.assertEqual(summary['steps'][1]['name'], 'prepare_env')
+    self.assertEqual(summary['steps'][1]['status'], 'ok')
+
+  def test_step_skip_and_terminal_complete_stage(self):
+    """Tests skipping a step and marking a stage terminal."""
+    with logs.stage_summary_context(logs.Stage.MAIN):
+      logs.set_stage_variant('lf')
+      logs.step(1, 'setup_build')
+      step2 = logs.step(2, 'verify_initial_crash')
+      step2.complete_stage('Did not crash', skip=True)
+
+    summary = self.mock.info.call_args[1]['stage_summary']
+    self.assertEqual(summary['variant'], 'lf')
+    self.assertEqual(summary['status'], 'ok')
+    self.assertTrue(summary['terminal'])
+    self.assertEqual(summary['steps'][1]['status'], 'skipped')
+    self.assertEqual(summary['steps'][1]['reason'], 'Did not crash')
+
+  def test_complete_stage_without_skip_preserves_reason(self):
+    """Tests that complete_stage(reason, skip=False) keeps reason on step."""
+    with logs.stage_summary_context(logs.Stage.MAIN):
+      logs.step(1, 'setup_build')
+      step2 = logs.step(2, 'test_for_crash')
+      step2.complete_stage('Testcase did not crash')
+
+    summary = self.mock.info.call_args[1]['stage_summary']
+    self.assertEqual(summary['status'], 'ok')
+    self.assertTrue(summary['terminal'])
+    self.assertEqual(summary['steps'][1]['status'], 'ok')
+    self.assertEqual(summary['steps'][1]['reason'], 'Testcase did not crash')
+
+  def test_step_exception_marks_stage_failed(self):
+    """Tests that an unhandled exception inside a step marks it failed."""
+    with self.assertRaises(RuntimeError):
+      with logs.stage_summary_context(logs.Stage.MAIN):
+        with logs.step(1, 'setup_build'):
+          raise RuntimeError('disk full')
+
+    summary = self.mock.info.call_args[1]['stage_summary']
+    self.assertEqual(summary['status'], 'failed')
+    self.assertEqual(summary['failure_reason'], 'RuntimeError: disk full')
+    self.assertEqual(summary['steps'][0]['status'], 'failed')
+    self.assertEqual(summary['steps'][0]['reason'], 'RuntimeError: disk full')
+
+  def test_log_error_captured_as_stage_reason(self):
+    """Tests that logs.error records the error message on the active step."""
+    with logs.stage_summary_context(
+        logs.Stage.POSTPROCESS, emit_log=False) as tracker:
+      with logs.step(1, 'update_testcase'):
+        tracker.record_error('Datastore write failed')
+      logs.emit_stage_summary(tracker, failed=True)
+
+    summary = self.mock.info.call_args[1]['stage_summary']
+    self.assertEqual(summary['status'], 'failed')
+    self.assertEqual(summary['failure_reason'], 'Datastore write failed')
+    self.assertEqual(summary['steps'][0]['status'], 'failed')
+    self.assertEqual(summary['steps'][0]['reason'], 'Datastore write failed')
+
+  def test_non_fatal_error_does_not_pollute_ok_step_or_leak(self):
+    """Tests that non-fatal logs.error during an ok step does not pollute or leak."""
+    with logs.stage_summary_context(
+        logs.Stage.MAIN, emit_log=False) as tracker:
+      logs.step(1, 'setup_build')
+      tracker.record_error('Transient warning')
+      step2 = logs.step(2, 'test_for_crash')
+      step2.fail()
+      logs.emit_stage_summary(tracker, failed=True)
+
+    summary = self.mock.info.call_args[1]['stage_summary']
+    self.assertEqual(summary['steps'][0]['status'], 'ok')
+    self.assertNotIn('reason', summary['steps'][0])
+    self.assertEqual(summary['steps'][1]['status'], 'failed')
+    self.assertNotIn('reason', summary['steps'][1])
+
+  def test_snapshot_log_context_preserves_fuzzer_and_job_extras(self):
+    """Tests that fuzzer/testcase log context extras are preserved on exit."""
+    fuzz_target = mock.Mock(binary='xml_fuzzer')
+    with logs.stage_summary_context(logs.Stage.MAIN):
+      with logs.fuzzer_log_context('libFuzzer', 'libfuzzer_asan_job',
+                                   fuzz_target):
+        logs.step(1, 'sync_bundle')
+
+    _, kwargs = self.mock.info.call_args
+    self.assertEqual(kwargs.get('fuzzer'), 'libFuzzer')
+    self.assertEqual(kwargs.get('job'), 'libfuzzer_asan_job')
+    self.assertEqual(kwargs.get('fuzz_target'), 'xml_fuzzer')
+
+  def test_all_eleven_task_modules_have_canonical_steps(self):
+    """Verifies that all 11 task modules contain canonical logs.step calls."""
+    import ast
+    import pathlib
+
+    tasks_dir = (
+        pathlib.Path(__file__).resolve().parents[3] / 'bot' / 'tasks')
+    expected = {
+        'utasks/analyze_task.py': {
+            (1, 'load_testcase'),
+            (2, 'prepare_env'),
+            (1, 'setup_build'),
+            (2, 'test_for_crash'),
+            (3, 'check_reproducibility'),
+            (4, 'package_output'),
+            (1, 'update_testcase'),
+            (2, 'create_post_analyze_tasks'),
+        },
+        'utasks/minimize_task.py': {
+            (1, 'load_testcase'),
+            (2, 'prepare_env'),
+            (1, 'setup_build'),
+            (2, 'verify_initial_crash'),
+            (3, 'minimize_sanitizer_options'),
+            (4, 'minimize_rounds'),
+            (5, 'package_output'),
+            (2, 'warmup_and_verify'),
+            (3, 'minimize_gestures'),
+            (4, 'minimize_main_file'),
+            (5, 'minimize_resources'),
+            (6, 'minimize_arguments'),
+            (7, 'store_minimized'),
+            (1, 'update_testcase'),
+            (2, 'finalize_and_fan_out'),
+        },
+        'utasks/fuzz_task.py': {
+            (1, 'select_target'),
+            (2, 'sign_urls'),
+            (1, 'sync_bundle'),
+            (2, 'fetch_build'),
+            (3, 'check_bad_build'),
+            (4, 'sync_corpus'),
+            (5, 'fuzz_and_upload_corpus'),
+            (4, 'generate_inputs'),
+            (5, 'execute_inputs'),
+            (6, 'process_crashes'),
+            (1, 'record_stats'),
+            (2, 'dedup_and_file_bugs'),
+            (3, 'upload_logs'),
+        },
+        'utasks/corpus_pruning_task.py': {
+            (1, 'check_last_status'),
+            (2, 'sign_urls'),
+            (1, 'sync_bundle'),
+            (2, 'fetch_build'),
+            (3, 'sync_and_restore_quarantine'),
+            (4, 'merge_corpus'),
+            (5, 'sync_and_backup_corpus'),
+            (6, 'triage_bad_units'),
+            (7, 'cross_pollinate'),
+            (1, 'save_coverage_and_crashes'),
+        },
+        'utasks/regression_task.py': {
+            (1, 'load_testcase'),
+            (2, 'prepare_env'),
+            (1, 'setup_testcase'),
+            (2, 'fetch_revisions'),
+            (3, 'reproduce_at_max'),
+            (4, 'find_min_revision'),
+            (5, 'bisect_range'),
+            (6, 'validate_range'),
+            (1, 'update_metadata'),
+            (2, 'save_regression_range'),
+        },
+        'utasks/symbolize_task.py': {
+            (1, 'load_testcase'),
+            (2, 'prepare_env'),
+            (1, 'setup_release_build'),
+            (2, 'search_asan_redzone'),
+            (3, 'setup_symbolized_build'),
+            (4, 'reproduce_symbolized'),
+            (5, 'package_output'),
+            (1, 'save_symbolized_stack'),
+        },
+        'utasks/variant_task.py': {
+            (1, 'clone_testcase_and_prepare'),
+            (1, 'setup_build'),
+            (2, 'test_for_crash'),
+            (3, 'check_reproducibility'),
+            (4, 'package_output'),
+            (1, 'save_variant'),
+        },
+        'utasks/progression_task.py': {
+            (1, 'load_testcase'),
+            (2, 'prepare_env'),
+            (1, 'setup_testcase'),
+            (2, 'fetch_revisions'),
+            (3, 'setup_trunk_build'),
+            (4, 'test_at_trunk'),
+            (5, 'bisect_fixed_range'),
+            (6, 'package_output'),
+            (1, 'update_metadata'),
+            (2, 'save_fixed_or_open'),
+        },
+        'impact_task.py': {
+            (1, 'validate_testcase'),
+            (2, 'check_regression_range'),
+            (3, 'calculate_impacts'),
+            (4, 'save_impacts'),
+        },
+        'blame_task.py': {
+            (1, 'validate_testcase'),
+            (2, 'compute_dependency_rolls'),
+            (3, 'publish_to_predator'),
+        },
+        'unpack_task.py': {
+            (1, 'load_bundle_metadata'),
+            (2, 'download_and_extract_archive'),
+            (3, 'create_testcases'),
+            (4, 'cleanup'),
+        },
+    }
+
+    for rel_path, expected_steps in expected.items():
+      tree = ast.parse((tasks_dir / rel_path).read_text())
+      found_steps = set()
+      for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) and
+            isinstance(node.func, ast.Attribute) and
+            isinstance(node.func.value, ast.Name) and
+            node.func.value.id == 'logs' and node.func.attr == 'step' and
+            len(node.args) == 2 and isinstance(node.args[0], ast.Constant) and
+            isinstance(node.args[1], ast.Constant)):
+          found_steps.add((node.args[0].value, node.args[1].value))
+      self.assertEqual(found_steps, expected_steps, f'Mismatch in {rel_path}')

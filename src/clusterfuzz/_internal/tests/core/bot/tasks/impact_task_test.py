@@ -660,3 +660,68 @@ class GetStartAndEndRevisionTest(unittest.TestCase):
         [mock.call('123:456'), mock.call('somelink')])
     self.mock.get_component_range_list.assert_has_calls(
         [mock.call(1, 100, 'android_job')])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ExecuteTaskStageSummaryTest(unittest.TestCase):
+  """Tests structured step telemetry in impact_task.execute_task."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.build_management.build_manager.is_custom_binary',
+        'clusterfuzz._internal.bot.tasks.impact_task.get_impacts_from_url',
+        ('clusterfuzz._internal.common.testcase_utils.'
+         'emit_testcase_triage_duration_metric'),
+    ])
+    self.testcase = test_utils.create_generic_testcase()
+
+  def test_execute_task_records_four_steps(self):
+    """Tests that a normal impact_task run records all 4 canonical steps."""
+    from clusterfuzz._internal.metrics import logs
+
+    self.mock.is_chromium.return_value = True
+    self.mock.is_custom_binary.return_value = False
+    self.testcase.regression = '100:200'
+    self.testcase.put()
+    self.mock.get_impacts_from_url.return_value = impact_task.Impacts(
+        impact_task.Impact('100.0', False),
+        impact_task.Impact('101.0', False),
+        impact_task.Impact('99.0', False),
+        impact_task.Impact('102.0', False),
+    )
+
+    with logs.stage_summary_context(logs.Stage.MAIN) as tracker:
+      impact_task.execute_task(str(self.testcase.key.id()), 'test_job')
+      summary = tracker.build_summary()
+
+    self.assertEqual(summary['status'], 'ok')
+    self.assertEqual([(s['n'], s['name'], s['status'])
+                      for s in summary['steps']], [
+                          (1, 'validate_testcase', 'ok'),
+                          (2, 'check_regression_range', 'ok'),
+                          (3, 'calculate_impacts', 'ok'),
+                          (4, 'save_impacts', 'ok'),
+                      ])
+
+  def test_execute_task_missing_regression_range_marks_terminal_skip(self):
+    """Tests that missing regression range marks step 2 terminal skipped."""
+    from clusterfuzz._internal.metrics import logs
+
+    self.mock.is_chromium.return_value = True
+    self.mock.is_custom_binary.return_value = False
+    self.testcase.regression = ''
+    self.testcase.put()
+
+    with logs.stage_summary_context(logs.Stage.MAIN) as tracker:
+      impact_task.execute_task(str(self.testcase.key.id()), 'test_job')
+      summary = tracker.build_summary()
+
+    self.assertEqual(summary['status'], 'ok')
+    self.assertTrue(summary['terminal'])
+    self.assertEqual([(s['n'], s['name'], s['status'])
+                      for s in summary['steps']], [
+                          (1, 'validate_testcase', 'ok'),
+                          (2, 'check_regression_range', 'skipped'),
+                      ])

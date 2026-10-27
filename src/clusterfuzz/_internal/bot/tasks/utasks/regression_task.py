@@ -361,6 +361,7 @@ def validate_regression_range(
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Ensure that we found the correct min revision by testing earlier ones.
   Returns a uworker_msg_pb2.Output in case of error or crash, None otherwise."""
+  logs.step(6, 'validate_range')
   earlier_revisions = revision_list[
       min_index - EARLIER_REVISIONS_TO_CONSIDER_FOR_VALIDATION:min_index]
   revision_count = min(len(earlier_revisions), REVISIONS_TO_TEST_FOR_VALIDATION)
@@ -400,6 +401,7 @@ def find_regression_range(
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
 
   # Setup testcase and its dependencies.
+  logs.step(1, 'setup_testcase')
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       uworker_input.setup_input)
   if error:
@@ -408,6 +410,7 @@ def find_regression_range(
   # Help the type checker.
   assert isinstance(testcase_file_path, str)
 
+  logs.step(2, 'fetch_revisions')
   build_bucket_path = build_manager.get_primary_bucket_path()
   revision_list = build_manager.get_revisions_list(
       build_bucket_path,
@@ -459,6 +462,7 @@ def find_regression_range(
   max_revision = revision_list[max_index]  # Might be > `known_crash_revision`.
 
   # Check invariant: max revision crashes.
+  logs.step(3, 'reproduce_at_max')
   regression_task_output = uworker_msg_pb2.RegressionTaskOutput()  # pylint: disable=no-member
   crashes_in_max_revision, error = _testcase_reproduces_in_revision(
       testcase,
@@ -487,6 +491,7 @@ def find_regression_range(
   regression_task_output.is_testcase_reproducible = True
   regression_task_output.last_regression_max = max_revision
 
+  step = logs.step(4, 'find_min_revision')
   min_index = None
   if min_revision:
     min_index = revisions.find_min_revision_index(revision_list, min_revision)
@@ -505,12 +510,19 @@ def find_regression_range(
     if output:
       # Either we encountered an error, or there is no good revision and the
       # regression range is `0:revision_list[0]`.
+      if output.error_type == uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+        step.complete_stage('Earliest build crashes')
+      else:
+        step.fail(output)
       return output
+  else:
+    step.skip('Resuming from existing min_revision')
 
   # Type checker cannot figure this out.
   assert isinstance(min_index, int)
   assert isinstance(max_index, int)
 
+  logs.step(5, 'bisect_range')
   while time.time() < deadline:
     min_revision = revision_list[min_index]
     max_revision = revision_list[max_index]
@@ -591,11 +603,18 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
   Runs on a trusted worker.
   """
+  step = logs.step(1, 'load_testcase')
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase:
+    step.fail('Testcase not found')
+    return None
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     if testcase.regression:
       logs.error(
           f'Regression range is already set as {testcase.regression}, skip.')
+      step.complete_stage(
+          f'Regression range is already set as {testcase.regression}',
+          skip=True)
       return None
 
     # This task is not applicable for custom binaries.
@@ -604,10 +623,12 @@ def utask_preprocess(testcase_id: str, job_type: str,
       data_handler.update_testcase_comment(
           testcase, data_types.TaskState.ERROR,
           'Not applicable for custom binaries')
+      step.complete_stage('Not applicable for custom binaries', skip=True)
       return None
 
     data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
+    logs.step(2, 'prepare_env')
     setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
     task_input = uworker_msg_pb2.RegressionTaskInput(  # pylint: disable=no-member
@@ -729,6 +750,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
 
   Runs on a trusted worker.
   """
+  step = logs.step(1, 'update_metadata')
   testcase_id = output.uworker_input.testcase_id
   # Retrieve the testcase early to be used by logs context.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -751,9 +773,11 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
                                                    False)
 
     if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      step.complete_stage(output, skip=True)
       _ERROR_HANDLER.handle(output)
       return
 
+    logs.step(2, 'save_regression_range')
     save_regression_range(output)
 
 

@@ -720,6 +720,10 @@ def emit(level, message, exc_info=None, **extras):
   # Include extras passed as an argument and default extras.
   all_extras = _default_extras.copy()
   all_extras.update(extras)
+  if level >= logging.ERROR and 'stage_summary' not in all_extras:
+    tracker = _current_stage_tracker()
+    if tracker is not None:
+      tracker.record_error(str(message))
 
   path_name, line_number, method_name = get_source_location()
 
@@ -1123,11 +1127,17 @@ def fuzzer_log_context(fuzzer_name: str, job_type: str,
       log_contexts.add_metadata('fuzz_target', fuzz_target_bin)
       log_contexts.add_metadata('fuzzer_name', fuzzer_name)
       log_contexts.add_metadata('job_type', job_type)
+      tracker = _current_stage_tracker()
+      if tracker is not None:
+        tracker.snapshot_log_context()
       yield
     except Exception as e:
       warning(message='Error during fuzzer context.')
       raise e
     finally:
+      tracker = _current_stage_tracker()
+      if tracker is not None:
+        tracker.snapshot_log_context()
       log_contexts.delete_metadata('fuzz_target')
       log_contexts.delete_metadata('fuzzer_name')
       log_contexts.delete_metadata('job_type')
@@ -1160,6 +1170,9 @@ def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
         fuzz_target_bin = 'unknown' if not testcase else testcase.get_metadata(
             'fuzzer_binary_name', 'unknown')
       log_contexts.add_metadata('fuzz_target', fuzz_target_bin)
+      tracker = _current_stage_tracker()
+      if tracker is not None:
+        tracker.snapshot_log_context()
       yield
     except Exception as e:
       # Logging as a warning because this error will be handled
@@ -1168,6 +1181,9 @@ def testcase_log_context(testcase: 'Testcase | TestcaseAttributes',
       warning(message='Error during testcase context.')
       raise e
     finally:
+      tracker = _current_stage_tracker()
+      if tracker is not None:
+        tracker.snapshot_log_context()
       for field in TestcaseLogStruct._fields:
         log_contexts.delete_metadata(field)
       log_contexts.delete_metadata('fuzzer_name')
@@ -1224,3 +1240,375 @@ def grouper_log_context(testcase_1: 'Testcase | TestcaseAttributes',
         else:
           log_contexts.delete_metadata(f'testcase_1_{field}')
           log_contexts.delete_metadata(f'testcase_2_{field}')
+
+
+_STAGE_TRACKER_LOCAL = threading.local()
+
+
+def _extract_step_reason(reason: Any) -> str | None:
+  """Extracts a concise human-readable reason string from a step outcome."""
+  if reason is None:
+    return None
+  if isinstance(reason, str):
+    cleaned = reason.strip().splitlines()[0] if reason.strip() else ''
+    return cleaned[:500] or None
+
+  error_message = getattr(reason, 'error_message', None)
+  if error_message:
+    cleaned = str(error_message).strip().splitlines()[0]
+    if cleaned:
+      return cleaned[:500]
+
+  error_type = getattr(reason, 'error_type', None)
+  if isinstance(error_type, int) and error_type != 0:
+    try:
+      from clusterfuzz._internal.protos import uworker_msg_pb2
+      return uworker_msg_pb2.ErrorType.Name(error_type)  # pylint: disable=no-member
+    except Exception:
+      return str(error_type)
+
+  cleaned = str(reason).strip().splitlines()[0] if str(reason).strip() else ''
+  return cleaned[:500] or None
+
+
+class _StepHandle:
+  """Handle for a numbered stage step supporting both flat and `with` usage."""
+
+  def __init__(self, n: int, name: str):
+    self.n = n
+    self.name = name
+    self.start_time_ns = time.time_ns()
+    self.status = 'ok'
+    self.reason: str | None = None
+    self.duration_s = 0.0
+    self.terminal = False
+    self.tracker: StageSummaryTracker | None = None
+    self.finished = False
+
+  def skip(self, reason: Any = None) -> None:
+    """Marks this step as skipped with an optional reason."""
+    if self.status != 'failed':
+      self.status = 'skipped'
+    resolved = _extract_step_reason(reason)
+    if resolved:
+      self.reason = resolved
+
+  def fail(self, reason: Any = None) -> None:
+    """Marks this step as failed with an optional reason or Output protobuf."""
+    self.status = 'failed'
+    resolved = _extract_step_reason(reason)
+    if resolved:
+      self.reason = resolved
+
+  def complete_stage(self, reason: Any = None, *, skip: bool = False) -> None:
+    """Marks this step as a legitimate early termination of the stage."""
+    self.terminal = True
+    if self.tracker is not None:
+      self.tracker.terminal = True
+    resolved = _extract_step_reason(reason)
+    if skip and self.status != 'failed':
+      self.status = 'skipped'
+    if resolved:
+      self.reason = resolved
+
+  def finish(self, end_time_ns: int | None = None) -> None:
+    """Finalizes step timing and registers the step on the active tracker."""
+    if self.finished:
+      return
+    self.finished = True
+    if self.tracker is not None:
+      self.tracker.finish_step(self, end_time_ns=end_time_ns)
+
+  def __enter__(self) -> '_StepHandle':
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback_obj) -> None:
+    del traceback_obj
+    if exc_type is not None and self.status != 'failed':
+      msg = str(exc_value).strip().splitlines()[0] if exc_value else ''
+      self.fail(f'{exc_type.__name__}: {msg}' if msg else exc_type.__name__)
+    self.finish()
+
+  def to_dict(self) -> dict[str, Any]:
+    """Serializes the step record for `jsonPayload.extras.stage_summary`."""
+    data: dict[str, Any] = {
+        'n': self.n,
+        'name': self.name,
+        'status': self.status,
+        'duration_s': self.duration_s,
+    }
+    if self.reason:
+      data['reason'] = self.reason
+    return data
+
+
+_STATUS_PRIORITY = {'ok': 0, 'skipped': 1, 'failed': 2}
+
+
+class StageSummaryTracker:
+  """Accumulates structured step telemetry for a single task stage."""
+
+  def __init__(self, stage: Stage | str, start_time_ns: int | None = None):
+    self.stage = stage.value if isinstance(stage, Stage) else str(stage)
+    self.start_time_ns = (
+        start_time_ns if start_time_ns is not None else time.time_ns())
+    self.variant: str | None = None
+    self.steps: list[dict[str, Any]] = []
+    self.terminal = False
+    self.last_error: str | None = None
+    self.error_type: str | None = None
+    self.main_error_type: str | None = None
+    self.context_extras: dict[str, Any] = {}
+    self.active_step: _StepHandle | None = None
+
+  def start_step(self, handle: _StepHandle) -> None:
+    """Marks a step as active, finishing any previously active step."""
+    if self.active_step is not None and not self.active_step.finished:
+      prev_ok = self.active_step.status == 'ok'
+      self.active_step.finish(end_time_ns=handle.start_time_ns)
+      if prev_ok:
+        self.last_error = None
+    handle.tracker = self
+    self.active_step = handle
+
+  def finish_step(self,
+                  handle: _StepHandle,
+                  end_time_ns: int | None = None) -> None:
+    """Records step completion and merges repeated step entries."""
+    end_ns = end_time_ns if end_time_ns is not None else time.time_ns()
+    handle.duration_s = round(max(0, end_ns - handle.start_time_ns) / 10**9, 3)
+    if handle.terminal:
+      self.terminal = True
+    if handle.status == 'failed' and not handle.reason and self.last_error:
+      handle.reason = self.last_error
+    step_dict = handle.to_dict()
+    for existing in self.steps:
+      if existing['n'] == handle.n and existing['name'] == handle.name:
+        existing['duration_s'] = round(
+            existing['duration_s'] + handle.duration_s, 3)
+        if (_STATUS_PRIORITY.get(step_dict['status'], 0) >=
+            _STATUS_PRIORITY.get(existing['status'], 0)):
+          existing['status'] = step_dict['status']
+        if 'reason' in step_dict:
+          existing['reason'] = step_dict['reason']
+        break
+    else:
+      self.steps.append(step_dict)
+    if self.active_step is handle:
+      self.active_step = None
+
+  def record_error(self, message: str) -> None:
+    """Records an error log message emitted while the stage is active."""
+    first_line = str(message).strip().splitlines()[0][:500] if message else ''
+    if not first_line:
+      return
+    if (self.last_error is None or
+        first_line != 'No uworker_input returned from preprocess'):
+      self.last_error = first_line
+
+  def snapshot_log_context(self) -> None:
+    """Snapshots active FUZZER and TESTCASE log context metadata."""
+    for ctx_type in (LogContextType.FUZZER, LogContextType.TESTCASE):
+      if ctx_type in log_contexts.contexts:
+        for k, v in ctx_type.get_extras()._asdict().items():
+          if v is not None and v != 'null':
+            self.context_extras[k] = v
+
+  def build_summary(self,
+                    *,
+                    end_time_ns: int | None = None,
+                    failed: bool = False,
+                    error_type: str | None = None,
+                    main_error_type: str | None = None,
+                    failure_reason: str | None = None) -> dict[str, Any]:
+    """Builds the structured `stage_summary` dictionary."""
+    end_ns = end_time_ns if end_time_ns is not None else time.time_ns()
+    resolved_error_type = error_type or self.error_type
+    resolved_main_error_type = main_error_type or self.main_error_type
+    if self.active_step is not None and not self.active_step.finished:
+      if failed and self.active_step.status == 'ok' and not self.terminal:
+        self.active_step.fail(failure_reason or self.last_error or
+                              resolved_error_type)
+      self.active_step.finish(end_time_ns=end_ns)
+
+    duration_s = round(max(0, end_ns - self.start_time_ns) / 10**9, 3)
+    has_failed_step = any(s['status'] == 'failed' for s in self.steps)
+    stage_failed = bool(failed or has_failed_step)
+
+    if stage_failed and not has_failed_step and self.steps:
+      last_step = self.steps[-1]
+      was_skipped = last_step['status'] == 'skipped'
+      last_step['status'] = 'failed'
+      fallback_reason = (
+          failure_reason or self.last_error or resolved_error_type)
+      if fallback_reason and (not last_step.get('reason') or was_skipped):
+        last_step['reason'] = fallback_reason
+
+    status = 'failed' if stage_failed else 'ok'
+    summary: dict[str, Any] = {
+        'stage': self.stage,
+        'status': status,
+        'duration_s': duration_s,
+        'steps': list(self.steps),
+    }
+    if self.variant:
+      summary['variant'] = self.variant
+    if self.terminal and status == 'ok':
+      summary['terminal'] = True
+    if resolved_error_type and resolved_error_type not in ('N/A', 'NO_ERROR'):
+      summary['error_type'] = resolved_error_type
+    if (resolved_main_error_type and
+        resolved_main_error_type not in ('N/A', 'NO_ERROR')):
+      summary['main_error_type'] = resolved_main_error_type
+
+    if stage_failed:
+      step_reason = next(
+          (s.get('reason')
+           for s in reversed(self.steps)
+           if s.get('status') == 'failed' and s.get('reason')),
+          None,
+      )
+      resolved_reason = (
+          step_reason or failure_reason or self.last_error or
+          resolved_error_type)
+      if resolved_reason:
+        summary['failure_reason'] = resolved_reason
+    return summary
+
+  to_dict = build_summary
+
+
+def _stage_tracker_stack() -> list[StageSummaryTracker]:
+  stack = getattr(_STAGE_TRACKER_LOCAL, 'stack', None)
+  if stack is None:
+    stack = []
+    _STAGE_TRACKER_LOCAL.stack = stack
+  return stack
+
+
+def _current_stage_tracker() -> StageSummaryTracker | None:
+  stack = _stage_tracker_stack()
+  return stack[-1] if stack else None
+
+
+def _clear_stage_tracker() -> None:
+  """Clears all active stage trackers on the current thread."""
+  _stage_tracker_stack().clear()
+
+
+def push_stage_tracker(tracker: StageSummaryTracker) -> None:
+  """Pushes a StageSummaryTracker onto the thread-local stack."""
+  _stage_tracker_stack().append(tracker)
+
+
+def pop_stage_tracker(tracker: StageSummaryTracker | None = None) -> None:
+  """Pops the active StageSummaryTracker from the thread-local stack."""
+  stack = _stage_tracker_stack()
+  if not stack:
+    return
+  if tracker is None or stack[-1] is tracker:
+    stack.pop()
+  elif tracker in stack:
+    stack.remove(tracker)
+
+
+def set_stage_variant(variant: str) -> None:
+  """Sets the execution variant (`cg`, `bb`, `lf`) on the active tracker."""
+  tracker = _current_stage_tracker()
+  if tracker is not None:
+    tracker.variant = variant
+
+
+def step(n: int, name: str) -> _StepHandle:
+  """Starts a numbered task step, usable either flat or as a `with` block."""
+  handle = _StepHandle(n, name)
+  tracker = _current_stage_tracker()
+  if tracker is not None:
+    tracker.start_step(handle)
+  return handle
+
+
+def emit_stage_summary(tracker: StageSummaryTracker,
+                       *,
+                       end_time_ns: int | None = None,
+                       failed: bool = False,
+                       error_type: str | None = None,
+                       main_error_type: str | None = None,
+                       failure_reason: str | None = None) -> dict[str, Any]:
+  """Emits the structured `stage_summary` log entry for `tracker`."""
+  tracker.snapshot_log_context()
+  summary = tracker.build_summary(
+      end_time_ns=end_time_ns,
+      failed=failed,
+      error_type=error_type,
+      main_error_type=main_error_type,
+      failure_reason=failure_reason)
+  info(
+      f'Stage {tracker.stage} finished.',
+      stage_summary=summary,
+      **tracker.context_extras)
+  return summary
+
+
+class _StageSummaryContext:
+  """Context manager that tracks steps and emits a `stage_summary` on exit."""
+
+  def __init__(self,
+               stage: Stage | str,
+               *,
+               start_time_ns: int | None = None,
+               emit_log: bool = True):
+    self._stage_enum = stage if isinstance(stage, Stage) else None
+    self._tracker = StageSummaryTracker(stage, start_time_ns=start_time_ns)
+    self._emit_log = emit_log
+    self._prev_stage = None
+    self._had_stage = False
+
+  def __enter__(self) -> StageSummaryTracker:
+    if self._stage_enum is not None:
+      self._had_stage = 'stage' in log_contexts.meta
+      self._prev_stage = log_contexts.meta.get('stage')
+      log_contexts.add_metadata('stage', self._stage_enum)
+    push_stage_tracker(self._tracker)
+    return self._tracker
+
+  def __exit__(self, exc_type, exc_value, traceback_obj) -> None:
+    del traceback_obj
+    exc_failed = exc_type is not None
+    exc_error_type = exc_type.__name__ if exc_type is not None else None
+    exc_reason = None
+    if exc_type is not None:
+      lines = str(exc_value).strip().splitlines() if exc_value else []
+      msg = lines[0] if lines else ''
+      exc_reason = f'{exc_type.__name__}: {msg}' if msg else exc_type.__name__
+      if (self._tracker.active_step is not None and
+          not self._tracker.active_step.finished):
+        self._tracker.active_step.fail(exc_reason)
+    try:
+      if self._emit_log:
+        emit_stage_summary(
+            self._tracker,
+            failed=exc_failed,
+            error_type=exc_error_type,
+            failure_reason=exc_reason)
+      else:
+        self._tracker.build_summary(
+            failed=exc_failed,
+            error_type=exc_error_type,
+            failure_reason=exc_reason)
+    finally:
+      pop_stage_tracker(self._tracker)
+      if self._stage_enum is not None:
+        if self._had_stage:
+          log_contexts.add_metadata('stage', self._prev_stage)
+        else:
+          log_contexts.delete_metadata('stage')
+
+
+def stage_summary_context(stage: Stage | str,
+                          *,
+                          start_time_ns: int | None = None,
+                          emit_log: bool = True) -> _StageSummaryContext:
+  """Returns a context manager that tracks steps and emits `stage_summary`."""
+  return _StageSummaryContext(
+      stage, start_time_ns=start_time_ns, emit_log=emit_log)

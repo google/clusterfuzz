@@ -60,7 +60,8 @@ class TrustedTask(BaseTask):
     events.emit_task_event(task_command, event_data, events.TaskStatus.STARTED)
 
     try:
-      self.module.execute_task(task_argument, job_type)
+      with logs.stage_summary_context(logs.Stage.MAIN):
+        self.module.execute_task(task_argument, job_type)
     except Exception as e:
       events.emit_task_event(
           task_command,

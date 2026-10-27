@@ -25,6 +25,7 @@ from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import events
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -310,3 +311,39 @@ class HandleEventEmissionNonCrashTest(unittest.TestCase):
         events.TestcaseRejectionEvent(
             testcase=self.testcase,
             rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class AnalyzeStageSummaryStepsTest(unittest.TestCase):
+  """Tests that analyze_task stages record canonical steps."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase',
+        'clusterfuzz._internal.bot.testcase_manager.preprocess_testcase_manager',
+        'clusterfuzz._internal.build_management.build_manager.get_job_bad_revisions',
+        'clusterfuzz._internal.common.testcase_utils.emit_testcase_triage_duration_metric',
+    ])
+    self.testcase = test_utils.create_generic_testcase()
+    self.upload_metadata = data_types.TestcaseUploadMetadata(
+        testcase_id=self.testcase.key.id())
+    self.upload_metadata.put()
+
+  def test_preprocess_records_canonical_steps(self):
+    """Tests that utask_preprocess records load_testcase and prepare_env."""
+    self.mock.preprocess_setup_testcase.return_value = (
+        uworker_msg_pb2.SetupInput())
+    self.mock.get_job_bad_revisions.return_value = []
+    with logs.stage_summary_context(logs.Stage.PREPROCESS) as tracker:
+      uworker_input = analyze_task.utask_preprocess(
+          str(self.testcase.key.id()), 'test_job', {})
+      summary = tracker.build_summary()
+
+    self.assertIsNotNone(uworker_input)
+    self.assertEqual(summary['status'], 'ok')
+    self.assertEqual([(s['n'], s['name'], s['status'])
+                      for s in summary['steps']], [
+                          (1, 'load_testcase', 'ok'),
+                          (2, 'prepare_env', 'ok'),
+                      ])

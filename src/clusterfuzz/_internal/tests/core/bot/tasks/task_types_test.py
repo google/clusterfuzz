@@ -541,3 +541,21 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
         self._execute(command)
         self.mock.execute_locally.assert_not_called()
         self.mock.add_utask_main.assert_not_called()
+
+  def test_trusted_tasks_emit_stage_summary(self):
+    """Tests that TrustedTask.execute emits a stage_summary log on exit."""
+    for command in self.TRUSTED_COMMANDS:
+      with self.subTest(command=command):
+        with mock.patch(f'clusterfuzz._internal.bot.tasks.{command}_task'
+                        '.execute_task') as execute_task, \
+             mock.patch('clusterfuzz._internal.metrics.logs.info') as mock_info:
+          self._execute(command)
+          execute_task.assert_called_once_with('1', 'job')
+          summaries = [
+              call.kwargs['stage_summary']
+              for call in mock_info.call_args_list
+              if 'stage_summary' in call.kwargs
+          ]
+          self.assertEqual(len(summaries), 1)
+          self.assertEqual(summaries[0]['stage'], 'main')
+          self.assertEqual(summaries[0]['status'], 'ok')

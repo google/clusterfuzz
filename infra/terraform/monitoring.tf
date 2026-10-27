@@ -1632,3 +1632,32 @@ resource "google_monitoring_dashboard" "clusterfuzz_sli_dashboard" {
 }
 JSON
 }
+
+resource "google_bigquery_dataset" "stage_summaries" {
+  project                     = var.project_id
+  dataset_id                  = "stage_summaries"
+  friendly_name               = "ClusterFuzz Stage Summaries"
+  description                 = "Structured stage and step telemetry exported from Cloud Logging logs/python."
+  location                    = "US"
+  default_table_expiration_ms = 7776000000 # 90 days
+}
+
+resource "google_logging_project_sink" "stage_summaries" {
+  project                = var.project_id
+  name                   = "stage-summaries"
+  destination            = "bigquery.googleapis.com/projects/${var.project_id}/datasets/${google_bigquery_dataset.stage_summaries.dataset_id}"
+  filter                 = "logName=\"projects/${var.project_id}/logs/python\" AND jsonPayload.extras.stage_summary.stage:*"
+  unique_writer_identity = true
+
+  bigquery_options {
+    use_partitioned_tables = true
+  }
+}
+
+resource "google_bigquery_dataset_iam_member" "stage_summaries_sink_writer" {
+  project    = var.project_id
+  dataset_id = google_bigquery_dataset.stage_summaries.dataset_id
+  role       = "roles/bigquery.dataEditor"
+  member     = google_logging_project_sink.stage_summaries.writer_identity
+}
+

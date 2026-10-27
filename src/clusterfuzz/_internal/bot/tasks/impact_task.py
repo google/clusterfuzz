@@ -273,8 +273,10 @@ def _execute_task(testcase_id, job_type):
   # We don't need job_type but it's supplied to all tasks.
   del job_type
 
+  step = logs.step(1, 'validate_testcase')
   # This shouldn't ever get scheduled, but check just in case.
   if not utils.is_chromium():
+    step.complete_stage('Not applicable for non-Chromium', skip=True)
     return
 
   # Locate the testcase associated with the id.
@@ -282,11 +284,13 @@ def _execute_task(testcase_id, job_type):
 
   # If this testcase is fixed, we should no longer be doing impact testing.
   if testcase.fixed and testcase.is_impact_set_flag:
+    step.complete_stage('Testcase already fixed with impact set', skip=True)
     return
 
   # For testcases with status unreproducible, we just do impact analysis just
   # once.
   if testcase.is_status_unreproducible() and testcase.is_impact_set_flag:
+    step.complete_stage('Unreproducible with impact already set', skip=True)
     return
 
   # Update comments only after checking the above bailout conditions.
@@ -297,6 +301,8 @@ def _execute_task(testcase_id, job_type):
     data_handler.update_testcase_comment(
         testcase, data_types.TaskState.ERROR,
         'Not applicable for unreproducible testcases')
+    step.complete_stage(
+        'Not applicable for unreproducible testcases', skip=True)
     return
 
   # This task is not applicable for custom binaries. We cannot remove the
@@ -306,8 +312,10 @@ def _execute_task(testcase_id, job_type):
     data_handler.update_testcase_comment(testcase,
                                          data_types.TaskState.FINISHED,
                                          'Not applicable for custom binaries')
+    step.complete_stage('Not applicable for custom binaries', skip=True)
     return
 
+  step = logs.step(2, 'check_regression_range')
   logs.info('Preparing to calculate impact.')
   # Formerly ClusterFuzz had buckets containing builds for stable,
   # beta and dev builds, and attempted reproduction on them. That had
@@ -321,10 +329,13 @@ def _execute_task(testcase_id, job_type):
         testcase, data_types.TaskState.FINISHED,
         'Cannot run without regression range, will re-run once regression '
         'task finishes')
+    step.complete_stage('Cannot run without regression range', skip=True)
     return
 
+  logs.step(3, 'calculate_impacts')
   logs.info('Calculating impact from URL.')
   impacts = get_impacts_from_url(testcase.regression, testcase.job_type)
+  logs.step(4, 'save_impacts')
   testcase = data_handler.get_testcase_by_id(testcase_id)
   set_testcase_with_impacts(testcase, impacts)
   testcase_utils.emit_testcase_triage_duration_metric(

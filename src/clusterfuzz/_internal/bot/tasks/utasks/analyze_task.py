@@ -304,6 +304,7 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag,
 
 def _utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
+  step = logs.step(1, 'load_testcase')
   # Get the testcase from the database and mark it as started.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -312,6 +313,7 @@ def _utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id)
   if not testcase_upload_metadata:
     logs.error('Testcase %s has no associated upload metadata.' % testcase_id)
+    step.fail('Testcase has no associated upload metadata')
     testcase.key.delete()
     return None
 
@@ -326,6 +328,7 @@ def _utask_preprocess(testcase_id, job_type, uworker_env):
       int(testcase_id),
       testcase_utils.TESTCASE_TRIAGE_DURATION_ANALYZE_LAUNCHED_STEP)
 
+  logs.step(2, 'prepare_env')
   initialize_testcase_for_main(testcase, job_type)
 
   setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
@@ -380,6 +383,7 @@ def _build_task_output(
 
 def _utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
+  logs.step(1, 'setup_build')
   testcase_upload_metadata = uworker_io.entity_from_protobuf(
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
@@ -406,6 +410,7 @@ def _utask_main(uworker_input):
   analyze_task_output = _build_task_output(testcase)
 
   # Initialize some variables.
+  step = logs.step(2, 'test_for_crash')
   test_timeout = environment.get_value('TEST_TIMEOUT')
   result, http_flag = test_for_crash_with_retries(
       fuzz_target, testcase, testcase_file_path, test_timeout)
@@ -442,6 +447,7 @@ def _utask_main(uworker_input):
             'reproducible': False,
             'platform': environment.platform(),
         })
+    step.complete_stage('Testcase did not crash')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
@@ -452,10 +458,12 @@ def _utask_main(uworker_input):
 
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
+    step.complete_stage('Ignored stacktrace')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED)  # pylint: disable=no-member
 
+  logs.step(3, 'check_reproducibility')
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
 
@@ -470,6 +478,7 @@ def _utask_main(uworker_input):
           'platform': environment.platform(),
       })
 
+  logs.step(4, 'package_output')
   fuzz_target_metadata = engine_common.get_fuzz_target_issue_metadata(
       fuzz_target)
 
@@ -586,11 +595,17 @@ def _update_testcase(output):
 def _utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
+  step = logs.step(1, 'update_testcase')
   testcase_utils.emit_testcase_triage_duration_metric(
       int(output.uworker_input.testcase_id),
       testcase_utils.TESTCASE_TRIAGE_DURATION_ANALYZE_COMPLETED_STEP)
   _update_testcase(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+    is_benign = output.error_type in (
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
+        uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED,  # pylint: disable=no-member
+    )
+    step.complete_stage(output, skip=not is_benign)
     _ERROR_HANDLER.handle(output)
     return
 
@@ -617,6 +632,7 @@ def _utask_postprocess(output):
     # For testcase uploaded by bots (with quiet flag), don't create additional
     # tasks.
     if testcase_upload_metadata.quiet_flag:
+      step.complete_stage('Duplicate')
       data_handler.close_invalid_uploaded_testcase(
           testcase, testcase_upload_metadata, 'Duplicate')
       return
@@ -645,6 +661,7 @@ def _utask_postprocess(output):
   testcase_upload_metadata.put()
 
   _add_default_issue_metadata(testcase, json.loads(output.issue_metadata))
+  logs.step(2, 'create_post_analyze_tasks')
   logs.info('Creating post-analyze tasks.')
 
   # Create tasks to

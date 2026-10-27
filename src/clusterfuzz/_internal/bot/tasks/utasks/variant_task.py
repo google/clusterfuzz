@@ -59,10 +59,12 @@ def _get_variant_testcase_for_job(testcase, job_type):
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run a test case with a different job type to see if they reproduce."""
+  step = logs.step(1, 'clone_testcase_and_prepare')
   try:
     testcase = data_handler.get_testcase_by_id(testcase_id)
-  except errors.InvalidTestcaseError:
+  except errors.InvalidTestcaseError as e:
     logs.warning(f'Testcase {testcase_id} no longer exists.')
+    step.fail(e)
     return None
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
 
@@ -70,6 +72,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
         environment.is_engine_fuzzer_job(job_type)):
       # We should never reach here. But in case we do, we should bail out as
       # otherwise we will run into exceptions.
+      step.complete_stage('Mismatched engine/blackbox job types', skip=True)
       return None
 
     # Use a cloned testcase entity with different fuzz target paramaters for
@@ -97,6 +100,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       logs.warning(
           f'Fuzz target or fuzzer not found for variant job {job_type}: {error}'
       )
+      step.fail(str(error))
       return None
 
     return uworker_input
@@ -117,6 +121,7 @@ def utask_main(uworker_input):
       testcase.put = lambda: None
 
     # Setup testcase and its dependencies.
+    logs.step(1, 'setup_build')
     _, testcase_file_path, error = setup.setup_testcase(
         testcase, uworker_input.job_type, uworker_input.setup_input)
     if error:
@@ -141,6 +146,7 @@ def utask_main(uworker_input):
 
     # Disable gestures if we're running on a different platform from that of
     # the original test case.
+    logs.step(2, 'test_for_crash')
     use_gestures = testcase.platform == environment.platform().lower()
 
     # Reproduce the crash.
@@ -164,6 +170,7 @@ def utask_main(uworker_input):
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
+    step = logs.step(3, 'check_reproducibility')
     if result.is_crash() and not result.should_ignore():
       crash_state = result.get_state()
       crash_type = result.get_type()
@@ -189,6 +196,7 @@ def utask_main(uworker_input):
       crash_stacktrace_output = utils.get_crash_stacktrace_output(
           command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
     else:
+      step.skip('Testcase did not crash or crash was ignored')
       status = data_types.TestcaseVariantStatus.UNREPRODUCIBLE
       is_similar = False
       crash_type = None
@@ -197,6 +205,7 @@ def utask_main(uworker_input):
       crash_stacktrace_output = 'No crash occurred.'
 
     # Regular case of variant analysis.
+    logs.step(4, 'package_output')
     variant_task_output = uworker_msg_pb2.VariantTaskOutput()  # pylint: disable=no-member
     variant_task_output.status = status
     variant_task_output.revision = int(revision)
@@ -230,14 +239,17 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
+  step = logs.step(1, 'save_variant')
   try:
     testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   except errors.InvalidTestcaseError:
     logs.warning(
         f'Testcase {output.uworker_input.testcase_id} no longer exists.')
+    step.skip('Testcase no longer exists')
     return
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+      step.complete_stage(output, skip=True)
       _ERROR_HANDLER.handle(output)
       return
 

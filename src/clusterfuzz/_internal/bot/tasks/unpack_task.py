@@ -31,9 +31,11 @@ from clusterfuzz._internal.system import shell
 
 def execute_task(metadata_id, job_type):
   """Unpack a bundled testcase archive and create analyze jobs for each item."""
+  step = logs.step(1, 'load_bundle_metadata')
   metadata = ndb.Key(data_types.BundledArchiveMetadata, int(metadata_id)).get()
   if not metadata:
     logs.error('Invalid bundle metadata id %s.' % metadata_id)
+    step.fail('Invalid bundle metadata id %s.' % metadata_id)
     return
 
   bot_name = environment.get_value('BOT_NAME')
@@ -42,11 +44,13 @@ def execute_task(metadata_id, job_type):
       metadata.blobstore_key).get()
   if not upload_metadata:
     logs.error('Invalid upload metadata key %s.' % metadata.blobstore_key)
+    step.fail('Invalid upload metadata key %s.' % metadata.blobstore_key)
     return
 
   job = data_types.Job.query(data_types.Job.name == metadata.job_type).get()
   if not job:
     logs.error('Invalid job_type %s.' % metadata.job_type)
+    step.fail('Invalid job_type %s.' % metadata.job_type)
     return
 
   # Update the upload metadata with this bot name.
@@ -55,12 +59,14 @@ def execute_task(metadata_id, job_type):
 
   # We can't use FUZZ_INPUTS directory since it is constrained
   # by tmpfs limits.
+  step = logs.step(2, 'download_and_extract_archive')
   testcases_directory = environment.get_value('FUZZ_INPUTS_DISK')
 
   # Retrieve multi-testcase archive.
   archive_path = os.path.join(testcases_directory, metadata.archive_filename)
   if not blobs.read_blob_to_disk(metadata.blobstore_key, archive_path):
     logs.error('Could not retrieve archive for bundle %d.' % metadata_id)
+    step.fail('Could not retrieve archive for bundle %d.' % metadata_id)
     tasks.add_task('unpack', metadata_id, job_type)
     return
 
@@ -69,10 +75,12 @@ def execute_task(metadata_id, job_type):
       reader.extract_all(testcases_directory)
   except:
     logs.error('Could not unpack archive for bundle %d.' % metadata_id)
+    step.fail('Could not unpack archive for bundle %d.' % metadata_id)
     tasks.add_task('unpack', metadata_id, job_type)
     return
 
   # Get additional testcase metadata (if any).
+  logs.step(3, 'create_testcases')
   additional_metadata = None
   if upload_metadata.additional_metadata_string:
     additional_metadata = json.loads(upload_metadata.additional_metadata_string)
@@ -112,6 +120,7 @@ def execute_task(metadata_id, job_type):
 
   # The upload metadata for the archive is not needed anymore since we created
   # one for each testcase.
+  logs.step(4, 'cleanup')
   upload_metadata.key.delete()
 
   shell.clear_testcase_directories()

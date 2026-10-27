@@ -688,6 +688,7 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   """Run corpus pruning."""
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
+  logs.step(2, 'fetch_build')
   environment.set_value('FUZZ_TARGET', context.fuzz_target.binary)
 
   if not build_manager.setup_build(
@@ -698,6 +699,7 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   pruner, runner = _get_pruner_and_runner(context)
   fuzzer_binary_name = os.path.basename(runner.target_path)
 
+  logs.step(3, 'sync_and_restore_quarantine')
   logs.info('Getting the initial corpus to process from GCS.')
   context.sync_to_disk()
   initial_corpus_size = shell.get_directory_file_count(
@@ -707,10 +709,12 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   context.restore_quarantined_units()
 
   # Shrink to a minimized corpus using corpus merge.
+  logs.step(4, 'merge_corpus')
   pruner_stats = pruner.run(context.initial_corpus_path,
                             context.minimized_corpus_path,
                             context.bad_units_path)
 
+  logs.step(5, 'sync_and_backup_corpus')
   logs.info('Syncing the minimized corpus back to GCS.')
   context.sync_to_gcs()
 
@@ -742,6 +746,7 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
 
   # Process bad units found during merge.
   # Mapping of crash state -> CrashInfo
+  logs.step(6, 'triage_bad_units')
   crashes = pruner.process_bad_units(context.bad_units_path,
                                      context.quarantine_corpus_path)
   if shell.get_directory_file_count(context.quarantine_corpus_path):
@@ -771,9 +776,11 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   coverage_info.quarantine_location = context.quarantine_corpus.get_gcs_url()
 
   # Calculate remaining time to use for shared corpus merging.
+  step = logs.step(7, 'cross_pollinate')
   time_remaining = _get_time_remaining(start_time)
   if time_remaining <= 0:
     logs.warning('Not enough time for shared corpus merging.')
+    step.fail('Not enough time for shared corpus merging')
     return None
 
   cross_pollinator = CrossPollinator(runner)
@@ -1064,6 +1071,7 @@ def _utask_main(uworker_input):
       data_types.FuzzTarget)
   revision = 0  # Trunk revision
 
+  logs.step(1, 'sync_bundle')
   if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
     logs.error(f'Failed to set up fuzzer {fuzz_target.engine}.')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
@@ -1181,6 +1189,7 @@ def _should_use_threaded_ops(fuzzer_name: str) -> bool:
 
 def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Runs preprocessing for corpus pruning task."""
+  step = logs.step(1, 'check_last_status')
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
 
   task_name = f'corpus_pruning_{fuzzer_name}_{job_type}'
@@ -1196,6 +1205,8 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   if not data_handler.update_task_status(task_name,
                                          data_types.TaskState.STARTED):
     logs.info('A previous corpus pruning task is still running, exiting.')
+    step.complete_stage(
+        'A previous corpus pruning task is still running', skip=True)
     return None
 
   setup_input = (
@@ -1209,6 +1220,7 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
   logs.info('checking last')
+  logs.step(2, 'sign_urls')
   if last_execution_failed:
     logs.info('last')
     # TODO(metzman): Is this too expensive to do in preprocess?
@@ -1290,7 +1302,9 @@ def _update_latest_backup(output):
 
 def _utask_postprocess(output):
   """Trusted: Handles errors and writes anything needed to the db."""
+  step = logs.step(1, 'save_coverage_and_crashes')
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:  # pylint: disable=no-member
+    step.complete_stage(output, skip=True)
     _ERROR_HANDLER.handle(output)
     return
   task_name = (f'corpus_pruning_{output.uworker_input.fuzzer_name}_'

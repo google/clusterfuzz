@@ -27,6 +27,7 @@ from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.metrics import events
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -288,6 +289,36 @@ class UworkerMainTest(unittest.TestCase):
     # a permission denied error if running in a untrusted worker).
     self.mock.emit.assert_not_called()
 
+  def test_uworker_main_emits_main_stage_summary(self):
+    """Tests that uworker_main_no_io emits stage_summary with stage 'main'."""
+    self.mock.is_running_on_swarming.return_value = False
+    uworker_input = uworker_msg_pb2.Input(
+        job_type='job_type-value',
+        uworker_env=self.UWORKER_ENV,
+    )
+
+    def fake_main(inp):
+      del inp
+      logs.step(1, 'setup_build')
+      return uworker_msg_pb2.Output()
+
+    self.module.utask_main.side_effect = fake_main
+
+    with mock.patch('clusterfuzz._internal.metrics.logs.info') as mock_info:
+      utasks.uworker_main_no_io(self.module, uworker_input.SerializeToString())
+
+    summaries = [
+        (call.args[0], call.kwargs['stage_summary'])
+        for call in mock_info.call_args_list
+        if 'stage_summary' in call.kwargs
+    ]
+    self.assertEqual(len(summaries), 1)
+    msg, summary = summaries[0]
+    self.assertEqual(msg, 'Stage main finished.')
+    self.assertEqual(summary['stage'], 'main')
+    self.assertEqual(summary['status'], 'ok')
+    self.assertEqual(summary['steps'][0]['name'], 'setup_build')
+
 
 class GetUtaskModuleTest(unittest.TestCase):
 
@@ -450,3 +481,42 @@ class TworkerPostprocessTest(unittest.TestCase):
 
     self.mock.emit.assert_any_call(task_finished_event)
     self.mock.emit.assert_any_call(task_post_event)
+
+  @parameterized.parameterized.expand([utasks.Mode.BATCH, utasks.Mode.SWARMING])
+  def test_emits_stage_summary(self, execution_mode: utasks.Mode):
+    """Tests that tworker_postprocess emits a structured stage_summary log."""
+    self.mock._get_execution_mode.return_value = execution_mode
+    download_url = 'https://uworker_output_download_url'
+    preprocess_start_timestamp = timestamp_pb2.Timestamp()
+    preprocess_start_timestamp.FromNanoseconds(time.time_ns())
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
+            fuzzer_name='fuzzer_test',
+            job_type='foo-job',
+            preprocess_start_time=preprocess_start_timestamp),
+    )
+    self.mock.download_and_deserialize_uworker_output.return_value = (
+        uworker_output)
+    module = mock.MagicMock(__name__='mock_task')
+
+    def fake_postprocess(output):
+      del output
+      logs.step(1, 'save_coverage_and_crashes')
+
+    module.utask_postprocess.side_effect = fake_postprocess
+    self.mock.get_utask_module.return_value = module
+    task_utils._FUZZER_BASED_TASKS.add('mock')
+
+    with mock.patch('clusterfuzz._internal.metrics.logs.info') as mock_info:
+      utasks.tworker_postprocess(download_url)
+
+    summaries = [
+        call.kwargs['stage_summary']
+        for call in mock_info.call_args_list
+        if 'stage_summary' in call.kwargs
+    ]
+    self.assertEqual(len(summaries), 1)
+    self.assertEqual(summaries[0]['stage'], 'postprocess')
+    self.assertEqual(summaries[0]['status'], 'ok')
+    self.assertEqual(summaries[0]['steps'][0]['name'],
+                     'save_coverage_and_crashes')
