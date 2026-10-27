@@ -112,6 +112,18 @@ JOB_RUN_SCHEMA = {
         'name': 'fuzzing_duration',
         'type': 'INTERVAL',
         'mode': 'NULLABLE'
+    }, {
+        'name':
+            'fuzz_task_steps_duration',
+        'type':
+            'RECORD',
+        'mode':
+            'NULLABLE',
+        'fields': [{
+            'name': 'bad_build_check',
+            'type': 'INTERVAL',
+            'mode': 'NULLABLE'
+        }]
     }]
 }
 
@@ -225,7 +237,8 @@ class BaseRun:
                         data.get('crashes'), data.get('testcases_generated'),
                         data.get('testcase_generation_duration'),
                         data.get('testcase_execution_duration'),
-                        data.get('fuzzing_duration'))
+                        data.get('fuzzing_duration'),
+                        data.get('fuzz_task_steps_duration'))
     except KeyError:
       return None
 
@@ -252,7 +265,8 @@ class JobRun(BaseRun):
                testcases_generated=None,
                testcase_generation_duration=None,
                testcase_execution_duration=None,
-               fuzzing_duration=None):
+               fuzzing_duration=None,
+               fuzz_task_steps_duration=None):
     super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'JobRun',
@@ -274,6 +288,11 @@ class JobRun(BaseRun):
     if fuzzing_duration is not None:
       self._stats_data['fuzzing_duration'] = _timedelta_to_duration_string(
           fuzzing_duration)
+    if fuzz_task_steps_duration:
+      self._stats_data['fuzz_task_steps_duration'] = {
+          name: _timedelta_to_duration_string(duration)
+          for name, duration in fuzz_task_steps_duration.items()
+      }
 
 
 class TestcaseRun(BaseRun):
