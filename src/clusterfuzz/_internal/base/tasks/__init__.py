@@ -742,6 +742,7 @@ def get_utask_main_queue_size(queue_name: str) -> int:
   application_id = utils.get_application_id()
   metric = 'pubsub.googleapis.com/subscription/num_undelivered_messages'
   query_filter = (f'metric.type="{metric}" AND '
+                  f'resource.labels.project_id="{application_id}" AND '
                   f'resource.labels.subscription_id="{queue_name}"')
 
   try:
