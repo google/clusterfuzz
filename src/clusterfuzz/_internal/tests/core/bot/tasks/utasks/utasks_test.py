@@ -27,6 +27,7 @@ from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.metrics import events
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -288,6 +289,31 @@ class UworkerMainTest(unittest.TestCase):
     # a permission denied error if running in a untrusted worker).
     self.mock.emit.assert_not_called()
 
+  def test_logs_stage_summary_with_benign_error_type(self):
+    """Tests that a benign utask_main error is a success with an error_type."""
+    self.mock.is_running_on_swarming.return_value = False
+    self.mock.download_and_deserialize_uworker_input.return_value = (
+        uworker_msg_pb2.Input(
+            job_type='job_type-value',
+            uworker_env=self.UWORKER_ENV,
+            uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
+            preprocess_start_time=timestamp_pb2.Timestamp(seconds=1),
+        ))
+    self.module.utask_main.return_value = uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH)
+
+    with mock.patch.object(logs, 'info') as mock_info:
+      utasks.uworker_main('http://input')
+
+    mock_info.assert_any_call(
+        'uworker_main summary.',
+        stage_summary={
+            'succeeded': True,
+            'error_condition': 'N/A',
+            'duration_s': mock.ANY,
+            'error_type': 'ANALYZE_NO_CRASH',
+        })
+
 
 class GetUtaskModuleTest(unittest.TestCase):
 
@@ -450,3 +476,29 @@ class TworkerPostprocessTest(unittest.TestCase):
 
     self.mock.emit.assert_any_call(task_finished_event)
     self.mock.emit.assert_any_call(task_post_event)
+
+  def test_logs_stage_summary_on_exception(self):
+    """Tests that an exception in postprocess is logged as a failure."""
+    self.mock._get_execution_mode.return_value = utasks.Mode.BATCH
+    self.mock.download_and_deserialize_uworker_output.return_value = (
+        uworker_msg_pb2.Output(
+            uworker_input=uworker_msg_pb2.Input(
+                fuzzer_name='fuzzer_test',
+                job_type='foo-job',
+                preprocess_start_time=timestamp_pb2.Timestamp(seconds=1))))
+    module = mock.MagicMock(__name__='mock_task')
+    module.utask_postprocess.side_effect = ValueError
+    self.mock.get_utask_module.return_value = module
+    task_utils._FUZZER_BASED_TASKS.add('mock')
+
+    with mock.patch.object(logs, 'info') as mock_info:
+      with self.assertRaises(ValueError):
+        utasks.tworker_postprocess('https://uworker_output_download_url')
+
+    mock_info.assert_any_call(
+        'postprocess summary.',
+        stage_summary={
+            'succeeded': False,
+            'error_condition': 'UNHANDLED_EXCEPTION',
+            'duration_s': mock.ANY,
+        })
