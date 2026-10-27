@@ -268,6 +268,19 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     monitoring_metrics.TASK_OUTCOME_COUNT_BY_ERROR_TYPE.increment(
         trimmed_labels)
 
+    # Unlike the metrics above, this record is per task (joinable on the
+    # `task_id` log context), so a single task's outcome can be inspected.
+    stage_summary = {
+        'succeeded': task_succeeded,
+        'error_condition': error_condition,
+        'duration_s': round(duration_secs, 3),
+    }
+    if self.utask_main_failure is not None:
+      # Also reported when `task_succeeded`, e.g. ANALYZE_NO_CRASH.
+      stage_summary['error_type'] = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
+          self.utask_main_failure)
+    logs.info(f'{self._subtask.value} summary.', stage_summary=stage_summary)
+
 
 def ensure_uworker_env_type_safety(uworker_env):
   """Converts all values in |uworker_env| to str types.
