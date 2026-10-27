@@ -361,6 +361,7 @@ def validate_regression_range(
 ) -> Optional[uworker_msg_pb2.Output]:  # pylint: disable=no-member
   """Ensure that we found the correct min revision by testing earlier ones.
   Returns a uworker_msg_pb2.Output in case of error or crash, None otherwise."""
+  logs.step('validate_range')
   earlier_revisions = revision_list[
       min_index - EARLIER_REVISIONS_TO_CONSIDER_FOR_VALIDATION:min_index]
   revision_count = min(len(earlier_revisions), REVISIONS_TO_TEST_FOR_VALIDATION)
@@ -399,6 +400,7 @@ def find_regression_range(
 
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
 
+  logs.step('setup_testcase')
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       uworker_input.setup_input)
@@ -408,6 +410,7 @@ def find_regression_range(
   # Help the type checker.
   assert isinstance(testcase_file_path, str)
 
+  logs.step('fetch_revisions')
   build_bucket_path = build_manager.get_primary_bucket_path()
   revision_list = build_manager.get_revisions_list(
       build_bucket_path,
@@ -458,6 +461,7 @@ def find_regression_range(
   known_crash_revision = max_revision
   max_revision = revision_list[max_index]  # Might be > `known_crash_revision`.
 
+  logs.step('reproduce_at_max')
   # Check invariant: max revision crashes.
   regression_task_output = uworker_msg_pb2.RegressionTaskOutput()  # pylint: disable=no-member
   crashes_in_max_revision, error = _testcase_reproduces_in_revision(
@@ -487,6 +491,7 @@ def find_regression_range(
   regression_task_output.is_testcase_reproducible = True
   regression_task_output.last_regression_max = max_revision
 
+  logs.step('find_min_revision')
   min_index = None
   if min_revision:
     min_index = revisions.find_min_revision_index(revision_list, min_revision)
@@ -511,6 +516,7 @@ def find_regression_range(
   assert isinstance(min_index, int)
   assert isinstance(max_index, int)
 
+  logs.step('bisect_range')
   while time.time() < deadline:
     min_revision = revision_list[min_index]
     max_revision = revision_list[max_index]
@@ -591,6 +597,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
   Runs on a trusted worker.
   """
+  logs.step('load_testcase')
   testcase = data_handler.get_testcase_by_id(testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     if testcase.regression:
@@ -608,6 +615,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
     data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
+    logs.step('prepare_env')
     setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
     task_input = uworker_msg_pb2.RegressionTaskInput(  # pylint: disable=no-member
@@ -729,6 +737,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
 
   Runs on a trusted worker.
   """
+  logs.step('update_testcase')
   testcase_id = output.uworker_input.testcase_id
   # Retrieve the testcase early to be used by logs context.
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -754,6 +763,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:  # pylint: disabl
       _ERROR_HANDLER.handle(output)
       return
 
+    logs.step('save_regression_range')
     save_regression_range(output)
 
 

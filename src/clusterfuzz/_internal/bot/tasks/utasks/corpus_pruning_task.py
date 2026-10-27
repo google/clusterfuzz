@@ -686,6 +686,7 @@ def _get_pruner_and_runner(context):
 
 def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   """Run corpus pruning."""
+  logs.step('setup_build')
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
   environment.set_value('FUZZ_TARGET', context.fuzz_target.binary)
@@ -698,6 +699,7 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   pruner, runner = _get_pruner_and_runner(context)
   fuzzer_binary_name = os.path.basename(runner.target_path)
 
+  logs.step('sync_and_restore_quarantine')
   logs.info('Getting the initial corpus to process from GCS.')
   context.sync_to_disk()
   initial_corpus_size = shell.get_directory_file_count(
@@ -706,11 +708,13 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   logs.info('Restoring a small batch of quarantined units back to corpus.')
   context.restore_quarantined_units()
 
+  logs.step('merge_corpus')
   # Shrink to a minimized corpus using corpus merge.
   pruner_stats = pruner.run(context.initial_corpus_path,
                             context.minimized_corpus_path,
                             context.bad_units_path)
 
+  logs.step('sync_and_backup_corpus')
   logs.info('Syncing the minimized corpus back to GCS.')
   context.sync_to_gcs()
 
@@ -740,6 +744,7 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   logs.info(f'Corpus pruned from {initial_corpus_size} '
             f'to {minimized_corpus_size_units} units.')
 
+  logs.step('triage_bad_units')
   # Process bad units found during merge.
   # Mapping of crash state -> CrashInfo
   crashes = pruner.process_bad_units(context.bad_units_path,
@@ -770,6 +775,7 @@ def do_corpus_pruning(context, revision) -> CorpusPruningResult:
   coverage_info.corpus_location = context.corpus.get_gcs_url()
   coverage_info.quarantine_location = context.quarantine_corpus.get_gcs_url()
 
+  logs.step('cross_pollinate')
   # Calculate remaining time to use for shared corpus merging.
   time_remaining = _get_time_remaining(start_time)
   if time_remaining <= 0:
@@ -1064,6 +1070,7 @@ def _utask_main(uworker_input):
       data_types.FuzzTarget)
   revision = 0  # Trunk revision
 
+  logs.step('sync_bundle')
   if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
     logs.error(f'Failed to set up fuzzer {fuzz_target.engine}.')
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
@@ -1181,6 +1188,7 @@ def _should_use_threaded_ops(fuzzer_name: str) -> bool:
 
 def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Runs preprocessing for corpus pruning task."""
+  logs.step('check_last_status')
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
 
   task_name = f'corpus_pruning_{fuzzer_name}_{job_type}'
@@ -1210,12 +1218,14 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
   # to minimize it.
   logs.info('checking last')
   if last_execution_failed:
+    logs.step('limit_corpus_size')
     logs.info('last')
     # TODO(metzman): Is this too expensive to do in preprocess?
     corpus_urls = corpus_manager.get_pruning_corpora_urls(
         fuzz_target.engine, fuzz_target.project_qualified_name())
     asyncio.run(_limit_corpus_sizes(corpus_urls))
 
+  logs.step('sign_urls')
   corpus, quarantine_corpus = corpus_manager.get_corpuses_for_pruning(
       fuzz_target.engine, fuzz_target.project_qualified_name())
 

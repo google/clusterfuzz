@@ -116,6 +116,7 @@ def utask_main(uworker_input):
       # TODO(metzman): Remove this when we use batch.
       testcase.put = lambda: None
 
+    logs.step('setup_build')
     # Setup testcase and its dependencies.
     _, testcase_file_path, error = setup.setup_testcase(
         testcase, uworker_input.job_type, uworker_input.setup_input)
@@ -139,6 +140,7 @@ def utask_main(uworker_input):
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP)  # pylint: disable=no-member
 
+    logs.step('test_for_crash')
     # Disable gestures if we're running on a different platform from that of
     # the original test case.
     use_gestures = testcase.platform == environment.platform().lower()
@@ -164,6 +166,7 @@ def utask_main(uworker_input):
       return uworker_msg_pb2.Output(  # pylint: disable=no-member
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
+    logs.step('check_reproducibility')
     if result.is_crash() and not result.should_ignore():
       crash_state = result.get_state()
       crash_type = result.get_type()
@@ -196,6 +199,7 @@ def utask_main(uworker_input):
       security_flag = False
       crash_stacktrace_output = 'No crash occurred.'
 
+    logs.step('package_output')
     # Regular case of variant analysis.
     variant_task_output = uworker_msg_pb2.VariantTaskOutput()  # pylint: disable=no-member
     variant_task_output.status = status

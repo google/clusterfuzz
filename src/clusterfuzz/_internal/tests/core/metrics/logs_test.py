@@ -1563,3 +1563,36 @@ class TestLogContextSingleton(unittest.TestCase):
 
     # Number of increments plus the common context.
     self.assertEqual(len(run_bot_logs.log_contexts.contexts), num_it + 1)
+
+
+class StepRecorderTest(unittest.TestCase):
+  """Tests for step() and StepRecorder."""
+
+  def test_steps_last_until_next_step_or_end(self):
+    """Tests that each step ends when the next starts, the last one at end."""
+    with mock.patch.object(
+        logs.time, 'time_ns', side_effect=[1 * 10**9, 3 * 10**9]):
+      with logs.StepRecorder() as recorder:
+        logs.step('setup')
+        logs.step('run')
+
+    self.assertEqual(
+        recorder.steps(end_time_ns=7 * 10**9), [
+            {
+                'name': 'setup',
+                'duration_s': 2.0
+            },
+            {
+                'name': 'run',
+                'duration_s': 4.0
+            },
+        ])
+
+  def test_steps_outside_recorder_are_ignored(self):
+    """Tests that step() is a no-op unless a recorder is active."""
+    logs.step('before')
+    with logs.StepRecorder() as recorder:
+      pass
+    logs.step('after')
+
+    self.assertEqual(recorder.steps(end_time_ns=0), [])
