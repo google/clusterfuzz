@@ -19,6 +19,7 @@
 import bisect
 import collections
 import contextlib
+import datetime
 import functools
 import itertools
 import re
@@ -424,6 +425,12 @@ class Metric:
 
     return time_series
 
+  def has_field(self, field):
+    for f in self.field_spec:
+      if f.value_type == field.value_type and f.name == field.name:
+        return True
+    return False
+
 
 class _CounterMetric(Metric):
   """Counter metric."""
@@ -656,6 +663,72 @@ class TimeMetricTracker:
 
   def fail(self):
     self.failed = True
+
+
+class TimeStatTrackerFailureException(Exception):
+  pass
+
+
+class TimeStatTracker:
+  """Reusable context manager to keep track of time stats.
+
+  Time measurements are emitted to the supplied Cloud Monitoring metric and
+  are saved as datetime.timedelta in the |self.stats| dictionary as well.
+  """
+
+  def __init__(self, metric: Metric | None = None, common_labels=None):
+    """Initializes the tracker.
+
+    Args:
+      metric: The Cloud Monitoring metric to submit measurements to, if not
+      None. The metric must contain the fields "step" and "success", which
+      are automatically filled by the tracker upon emission.
+      common_labels: The dictionary of labels to be submitted to the metric.
+        The "step" and "success" labels are ignored if present.
+    """
+    self.stats: dict[str, datetime.timedelta] = {}
+    self.metric = metric
+    self.common_labels = dict(common_labels) if common_labels else {}
+    if metric:
+      if not metric.has_field(StringField('step')):
+        logs.error('Missing "step" string field in the metric.')
+        self.metric = None
+      if not metric.has_field(BooleanField('success')):
+        logs.error('Missing "success" boolean field in the metric.')
+        self.metric = None
+    if 'step' in self.common_labels or 'success' in self.common_labels:
+      logs.warning('Labels "step" or "success" are in common_labels '
+                   'and will be overwritten.')
+
+  @contextlib.contextmanager
+  def track(self, name: str):
+    """Tracks the stat named |name|.
+
+    Any raised exception is treated as a failure and re-raised, except for
+    TimeStatTrackerFailureException, which marks the step as failed without
+    propagating.
+    """
+    start = time.time()
+    success = True
+    try:
+      yield None
+    except TimeStatTrackerFailureException:
+      success = False
+    except:
+      success = False
+      raise
+    finally:
+      if name in self.stats:
+        logs.warning(f'Overwriting already tracked stat "{name}".')
+      duration = time.time() - start
+      self.stats[name] = datetime.timedelta(seconds=duration)
+      if self.metric:
+        self.metric.insert(
+            duration,
+            labels={
+                **self.common_labels, 'step': name,
+                'success': success
+            })
 
 
 # Global state.
