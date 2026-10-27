@@ -51,6 +51,7 @@ def handle_build_setup_error(output):
 
 def _utask_preprocess(testcase_id, job_type, uworker_env):
   """Run preprocessing for symbolize task."""
+  logs.step('load_testcase')
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
@@ -60,6 +61,7 @@ def _utask_preprocess(testcase_id, job_type, uworker_env):
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
+  logs.step('prepare_env')
   # Setup testcase and its dependencies.
   setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
@@ -91,6 +93,7 @@ def _utask_main(uworker_input):
   job_type = uworker_input.job_type
   setup_input = uworker_input.setup_input
 
+  logs.step('setup_release_build')
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       setup_input)
   if error:
@@ -126,6 +129,7 @@ def _utask_main(uworker_input):
         error_message='Build setup failed',
         error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)  # pylint: disable=no-member
 
+  logs.step('search_asan_redzone')
   # ASAN tool settings (if the tool is used).
   # See if we can get better stacks with higher redzone sizes.
   # A UAF might actually turn out to be OOB read/write with a bigger redzone.
@@ -181,6 +185,7 @@ def _utask_main(uworker_input):
 
       redzone /= 2
 
+  logs.step('setup_symbolized_build')
   # We no longer need this build, delete it to save some disk space. We will
   # download a symbolized release build to perform the symbolization.
   build.delete()
@@ -194,6 +199,7 @@ def _utask_main(uworker_input):
         error_message='Build setup failed',
         error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)  # pylint: disable=no-member
 
+  logs.step('reproduce_symbolized')
   # Increase malloc_context_size to get all stack frames. Default is 30.
   environment.reset_current_memory_tool_options(
       redzone_size=sym_redzone,
@@ -210,6 +216,7 @@ def _utask_main(uworker_input):
       get_symbolized_stacktraces(testcase_file_path, testcase,
                                  old_crash_stacktrace, sym_crash_state))
 
+  logs.step('package_output')
   symbolize_task_output = uworker_msg_pb2.SymbolizeTaskOutput(  # pylint: disable=no-member
       crash_type=testcase.crash_type,
       crash_address=sym_crash_address,

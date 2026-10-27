@@ -14,6 +14,7 @@
 """Logging functions."""
 
 import contextlib
+import contextvars
 import dataclasses
 import datetime
 import enum
@@ -1108,6 +1109,47 @@ def task_stage_context(stage: Stage):
       raise e
     finally:
       log_contexts.delete_metadata('stage')
+
+
+_active_step_recorder: contextvars.ContextVar['StepRecorder | None'] = (
+    contextvars.ContextVar('active_step_recorder', default=None))
+
+
+def step(name: str) -> None:
+  """Marks the start of step `name` of the current task stage, if recorded.
+
+  A step lasts until the next one starts or the stage ends, so a stage that
+  fails or returns early ends in the step responsible.
+  """
+  recorder = _active_step_recorder.get()
+  if recorder is not None:
+    recorder.mark(name)
+
+
+class StepRecorder(contextlib.AbstractContextManager):
+  """Records the `step()`s marked while active."""
+
+  def __init__(self):
+    self._starts: list[tuple[str, int]] = []
+    self._token = None
+
+  def __enter__(self):
+    self._token = _active_step_recorder.set(self)
+    return self
+
+  def __exit__(self, *exc_info):
+    _active_step_recorder.reset(self._token)
+
+  def mark(self, name: str) -> None:
+    self._starts.append((name, time.time_ns()))
+
+  def steps(self, end_time_ns: int) -> list[dict[str, Any]]:
+    """Returns the recorded steps with their durations."""
+    ends = [start for _, start in self._starts[1:]] + [end_time_ns]
+    return [{
+        'name': name,
+        'duration_s': round((end - start) / 10**9, 3)
+    } for (name, start), end in zip(self._starts, ends)]
 
 
 @contextlib.contextmanager

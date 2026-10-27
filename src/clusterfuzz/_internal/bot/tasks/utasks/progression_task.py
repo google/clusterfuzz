@@ -258,6 +258,7 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
                                    testcase_file_path: str,
                                    uworker_input: uworker_msg_pb2.Input):  # pylint: disable=no-member
   """Simplified fixed check for test cases using custom binaries."""
+  logs.step('test_at_trunk')
   build_setup_result = build_manager.setup_build()
   # 'APP_REVISION' is set during setup_build().
   revision = environment.get_value('APP_REVISION')
@@ -450,6 +451,7 @@ def _set_regression_testcase_upload_url(
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for progression task."""
+  logs.step('load_testcase')
   testcase = data_handler.get_testcase_by_id(testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     if not testcase:
@@ -463,6 +465,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     # triage cron.
     testcase.set_metadata('progression_pending', True)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+    logs.step('prepare_env')
     blob_name, blob_upload_url = blobs.get_blob_signed_upload_url()
     progression_input = uworker_msg_pb2.ProgressionTaskInput(  # pylint: disable=no-member
         custom_binary=build_manager.is_custom_binary(),
@@ -495,6 +498,7 @@ def find_fixed_range(uworker_input):
   setup_input = uworker_input.setup_input
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
 
+  logs.step('setup_testcase')
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       setup_input)
   if error:
@@ -505,6 +509,7 @@ def find_fixed_range(uworker_input):
     return _check_fixed_for_custom_binary(testcase, testcase_file_path,
                                           uworker_input)
 
+  logs.step('fetch_revisions')
   build_bucket_path = build_manager.get_primary_bucket_path()
   bad_revisions = uworker_input.progression_task_input.bad_revisions
 
@@ -563,6 +568,7 @@ def find_fixed_range(uworker_input):
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)  # pylint: disable=no-member
 
+  logs.step('test_at_trunk')
   # Check to see if this testcase is still crashing now. If it is, then just
   # bail out.
   result, error = _testcase_reproduces_in_revision(
@@ -601,6 +607,7 @@ def find_fixed_range(uworker_input):
         progression_task_output=progression_task_output,
         issue_metadata=json.dumps(issue_metadata))
 
+  logs.step('bisect_fixed_range')
   # Verify that we do crash in the min revision. This is assumed to be true
   # while we are doing the bisect.
   result, error = _testcase_reproduces_in_revision(
@@ -629,6 +636,7 @@ def find_fixed_range(uworker_input):
     # If the min and max revisions are one apart this is as much as we can
     # narrow the range.
     if max_index - min_index == 1:
+      logs.step('package_output')
       testcase.open = False
       _store_testcase_for_regression_testing(
           testcase, testcase_file_path, uworker_input.progression_task_input)
@@ -730,6 +738,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
+  logs.step('update_testcase')
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
     _maybe_clear_progression_last_min_max_metadata(testcase, output)
@@ -752,6 +761,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-mem
     # Both regression and fixed ranges are requested once. Regression is also
     # requested here as the bisection service may require details that
     # are not yet available (e.g. issue ID) at the time regress_task completes.
+    logs.step('save_fixed_or_open')
     bisection.request_bisection(testcase)
 
     if task_output and task_output.crash_on_latest:

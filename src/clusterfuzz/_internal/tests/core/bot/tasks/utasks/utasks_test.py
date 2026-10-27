@@ -312,6 +312,55 @@ class UworkerMainTest(unittest.TestCase):
             'error_condition': 'N/A',
             'duration_s': mock.ANY,
             'error_type': 'ANALYZE_NO_CRASH',
+            'steps': [{
+                'name': 'upload_output',
+                'duration_s': mock.ANY
+            }],
+        })
+
+  def test_logs_stage_summary_with_steps(self):
+    """Tests that steps marked by utask_main and the framework are logged."""
+    self.mock.is_running_on_swarming.return_value = False
+    self.mock.download_and_deserialize_uworker_input.return_value = (
+        uworker_msg_pb2.Input(
+            job_type='job_type-value',
+            uworker_env=self.UWORKER_ENV,
+            uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
+            preprocess_start_time=timestamp_pb2.Timestamp(seconds=1),
+        ))
+
+    def utask_main(uworker_input):
+      del uworker_input
+      logs.step('setup_build')
+      logs.step('test_for_crash')
+      return uworker_msg_pb2.Output()
+
+    self.module.utask_main.side_effect = utask_main
+
+    with mock.patch.object(logs, 'info') as mock_info:
+      utasks.uworker_main('http://input')
+
+    steps = [
+        {
+            'name': 'setup_build',
+            'duration_s': mock.ANY
+        },
+        {
+            'name': 'test_for_crash',
+            'duration_s': mock.ANY
+        },
+        {
+            'name': 'upload_output',
+            'duration_s': mock.ANY
+        },
+    ]
+    mock_info.assert_any_call(
+        'uworker_main summary.',
+        stage_summary={
+            'succeeded': True,
+            'error_condition': 'N/A',
+            'duration_s': mock.ANY,
+            'steps': steps,
         })
 
 

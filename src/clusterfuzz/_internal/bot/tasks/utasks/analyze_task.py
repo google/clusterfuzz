@@ -304,6 +304,7 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag,
 
 def _utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
+  logs.step('load_testcase')
   # Get the testcase from the database and mark it as started.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -326,6 +327,7 @@ def _utask_preprocess(testcase_id, job_type, uworker_env):
       int(testcase_id),
       testcase_utils.TESTCASE_TRIAGE_DURATION_ANALYZE_LAUNCHED_STEP)
 
+  logs.step('prepare_env')
   initialize_testcase_for_main(testcase, job_type)
 
   setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
@@ -380,6 +382,7 @@ def _build_task_output(
 
 def _utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
+  logs.step('setup_build')
   testcase_upload_metadata = uworker_io.entity_from_protobuf(
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
@@ -405,6 +408,7 @@ def _utask_main(uworker_input):
 
   analyze_task_output = _build_task_output(testcase)
 
+  logs.step('test_for_crash')
   # Initialize some variables.
   test_timeout = environment.get_value('TEST_TIMEOUT')
   result, http_flag = test_for_crash_with_retries(
@@ -456,6 +460,7 @@ def _utask_main(uworker_input):
         analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.ANALYZE_CLOSE_INVALID_UPLOADED)  # pylint: disable=no-member
 
+  logs.step('check_reproducibility')
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
 
@@ -470,6 +475,7 @@ def _utask_main(uworker_input):
           'platform': environment.platform(),
       })
 
+  logs.step('package_output')
   fuzz_target_metadata = engine_common.get_fuzz_target_issue_metadata(
       fuzz_target)
 
@@ -586,6 +592,7 @@ def _update_testcase(output):
 def _utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
+  logs.step('update_testcase')
   testcase_utils.emit_testcase_triage_duration_metric(
       int(output.uworker_input.testcase_id),
       testcase_utils.TESTCASE_TRIAGE_DURATION_ANALYZE_COMPLETED_STEP)
@@ -645,6 +652,7 @@ def _utask_postprocess(output):
   testcase_upload_metadata.put()
 
   _add_default_issue_metadata(testcase, json.loads(output.issue_metadata))
+  logs.step('create_post_analyze_tasks')
   logs.info('Creating post-analyze tasks.')
 
   # Create tasks to

@@ -115,6 +115,11 @@ class _MetricRecorder(contextlib.AbstractContextManager):
     self.post_utask_main_failure = None
     # Whether preprocess returned the uworker input.
     self.preprocess_returned: bool | None = None
+    self._step_recorder = logs.StepRecorder()
+
+  def __enter__(self):
+    self._step_recorder.__enter__()
+    return self
 
   def set_task_details(
       self,
@@ -222,12 +227,12 @@ class _MetricRecorder(contextlib.AbstractContextManager):
 
   def __exit__(self, _exc_type, _exc_value, _traceback):
     # Ignore exception details, let Python continue unwinding the stack.
+    now = time.time_ns()
+    self._step_recorder.__exit__(_exc_type, _exc_value, _traceback)
 
     if self._labels is None:
       # `set_task_details()` was not called, we are missing information.
       return
-
-    now = time.time_ns()
 
     duration_secs = (now - self.start_time_ns) / 10**9
     monitoring_metrics.UTASK_SUBTASK_DURATION_SECS.add(duration_secs,
@@ -279,6 +284,9 @@ class _MetricRecorder(contextlib.AbstractContextManager):
       # Also reported when `task_succeeded`, e.g. ANALYZE_NO_CRASH.
       stage_summary['error_type'] = uworker_msg_pb2.ErrorType.Name(  # pylint: disable=no-member
           self.utask_main_failure)
+    steps = self._step_recorder.steps(now)
+    if steps:
+      stage_summary['steps'] = steps
     logs.info(f'{self._subtask.value} summary.', stage_summary=stage_summary)
 
 
@@ -441,6 +449,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
     # to pass to the batch job and for the local executor to download locally,
     # and the uworker output download URL for the local executor to download
     # the output after local execution of `utask_main`.
+    logs.step('upload_input')
     return uworker_io.serialize_and_upload_uworker_input(uworker_input)
 
 
@@ -489,6 +498,7 @@ def uworker_main(input_download_url) -> None:
     uworker_output.bot_name = environment.get_value('BOT_NAME', '')
     uworker_output.platform_id = environment.get_platform_id()
 
+    logs.step('upload_output')
     uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                    uworker_output_upload_url)
     logs.info('Finished uworker_main.')
