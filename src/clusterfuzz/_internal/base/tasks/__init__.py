@@ -461,8 +461,10 @@ def get_task():
       for p in enable_fuzz_flag.string_value.split(',')
       if p.strip()
   ]
-  if (not enable_fuzz_flag.enabled or
-      environment.platform().lower() not in allowed_platforms):
+  platform = environment.platform().lower()
+  base_platform = environment.base_platform(platform)
+  if (not enable_fuzz_flag.enabled or (platform not in allowed_platforms and
+                                       base_platform not in allowed_platforms)):
     logs.warning('Fuzzing is disabled for long-lived bots.')
     return None
 
