@@ -20,6 +20,7 @@ from unittest import mock
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base.tasks import task_rate_limiting
 from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -192,6 +193,20 @@ class RunCommandTest(unittest.TestCase):
         'status': 'finished',
         'time': test_utils.CURRENT_TIME,
     }, task_status.to_dict())
+
+  def test_run_command_invalid_fuzzer(self):
+    """Test that run_command returns normally (so the task is not retried) but
+    records a failure when the testcase's fuzzer no longer exists."""
+    self.mock.progression_utask_preprocess.side_effect = (
+        errors.InvalidFuzzerError())
+    with mock.patch.object(task_rate_limiting.TaskRateLimiter,
+                           'record_task') as record_task:
+      commands.run_command('progression', '123', 'job', {})
+
+    record_task.assert_called_once_with(success=False)
+    task_status_entities = list(data_types.TaskStatus.query())
+    self.assertEqual(1, len(task_status_entities))
+    self.assertEqual('finished', task_status_entities[0].status)
 
   def test_run_command_already_running(self):
     """Test run_command with another instance currently running."""
