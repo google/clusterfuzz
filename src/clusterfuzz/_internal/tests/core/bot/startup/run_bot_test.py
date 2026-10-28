@@ -214,6 +214,16 @@ class MainTest(unittest.TestCase):
     self.assertEqual(0, run_bot.main())
     self.assertEqual(1, self.mock.task_loop.call_count)
 
+  def test_uworker_termination_list_error(self):
+    """Test that a uworker still exits zero on errors in the termination
+    list."""
+    os.environ['UWORKER'] = 'True'
+    self.mock.task_loop.return_value = ('MemoryError: out of memory', False,
+                                        None)
+
+    self.assertEqual(0, run_bot.main())
+    self.assertEqual(1, self.mock.task_loop.call_count)
+
   def test_non_uworker_retries_after_error(self):
     """Test that other bots rerun the task loop after an error."""
     self.mock.task_loop.side_effect = [

@@ -303,8 +303,11 @@ def update_task_enabled() -> bool:
 
 
 def main():
-  """Prepare the configuration options and start requesting tasks. Returns the
-  process exit code."""
+  """Prepare the configuration options and start requesting tasks.
+
+  Returns:
+    The process exit code.
+  """
   logs.configure('run_bot')
 
   root_directory = environment.get_value('ROOT_DIR')
@@ -357,13 +360,6 @@ def main():
         'Task exited with exception (payload="%s").' % task_payload,
         error_stacktrace=error_stacktrace)
 
-    if environment.is_uworker():
-      # A uworker's input never changes, so rerunning it here would likely fail
-      # the same way until Batch kills the VM. Fail instead, leaving retries to
-      # the remote executor's retry policy.
-      logs.info('Not retrying uworker task in place.')
-      return 1
-
     should_hang = errors.error_in_list(error_stacktrace,
                                        errors.BOT_ERROR_HANG_LIST)
     if should_hang:
@@ -371,6 +367,13 @@ def main():
       while True:
         # Sleep to avoid consuming 100% of CPU.
         time.sleep(60)
+
+    if environment.is_uworker():
+      # A uworker's input never changes, so rerunning it here would likely fail
+      # the same way until the remote executor times it out. Fail instead,
+      # leaving retries to the remote executor's retry policy.
+      logs.info('Not retrying uworker task in place.')
+      return 1
 
     # See if our run timed out, if yes bail out.
     if data_handler.bot_run_timed_out():
