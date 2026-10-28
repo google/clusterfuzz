@@ -1648,6 +1648,21 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(1, dist.count)
     self.assertGreater(dist.sum, 0)
 
+    # Blackbox crashes are parsed once, after all testcases have run.
+    self.assertGreater(
+        actual.fuzz_task_output.steps_duration['parse_crash']
+        .ToTimedelta().total_seconds(), 0)
+    parse_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'parse_crash',
+        'success': True,
+    })
+    self.assertEqual(1, parse_dist.count)
+    self.assertGreater(parse_dist.sum, 0)
+
   @mock.patch(
       'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
   )
@@ -1769,6 +1784,45 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     })
     self.assertEqual(1, dist.count)
     self.assertGreater(dist.sum, 0)
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
+  )
+  def test_utask_main_blackbox_fuzzer_no_crashes(
+      self, mock_generate_blackbox_testcases):
+    """Test that crash parsing is tracked even when there are no crashes."""
+    self._setup_utask_env()
+    self.mock.is_crash.side_effect = [False, False, False]
+    fuzzer = self._create_test_fuzzer()
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    setup_input = uworker_msg_pb2.SetupInput(
+        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer.name,
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input,
+        setup_input=setup_input,
+        uworker_env={'FUZZ_TEST_TIMEOUT': '10'})
+
+    mock_generate_blackbox_testcases.return_value = (
+        fuzz_task.GenerateBlackboxTestcasesResult(
+            True, ['/tests/0', '/tests/1', '/tests/2'],
+            {'fuzzer_binary_name': fuzzer.name}))
+
+    actual = fuzz_task.utask_main(uworker_input)
+
+    self.assertIn('parse_crash', actual.fuzz_task_output.steps_duration)
+    parse_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'parse_crash',
+        'success': True,
+    })
+    self.assertEqual(1, parse_dist.count)
 
 
 class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
@@ -2251,6 +2305,77 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
       }, testcase_run)
       # TODO(metzman): We need a test for fuzzing end to end with
       # preprocess/main/postprocess.
+
+  def _get_parse_crash_dist(self, success):
+    return monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': 'libFuzzer_fuzz',
+        'job': 'libfuzzer_asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'parse_crash',
+        'success': success,
+    })
+
+  @mock.patch('clusterfuzz._internal.metrics.monitor.time')
+  @mock.patch(
+      'clusterfuzz._internal.crash_analysis.crash_result.CrashResult.get_stacktrace'
+  )
+  def test_parse_crash_accumulated_over_rounds(self, mock_get_stacktrace,
+                                               mock_monitor_time):
+    """Test that parse_crash is tracked once per round and accumulated."""
+    mock_time = helpers.MockTime(start_time=100.0)
+    mock_monitor_time.time.side_effect = mock_time.time
+
+    def get_stacktrace(*_):
+      mock_time.advance(0.75)
+      return 'stack'
+
+    mock_get_stacktrace.side_effect = get_stacktrace
+    session = self._create_engine_fuzzing_session()
+    engine_impl = self._create_engine_impl()
+
+    session.do_engine_fuzzing(engine_impl)
+
+    # MAX_TESTCASES is 2, so there are two rounds of 0.75 seconds each.
+    self.assertEqual(2, mock_get_stacktrace.call_count)
+    self.assertEqual(
+        datetime.timedelta(seconds=1.5),
+        session.steps_time_tracker.stats['parse_crash'])
+    dist = self._get_parse_crash_dist(success=True)
+    self.assertEqual(2, dist.count)
+    self.assertAlmostEqual(1.5, dist.sum)
+    self.assertEqual(0, self._get_parse_crash_dist(success=False).count)
+
+  def test_parse_crash_no_rounds(self):
+    """Test that parse_crash is not tracked when there are no fuzzing rounds."""
+    os.environ['MAX_TESTCASES'] = '0'
+    session = self._create_engine_fuzzing_session()
+    engine_impl = mock.Mock()
+    engine_impl.name = 'libFuzzer'
+
+    crashes, _ = session.do_engine_fuzzing(engine_impl)
+
+    self.assertEqual([], crashes)
+    engine_impl.fuzz.assert_not_called()
+    self.assertNotIn('parse_crash', session.steps_time_tracker.stats)
+    self.assertEqual(0, self._get_parse_crash_dist(success=True).count)
+
+  @mock.patch(
+      'clusterfuzz._internal.crash_analysis.crash_result.CrashResult.get_stacktrace'
+  )
+  def test_parse_crash_exception(self, mock_get_stacktrace):
+    """Test that an exception in crash parsing is tracked as a failure."""
+    mock_get_stacktrace.side_effect = RuntimeError('parse failed')
+    session = self._create_engine_fuzzing_session()
+    engine_impl = self._create_engine_impl()
+
+    with self.assertRaises(RuntimeError):
+      session.do_engine_fuzzing(engine_impl)
+
+    self.assertIn('parse_crash', session.steps_time_tracker.stats)
+    # The task stops at the first failing round.
+    self.assertEqual(1, self._get_parse_crash_dist(success=False).count)
+    self.assertEqual(0, self._get_parse_crash_dist(success=True).count)
 
 
 class UntrustedRunEngineFuzzerTest(
