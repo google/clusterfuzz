@@ -172,6 +172,59 @@ class TaskLoopTest(unittest.TestCase):
     self.assertEqual(0, self.mock.process_command.call_count)
 
 
+class MainTest(unittest.TestCase):
+  """Test main."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.dates.initialize_timezone_from_environment',
+        'clusterfuzz._internal.bot.fuzzers.init.run',
+        'clusterfuzz._internal.datastore.data_handler.bot_run_timed_out',
+        'clusterfuzz._internal.metrics.logs.configure',
+        'clusterfuzz._internal.metrics.profiler.start_if_needed',
+        'clusterfuzz._internal.system.environment.is_trusted_host',
+        'clusterfuzz._internal.system.environment.is_untrusted_worker',
+        'clusterfuzz._internal.system.environment.set_bot_environment',
+        'python.bot.startup.run_bot.task_loop',
+    ])
+    os.environ['ROOT_DIR'] = '/root'
+    self.mock.start_if_needed.return_value = True
+    self.mock.is_trusted_host.return_value = False
+    self.mock.is_untrusted_worker.return_value = False
+    self.mock.bot_run_timed_out.return_value = False
+
+  def test_uworker_fails_without_retrying_in_place(self):
+    """Test that a uworker exits non-zero after an error instead of rerunning
+    its input."""
+    os.environ['UWORKER'] = 'True'
+    self.mock.task_loop.side_effect = [
+        ('RuntimeError: 404', False, None),
+        ('', True, None),
+    ]
+
+    self.assertEqual(1, run_bot.main())
+    self.assertEqual(1, self.mock.task_loop.call_count)
+
+  def test_uworker_clean_exit(self):
+    """Test that a uworker exits zero after a clean exit."""
+    os.environ['UWORKER'] = 'True'
+    self.mock.task_loop.return_value = ('', True, None)
+
+    self.assertEqual(0, run_bot.main())
+    self.assertEqual(1, self.mock.task_loop.call_count)
+
+  def test_non_uworker_retries_after_error(self):
+    """Test that other bots rerun the task loop after an error."""
+    self.mock.task_loop.side_effect = [
+        ('RuntimeError: 404', False, 'payload'),
+        ('', True, None),
+    ]
+
+    self.assertEqual(0, run_bot.main())
+    self.assertEqual(2, self.mock.task_loop.call_count)
+
+
 class UpdateTaskEnabledTest(unittest.TestCase):
   """Test update_task_enabled check"""
 

@@ -303,7 +303,8 @@ def update_task_enabled() -> bool:
 
 
 def main():
-  """Prepare the configuration options and start requesting tasks."""
+  """Prepare the configuration options and start requesting tasks. Returns the
+  process exit code."""
   logs.configure('run_bot')
 
   root_directory = environment.get_value('ROOT_DIR')
@@ -311,7 +312,7 @@ def main():
     print('Please set ROOT_DIR environment variable to the root of the source '
           'checkout before running. Exiting.')
     print('For an example, check init.bash in the local directory.')
-    return
+    return 0
 
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
@@ -350,11 +351,18 @@ def main():
                                            errors.BOT_ERROR_TERMINATION_LIST))
     if should_terminate:
       logs.info('Not retrying.')
-      return
+      return 0
 
     logs.error(
         'Task exited with exception (payload="%s").' % task_payload,
         error_stacktrace=error_stacktrace)
+
+    if environment.is_uworker():
+      # A uworker's input never changes, so rerunning it here would likely fail
+      # the same way until Batch kills the VM. Fail instead, leaving retries to
+      # the remote executor's retry policy.
+      logs.info('Not retrying uworker task in place.')
+      return 1
 
     should_hang = errors.error_in_list(error_stacktrace,
                                        errors.BOT_ERROR_HANG_LIST)
@@ -366,7 +374,7 @@ def main():
 
     # See if our run timed out, if yes bail out.
     if data_handler.bot_run_timed_out():
-      return
+      return 0
 
 
 if __name__ == '__main__':
@@ -374,8 +382,7 @@ if __name__ == '__main__':
 
   try:
     with monitor.wrap_with_monitoring(), ndb_init.context():
-      main()
-    exit_code = 0
+      exit_code = main()
   except Exception:
     traceback.print_exc()
     sys.stdout.flush()
