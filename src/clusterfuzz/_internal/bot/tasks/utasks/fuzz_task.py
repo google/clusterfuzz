@@ -2271,25 +2271,27 @@ class FuzzingSession:
     # Process and save crashes to datastore.
     bot_name = environment.get_value('BOT_NAME')
     project_name = environment.get_value('PROJECT_NAME')
-    crash_groups = process_crashes(
-        crashes=crashes,
-        context=Context(
-            project_name=project_name,
-            bot_name=bot_name,
-            job_type=self.job_type,
-            fuzz_target=self.fuzz_target,
-            redzone=self.redzone,
-            disable_ubsan=self.disable_ubsan,
-            platform_id=environment.get_platform_id(),
-            crash_revision=crash_revision,
-            fuzzer_name=self.fuzzer_name,
-            window_argument=self.window_argument,
-            fuzzer_metadata=fuzzer_metadata,
-            testcases_metadata=testcases_metadata,
-            timeout_multiplier=self.timeout_multiplier,
-            test_timeout=self.test_timeout,
-            data_directory=self.data_directory),
-        upload_urls=list(self.uworker_input.fuzz_task_input.crash_upload_urls))
+    with self.tracker.track('process_crash'):
+      crash_groups = process_crashes(
+          crashes=crashes,
+          context=Context(
+              project_name=project_name,
+              bot_name=bot_name,
+              job_type=self.job_type,
+              fuzz_target=self.fuzz_target,
+              redzone=self.redzone,
+              disable_ubsan=self.disable_ubsan,
+              platform_id=environment.get_platform_id(),
+              crash_revision=crash_revision,
+              fuzzer_name=self.fuzzer_name,
+              window_argument=self.window_argument,
+              fuzzer_metadata=fuzzer_metadata,
+              testcases_metadata=testcases_metadata,
+              timeout_multiplier=self.timeout_multiplier,
+              test_timeout=self.test_timeout,
+              data_directory=self.data_directory),
+          upload_urls=list(
+              self.uworker_input.fuzz_task_input.crash_upload_urls))
 
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's

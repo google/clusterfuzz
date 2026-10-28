@@ -1388,6 +1388,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.get_queue.return_value = queue.Queue()
     self.mock.get_process.return_value = threading.Thread
 
+    monitor.metrics_store().reset_for_testing()
+
   def _setup_utask_env(self):
     """Sets up the utask environment for fuzzing."""
     helpers.patch(self, [
@@ -1615,6 +1617,68 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     })
     self.assertEqual(1, dist.count)
     self.assertGreater(dist.sum, 0)
+
+    self.mock.process_crashes.assert_called_once()
+    self.assertGreater(
+        actual.fuzz_task_output.fuzz_task_steps_duration['process_crash']
+        .ToTimedelta().total_seconds(), 0)
+    dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'process_crash',
+        'success': True,
+    })
+    self.assertEqual(1, dist.count)
+    self.assertGreater(dist.sum, 0)
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
+  )
+  def test_utask_main_process_crashes_exception(
+      self, mock_generate_blackbox_testcases):
+    """Test that an exception in crash processing is tracked as a failure."""
+    self._setup_utask_env()
+    self.mock.process_crashes.side_effect = RuntimeError('crash processing')
+    fuzzer = self._create_test_fuzzer()
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    setup_input = uworker_msg_pb2.SetupInput(
+        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer.name,
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input,
+        setup_input=setup_input,
+        uworker_env={'FUZZ_TEST_TIMEOUT': '10'})
+
+    mock_generate_blackbox_testcases.return_value = (
+        fuzz_task.GenerateBlackboxTestcasesResult(
+            True, ['/tests/0', '/tests/1', '/tests/2'],
+            {'fuzzer_binary_name': fuzzer.name}))
+
+    with self.assertRaises(RuntimeError):
+      fuzz_task.utask_main(uworker_input)
+
+    labels = {
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'process_crash',
+    }
+    failed_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        **labels, 'success': False
+    })
+    self.assertEqual(1, failed_dist.count)
+    self.assertGreater(failed_dist.sum, 0)
+    self.assertEqual(
+        0,
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+            **labels, 'success': True
+        }).count)
 
 
 class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):

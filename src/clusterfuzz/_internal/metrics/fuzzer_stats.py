@@ -123,6 +123,10 @@ JOB_RUN_SCHEMA = {
             'name': 'bad_build_check',
             'type': 'INTERVAL',
             'mode': 'NULLABLE'
+        }, {
+            'name': 'process_crash',
+            'type': 'INTERVAL',
+            'mode': 'NULLABLE'
         }]
     }]
 }
