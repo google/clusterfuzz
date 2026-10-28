@@ -274,10 +274,11 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(job_run['testcase_execution_duration'],
                      "P0DT0H0M20.500000S")
     self.assertEqual(job_run['fuzzing_duration'], "P0DT0H0M31.000000S")
-    self.assertEqual(job_run['fuzz_task_steps_duration'], {
-        'bad_build_check': "P0DT0H0M5.500000S",
-        'fuzzer_setup': "P0DT0H0M2.500000S",
-    })
+    self.assertEqual(
+        job_run['fuzz_task_steps_duration'], {
+            'bad_build_check': "P0DT0H0M5.500000S",
+            'fuzzer_setup': "P0DT0H0M2.500000S",
+        })
 
   def test_fuzz_task_upload_job_run_stats(self):
     """Tests that fuzz_task.upload_job_run_stats uploads stats."""
