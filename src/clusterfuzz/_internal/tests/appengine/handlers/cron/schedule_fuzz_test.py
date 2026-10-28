@@ -14,6 +14,7 @@
 """Tests for schedule_fuzz.py"""
 
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.cron import schedule_fuzz
 from clusterfuzz._internal.datastore import data_types
@@ -233,3 +234,36 @@ class ChromeFuzzTaskSchedulerTest(unittest.TestCase):
     self._setup_chrome_entities()
     task = self._run_and_get_task()
     self.assertIsNone(task.extra_info.get('base_os_version'))
+
+
+class GetQueueSizeTest(unittest.TestCase):
+  """Tests for get_queue_size."""
+
+  def setUp(self):
+    patcher = mock.patch('google.cloud.monitoring_v3.MetricServiceClient')
+    self.mock_monitoring = patcher.start()
+    self.addCleanup(patcher.stop)
+
+  def test_filters_by_project(self):
+    """Tests that the query only matches subscriptions in the given project,
+    since the metrics scope can include other projects."""
+    mock_point = mock.Mock()
+    mock_point.value.int64_value = 42
+    mock_series = mock.Mock()
+    mock_series.points = [mock_point]
+    mock_client = self.mock_monitoring.return_value
+    mock_client.list_time_series.return_value = [mock_series]
+
+    size = schedule_fuzz.get_queue_size(
+        mock.Mock(),
+        'test-project',
+        'preprocess-swarming',
+        __memoize_force__=True)
+
+    self.assertEqual(size, 42)
+    request = mock_client.list_time_series.call_args[1]['request']
+    self.assertEqual(request['name'], 'projects/test-project')
+    self.assertIn('resource.labels.project_id="test-project"',
+                  request['filter'])
+    self.assertIn('resource.labels.subscription_id="preprocess-swarming"',
+                  request['filter'])

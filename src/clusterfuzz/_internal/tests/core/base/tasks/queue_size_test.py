@@ -107,3 +107,16 @@ class GetUtaskMainQueueSizeTest(unittest.TestCase):
     kwargs = mock_client.list_time_series.call_args[1]
     self.assertIn('resource.labels.subscription_id="custom_queue"',
                   kwargs['request']['filter'])
+
+  def test_get_size_filters_by_project(self):
+    """Test that the query only matches subscriptions in the application's
+    project, since the metrics scope can include other projects."""
+    mock_client = self.mock_monitoring.return_value
+    mock_client.list_time_series.return_value = []
+
+    tasks.get_utask_main_queue_size('utask_main', __memoize_force__=True)
+
+    kwargs = mock_client.list_time_series.call_args[1]
+    self.assertEqual(kwargs['request']['name'], 'projects/test-project')
+    self.assertIn('resource.labels.project_id="test-project"',
+                  kwargs['request']['filter'])
