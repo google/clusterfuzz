@@ -119,11 +119,18 @@ JOB_RUN_SCHEMA = {
             'RECORD',
         'mode':
             'NULLABLE',
-        'fields': [{
-            'name': 'bad_build_check',
-            'type': 'INTERVAL',
-            'mode': 'NULLABLE'
-        }]
+        'fields': [
+            {
+                'name': 'bad_build_check',
+                'type': 'INTERVAL',
+                'mode': 'NULLABLE'
+            },
+            {
+                'name': 'fuzzer_setup',
+                'type': 'INTERVAL',
+                'mode': 'NULLABLE'
+            },
+        ]
     }]
 }
 

@@ -2155,17 +2155,21 @@ class FuzzingSession:
   def run(self):
     """Run the fuzzing session."""
     start_time = time.time()
-    # Update LSAN local blacklist with global blacklist.
-    global_blacklisted_functions = (
-        self.uworker_input.fuzz_task_input.global_blacklisted_functions)
-    if global_blacklisted_functions:
-      leak_blacklist.copy_global_to_local_blacklist(
-          global_blacklisted_functions)
+    with self.tracker.track('fuzzer_setup'):
+      # Update LSAN local blacklist with global blacklist.
+      global_blacklisted_functions = (
+          self.uworker_input.fuzz_task_input.global_blacklisted_functions)
+      if global_blacklisted_functions:
+        leak_blacklist.copy_global_to_local_blacklist(
+            global_blacklisted_functions)
 
-    # Ensure that that the fuzzer still exists.
-    logs.info('Setting up fuzzer and data bundles.')
-    self.fuzzer = setup.update_fuzzer_and_data_bundles(
-        self.uworker_input.setup_input)
+      # Ensure that that the fuzzer still exists.
+      logs.info('Setting up fuzzer and data bundles.')
+      self.fuzzer = setup.update_fuzzer_and_data_bundles(
+          self.uworker_input.setup_input)
+      if not self.fuzzer:
+        raise monitor.TimeStatTrackerFailureException
+
     if not self.fuzzer:
       logs.error(f'Unable to setup fuzzer {self.fuzzer_name}.')
 

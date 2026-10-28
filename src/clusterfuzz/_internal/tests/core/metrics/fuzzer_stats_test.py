@@ -168,8 +168,10 @@ class FuzzerStatsTest(unittest.TestCase):
         100,
         datetime.timedelta(seconds=10.5),
         datetime.timedelta(seconds=20.5),
-        datetime.timedelta(seconds=31.0),
-        {'bad_build_check': datetime.timedelta(seconds=5.5)})
+        datetime.timedelta(seconds=31.0), {
+            'bad_build_check': datetime.timedelta(seconds=5.5),
+            'fuzzer_setup': datetime.timedelta(seconds=2.5),
+        })
 
     fuzzer_stats.upload_stats([fuzzer_run], filename='upload.json')
 
@@ -189,7 +191,8 @@ class FuzzerStatsTest(unittest.TestCase):
         'testcase_execution_duration': "P0DT0H0M20.500000S",
         'fuzzing_duration': "P0DT0H0M31.000000S",
         'fuzz_task_steps_duration': {
-            'bad_build_check': "P0DT0H0M5.500000S"
+            'bad_build_check': "P0DT0H0M5.500000S",
+            'fuzzer_setup': "P0DT0H0M2.500000S",
         }
     }, json.loads(self.mock.write_data.call_args[0][0]))
 
@@ -250,7 +253,8 @@ class FuzzerStatsTest(unittest.TestCase):
         'testcase_execution_duration': "P0DT0H0M20.500000S",
         'fuzzing_duration': "P0DT0H0M31.000000S",
         'fuzz_task_steps_duration': {
-            'bad_build_check': "P0DT0H0M5.500000S"
+            'bad_build_check': "P0DT0H0M5.500000S",
+            'fuzzer_setup': "P0DT0H0M2.500000S",
         }
     })
     job_run = fuzzer_stats.BaseRun.from_json(data)
@@ -270,8 +274,10 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(job_run['testcase_execution_duration'],
                      "P0DT0H0M20.500000S")
     self.assertEqual(job_run['fuzzing_duration'], "P0DT0H0M31.000000S")
-    self.assertEqual(job_run['fuzz_task_steps_duration'],
-                     {'bad_build_check': "P0DT0H0M5.500000S"})
+    self.assertEqual(job_run['fuzz_task_steps_duration'], {
+        'bad_build_check': "P0DT0H0M5.500000S",
+        'fuzzer_setup': "P0DT0H0M2.500000S",
+    })
 
   def test_fuzz_task_upload_job_run_stats(self):
     """Tests that fuzz_task.upload_job_run_stats uploads stats."""
@@ -308,8 +314,10 @@ class FuzzerStatsTest(unittest.TestCase):
         100,
         datetime.timedelta(seconds=10.5),
         datetime.timedelta(seconds=20.5),
-        datetime.timedelta(seconds=31.0),
-        {'bad_build_check': datetime.timedelta(seconds=5.5)})
+        datetime.timedelta(seconds=31.0), {
+            'bad_build_check': datetime.timedelta(seconds=5.5),
+            'fuzzer_setup': datetime.timedelta(seconds=2.5),
+        })
     self.assertEqual(1, self.mock.write_data.call_count)
     self.assertEqual({
         'kind':
@@ -353,7 +361,8 @@ class FuzzerStatsTest(unittest.TestCase):
         'fuzzing_duration':
             "P0DT0H0M31.000000S",
         'fuzz_task_steps_duration': {
-            'bad_build_check': "P0DT0H0M5.500000S"
+            'bad_build_check': "P0DT0H0M5.500000S",
+            'fuzzer_setup': "P0DT0H0M2.500000S",
         }
     }, json.loads(self.mock.write_data.call_args[0][0]))
 
