@@ -1158,3 +1158,24 @@ def create_temp_file(directory: str, prefix: str, suffix: str) -> str:
   fd, file_path = tempfile.mkstemp(dir=directory, prefix=prefix, suffix=suffix)
   os.close(fd)
   return file_path
+
+
+def timedelta_to_duration_string(time_delta):
+  """Converts a datetime.timedelta to ISO8601 duration string.
+
+  BigQuery Load API requires the ISO8601 duration string rather than an INTERVAL
+  type.
+  https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-json#data_types
+  """
+  if isinstance(time_delta, str):
+    return time_delta
+
+  days = time_delta.days
+  seconds = time_delta.seconds
+  microseconds = time_delta.microseconds
+
+  hours = seconds // 3600
+  minutes = (seconds % 3600) // 60
+  secs = seconds % 60
+
+  return f"P{days}DT{hours}H{minutes}M{secs}.{microseconds:06}S"

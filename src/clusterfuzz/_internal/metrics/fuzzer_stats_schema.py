@@ -41,6 +41,18 @@ _COMMON_COLUMNS = [{
     'mode': 'NULLABLE',
     'name': 'source',
     'type': 'STRING'
+}, {
+    'mode':
+        'NULLABLE',
+    'name':
+        'fuzz_task_steps_duration',
+    'type':
+        'RECORD',
+    'fields': [{
+        'name': 'engine_prepare',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE'
+    }]
 }]
 
 _AFL_SCHEMA = [{

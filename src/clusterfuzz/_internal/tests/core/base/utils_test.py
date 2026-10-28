@@ -734,3 +734,25 @@ class CreateTempFileTest(unittest.TestCase):
       self.assertTrue(file_path.startswith(tmpdir))
       self.assertIn('prefix_', file_path)
       self.assertTrue(file_path.endswith('_suffix'))
+
+
+class TimedeltaToDurationStringTest(unittest.TestCase):
+  """Tests for timedelta_to_duration_string."""
+
+  def test_timedelta(self):
+    """Tests converting a timedelta with all components set."""
+    self.assertEqual(
+        'P1DT2H3M4.000005S',
+        utils.timedelta_to_duration_string(
+            datetime.timedelta(
+                days=1, hours=2, minutes=3, seconds=4, microseconds=5)))
+
+  def test_zero(self):
+    """Tests converting a zero timedelta."""
+    self.assertEqual('P0DT0H0M0.000000S',
+                     utils.timedelta_to_duration_string(datetime.timedelta()))
+
+  def test_string_passthrough(self):
+    """Tests that an already converted string is returned unchanged."""
+    self.assertEqual('P0DT0H0M5.500000S',
+                     utils.timedelta_to_duration_string('P0DT0H0M5.500000S'))

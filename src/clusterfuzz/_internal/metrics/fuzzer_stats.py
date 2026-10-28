@@ -132,27 +132,6 @@ class FuzzerStatsError(ValueError):
   """Fuzzer stats exception."""
 
 
-def _timedelta_to_duration_string(time_delta):
-  """Converts a datetime.timedelta to ISO8601 duration string.
-
-  BigQuery Load API requires the ISO8601 duration string rather than an INTERVAL
-  type.
-  https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-json#data_types
-  """
-  if isinstance(time_delta, str):
-    return time_delta
-
-  days = time_delta.days
-  seconds = time_delta.seconds
-  microseconds = time_delta.microseconds
-
-  hours = seconds // 3600
-  minutes = (seconds % 3600) // 60
-  secs = seconds % 60
-
-  return f"P{days}DT{hours}H{minutes}M{secs}.{microseconds:06}S"
-
-
 class BaseRun:
   """Base run."""
 
@@ -279,18 +258,18 @@ class JobRun(BaseRun):
       self._stats_data['testcases_generated'] = testcases_generated
     if testcase_generation_duration is not None:
       self._stats_data[
-          'testcase_generation_duration'] = _timedelta_to_duration_string(
+          'testcase_generation_duration'] = utils.timedelta_to_duration_string(
               testcase_generation_duration)
     if testcase_execution_duration is not None:
       self._stats_data[
-          'testcase_execution_duration'] = _timedelta_to_duration_string(
+          'testcase_execution_duration'] = utils.timedelta_to_duration_string(
               testcase_execution_duration)
     if fuzzing_duration is not None:
-      self._stats_data['fuzzing_duration'] = _timedelta_to_duration_string(
+      self._stats_data['fuzzing_duration'] = utils.timedelta_to_duration_string(
           fuzzing_duration)
     if fuzz_task_steps_duration:
       self._stats_data['fuzz_task_steps_duration'] = {
-          name: _timedelta_to_duration_string(duration)
+          name: utils.timedelta_to_duration_string(duration)
           for name, duration in fuzz_task_steps_duration.items()
       }
 

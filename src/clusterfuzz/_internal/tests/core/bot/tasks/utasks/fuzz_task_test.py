@@ -1939,6 +1939,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.list_blobs.return_value = []
     self.mock.get_arbitrary_signed_upload_urls.return_value = ['http://a'] * 100
     self.mock.last_updated.return_value = None
+    monitor.metrics_store().reset_for_testing()
 
   def test_basic(self):
     """Test basic fuzzing session."""
@@ -1999,6 +2000,10 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
 
     for i in range(2):
       testcase_run = json.loads(session.fuzz_task_output.testcase_run_jsons[i])
+      steps_duration = testcase_run.pop('fuzz_task_steps_duration')
+      self.assertEqual(['engine_prepare'], list(steps_duration.keys()))
+      self.assertRegex(steps_duration['engine_prepare'],
+                       r'^P0DT0H0M\d+\.\d{6}S$')
       self.assertDictEqual({
           'build_revision': 1,
           'command': ['cmd'],
@@ -2012,6 +2017,63 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
       }, testcase_run)
       # TODO(metzman): We need a test for fuzzing end to end with
       # preprocess/main/postprocess.
+
+    # One engine_prepare measurement is emitted per fuzzing round.
+    dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': 'libFuzzer_fuzz',
+        'job': 'libfuzzer_asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'engine_prepare',
+        'success': True,
+    })
+    self.assertEqual(2, dist.count)
+
+  def test_engine_prepare_exception(self):
+    """Test that an exception in engine prepare is tracked as a failure."""
+    target = 'test_target'
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
+        fuzz_target=uworker_io.entity_to_protobuf(
+            data_types.FuzzTarget(engine='libFuzzer', binary=target)),)
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name='libFuzzer_fuzz',
+        job_type='libfuzzer_asan_test',
+        fuzz_task_input=fuzz_task_input)
+    session = fuzz_task.FuzzingSession(uworker_input, 60)
+    session.testcase_directory = os.environ['FUZZ_INPUTS']
+    session.data_directory = '/data_dir'
+
+    os.environ['FUZZ_TARGET'] = target
+    os.environ['APP_REVISION'] = '1'
+    os.environ['FUZZ_TEST_TIMEOUT'] = '2000'
+    os.environ['BOT_NAME'] = 'hostname.company.com'
+    os.environ['FUZZ_LOGS_BUCKET'] = '/fuzz-logs'
+
+    engine_impl = mock.Mock()
+    engine_impl.name = 'libFuzzer'
+    engine_impl.prepare.side_effect = RuntimeError('prepare failed')
+
+    with self.assertRaises(RuntimeError):
+      session.do_engine_fuzzing(engine_impl)
+
+    engine_impl.fuzz.assert_not_called()
+    labels = {
+        'fuzzer': 'libFuzzer_fuzz',
+        'job': 'libfuzzer_asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'engine_prepare',
+    }
+    self.assertEqual(
+        1,
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+            **labels, 'success': False
+        }).count)
+    self.assertEqual(
+        0,
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+            **labels, 'success': True
+        }).count)
 
 
 class UntrustedRunEngineFuzzerTest(
@@ -2059,7 +2121,7 @@ class UntrustedRunEngineFuzzerTest(
 
     result, fuzzer_metadata, strategies = fuzz_task.run_engine_fuzzer(
         libfuzzer_engine.Engine(), 'test_fuzzer', corpus_directory,
-        testcase_directory)
+        testcase_directory, monitor.TimeStatTracker())
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
         result.logs)

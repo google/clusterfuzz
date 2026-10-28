@@ -13,11 +13,13 @@
 # limitations under the License.
 """Tasks RPC implementations."""
 
+from google.protobuf import struct_pb2
 from google.protobuf import wrappers_pb2
 from google.protobuf.any_pb2 import Any  # pylint: disable=no-name-in-module
 
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
+from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz.fuzz import engine
 
@@ -38,6 +40,10 @@ def _pack_values(values):
       packed_value.Pack(wrappers_pb2.Int64Value(value=value))
     elif isinstance(value, str):
       packed_value.Pack(wrappers_pb2.StringValue(value=value))
+    elif isinstance(value, dict):
+      struct_value = struct_pb2.Struct()
+      struct_value.update(value)
+      packed_value.Pack(struct_value)
     else:
       raise ValueError('Unknown stat type for ' + key)
 
@@ -49,9 +55,10 @@ def _pack_values(values):
 def engine_fuzz(request, _):
   """Run engine fuzzer."""
   engine_impl = engine.get(request.engine)
+  tracker = monitor.TimeStatTracker()
   result, fuzzer_metadata, strategies = fuzz_task.run_engine_fuzzer(
       engine_impl, request.target_name, request.sync_corpus_directory,
-      request.testcase_directory)
+      request.testcase_directory, tracker)
 
   crashes = [
       untrusted_runner_pb2.EngineCrash(

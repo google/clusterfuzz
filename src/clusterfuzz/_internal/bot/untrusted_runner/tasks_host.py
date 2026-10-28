@@ -15,6 +15,8 @@
 
 import datetime
 
+from google.protobuf import json_format
+from google.protobuf import struct_pb2
 from google.protobuf import wrappers_pb2
 import grpc
 
@@ -115,6 +117,12 @@ def _unpack_values(values):
   """Unpack protobuf values."""
   unpacked = {}
   for key, packed_value in values.items():
+    if packed_value.Is(struct_pb2.Struct.DESCRIPTOR):
+      struct_value = struct_pb2.Struct()
+      packed_value.Unpack(struct_value)
+      unpacked[key] = json_format.MessageToDict(struct_value)
+      continue
+
     if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
       value = wrappers_pb2.DoubleValue()
     elif packed_value.Is(wrappers_pb2.Int64Value.DESCRIPTOR):

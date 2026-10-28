@@ -1505,7 +1505,7 @@ def _add_issue_metadata_from_environment(metadata):
 
 
 def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
-                      testcase_directory):
+                      testcase_directory, tracker):
   """Run engine for fuzzing."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
@@ -1520,7 +1520,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   target_path = engine_common.find_fuzzer_path(build_dir, target_name)
   if target_path is None:
     raise FuzzTargetNotFoundError(f'{target_path} is not found.')
-  options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
+  with tracker.track('engine_prepare'):
+    options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
   additional_processing_time = engine_impl.fuzz_additional_processing_timeout(
@@ -1555,6 +1556,10 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
 
   # Cleanup fuzzer temporary artifacts (e.g. mutations dir, merge dirs. etc).
   fuzzer_utils.cleanup()
+  result.stats['fuzz_task_steps_duration'] = {
+      name: utils.timedelta_to_duration_string(duration)
+      for name, duration in tracker.stats.items()
+  }
 
   return result, fuzzer_metadata, options.strategies
 
@@ -1590,14 +1595,15 @@ class FuzzingSession:
 
     self.gcs_corpus = None
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()  # pylint: disable=no-member
+    self.fuzz_task_step_metric_labels = {
+        'fuzzer': self.fuzzer_name,
+        'job': self.job_type,
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value
+    }
     self.tracker = monitor.TimeStatTracker(
         monitoring_metrics.FUZZ_TASK_STEPS_DURATION,
-        common_labels={
-            'fuzzer': self.fuzzer_name,
-            'job': self.job_type,
-            'platform': environment.platform(),
-            'runtime': environment.get_runtime().value
-        })
+        common_labels=self.fuzz_task_step_metric_labels)
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -1826,14 +1832,17 @@ class FuzzingSession:
     # Do the actual fuzzing.
     for fuzzing_round in range(_get_max_testcases()):
       logs.info(f'Fuzzing round {fuzzing_round}.')
+      round_tracker = monitor.TimeStatTracker(
+          monitoring_metrics.FUZZ_TASK_STEPS_DURATION,
+          common_labels=self.fuzz_task_step_metric_labels)
       try:
         with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
-                            self.job_type) as tracker:
+                            self.job_type) as fuzz_time_tracker:
           result, cur_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
               engine_impl, self.fuzz_target.binary, sync_corpus_directory,
-              self.testcase_directory)
+              self.testcase_directory, round_tracker)
           # Timeouts are only accounted for in libfuzzer, this can be None
-          tracker.timeout = bool(result.timed_out)
+          fuzz_time_tracker.timeout = bool(result.timed_out)
       except FuzzTargetNotFoundError:
         # Ocassionally fuzz targets are deleted. This is pretty rare. Since
         # ClusterFuzz did nothing wrong, don't bubble up an exception, consider
