@@ -1829,16 +1829,22 @@ class FuzzingSession:
       # testcases, and stats.
       log_time = datetime.datetime.utcfromtimestamp(
           float(testcase_run.timestamp))
-      crash_result_obj = crash_result.CrashResult(
-          return_code, result.time_executed, result.logs)
-      output = crash_result_obj.get_stacktrace()
-      # TODO(metzman): Consider uploading this with a signed URL.
-      if result.crashes:
-        # We only upload the first, because they will clobber each other if we
-        # upload more.
-        result_crash = result.crashes[0].input_path
-      else:
-        result_crash = None
+      with self.steps_time_tracker.track('parse_crash'):
+        crash_result_obj = crash_result.CrashResult(
+            return_code, result.time_executed, result.logs)
+        output = crash_result_obj.get_stacktrace()
+        # TODO(metzman): Consider uploading this with a signed URL.
+        if result.crashes:
+          # We only upload the first, because they will clobber each other if we
+          # upload more.
+          result_crash = result.crashes[0].input_path
+          crashes.extend([
+              Crash.from_engine_crash(crash, fuzzing_strategies)
+              for crash in result.crashes
+              if crash
+          ])
+        else:
+          result_crash = None
 
       fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData.from_memory(
           output=output,
@@ -1853,12 +1859,6 @@ class FuzzingSession:
                                        self.fuzz_target.fully_qualified_name(),
                                        self.job_type, revision)
       self.fuzz_task_output.testcase_run_jsons.append(testcase_run.to_json())
-      if result.crashes:
-        crashes.extend([
-            Crash.from_engine_crash(crash, fuzzing_strategies)
-            for crash in result.crashes
-            if crash
-        ])
 
     logs.info('All fuzzing rounds complete.')
     self.sync_new_corpus_files()
@@ -2112,10 +2112,13 @@ class FuzzingSession:
     # Restore old values before attempting to test for reproducibility.
     set_test_timeout(self.test_timeout, 1.0)
 
-    if crashes:
-      crashes = [
-          Crash.from_testcase_manager_crash(crash) for crash in crashes if crash
-      ]
+    with self.steps_time_tracker.track('parse_crash'):
+      if crashes:
+        crashes = [
+            Crash.from_testcase_manager_crash(crash)
+            for crash in crashes
+            if crash
+        ]
     executed_testcase_file_paths = testcase_file_paths
     executed_testcases_metadata = testcases_metadata
     if test_number < len(testcase_file_paths):

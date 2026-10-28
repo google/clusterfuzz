@@ -56,6 +56,11 @@ _STEPS_DURATION_FIELDS = [
         'type': 'INTERVAL',
         'mode': 'NULLABLE',
     },
+    {
+        'name': 'parse_crash',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
 ]
 JOB_RUN_SCHEMA = {
     'fields': [
