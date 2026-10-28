@@ -249,11 +249,12 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     return None
   try:
     result = task.execute(task_argument, job_name, uworker_env)
-  except errors.InvalidTestcaseError:
-    # It is difficult to try to handle the case where a test case is deleted
-    # during processing. Rather than trying to catch by checking every point
-    # where a test case is reloaded from the datastore, just abort the task.
-    logs.warning('Test case %s no longer exists.' % task_argument)
+  except errors.NonRetryableError as e:
+    # Retrying cannot succeed (e.g. the test case or its fuzzer was deleted
+    # during processing), so drop the task rather than re-raise and have it
+    # redelivered. This is simpler than checking every point where such an
+    # entity is reloaded from the datastore.
+    logs.warning(f'Aborting task "{task_state_name}": {e}')
     rate_limiter.record_task(success=False)
   except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
