@@ -1388,6 +1388,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.get_queue.return_value = queue.Queue()
     self.mock.get_process.return_value = threading.Thread
 
+    monitor.metrics_store().reset_for_testing()
+
   def _setup_utask_env(self):
     """Sets up the utask environment for fuzzing."""
     helpers.patch(self, [
@@ -1615,6 +1617,60 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     })
     self.assertEqual(1, dist.count)
     self.assertGreater(dist.sum, 0)
+
+    self.assertGreater(
+        actual.fuzz_task_output.fuzz_task_steps_duration['build_setup']
+        .ToTimedelta().total_seconds(), 0)
+    dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'build_setup',
+        'success': True,
+    })
+    self.assertEqual(1, dist.count)
+    self.assertGreater(dist.sum, 0)
+
+  def test_utask_main_build_setup_failure(self):
+    """Test that a failed build setup is tracked as a failed step."""
+    self._setup_utask_env()
+    self.mock.setup_build.return_value = None
+    fuzzer = self._create_test_fuzzer()
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    setup_input = uworker_msg_pb2.SetupInput(
+        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer.name,
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input,
+        setup_input=setup_input,
+        uworker_env={'FUZZ_TEST_TIMEOUT': '10'})
+
+    actual = fuzz_task.utask_main(uworker_input)
+
+    self.assertEqual(uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE,
+                     actual.error_type)
+    self.mock.check_for_bad_build.assert_not_called()
+    labels = {
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'build_setup',
+    }
+    failed_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        **labels, 'success': False
+    })
+    self.assertEqual(1, failed_dist.count)
+    self.assertGreater(failed_dist.sum, 0)
+    self.assertEqual(
+        0,
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+            **labels, 'success': True
+        }).count)
 
 
 class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
