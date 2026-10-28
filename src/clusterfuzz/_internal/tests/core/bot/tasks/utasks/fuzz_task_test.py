@@ -1388,6 +1388,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.get_queue.return_value = queue.Queue()
     self.mock.get_process.return_value = threading.Thread
 
+    monitor.metrics_store().reset_for_testing()
+
   def _setup_utask_env(self):
     """Sets up the utask environment for fuzzing."""
     helpers.patch(self, [
@@ -1615,6 +1617,61 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     })
     self.assertEqual(1, dist.count)
     self.assertGreater(dist.sum, 0)
+
+    # Blackbox crashes are parsed once, after all testcases have run.
+    self.assertGreater(
+        actual.fuzz_task_output.fuzz_task_steps_duration['parse_crash']
+        .ToTimedelta().total_seconds(), 0)
+    parse_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'parse_crash',
+        'success': True,
+    })
+    self.assertEqual(1, parse_dist.count)
+    self.assertGreater(parse_dist.sum, 0)
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
+  )
+  def test_utask_main_blackbox_fuzzer_no_crashes(
+      self, mock_generate_blackbox_testcases):
+    """Test that crash parsing is tracked even when there are no crashes."""
+    self._setup_utask_env()
+    self.mock.is_crash.side_effect = [False, False, False]
+    fuzzer = self._create_test_fuzzer()
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    setup_input = uworker_msg_pb2.SetupInput(
+        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer.name,
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input,
+        setup_input=setup_input,
+        uworker_env={'FUZZ_TEST_TIMEOUT': '10'})
+
+    mock_generate_blackbox_testcases.return_value = (
+        fuzz_task.GenerateBlackboxTestcasesResult(
+            True, ['/tests/0', '/tests/1', '/tests/2'],
+            {'fuzzer_binary_name': fuzzer.name}))
+
+    actual = fuzz_task.utask_main(uworker_input)
+
+    self.assertIn('parse_crash',
+                  actual.fuzz_task_output.fuzz_task_steps_duration)
+    parse_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'parse_crash',
+        'success': True,
+    })
+    self.assertEqual(1, parse_dist.count)
 
 
 class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
@@ -2028,6 +2085,106 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'success': True,
     })
     self.assertEqual(2, dist.count)
+
+    # Crash parsing is emitted once per round, and the per-round durations are
+    # accumulated into a single value in the fuzz task output.
+    parse_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': 'libFuzzer_fuzz',
+        'job': 'libfuzzer_asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'parse_crash',
+        'success': True,
+    })
+    self.assertEqual(2, parse_dist.count)
+    total_parse_time = session.fuzz_task_output.fuzz_task_steps_duration[
+        'parse_crash'].ToTimedelta().total_seconds()
+    self.assertGreater(total_parse_time, 0)
+    self.assertAlmostEqual(parse_dist.sum, total_parse_time, places=5)
+
+  def test_parse_crash_no_rounds(self):
+    """Test that parse_crash is zero when there are no fuzzing rounds."""
+    os.environ['MAX_TESTCASES'] = '0'
+    target = 'test_target'
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
+        fuzz_target=uworker_io.entity_to_protobuf(
+            data_types.FuzzTarget(engine='libFuzzer', binary=target)),)
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name='libFuzzer_fuzz',
+        job_type='libfuzzer_asan_test',
+        fuzz_task_input=fuzz_task_input)
+    session = fuzz_task.FuzzingSession(uworker_input, 60)
+    session.testcase_directory = os.environ['FUZZ_INPUTS']
+    session.data_directory = '/data_dir'
+    os.environ['FUZZ_TARGET'] = target
+    os.environ['APP_REVISION'] = '1'
+
+    engine_impl = mock.Mock()
+    engine_impl.name = 'libFuzzer'
+
+    crashes, _ = session.do_engine_fuzzing(engine_impl)
+
+    self.assertEqual([], crashes)
+    engine_impl.fuzz.assert_not_called()
+    self.assertIn('parse_crash',
+                  session.fuzz_task_output.fuzz_task_steps_duration)
+    self.assertEqual(
+        0, session.fuzz_task_output.fuzz_task_steps_duration['parse_crash']
+        .ToTimedelta().total_seconds())
+
+  @mock.patch(
+      'clusterfuzz._internal.crash_analysis.crash_result.CrashResult.get_stacktrace'
+  )
+  def test_parse_crash_exception(self, mock_get_stacktrace):
+    """Test that an exception in crash parsing is tracked as a failure."""
+    mock_get_stacktrace.side_effect = RuntimeError('parse failed')
+    target = 'test_target'
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
+        fuzz_target=uworker_io.entity_to_protobuf(
+            data_types.FuzzTarget(engine='libFuzzer', binary=target)),)
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name='libFuzzer_fuzz',
+        job_type='libfuzzer_asan_test',
+        fuzz_task_input=fuzz_task_input)
+    session = fuzz_task.FuzzingSession(uworker_input, 60)
+    session.testcase_directory = os.environ['FUZZ_INPUTS']
+    session.data_directory = '/data_dir'
+
+    os.environ['FUZZ_TARGET'] = target
+    os.environ['APP_REVISION'] = '1'
+    os.environ['FUZZ_TEST_TIMEOUT'] = '2000'
+    os.environ['BOT_NAME'] = 'hostname.company.com'
+    os.environ['FUZZ_LOGS_BUCKET'] = '/fuzz-logs'
+
+    engine_impl = mock.Mock()
+    engine_impl.name = 'libFuzzer'
+    engine_impl.prepare.return_value = engine.FuzzOptions(
+        '/corpus', ['arg'], {})
+    engine_impl.fuzz.side_effect = lambda *_: engine.FuzzResult(
+        'logs', ['cmd'], [], {'stat': 1}, 42.0)
+    engine_impl.fuzz_additional_processing_timeout.return_value = 1337
+
+    with self.assertRaises(RuntimeError):
+      session.do_engine_fuzzing(engine_impl)
+
+    labels = {
+        'fuzzer': 'libFuzzer_fuzz',
+        'job': 'libfuzzer_asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'parse_crash',
+    }
+    # The task stops at the first failing round.
+    self.assertEqual(
+        1,
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+            **labels, 'success': False
+        }).count)
+    self.assertEqual(
+        0,
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+            **labels, 'success': True
+        }).count)
 
   def test_engine_prepare_exception(self):
     """Test that an exception in engine prepare is tracked as a failure."""

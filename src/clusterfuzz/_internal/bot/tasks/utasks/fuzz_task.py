@@ -1830,6 +1830,7 @@ class FuzzingSession:
 
     self.fuzz_task_output.app_revision = environment.get_value('APP_REVISION')
     # Do the actual fuzzing.
+    total_parse_time = datetime.timedelta()
     for fuzzing_round in range(_get_max_testcases()):
       logs.info(f'Fuzzing round {fuzzing_round}.')
       round_tracker = monitor.TimeStatTracker(
@@ -1863,16 +1864,24 @@ class FuzzingSession:
       # testcases, and stats.
       log_time = datetime.datetime.utcfromtimestamp(
           float(testcase_run.timestamp))
-      crash_result_obj = crash_result.CrashResult(
-          return_code, result.time_executed, result.logs)
-      output = crash_result_obj.get_stacktrace()
-      # TODO(metzman): Consider uploading this with a signed URL.
-      if result.crashes:
-        # We only upload the first, because they will clobber each other if we
-        # upload more.
-        result_crash = result.crashes[0].input_path
-      else:
-        result_crash = None
+      with round_tracker.track('parse_crash'):
+        crash_result_obj = crash_result.CrashResult(
+            return_code, result.time_executed, result.logs)
+        output = crash_result_obj.get_stacktrace()
+        # TODO(metzman): Consider uploading this with a signed URL.
+        if result.crashes:
+          # We only upload the first, because they will clobber each other if we
+          # upload more.
+          result_crash = result.crashes[0].input_path
+          crashes.extend([
+              Crash.from_engine_crash(crash, fuzzing_strategies)
+              for crash in result.crashes
+              if crash
+          ])
+        else:
+          result_crash = None
+
+      total_parse_time += round_tracker.stats['parse_crash']
 
       fuzzer_run_output_data = testcase_manager.FuzzerRunOutputData.from_memory(
           output=output,
@@ -1887,14 +1896,10 @@ class FuzzingSession:
                                        self.fuzz_target.fully_qualified_name(),
                                        self.job_type, revision)
       self.fuzz_task_output.testcase_run_jsons.append(testcase_run.to_json())
-      if result.crashes:
-        crashes.extend([
-            Crash.from_engine_crash(crash, fuzzing_strategies)
-            for crash in result.crashes
-            if crash
-        ])
 
     logs.info('All fuzzing rounds complete.')
+    self.fuzz_task_output.fuzz_task_steps_duration['parse_crash'].FromTimedelta(
+        total_parse_time)
     self.sync_new_corpus_files()
 
     return crashes, fuzzer_metadata
@@ -2146,10 +2151,13 @@ class FuzzingSession:
     # Restore old values before attempting to test for reproducibility.
     set_test_timeout(self.test_timeout, 1.0)
 
-    if crashes:
-      crashes = [
-          Crash.from_testcase_manager_crash(crash) for crash in crashes if crash
-      ]
+    with self.tracker.track('parse_crash'):
+      if crashes:
+        crashes = [
+            Crash.from_testcase_manager_crash(crash)
+            for crash in crashes
+            if crash
+        ]
     executed_testcase_file_paths = testcase_file_paths
     executed_testcases_metadata = testcases_metadata
     if test_number < len(testcase_file_paths):
