@@ -222,6 +222,11 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     logs.error(f'Unknown command "{task_name}"')
     return None
 
+  if environment.is_tworker() and isinstance(task, task_types.TrustedTask):
+    logs.error(f'Skipping legacy single-machine task "{task_name}" on tworker '
+               '(tworkers only run utask preprocess/postprocess).')
+    return None
+
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
   if should_update_task_status(task_name):
@@ -333,7 +338,7 @@ def process_command_impl(task_name,
     # If the job base quque is '-android', which is the default Android queue
     # ignore the mismatch since with subqueues, it is expected
     if (not environment.get_value('DEBUG_TASK') and
-        not environment.is_tworker() and
+        not environment.is_tworker() and task_name != 'unpack' and
         not environment.is_trusted_host(ensure_connected=False) and
         job_base_queue_suffix != bot_base_queue_suffix and
         job_base_queue_suffix != '-android'):
@@ -342,9 +347,7 @@ def process_command_impl(task_name,
                  (job_name, job_base_queue_suffix, bot_base_queue_suffix))
 
       # Try to recreate the job in the correct task queue.
-      new_queue = (
-          tasks.high_end_queue() if high_end else tasks.regular_queue())
-      new_queue += job_base_queue_suffix
+      new_queue = tasks.queue_for_job(job_name, is_high_end=high_end)
 
       # Command override is continuously run by a bot. If we keep failing
       # and recreating the task, it will just DoS the entire task queue.
@@ -382,7 +385,8 @@ def process_command_impl(task_name,
       # This indicates we are trying to run this job on the wrong platform
       # and potentially blocks fuzzing. See the 'subqueues' feature for
       # more details: https://github.com/google/clusterfuzz/issues/3347
-      if (task_name != 'variant' and testcase_platform_id and
+      if (not environment.is_tworker() and task_name != 'variant' and
+          testcase_platform_id and
           not utils.fields_match(testcase_platform_id, current_platform_id)):
 
         logs.info(f'Testcase {testcase_id} platform {testcase_platform_id} '
@@ -474,7 +478,8 @@ def process_command_impl(task_name,
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
-  if not is_supported_cpu_arch_for_job():
+  if (not environment.is_tworker() and task_name != 'unpack' and
+      not is_supported_cpu_arch_for_job()):
     logs.info(
         'Unsupported cpu architecture specified in job definition, exiting.')
     tasks.add_task(
