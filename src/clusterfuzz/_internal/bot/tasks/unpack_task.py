@@ -19,6 +19,7 @@ import os
 
 from google.cloud import ndb
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -57,11 +58,15 @@ def execute_task(metadata_id, job_type):
   # by tmpfs limits.
   testcases_directory = environment.get_value('FUZZ_INPUTS_DISK')
 
+  retry_queue = (
+      tasks.queue_for_platform('LINUX') if swarming.is_swarming_applicable(
+          job_type, job=job) else tasks.default_queue())
+
   # Retrieve multi-testcase archive.
   archive_path = os.path.join(testcases_directory, metadata.archive_filename)
   if not blobs.read_blob_to_disk(metadata.blobstore_key, archive_path):
     logs.error('Could not retrieve archive for bundle %d.' % metadata_id)
-    tasks.add_task('unpack', metadata_id, job_type)
+    tasks.add_task('unpack', metadata_id, job_type, queue=retry_queue)
     return
 
   try:
@@ -69,7 +74,7 @@ def execute_task(metadata_id, job_type):
       reader.extract_all(testcases_directory)
   except:
     logs.error('Could not unpack archive for bundle %d.' % metadata_id)
-    tasks.add_task('unpack', metadata_id, job_type)
+    tasks.add_task('unpack', metadata_id, job_type, queue=retry_queue)
     return
 
   # Get additional testcase metadata (if any).

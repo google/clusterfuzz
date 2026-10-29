@@ -30,6 +30,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 _NUM_TRIALS = 3
 
 
+@test_utils.with_cloud_emulators('datastore')
 class RedoTestcaseTest(unittest.TestCase):
   """Test redo_testcase()."""
 
@@ -39,6 +40,61 @@ class RedoTestcaseTest(unittest.TestCase):
       tasks.redo_testcase(None, ['blame', 'rand'], 'test@user.com')
 
     self.assertEqual("The task 'rand' is invalid.", str(cm.exception))
+
+  @mock.patch('clusterfuzz._internal.base.tasks.add_task')
+  def test_swarming_skips_impact_and_blame(self, mock_add_task):
+    """Test redo_testcase routes Swarming UTasks and skips impact/blame."""
+    flag = data_types.FeatureFlag(id='swarming_remote_execution', enabled=False)
+    flag.put()
+    data_types.Job(
+        name='swarming_job',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+    testcase = data_types.Testcase(
+        job_type='swarming_job', comments='', archive_state=0)
+    testcase.put()
+
+    tasks.redo_testcase(testcase, ['impact', 'blame'], 'test@user.com')
+    mock_add_task.assert_has_calls([
+        mock.call(
+            'impact',
+            testcase.key.id(),
+            'swarming_job',
+            'jobs-android-emulator',
+            wait_time=0),
+        mock.call(
+            'blame',
+            testcase.key.id(),
+            'swarming_job',
+            'jobs-android-emulator',
+            wait_time=0),
+    ])
+
+    mock_add_task.reset_mock()
+    flag.enabled = True
+    flag.put()
+
+    tasks.redo_testcase(testcase, ['impact', 'blame'], 'test@user.com')
+    mock_add_task.assert_not_called()
+
+    tasks.redo_testcase(testcase,
+                        ['regression', 'progression', 'impact', 'blame'],
+                        'test@user.com')
+    mock_add_task.assert_has_calls([
+        mock.call(
+            'regression',
+            testcase.key.id(),
+            'swarming_job',
+            'preprocess-swarming',
+            wait_time=0),
+        mock.call(
+            'progression',
+            testcase.key.id(),
+            'swarming_job',
+            'preprocess-swarming',
+            wait_time=0),
+    ])
+    self.assertEqual(2, mock_add_task.call_count)
 
 
 @test_utils.integration
@@ -256,6 +312,10 @@ class QueueForTestcaseTest(unittest.TestCase):
 
     data_types.Job(name='job_linux', platform='LINUX').put()
     data_types.Job(name='job_project', platform='PROJECT_LINUX_LIB').put()
+    data_types.Job(
+        name='job_swarming',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\n').put()
 
   def test_regular_queue(self):
     """Test testcase with regular queue."""
@@ -273,6 +333,22 @@ class QueueForTestcaseTest(unittest.TestCase):
     t = data_types.Testcase(job_type='job_project', queue='high-end-jobs')
     self.assertEqual('high-end-jobs-project-linux-lib',
                      tasks.queue_for_testcase(t))
+
+  def test_swarming_queue(self):
+    """Test Swarming testcase routes to preprocess-swarming when enabled."""
+    t = data_types.Testcase(job_type='job_swarming', queue='old')
+    t_high = data_types.Testcase(job_type='job_swarming', queue='high-end-jobs')
+
+    flag = data_types.FeatureFlag(id='swarming_remote_execution', enabled=False)
+    flag.put()
+    self.assertEqual('jobs-android-emulator', tasks.queue_for_testcase(t))
+    self.assertEqual('high-end-jobs-android-emulator',
+                     tasks.queue_for_testcase(t_high))
+
+    flag.enabled = True
+    flag.put()
+    self.assertEqual('preprocess-swarming', tasks.queue_for_testcase(t))
+    self.assertEqual('preprocess-swarming', tasks.queue_for_testcase(t_high))
 
 
 @test_utils.with_cloud_emulators('datastore', 'pubsub')

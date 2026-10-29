@@ -444,6 +444,10 @@ class SwarmingTest(unittest.TestCase):
         environment_string='IS_SWARMING_JOB = True')
     job.put()
     self.assertTrue(swarming.is_swarming_job(job.name))
+    self.assertFalse(swarming.is_swarming_applicable(job.name, job=job))
+
+    self.mock.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled = True
+    self.assertTrue(swarming.is_swarming_applicable(job.name, job=job))
 
   def test_is_swarming_job_unmapped_platform(self):
     """Tests that is_swarming_job returns False when the job platform has no

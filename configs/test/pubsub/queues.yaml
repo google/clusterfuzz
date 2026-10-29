@@ -68,7 +68,11 @@ resources:
     type: queue.jinja
   - name: utask_main
     type: queue.jinja
+  - name: utask_main-swarming
+    type: queue.jinja
   - name: preprocess
+    type: queue.jinja
+  - name: preprocess-swarming
     type: queue.jinja
   - name: postprocess
     type: queue.jinja

@@ -28,6 +28,7 @@ from typing import TypeAlias
 from google.cloud import ndb
 
 from clusterfuzz._internal import fuzzing
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
@@ -977,8 +978,10 @@ def critical_tasks_completed(testcase):
     return testcase.minimized_keys and testcase.regression
 
   # Only require impact if it is feasible to run it. Don't require it if not
-  # (when regression fails).
-  impact_satisfied = testcase.is_impact_set_flag or testcase.regression == 'NA'
+  # (when regression fails or for Swarming jobs where impact is unsupported).
+  impact_satisfied = (
+      testcase.is_impact_set_flag or testcase.regression == 'NA' or
+      swarming.is_swarming_applicable(testcase.job_type))
 
   return bool(testcase.minimized_keys and testcase.regression and
               impact_satisfied and not testcase.analyze_pending)

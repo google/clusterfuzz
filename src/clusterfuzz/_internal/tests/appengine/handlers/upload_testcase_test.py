@@ -768,6 +768,75 @@ class UploadOAuthTest(unittest.TestCase):
     response = self._upload_to_platform('WINDOWS', trusted_agreement=False)
     self.assertEqual(400, response.status_code, response.data)
 
+  def test_multiple_upload_swarming_job_routes_unpack_to_linux_queue(self):
+    """Tests that bundled archive uploads to Swarming jobs dispatch unpack to
+    jobs-linux while storing preprocess-swarming as metadata.job_queue."""
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
+    data_types.Job(
+        name='libfuzzer_android_swarming',
+        environment_string='PROJECT_NAME = proj\nIS_SWARMING_JOB = True\n',
+        platform='ANDROID_EMULATOR').put()
+    data_types.FuzzTarget(
+        engine='libFuzzer', project='proj', binary='target').put()
+    self.mock.get_blob_info.return_value.filename = 'archive.zip'
+
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_android_swarming',
+              'target': 'target',
+              'multiple': 'true',
+              'file': (io.BytesIO(b'PK\x05\x06' + b'\x00' * 18), 'archive.zip'),
+          })
+
+    self.assertEqual(200, response.status_code, response.data)
+    self.assertTrue(response.json['multiple'])
+    metadata = data_types.BundledArchiveMetadata.query().get()
+    self.assertIsNotNone(metadata)
+    self.assertEqual('preprocess-swarming', metadata.job_queue)
+    self.mock.add_task.assert_called_once_with(
+        'unpack',
+        str(metadata.key.id()),
+        'libfuzzer_android_swarming',
+        queue='jobs-linux',
+        wait_time=0)
+
+  def test_multiple_upload_swarming_job_when_flag_disabled(self):
+    """Tests that bundled archive uploads preserve platform queue routing when
+    SWARMING_REMOTE_EXECUTION is disabled."""
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=False).put()
+    data_types.Job(
+        name='libfuzzer_android_swarming',
+        environment_string='PROJECT_NAME = proj\nIS_SWARMING_JOB = True\n',
+        platform='ANDROID_EMULATOR').put()
+    data_types.FuzzTarget(
+        engine='libFuzzer', project='proj', binary='target').put()
+    self.mock.get_blob_info.return_value.filename = 'archive.zip'
+
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_android_swarming',
+              'target': 'target',
+              'multiple': 'true',
+              'trustedAgreement': upload_testcase.TRUSTED_AGREEMENT_TEXT,
+              'file': (io.BytesIO(b'PK\x05\x06' + b'\x00' * 18), 'archive.zip'),
+          })
+
+    self.assertEqual(200, response.status_code, response.data)
+    self.assertTrue(response.json['multiple'])
+    metadata = data_types.BundledArchiveMetadata.query().get()
+    self.assertIsNotNone(metadata)
+    self.assertEqual('jobs-android-emulator', metadata.job_queue)
+    self.mock.add_task.assert_called_once_with(
+        'unpack',
+        str(metadata.key.id()),
+        'libfuzzer_android_swarming',
+        queue='jobs-android-emulator',
+        wait_time=0)
+
 
 # pylint: disable=protected-access
 @test_utils.with_cloud_emulators('datastore')

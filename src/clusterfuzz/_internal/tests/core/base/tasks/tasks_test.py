@@ -431,6 +431,42 @@ class AddTaskTest(unittest.TestCase):
 
     mock_add_external_task.assert_called_once()
 
+  @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
+  def test_add_task_swarming_utask_routes_to_preprocess_swarming(
+      self, mock_bulk_add):
+    """Test add_task routes queue=None Swarming UTasks to preprocess-swarming."""
+    data_types.Job(
+        name='swarming_job',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+
+    flag = data_types.FeatureFlag(id='swarming_remote_execution', enabled=False)
+    flag.put()
+    tasks.add_task('minimize', '123', 'swarming_job')
+    mock_bulk_add.assert_called_once()
+    self.assertIsNone(mock_bulk_add.call_args.kwargs['queue'])
+
+    mock_bulk_add.reset_mock()
+    flag.enabled = True
+    flag.put()
+
+    tasks.add_task('minimize', '123', 'swarming_job')
+    mock_bulk_add.assert_called_once()
+    self.assertEqual(mock_bulk_add.call_args.kwargs['queue'],
+                     'preprocess-swarming')
+
+    mock_bulk_add.reset_mock()
+    tasks.add_utask_main('minimize', 'https://example.com/in', 'swarming_job',
+                         0, 'utask_main-swarming')
+    mock_bulk_add.assert_called_once()
+    self.assertEqual(mock_bulk_add.call_args.kwargs['queue'],
+                     'utask_main-swarming')
+
+    mock_bulk_add.reset_mock()
+    tasks.add_task('unpack', '456', 'swarming_job', queue='jobs-linux')
+    mock_bulk_add.assert_called_once()
+    self.assertEqual(mock_bulk_add.call_args.kwargs['queue'], 'jobs-linux')
+
 
 @mock.patch('clusterfuzz._internal.base.tasks.PubSubPuller')
 @mock.patch('clusterfuzz._internal.system.environment.get_value')

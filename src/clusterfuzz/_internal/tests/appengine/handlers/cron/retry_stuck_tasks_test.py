@@ -255,3 +255,28 @@ class RetryStuckTasksTest(unittest.TestCase):
           ['--max-retries=99', '--non-dry-run'])
       self.assertEqual(parsed_args.max_retries, 99)
       self.assertTrue(parsed_args.non_dry_run)
+
+  def test_get_stuck_reason_skips_impact_for_swarming_job(self):
+    """Tests that Swarming jobs are not marked stuck for missing impact."""
+    flag = data_types.FeatureFlag(id='swarming_remote_execution', enabled=False)
+    flag.put()
+    data_types.Job(
+        name='swarming_job',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+    tc = _create_mock_testcase(10, 'swarming_job', {})
+    tc.minimized_keys = 'min-key'
+    tc.regression = '100:200'
+    tc.is_impact_set_flag = False
+    tc.analyze_pending = False
+
+    with mock.patch(
+        'clusterfuzz._internal.base.utils.is_chromium', return_value=True):
+      self.assertEqual(
+          retry_stuck_tasks._get_stuck_reason(tc),  # pylint: disable=protected-access
+          retry_stuck_tasks.StuckReason.NO_IMPACT_SET)
+
+      flag.enabled = True
+      flag.put()
+      reason = retry_stuck_tasks._get_stuck_reason(tc)  # pylint: disable=protected-access
+    self.assertEqual(reason, retry_stuck_tasks.StuckReason.UNKNOWN)

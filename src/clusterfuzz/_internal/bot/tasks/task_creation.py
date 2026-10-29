@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Common functions for task creation for test cases."""
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -81,6 +82,9 @@ def create_blame_task_if_needed(testcase):
   if not testcase.is_chromium():
     return
 
+  if swarming.is_swarming_applicable(testcase.job_type):
+    return
+
   # We cannot run blame job for custom binaries since we don't have any context
   # on the crash revision and regression range.
   if build_manager.is_custom_binary():
@@ -121,6 +125,9 @@ def create_impact_task_if_needed(testcase):
 
   # Impact is only applicable to chromium project, otherwise bail out.
   if testcase.project_name != 'chromium':
+    return
+
+  if swarming.is_swarming_applicable(testcase.job_type):
     return
 
   # We cannot run impact job for custom binaries since we don't have any
@@ -193,7 +200,7 @@ def create_variant_tasks_if_needed(testcase):
       if (task_utils.is_remotely_executing_utasks() and
           not task_types.is_no_privilege_workload('variant', job_type)):
         continue
-    queue = tasks.queue_for_platform(job.platform)
+    queue = tasks.queue_for_job(job_type, job=job)
     tasks.add_task('variant', testcase_id, job_type, queue)
 
     variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)

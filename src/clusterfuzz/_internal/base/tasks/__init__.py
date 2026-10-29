@@ -25,6 +25,7 @@ from typing import Optional
 
 from google.cloud import monitoring_v3
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
@@ -955,6 +956,9 @@ def add_task(command,
       external_tasks.add_external_task(command, argument, job)
       return
 
+    if queue is None and swarming.is_swarming_applicable(job_type, job=job):
+      queue = SWARMING_QUEUES[PREPROCESS_QUEUE]
+
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   extra_info = extra_info or {}
@@ -998,11 +1002,15 @@ def queue_for_testcase(testcase):
   return queue_for_job(testcase.job_type, is_high_end=is_high_end)
 
 
-def queue_for_job(job_name, is_high_end=False):
+def queue_for_job(job_name, is_high_end=False, job=None):
   """Queue for job."""
-  job = data_types.Job.query(data_types.Job.name == job_name).get()
+  if not job:
+    job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job:
     raise Error('Job {} not found.'.format(job_name))
+
+  if swarming.is_swarming_applicable(job_name, job=job):
+    return SWARMING_QUEUES[PREPROCESS_QUEUE]
 
   return queue_for_platform(job.platform, is_high_end)
 
@@ -1019,6 +1027,9 @@ def redo_testcase(testcase, tasks, user_email):
   progression = 'progression' in tasks
   impact = 'impact' in tasks
   blame = 'blame' in tasks
+  if swarming.is_swarming_applicable(testcase.job_type):
+    impact = False
+    blame = False
 
   task_list = []
   testcase_id = testcase.key.id()
@@ -1061,6 +1072,9 @@ def redo_testcase(testcase, tasks, user_email):
     task_list.append('blame')
     testcase.set_metadata('blame_pending', True, update_testcase=False)
     testcase.set_metadata('predator_result', None, update_testcase=False)
+
+  if not task_list:
+    return
 
   for key in metadata_keys_to_clear:
     testcase.delete_metadata(key, update_testcase=False)

@@ -101,7 +101,8 @@ class BaseUTask(BaseTask):
 def is_no_privilege_workload(command, job):
   if not COMMAND_TYPES[command].is_execution_remote(command):
     return False
-  return batch_service.is_remote_task(command, job)
+  return (batch_service.is_remote_task(command, job) or
+          swarming.is_swarming_applicable(job))
 
 
 def is_remote_utask(command, job):

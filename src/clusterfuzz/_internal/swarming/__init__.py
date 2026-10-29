@@ -33,6 +33,8 @@ from clusterfuzz._internal.system import environment
 
 def has_swarming_env_vars(job_environment: dict) -> bool:
   """Returns True if the job environment contains swarming env vars."""
+  if not isinstance(job_environment, dict):
+    return False
   return bool(
       utils.string_is_true(job_environment.get('IS_SWARMING_JOB')) or
       job_environment.get('SWARMING_DIMENSIONS'))
@@ -54,6 +56,12 @@ def is_swarming_enabled() -> bool:
     return False
 
 
+def is_swarming_applicable(job_name: str,
+                           job: data_types.Job | None = None) -> bool:
+  """Returns True if Swarming remote execution is enabled and applies to job."""
+  return is_swarming_enabled() and is_swarming_job(job_name, job=job)
+
+
 def is_swarming_job(job_name: str, job: data_types.Job | None = None) -> bool:
   """Validates that the current job is meant to be scheduled on swarming.
 
@@ -64,8 +72,13 @@ def is_swarming_job(job_name: str, job: data_types.Job | None = None) -> bool:
   Returns:
     True if the job is supposed to run on swarming.
   """
+  if not job_name and job is None:
+    return False
   if job is None:
-    job = data_types.Job.query(data_types.Job.name == job_name).get()
+    try:
+      job = data_types.Job.query(data_types.Job.name == job_name).get()
+    except (api_exceptions.PermissionDenied, ndb_exceptions.ContextError):
+      return False
     if not job:
       logs.debug('[Swarming] Job not found', job_name=job_name)
       return False

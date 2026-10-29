@@ -89,10 +89,28 @@ class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
 
   def test_execute(self):
     """Tests scheduling of progression tasks."""
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
+    data_types.Job(
+        name='job_swarming',
+        environment_string='IS_SWARMING_JOB = True\n',
+        platform='ANDROID_EMULATOR').put()
+    swarming_tc = data_types.Testcase(
+        open=True,
+        one_time_crasher_flag=False,
+        status='Processed',
+        job_type='job_swarming',
+        queue='jobs-android-emulator')
+    swarming_tc.put()
+
     schedule_progression_tasks.main()
     self.mock.add_task.assert_has_calls([
         mock.call('progression', 1, 'job', queue='jobs-linux'),
         mock.call('progression', 5, 'job_windows', queue='jobs-windows'),
+        mock.call(
+            'progression',
+            swarming_tc.key.id(),
+            'job_swarming',
+            queue='preprocess-swarming'),
     ])
 
 
@@ -109,12 +127,42 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
 
   def test_chromium(self):
     """Tests scheduling of impact tasks in chrome."""
+    flag = data_types.FeatureFlag(id='swarming_remote_execution', enabled=False)
+    flag.put()
+    data_types.Job(
+        name='job_swarming',
+        environment_string='IS_SWARMING_JOB = True\n',
+        platform='ANDROID_EMULATOR').put()
+    swarming_tc = data_types.Testcase(
+        open=True,
+        one_time_crasher_flag=False,
+        status='Processed',
+        job_type='job_swarming',
+        queue='jobs-android-emulator')
+    swarming_tc.put()
+
     self.mock.is_chromium.return_value = True
     schedule_impact_tasks.main()
     self.mock.add_task.assert_has_calls([
         mock.call('impact', 1, 'job', queue='jobs-linux'),
         mock.call('impact', 5, 'job_windows', queue='jobs-windows'),
+        mock.call(
+            'impact',
+            swarming_tc.key.id(),
+            'job_swarming',
+            queue='jobs-android-emulator'),
     ])
+    self.assertEqual(3, self.mock.add_task.call_count)
+
+    self.mock.add_task.reset_mock()
+    flag.enabled = True
+    flag.put()
+    schedule_impact_tasks.main()
+    self.mock.add_task.assert_has_calls([
+        mock.call('impact', 1, 'job', queue='jobs-linux'),
+        mock.call('impact', 5, 'job_windows', queue='jobs-windows'),
+    ])
+    self.assertEqual(2, self.mock.add_task.call_count)
 
   def test_nonchromium(self):
     """Tests there is no scheduling of impact tasks outside of chromium."""

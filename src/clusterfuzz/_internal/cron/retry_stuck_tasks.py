@@ -30,6 +30,7 @@ from typing import NamedTuple
 
 from google.cloud import ndb  # pylint: disable=no-name-in-module
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.datastore import data_handler
@@ -268,7 +269,8 @@ def _get_stuck_reason(testcase: data_types.Testcase) -> str:
   if not testcase.regression:
     reasons.append(StuckReason.NO_REGRESSION_RANGE)
   if utils.is_chromium():
-    if not testcase.is_impact_set_flag:
+    if (not testcase.is_impact_set_flag and
+        not swarming.is_swarming_applicable(testcase.job_type)):
       reasons.append(StuckReason.NO_IMPACT_SET)
     if testcase.analyze_pending:
       reasons.append(StuckReason.ANALYZE_PENDING)

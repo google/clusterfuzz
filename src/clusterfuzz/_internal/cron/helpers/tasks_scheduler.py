@@ -13,6 +13,7 @@
 # limitations under the License.
 """Task scheduler used to recreate recurring tasks."""
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
@@ -27,11 +28,18 @@ def schedule(task):
     return
 
   testcase_ids = []
+  is_swarming_by_job = {}
   for status in ['Processed', 'Duplicate']:
     for testcase in data_types.Testcase.query(
         ndb_utils.is_true(data_types.Testcase.open),
         ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag),
         data_types.Testcase.status == status):
+      if task == 'impact':
+        if testcase.job_type not in is_swarming_by_job:
+          is_swarming_by_job[testcase.job_type] = (
+              swarming.is_swarming_applicable(testcase.job_type))
+        if is_swarming_by_job[testcase.job_type]:
+          continue
       testcase_id = testcase.key.id()
       try:
         tasks.add_task(

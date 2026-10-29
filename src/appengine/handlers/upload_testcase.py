@@ -528,7 +528,7 @@ class UploadHandlerCommon:
     else:
       retries = None
 
-    job_queue = tasks.queue_for_job(job_type, is_high_end=high_end_job)
+    job_queue = tasks.queue_for_job(job_type, is_high_end=high_end_job, job=job)
 
     if uploaded_file is not None:
       filename = ''.join([
@@ -561,11 +561,15 @@ class UploadHandlerCommon:
 
           # Use wait_time=0 to execute the task ASAP, since it is
           # user-facing.
+          unpack_queue = (
+              tasks.queue_for_platform('LINUX')
+              if job_queue == tasks.SWARMING_QUEUES[tasks.PREPROCESS_QUEUE] else
+              tasks.queue_for_job(job_type, job=job))
           tasks.add_task(
               'unpack',
               str(metadata.key.id()),
               job_type,
-              queue=tasks.queue_for_job(job_type),
+              queue=unpack_queue,
               wait_time=0)
 
           # Create a testcase metadata object to show the user their upload.

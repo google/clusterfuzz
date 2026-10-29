@@ -541,3 +541,41 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
         self._execute(command)
         self.mock.execute_locally.assert_not_called()
         self.mock.add_utask_main.assert_not_called()
+
+
+@test_utils.with_cloud_emulators('datastore')
+class IsNoPrivilegeWorkloadTest(unittest.TestCase):
+  """Tests for is_no_privilege_workload with Swarming jobs."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.task_utils.'
+        'is_remotely_executing_utasks',
+        'clusterfuzz._internal.batch.service.is_remote_task',
+    ])
+    self.mock.is_remotely_executing_utasks.return_value = True
+    self.mock.is_remote_task.return_value = False
+    data_types.Job(
+        name='libfuzzer_android_swarming',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+
+  def test_swarming_enabled_utask_vs_trusted_task(self):
+    """Tests that Swarming UTasks are no-privilege workloads when enabled, while
+    TrustedTasks are not."""
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
+    self.assertTrue(
+        task_types.is_no_privilege_workload('analyze',
+                                            'libfuzzer_android_swarming'))
+    self.assertFalse(
+        task_types.is_no_privilege_workload('impact',
+                                            'libfuzzer_android_swarming'))
+
+  def test_swarming_disabled_falls_back_to_batch_check(self):
+    """Tests that when SWARMING_REMOTE_EXECUTION is disabled, non-Batch Swarming
+    jobs are not treated as no-privilege workloads."""
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=False).put()
+    self.assertFalse(
+        task_types.is_no_privilege_workload('analyze',
+                                            'libfuzzer_android_swarming'))
