@@ -48,14 +48,19 @@ class Error(Exception):
   """Base exception class for errors."""
 
 
-class InvalidTestcaseError(Error):
+class NonRetryableError(Error):
+  """Error after which retrying the task cannot succeed, so the bot should
+  drop the task rather than leave it to be redelivered."""
+
+
+class InvalidTestcaseError(NonRetryableError):
   """Error thrown when there is an attempt to access an invalid test case."""
 
   def __init__(self, testcase_id):
     super().__init__(f'Invalid test case {testcase_id!r}.')
 
 
-class InvalidFuzzerError(Error):
+class InvalidFuzzerError(NonRetryableError):
   """Error thrown when there is an attempt to set up a nonexistent fuzzer."""
 
   def __init__(self):
