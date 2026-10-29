@@ -1554,7 +1554,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   _add_issue_metadata_from_environment(fuzzer_metadata)
 
   # Cleanup fuzzer temporary artifacts (e.g. mutations dir, merge dirs. etc).
-  fuzzer_utils.cleanup()
+  with steps_time_tracker.track('cleanup'):
+    fuzzer_utils.cleanup()
 
   return result, fuzzer_metadata, options.strategies
 
@@ -2058,7 +2059,8 @@ class FuzzingSession:
 
       temp_queue = process_handler.get_queue()
       if not temp_queue:
-        process_handler.terminate_stale_application_instances()
+        with self.steps_time_tracker.track('cleanup'):
+          process_handler.terminate_stale_application_instances()
         logs.error('Unable to create temporary crash queue.')
         break
 
@@ -2077,7 +2079,8 @@ class FuzzingSession:
         try:
           thread.start()
         except:
-          process_handler.terminate_stale_application_instances()
+          with self.steps_time_tracker.track('cleanup'):
+            process_handler.terminate_stale_application_instances()
           thread_error_occurred = True
           logs.error('Unable to start new thread.')
           break
@@ -2095,15 +2098,16 @@ class FuzzingSession:
                           job_type) as tracker:
         tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
 
-      # Allow for some time to finish processing before terminating the
-      # processes.
-      process_handler.terminate_hung_threads(threads)
+      with self.steps_time_tracker.track('cleanup'):
+        # Allow for some time to finish processing before terminating the
+        # processes.
+        process_handler.terminate_hung_threads(threads)
 
-      # It is not necessary to clean up stale instances on every batch, but
-      # should be done at regular intervals to ensure we are in a good state.
-      if needs_stale_process_cleanup:
-        process_handler.terminate_stale_application_instances()
-        needs_stale_process_cleanup = False
+        # It is not necessary to clean up stale instances on every batch, but
+        # should be done at regular intervals to ensure we are in a good state.
+        if needs_stale_process_cleanup:
+          process_handler.terminate_stale_application_instances()
+          needs_stale_process_cleanup = False
 
       self._add_crashes_from_temp_queue(temp_queue, crashes)
       process_handler.close_queue(temp_queue)
