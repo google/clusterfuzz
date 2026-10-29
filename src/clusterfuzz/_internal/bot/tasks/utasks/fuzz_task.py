@@ -2294,8 +2294,9 @@ class FuzzingSession:
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's
     # unclear if needed but it is kept because it is not harmful.
-    for testcase_file_path in testcase_file_paths:
-      shell.remove_file(testcase_file_path)
+    with self.tracker.track('remove_testcase_file'):
+      for testcase_file_path in testcase_file_paths:
+        shell.remove_file(testcase_file_path)
 
     # TODO(dylanj): Handle cases where the blackbox fuzzer executes multiple
     # logical testcases per test file and we'd like to factor that multiplier

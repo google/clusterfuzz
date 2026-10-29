@@ -1388,6 +1388,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.get_queue.return_value = queue.Queue()
     self.mock.get_process.return_value = threading.Thread
 
+    monitor.metrics_store().reset_for_testing()
+
   def _setup_utask_env(self):
     """Sets up the utask environment for fuzzing."""
     helpers.patch(self, [
@@ -1615,6 +1617,53 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     })
     self.assertEqual(1, dist.count)
     self.assertGreater(dist.sum, 0)
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
+  )
+  def test_utask_main_remove_testcase_file(self,
+                                           mock_generate_blackbox_testcases):
+    """Test that deleting the fuzzed testcases is tracked."""
+    self._setup_utask_env()
+    fuzzer = self._create_test_fuzzer()
+    uworker_input = self._create_blackbox_uworker_input(fuzzer)
+
+    testcase_file_paths = ['/tests/0', '/tests/1', '/tests/2']
+    for path in testcase_file_paths:
+      self.fs.create_file(path, contents='testcase')
+    mock_generate_blackbox_testcases.return_value = (
+        fuzz_task.GenerateBlackboxTestcasesResult(
+            True, testcase_file_paths, {'fuzzer_binary_name': fuzzer.name}))
+
+    actual = fuzz_task.utask_main(uworker_input)
+
+    for path in testcase_file_paths:
+      self.assertFalse(os.path.exists(path))
+    self.assertGreater(
+        actual.fuzz_task_output.fuzz_task_steps_duration['remove_testcase_file']
+        .ToTimedelta().total_seconds(), 0)
+    dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'remove_testcase_file',
+        'success': True,
+    })
+    self.assertEqual(1, dist.count)
+    self.assertGreater(dist.sum, 0)
+
+  def _create_blackbox_uworker_input(self, fuzzer):
+    """Creates a uworker input for a blackbox fuzzing utask_main run."""
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    setup_input = uworker_msg_pb2.SetupInput(
+        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+    return uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer.name,
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input,
+        setup_input=setup_input,
+        uworker_env={'FUZZ_TEST_TIMEOUT': '10'})
 
 
 class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
