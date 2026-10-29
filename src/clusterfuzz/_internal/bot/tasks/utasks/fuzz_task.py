@@ -1555,12 +1555,13 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   _add_issue_metadata_from_environment(fuzzer_metadata)
 
   # Cleanup fuzzer temporary artifacts (e.g. mutations dir, merge dirs. etc).
-  fuzzer_utils.cleanup()
+  with tracker.track('cleanup'):
+    fuzzer_utils.cleanup()
+
   result.stats['fuzz_task_steps_duration'] = {
       name: utils.timedelta_to_duration_string(duration)
       for name, duration in tracker.stats.items()
   }
-
   return result, fuzzer_metadata, options.strategies
 
 
@@ -1829,6 +1830,7 @@ class FuzzingSession:
     return_code = 1  # Vanilla return-code for engine crashes.
 
     self.fuzz_task_output.app_revision = environment.get_value('APP_REVISION')
+    total_cleanup_time = datetime.timedelta()
     # Do the actual fuzzing.
     for fuzzing_round in range(_get_max_testcases()):
       logs.info(f'Fuzzing round {fuzzing_round}.')
@@ -1855,6 +1857,10 @@ class FuzzingSession:
       fuzzer_metadata.update(cur_fuzzer_metadata)
 
       # Prepare stats.
+      round_steps_duration = result.stats.get('fuzz_task_steps_duration', {})
+      if 'cleanup' in round_steps_duration:
+        total_cleanup_time += utils.duration_string_to_timedelta(
+            round_steps_duration['cleanup'])
       testcase_run = engine_common.get_testcase_run(result.stats,
                                                     result.command)
 
@@ -1896,6 +1902,8 @@ class FuzzingSession:
 
     logs.info('All fuzzing rounds complete.')
     self.sync_new_corpus_files()
+    self.fuzz_task_output.fuzz_task_steps_duration['cleanup'].FromTimedelta(
+        total_cleanup_time)
 
     return crashes, fuzzer_metadata
 
@@ -2061,7 +2069,11 @@ class FuzzingSession:
     # Start processing the testcases.
     # This execution time includes the overhead to manage threads
     testcase_execution_start = time.time()
+    total_cleanup_time = datetime.timedelta()
     while test_number < len(testcase_file_paths):
+      round_tracker = monitor.TimeStatTracker(
+          monitoring_metrics.FUZZ_TASK_STEPS_DURATION,
+          self.fuzz_task_step_metric_labels)
       thread_index = 0
       threads = []
 
@@ -2104,15 +2116,17 @@ class FuzzingSession:
                           job_type) as tracker:
         tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
 
-      # Allow for some time to finish processing before terminating the
-      # processes.
-      process_handler.terminate_hung_threads(threads)
+      with round_tracker.track('cleanup'):
+        # Allow for some time to finish processing before terminating the
+        # processes.
+        process_handler.terminate_hung_threads(threads)
 
-      # It is not necessary to clean up stale instances on every batch, but
-      # should be done at regular intervals to ensure we are in a good state.
-      if needs_stale_process_cleanup:
-        process_handler.terminate_stale_application_instances()
-        needs_stale_process_cleanup = False
+        # It is not necessary to clean up stale instances on every batch, but
+        # should be done at regular intervals to ensure we are in a good state.
+        if needs_stale_process_cleanup:
+          process_handler.terminate_stale_application_instances()
+          needs_stale_process_cleanup = False
+      total_cleanup_time += round_tracker.stats['cleanup']
 
       self._add_crashes_from_temp_queue(temp_queue, crashes)
       process_handler.close_queue(temp_queue)
@@ -2128,6 +2142,8 @@ class FuzzingSession:
                                         testcase_execution_start)
     self.fuzz_task_output.testcase_execution_duration.FromTimedelta(
         execution_time)
+    self.fuzz_task_output.fuzz_task_steps_duration['cleanup'].FromTimedelta(
+        total_cleanup_time)
 
     # Pull testcase directory to host. The testcase file contents could have
     # been changed (by e.g. libFuzzer) and stats files could have been written.

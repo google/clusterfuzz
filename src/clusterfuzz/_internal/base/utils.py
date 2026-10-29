@@ -1179,3 +1179,25 @@ def timedelta_to_duration_string(time_delta):
   secs = seconds % 60
 
   return f"P{days}DT{hours}H{minutes}M{secs}.{microseconds:06}S"
+
+
+_DURATION_STRING_REGEX = re.compile(r'^P(\d+)DT(\d+)H(\d+)M(\d+)\.(\d{6})S$')
+
+
+def duration_string_to_timedelta(duration_string):
+  """Converts an ISO8601 duration string produced by
+  timedelta_to_duration_string back to a datetime.timedelta."""
+  if isinstance(duration_string, datetime.timedelta):
+    return duration_string
+
+  match = _DURATION_STRING_REGEX.match(duration_string)
+  if not match:
+    raise ValueError(f'Invalid duration string: {duration_string}')
+
+  days, hours, minutes, seconds, microseconds = map(int, match.groups())
+  return datetime.timedelta(
+      days=days,
+      hours=hours,
+      minutes=minutes,
+      seconds=seconds,
+      microseconds=microseconds)

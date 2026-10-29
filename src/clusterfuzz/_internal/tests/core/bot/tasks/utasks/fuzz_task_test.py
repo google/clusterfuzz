@@ -1388,6 +1388,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.get_queue.return_value = queue.Queue()
     self.mock.get_process.return_value = threading.Thread
 
+    monitor.metrics_store().reset_for_testing()
+
   def _setup_utask_env(self):
     """Sets up the utask environment for fuzzing."""
     helpers.patch(self, [
@@ -1615,6 +1617,23 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     })
     self.assertEqual(1, dist.count)
     self.assertGreater(dist.sum, 0)
+
+    # MAX_FUZZ_THREADS is 1, so the 3 testcases run in 3 batches, each followed
+    # by a cleanup. The task-level value is the sum over all batches.
+    cleanup_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'cleanup',
+        'success': True,
+    })
+    self.assertEqual(3, cleanup_dist.count)
+    self.assertEqual(3, self.mock.terminate_hung_threads.call_count)
+    total_cleanup = actual.fuzz_task_output.fuzz_task_steps_duration[
+        'cleanup'].ToTimedelta().total_seconds()
+    self.assertGreater(total_cleanup, 0)
+    self.assertAlmostEqual(cleanup_dist.sum, total_cleanup, places=5)
 
 
 class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
@@ -1998,12 +2017,17 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(1.0, crashes[i].crash_time)
       self.assertEqual('args', crashes[i].arguments)
 
+    expected_total_cleanup = datetime.timedelta()
     for i in range(2):
       testcase_run = json.loads(session.fuzz_task_output.testcase_run_jsons[i])
       steps_duration = testcase_run.pop('fuzz_task_steps_duration')
-      self.assertEqual(['engine_prepare'], list(steps_duration.keys()))
+      self.assertCountEqual(['engine_prepare', 'cleanup'],
+                            steps_duration.keys())
       self.assertRegex(steps_duration['engine_prepare'],
                        r'^P0DT0H0M\d+\.\d{6}S$')
+      self.assertRegex(steps_duration['cleanup'], r'^P0DT0H0M\d+\.\d{6}S$')
+      expected_total_cleanup += utils.duration_string_to_timedelta(
+          steps_duration['cleanup'])
       self.assertDictEqual({
           'build_revision': 1,
           'command': ['cmd'],
@@ -2028,6 +2052,65 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'success': True,
     })
     self.assertEqual(2, dist.count)
+
+    # The task-level cleanup is the sum of the per-round cleanup stats.
+    self.assertEqual(
+        expected_total_cleanup,
+        session.fuzz_task_output.fuzz_task_steps_duration['cleanup']
+        .ToTimedelta())
+    cleanup_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': 'libFuzzer_fuzz',
+        'job': 'libfuzzer_asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'cleanup',
+        'success': True,
+    })
+    self.assertEqual(2, cleanup_dist.count)
+
+  @mock.patch('clusterfuzz._internal.bot.tasks.utasks.fuzz_task.'
+              'run_engine_fuzzer')
+  def test_cleanup_accumulated_from_result_stats(self, mock_run_engine_fuzzer):
+    """Test that cleanup durations reported in result stats are summed.
+
+    This mirrors the untrusted runner, where cleanup is timed on the worker and
+    only reaches the host as a serialized duration string in result.stats.
+    """
+    target = 'test_target'
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
+        fuzz_target=uworker_io.entity_to_protobuf(
+            data_types.FuzzTarget(engine='libFuzzer', binary=target)),)
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name='libFuzzer_fuzz',
+        job_type='libfuzzer_asan_test',
+        fuzz_task_input=fuzz_task_input)
+    session = fuzz_task.FuzzingSession(uworker_input, 60)
+    session.testcase_directory = os.environ['FUZZ_INPUTS']
+    session.data_directory = '/data_dir'
+
+    os.environ['FUZZ_TARGET'] = target
+    os.environ['APP_REVISION'] = '1'
+    os.environ['FUZZ_TEST_TIMEOUT'] = '2000'
+    os.environ['BOT_NAME'] = 'hostname.company.com'
+    os.environ['FUZZ_LOGS_BUCKET'] = '/fuzz-logs'
+
+    mock_run_engine_fuzzer.side_effect = lambda *_: (engine.FuzzResult(
+        'logs', ['cmd'], [], {
+            'fuzz_task_steps_duration': {
+                'engine_prepare': 'P0DT0H0M0.250000S',
+                'cleanup': 'P0DT0H0M1.500000S',
+            }
+        }, 42.0), {}, {})
+    engine_impl = mock.Mock()
+    engine_impl.name = 'libFuzzer'
+
+    session.do_engine_fuzzing(engine_impl)
+
+    # MAX_TESTCASES is 2, so two rounds of 1.5 seconds each.
+    self.assertEqual(
+        datetime.timedelta(seconds=3),
+        session.fuzz_task_output.fuzz_task_steps_duration['cleanup']
+        .ToTimedelta())
 
   def test_engine_prepare_exception(self):
     """Test that an exception in engine prepare is tracked as a failure."""

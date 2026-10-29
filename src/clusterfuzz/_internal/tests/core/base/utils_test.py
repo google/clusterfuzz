@@ -756,3 +756,26 @@ class TimedeltaToDurationStringTest(unittest.TestCase):
     """Tests that an already converted string is returned unchanged."""
     self.assertEqual('P0DT0H0M5.500000S',
                      utils.timedelta_to_duration_string('P0DT0H0M5.500000S'))
+
+
+class DurationStringToTimedeltaTest(unittest.TestCase):
+  """Tests for duration_string_to_timedelta."""
+
+  def test_round_trip(self):
+    """Tests that it is the inverse of timedelta_to_duration_string."""
+    time_delta = datetime.timedelta(
+        days=1, hours=2, minutes=3, seconds=4, microseconds=5)
+    self.assertEqual(
+        time_delta,
+        utils.duration_string_to_timedelta(
+            utils.timedelta_to_duration_string(time_delta)))
+
+  def test_timedelta_passthrough(self):
+    """Tests that a timedelta is returned unchanged."""
+    time_delta = datetime.timedelta(seconds=5.5)
+    self.assertEqual(time_delta, utils.duration_string_to_timedelta(time_delta))
+
+  def test_invalid(self):
+    """Tests that an invalid string raises."""
+    with self.assertRaises(ValueError):
+      utils.duration_string_to_timedelta('5 seconds')

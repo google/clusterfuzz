@@ -52,6 +52,10 @@ _COMMON_COLUMNS = [{
         'name': 'engine_prepare',
         'type': 'INTERVAL',
         'mode': 'NULLABLE'
+    }, {
+        'name': 'cleanup',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE'
     }]
 }]
 
