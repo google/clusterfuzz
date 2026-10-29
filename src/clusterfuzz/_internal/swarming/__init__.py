@@ -91,7 +91,7 @@ def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
 
 
 def _get_task_name(job_name: str):
-  return f't-{str(uuid.uuid4()).lower()}-{job_name}'
+  return f't-{uuid.uuid4().hex[:8]}-{job_name}'
 
 
 def get_swarming_config() -> local_config.SwarmingConfig | None:
@@ -265,6 +265,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
       priority=priority,
       realm=swarming_realm,
       service_account=service_account,
+      tags=[f'spec_name:clusterfuzz.{job.platform.lower()}:{command}'],
       task_slices=[
           swarming_pb2.TaskSlice(  # pylint: disable=no-member
               expiration_secs=expiration_secs,
