@@ -867,7 +867,7 @@ def upload_job_run_stats(
     testcase_generation_duration: datetime.timedelta = None,
     testcase_execution_duration: datetime.timedelta = None,
     fuzzing_duration: datetime.timedelta = None,
-    fuzz_task_steps_duration=None):
+    fuzz_task_steps_duration: dict[str, datetime.timedelta] | None = None):
   """Upload job run stats."""
   # New format.
   job_run = fuzzer_stats.JobRun(
