@@ -274,7 +274,9 @@ message FuzzTaskOutput {
   // Total fuzzing session time. Includes time spent updating the fuzzer, build
   // and test corpus set up, and crash processing.
   optional google.protobuf.Duration fuzzing_duration = 23;
-  map<string, google.protobuf.Duration> fuzz_task_steps_duration = 24;
+  // Map of {step: duration}, which tracks the duration of each step in the
+  // fuzz task
+  map<string, google.protobuf.Duration> steps_duration = 24;
 }
 
 message MinimizeTaskOutput {

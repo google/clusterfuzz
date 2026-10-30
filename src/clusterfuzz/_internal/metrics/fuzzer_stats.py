@@ -113,12 +113,9 @@ JOB_RUN_SCHEMA = {
         'type': 'INTERVAL',
         'mode': 'NULLABLE'
     }, {
-        'name':
-            'fuzz_task_steps_duration',
-        'type':
-            'RECORD',
-        'mode':
-            'NULLABLE',
+        'name': 'steps_duration',
+        'type': 'RECORD',
+        'mode': 'NULLABLE',
         'fields': []
     }]
 }
@@ -234,7 +231,7 @@ class BaseRun:
                         data.get('testcase_generation_duration'),
                         data.get('testcase_execution_duration'),
                         data.get('fuzzing_duration'),
-                        data.get('fuzz_task_steps_duration'))
+                        data.get('steps_duration'))
     except KeyError:
       return None
 
@@ -262,7 +259,7 @@ class JobRun(BaseRun):
                testcase_generation_duration=None,
                testcase_execution_duration=None,
                fuzzing_duration=None,
-               fuzz_task_steps_duration=None):
+               steps_duration=None):
     super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'JobRun',
@@ -284,10 +281,10 @@ class JobRun(BaseRun):
     if fuzzing_duration is not None:
       self._stats_data['fuzzing_duration'] = _timedelta_to_duration_string(
           fuzzing_duration)
-    if fuzz_task_steps_duration:
-      self._stats_data['fuzz_task_steps_duration'] = {
+    if steps_duration:
+      self._stats_data['steps_duration'] = {
           name: _timedelta_to_duration_string(duration)
-          for name, duration in fuzz_task_steps_duration.items()
+          for name, duration in steps_duration.items()
       }
 
 
