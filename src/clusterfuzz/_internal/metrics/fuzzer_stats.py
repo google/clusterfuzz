@@ -35,6 +35,9 @@ from clusterfuzz._internal.system import shell
 
 STATS_FILE_EXTENSION = '.stats2'
 
+_STEPS_DURATION_FIELDS = []
+_VALID_STEPS_NAMES = frozenset(
+    field['name'] for field in _STEPS_DURATION_FIELDS)
 JOB_RUN_SCHEMA = {
     'fields': [{
         'name': 'testcases_executed',
@@ -116,7 +119,7 @@ JOB_RUN_SCHEMA = {
         'name': 'steps_duration',
         'type': 'RECORD',
         'mode': 'NULLABLE',
-        'fields': []
+        'fields': _STEPS_DURATION_FIELDS
     }]
 }
 
@@ -282,10 +285,20 @@ class JobRun(BaseRun):
       self._stats_data['fuzzing_duration'] = _timedelta_to_duration_string(
           fuzzing_duration)
     if steps_duration:
-      self._stats_data['steps_duration'] = {
-          name: _timedelta_to_duration_string(duration)
-          for name, duration in steps_duration.items()
-      }
+      valid_steps_duration = {}
+      dropped_keys = []
+      for name, duration in steps_duration.items():
+        if name not in _VALID_STEPS_NAMES:
+          dropped_keys.append(name)
+        else:
+          valid_steps_duration[name] = _timedelta_to_duration_string(duration)
+
+      if dropped_keys:
+        keys_str = ', '.join(f'"{key}"' for key in dropped_keys)
+        logs.error(f'Dropped keys {keys_str} because they are not accepted '
+                   'by any field in JobRun.steps_duration schema.')
+      if valid_steps_duration:
+        self._stats_data['steps_duration'] = valid_steps_duration
 
 
 class TestcaseRun(BaseRun):
