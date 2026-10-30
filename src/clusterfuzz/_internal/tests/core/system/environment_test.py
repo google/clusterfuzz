@@ -80,6 +80,20 @@ class EnvironmentTest(unittest.TestCase):
     self.assertEqual(environment.get_runtime(),
                      environment.UtaskMainRuntime.BATCH)
 
+  def test_can_download_symbols(self):
+    """Tests that can_download_symbols() returns True only on regular bots,
+    not on uworkers nor in local development."""
+    environment.remove_key('UWORKER')
+    environment.remove_key('LOCAL_DEVELOPMENT')
+    self.assertTrue(environment.can_download_symbols())
+
+    environment.set_value('UWORKER', True)
+    self.assertFalse(environment.can_download_symbols())
+
+    environment.remove_key('UWORKER')
+    environment.set_value('LOCAL_DEVELOPMENT', True)
+    self.assertFalse(environment.can_download_symbols())
+
 
 class GetExecutableFileNameTest(unittest.TestCase):
   """Tests for get_executable_filename."""
