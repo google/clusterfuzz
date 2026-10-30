@@ -778,6 +778,13 @@ def is_uworker() -> bool:
   return get_value('UWORKER')
 
 
+def can_download_symbols() -> bool:
+  """Return whether the current bot can dynamically download symbols that are
+  not bundled locally (not possible in local development nor on uworkers, which
+  lack DB access)."""
+  return not get_value('LOCAL_DEVELOPMENT') and not is_uworker()
+
+
 def get_runtime() -> UtaskMainRuntime:
   """
   Get the current runtime for running the tasks.

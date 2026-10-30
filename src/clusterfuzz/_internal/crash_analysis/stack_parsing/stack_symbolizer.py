@@ -612,40 +612,29 @@ class SymbolizationLoop:
       except ProcessLookupError:
         pass
 
-  def _can_process_trusty_stack_trace(self, trusty_app, trusty_bid) -> bool:
-    """Checks whether the trusty stacktrace can be processed.
-
-    Uworker bots can't access DB nor GCS, which are required to process the
-    trusty stacktrace. This checks if the current bot context 
-    is able to process the stacktrace.
-
-    Args:
-      trusty_app: The name of the crashed Trusted App.
-      trusty_bid: The build ID of the crashed Trusted App.
-
-    Returns:
-      True if the trusty stacktrace can be processed, False otherwise.
-    """
-    symbols_dir = environment.get_value('SYMBOLS_DIR')
-    return bool(
-        trusty_app and trusty_bid and
-        (symbols_dir or not environment.is_uworker()))
-
   def process_trusty_stacktrace(self, unsymbolized_crash_stacktrace):
     """Adds debug line information to a Trusted App stacktrace."""
     trusty_app = self._extract_trusty_app_name(unsymbolized_crash_stacktrace)
     trusty_bid = self._extract_trusty_bid(unsymbolized_crash_stacktrace)
-    symbols_dir = environment.get_value('SYMBOLS_DIR')
-    if not self._can_process_trusty_stack_trace(trusty_app, trusty_bid):
-      logs.warning('Wont process trusty stacktrace, missing one of: '
-                   f'trusty_app={trusty_app}, trusty_bid={trusty_bid}, '
-                   f'SYMBOLS_DIR={symbols_dir}')
+    if not trusty_app or not trusty_bid:
+      # Not a Trusted App stacktrace, nothing to symbolize.
       return unsymbolized_crash_stacktrace
 
+    symbols_dir = environment.get_value('SYMBOLS_DIR')
+    if not symbols_dir:
+      return unsymbolized_crash_stacktrace
+
+    # No-op when symbols can't be downloaded (e.g. on uworkers), in which case
+    # the ones bundled in |symbols_dir| are used.
     symbols_downloader.download_trusty_symbols_if_needed(
         symbols_dir, trusty_app, trusty_bid)
-    kernel_binary = f'{symbols_dir}/lk.elf'
-    trusty_binary = f'{symbols_dir}/{trusty_app}.syms.elf'
+    kernel_binary = os.path.join(symbols_dir, 'lk.elf')
+    trusty_binary = os.path.join(symbols_dir, f'{trusty_app}.syms.elf')
+    if not (os.path.exists(kernel_binary) and os.path.exists(trusty_binary)):
+      logs.debug('Skipping trusty stacktrace symbolization, symbols are not '
+                 f'available for trusty_app={trusty_app}, '
+                 f'trusty_bid={trusty_bid} in SYMBOLS_DIR={symbols_dir}.')
+      return unsymbolized_crash_stacktrace
 
     symbolized_stacktrace = ''
     unsymbolized_crash_stacktrace_lines = \

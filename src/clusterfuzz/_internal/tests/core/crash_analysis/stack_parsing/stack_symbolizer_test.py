@@ -14,6 +14,7 @@
 """Tests for the stack symbolizer module."""
 
 import os
+import tempfile
 import unittest
 from unittest import mock
 
@@ -104,6 +105,20 @@ EXPECTED_LLVM_INLINE_OUTPUT = (
     "    #0 0x0001 in llvm_inline_func llvm_inline_file:5\n"
     "    #1 0x0001 in llvm_caller_func llvm_caller_file:10\n"
     "    #2 0x0002 in llvm_func1 llvm_file1:20\n")
+
+TRUSTY_STACKTRACE = (
+    'panic notifier - trusty version Project: cloudripper-fuzz-test-debug, '
+    'Build: 1234567, Built: 10:17:59 Dec 30 2022\n'
+    '(app: keymaster)\n'
+    'kSP+0x0df0: 0xffff000000022f5c\n'
+    'uSP+0x06f0: 0x000000000001da10\n')
+
+SYMBOLIZED_TRUSTY_STACKTRACE = (
+    'panic notifier - trusty version Project: cloudripper-fuzz-test-debug, '
+    'Build: 1234567, Built: 10:17:59 Dec 30 2022\n'
+    '(app: keymaster)\n'
+    'kSP+0x0df0: kernel_frame\n'
+    'uSP+0x06f0: trusty_app_frame\n')
 
 
 class ChromeDsymHintsTests(unittest.TestCase):
@@ -433,51 +448,134 @@ class LLVMSymbolizerTest(unittest.TestCase):
 
 
 class ProcessTrustyStacktraceTest(unittest.TestCase):
-  """Tests that process_trusty_stacktrace returns early without downloading symbols 
-  when required Trusty metadata is missing."""
+  """Tests that process_trusty_stacktrace symbolizes Trusted App stacktraces
+  only with the Trusty symbols that are bundled locally or downloaded."""
 
   def setUp(self):
+    helpers.patch_environ(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.platforms.android.symbols_downloader.download_trusty_symbols_if_needed',
-        'clusterfuzz._internal.system.environment.get_value',
-        'clusterfuzz._internal.system.environment.is_uworker',
+        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.Addr2LineSymbolizer',
+        'clusterfuzz._internal.metrics.logs.debug',
+        'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.metrics.logs.warning',
+        ('fetch_artifact_get',
+         'clusterfuzz._internal.platforms.android.fetch_artifact.get'),
+        'clusterfuzz._internal.platforms.android.fetch_artifact.get_latest_artifact_info',
+        'clusterfuzz._internal.platforms.android.settings.get_build_parameters',
     ])
-    self.mock.is_uworker.return_value = False
+    # Spy on the real downloader, which is a no-op on uworkers.
+    downloader = stack_symbolizer.symbols_downloader
+    download_patcher = mock.patch.object(
+        downloader,
+        'download_trusty_symbols_if_needed',
+        autospec=True,
+        side_effect=downloader.download_trusty_symbols_if_needed)
+    self.mock_download = download_patcher.start()
+    self.addCleanup(download_patcher.stop)
+
+    temp_dir = tempfile.TemporaryDirectory()
+    self.addCleanup(temp_dir.cleanup)
+    self.symbols_dir = temp_dir.name
+    self.kernel_binary = os.path.join(self.symbols_dir, 'lk.elf')
+    self.trusty_binary = os.path.join(self.symbols_dir, 'keymaster.syms.elf')
+    frames = {
+        self.kernel_binary: 'kernel_frame',
+        self.trusty_binary: 'trusty_app_frame',
+    }
+    self.mock.Addr2LineSymbolizer.return_value.symbolize.side_effect = (
+        lambda _addr, binary, _offset: [frames[binary]])
+
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ['UWORKER'] = 'True'
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
     self.loop = stack_symbolizer.SymbolizationLoop()
 
-  def test_early_return_when_missing_app_and_bid(self):
-    """Tests that we avoid processing the Trusty stacktrace and downloading 
-    symbols when both trusty_app and trusty_bid are missing."""
-    stacktrace = 'Some standard crash without trusty metadata\n#0 0x1234'
+  def _create_trusty_symbols(self, *_):
+    """Creates the Trusty symbols in the symbols directory."""
+    for binary in (self.kernel_binary, self.trusty_binary):
+      with open(binary, 'wb'):
+        pass
+
+  def _assert_not_processed(self, stacktrace):
+    """Asserts that |stacktrace| is returned as is, without downloading
+    symbols nor logging warnings."""
     self.assertEqual(stacktrace,
                      self.loop.process_trusty_stacktrace(stacktrace))
-    self.mock.download_trusty_symbols_if_needed.assert_not_called()
+    self.mock_download.assert_not_called()
+    self.mock.warning.assert_not_called()
+
+  def test_early_return_when_missing_app_and_bid(self):
+    """Tests that we avoid processing the Trusty stacktrace and downloading
+    symbols when both trusty_app and trusty_bid are missing."""
+    self._assert_not_processed(
+        'Some standard crash without trusty metadata\n#0 0x1234')
 
   def test_early_return_when_missing_app(self):
     """Tests that we avoid processing the Trusty stacktrace and downloading symbols
     when trusty_app is missing (even if trusty_bid is present)."""
-    stacktrace = ', Build: 1234567, Built:\n#0 0x1234'
-    self.assertEqual(stacktrace,
-                     self.loop.process_trusty_stacktrace(stacktrace))
-    self.mock.download_trusty_symbols_if_needed.assert_not_called()
+    self._assert_not_processed(', Build: 1234567, Built:\n#0 0x1234')
 
   def test_early_return_when_missing_bid(self):
-    """Tests that we avoid processing the Trusty stacktrace and downloading symbols 
+    """Tests that we avoid processing the Trusty stacktrace and downloading symbols
     when trusty_bid is missing (even if trusty_app is present)."""
-    stacktrace = '(app: keymaster)\n#0 0x1234'
-    self.assertEqual(stacktrace,
-                     self.loop.process_trusty_stacktrace(stacktrace))
-    self.mock.download_trusty_symbols_if_needed.assert_not_called()
+    self._assert_not_processed('(app: keymaster)\n#0 0x1234')
 
   def test_early_return_on_uworker_without_symbols_dir(self):
     """Tests that we avoid processing the Trusty stacktrace and downloading symbols when on a uworker without a SYMBOLS_DIR (even if both trusty_app and trusty_bid are present)."""
-    self.mock.is_uworker.return_value = True
-    self.mock.get_value.return_value = None
+    del os.environ['SYMBOLS_DIR']
+    self._assert_not_processed(TRUSTY_STACKTRACE)
 
-    stacktrace = '(app: keymaster), Build: 1234567, Built:\n#0 0x1234'
-    self.assertEqual(stacktrace,
-                     self.loop.process_trusty_stacktrace(stacktrace))
-    self.mock.download_trusty_symbols_if_needed.assert_not_called()
+  def test_uworker_without_bundled_symbols(self):
+    """Tests that uworkers skip symbolization when the Trusty symbols aren't
+    bundled, even if the symbols directory isn't empty, without downloading
+    them nor logging warnings or errors."""
+    placeholder = os.path.join(self.symbols_dir, 'libfoo.so')
+    with open(placeholder, 'wb'):
+      pass
+
+    self.assertEqual(TRUSTY_STACKTRACE,
+                     self.loop.process_trusty_stacktrace(TRUSTY_STACKTRACE))
+    self.assertTrue(os.path.exists(placeholder))
+    self.mock.fetch_artifact_get.assert_not_called()
+    self.mock.Addr2LineSymbolizer.assert_not_called()
+    self.mock.debug.assert_called_once()
+    self.mock.warning.assert_not_called()
+    self.mock.error.assert_not_called()
+
+  def test_uworker_with_bundled_symbols(self):
+    """Tests that uworkers symbolize with the bundled Trusty symbols, without
+    trying to download them (which would wipe them)."""
+    self._create_trusty_symbols()
+
+    self.assertEqual(SYMBOLIZED_TRUSTY_STACKTRACE,
+                     self.loop.process_trusty_stacktrace(TRUSTY_STACKTRACE))
+    self.assertTrue(os.path.exists(self.kernel_binary))
+    self.assertTrue(os.path.exists(self.trusty_binary))
+    self.mock.fetch_artifact_get.assert_not_called()
+    self.mock.warning.assert_not_called()
+    self.mock.error.assert_not_called()
+
+  def test_regular_bot_downloads_symbols(self):
+    """Tests that regular bots download the Trusty symbols to symbolize."""
+    del os.environ['UWORKER']
+    self.mock_download.side_effect = self._create_trusty_symbols
+
+    self.assertEqual(SYMBOLIZED_TRUSTY_STACKTRACE,
+                     self.loop.process_trusty_stacktrace(TRUSTY_STACKTRACE))
+    self.mock_download.assert_called_once_with(self.symbols_dir, 'keymaster',
+                                               '1234567')
+
+  def test_regular_bot_without_downloaded_symbols(self):
+    """Tests that regular bots leave the stacktrace unsymbolized when the
+    Trusty symbols couldn't be downloaded."""
+    del os.environ['UWORKER']
+    self.mock_download.side_effect = None
+
+    self.assertEqual(TRUSTY_STACKTRACE,
+                     self.loop.process_trusty_stacktrace(TRUSTY_STACKTRACE))
+    self.mock_download.assert_called_once_with(self.symbols_dir, 'keymaster',
+                                               '1234567')
+    self.mock.Addr2LineSymbolizer.assert_not_called()
 
 
 class SymbolizeStacktraceChainTest(unittest.TestCase):

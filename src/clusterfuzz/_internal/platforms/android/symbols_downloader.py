@@ -35,11 +35,9 @@ def get_repo_prop_archive_filename(build_id, target):
 
 def should_download_symbols():
   """Return True if we should continue to download symbols."""
-  # For local testing, we do not have access to the cloud storage bucket with
-  # the symbols. In this case, just bail out. We have archived symbols for
-  # google builds only.
-  return (not environment.get_value('LOCAL_DEVELOPMENT') and
-          settings.is_google_device())
+  # See environment.can_download_symbols(). We have archived symbols for google
+  # builds only.
+  return environment.can_download_symbols() and settings.is_google_device()
 
 
 def download_artifact_if_needed(
@@ -67,6 +65,9 @@ def check_symbols_cached(build_params_check_path, build_params):
 def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
                                  targets_with_type_and_san, cache_type):
   """Downloads the repo.prop for a branch"""
+  if not environment.can_download_symbols():
+    return
+
   artifact_file_name = 'repo.prop'
   symbols_archive_filename = get_repo_prop_archive_filename(
       build_id, cache_target)
@@ -185,6 +186,9 @@ def download_system_symbols_if_needed(symbols_directory):
 
 def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
   """Downloads and extracts Trusted App ELF files"""
+  if not environment.can_download_symbols():
+    return
+
   ab_target = ''
   device = settings.get_build_parameters().get('target')
   if 'cheetah' in device or 'panther' in device:
@@ -227,6 +231,8 @@ def _get_binary_from_build_or_device(binary_path):
   """Look for binary on build server or on device."""
   # Initialize some helper variables.
   symbols_directory = environment.get_value('SYMBOLS_DIR')
+  if not symbols_directory:
+    return None
   binary_filename = os.path.basename(binary_path)
 
   # We didn't find the library locally in the build directory.
@@ -238,6 +244,7 @@ def _get_binary_from_build_or_device(binary_path):
 
   # Try pulling in the binary directly from the device into the
   # system library cache directory.
+  shell.create_directory(symbols_directory, create_intermediates=True)
   local_binary_path = os.path.join(symbols_directory, binary_filename)
   adb.run_command('pull %s %s' % (binary_path, local_binary_path))
   if os.path.exists(local_binary_path):
@@ -268,6 +275,8 @@ def filter_binary_path(binary_path):
     if local_binary_path:
       return local_binary_path
 
-  # Unable to find library.
-  logs.error('Unable to find library %s for symbolization.' % binary_path)
+  # Unable to find library. This is expected when unbundled symbols can't be
+  # downloaded (e.g. on uworkers), so don't log it as an error there.
+  log_func = logs.error if environment.can_download_symbols() else logs.debug
+  log_func('Unable to find library %s for symbolization.' % binary_path)
   return ''
