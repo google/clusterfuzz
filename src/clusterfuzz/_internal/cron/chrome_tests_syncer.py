@@ -28,6 +28,7 @@ import tarfile
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import gsutil
@@ -264,6 +265,21 @@ def clean_up_filenames(tests_directory, test_folders):
     rename_testcase_files(os.path.join(tests_directory, folder))
 
 
+def verify_http_alias_targets(tests_directory: str) -> None:
+  """Log an error for any HTTP_ALIASES target directory missing on sync.
+
+  Not fatal: a missing target only affects the platforms that rely on that
+  alias, so the archive is still produced for everyone else.
+  """
+  missing_targets = [
+      target for _, targets in http_server.HTTP_ALIASES for target in targets
+      if not os.path.isdir(os.path.join(tests_directory, target))
+  ]
+  if missing_targets:
+    logs.error('Missing HTTP alias target directories: '
+               f'{", ".join(missing_targets)}')
+
+
 def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
                tests_directory: str):
   """Main sync routine."""
@@ -327,6 +343,7 @@ def sync_tests(tests_archive_bucket: str, tests_archive_name: str,
   ]
 
   clean_up_filenames(tests_directory, test_folders)
+  verify_http_alias_targets(tests_directory)
 
   subprocess.check_call(
       [
