@@ -277,6 +277,8 @@ def filter_binary_path(binary_path):
 
   # Unable to find library. This is expected when unbundled symbols can't be
   # downloaded (e.g. on uworkers), so don't log it as an error there.
-  log_func = logs.error if environment.can_download_symbols() else logs.debug
-  log_func('Unable to find library %s for symbolization.' % binary_path)
+  if environment.is_uworker():
+    logs.debug('Unable to find library %s for symbolization.' % binary_path)
+  else:
+    logs.error('Unable to find library %s for symbolization.' % binary_path)
   return ''
