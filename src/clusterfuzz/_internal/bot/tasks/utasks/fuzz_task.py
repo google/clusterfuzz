@@ -2216,9 +2216,8 @@ class FuzzingSession:
     logs.info('Checking for bad build.')
     crash_revision = environment.get_value('APP_REVISION')
 
-    with self.tracker.track('bad_build_check'):
-      build_data = testcase_manager.check_for_bad_build(self.job_type,
-                                                        crash_revision)
+    build_data = testcase_manager.check_for_bad_build(self.job_type,
+                                                      crash_revision)
     self.fuzz_task_output.build_data.CopyFrom(build_data)
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)

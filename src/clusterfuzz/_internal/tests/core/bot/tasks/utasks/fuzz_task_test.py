@@ -1595,9 +1595,6 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         actual.fuzz_task_output.fuzzing_duration.ToTimedelta().total_seconds(),
         0)
     self.assertGreater(
-        actual.fuzz_task_output.fuzz_task_steps_duration['bad_build_check']
-        .ToTimedelta().total_seconds(), 0)
-    self.assertGreater(
         actual.fuzz_task_output.testcase_generation_duration.ToTimedelta()
         .total_seconds(), 0)
     self.assertGreater(
@@ -1605,16 +1602,6 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         .total_seconds(), 0)
     self.assertEqual(3, actual.fuzz_task_output.testcases_generated)
     self.assertEqual(3, actual.fuzz_task_output.testcases_executed)
-    dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
-        'fuzzer': fuzzer.name,
-        'job': 'asan_test',
-        'platform': environment.platform(),
-        'runtime': environment.get_runtime().value,
-        'step': 'bad_build_check',
-        'success': True,
-    })
-    self.assertEqual(1, dist.count)
-    self.assertGreater(dist.sum, 0)
 
 
 class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
