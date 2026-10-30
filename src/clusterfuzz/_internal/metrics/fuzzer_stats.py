@@ -119,11 +119,7 @@ JOB_RUN_SCHEMA = {
             'RECORD',
         'mode':
             'NULLABLE',
-        'fields': [{
-            'name': 'bad_build_check',
-            'type': 'INTERVAL',
-            'mode': 'NULLABLE'
-        }]
+        'fields': []
     }]
 }
 
