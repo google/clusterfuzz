@@ -20,6 +20,7 @@ and provides a simple interface for scheduling ClusterFuzz tasks.
 import collections
 import json
 import random
+import re
 import threading
 from typing import Dict
 from typing import List
@@ -30,6 +31,7 @@ import uuid
 import google.auth.transport.requests
 from google.cloud import batch_v1 as batch
 
+from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import tasks
@@ -74,6 +76,18 @@ WeightedSubconfig = collections.namedtuple('WeightedSubconfig',
 MAX_CONCURRENT_VMS_PER_JOB = 1000
 
 MAX_QUEUE_SIZE = 100
+
+# The batch_alternative_region feature flag sends a share of new jobs to the
+# region set in the flag. The network and subnetwork come from the
+# "alternative_region" section of batch.yaml, with "{region}" replaced by that
+# region.
+AlternativeRegionFlag = collections.namedtuple('AlternativeRegionFlag',
+                                               ['enabled', 'region', 'share'])
+# Returned when the flag is off. It's a real value rather than None because
+# memoize doesn't cache None, and Datastore would be read on every call.
+_ALTERNATIVE_REGION_OFF = AlternativeRegionFlag(
+    enabled=False, region=None, share=0.0)
+_REGION_PATTERN = re.compile(r'^[a-z]+-[a-z]+[0-9]+$')
 
 
 class AllRegionsOverloadedError(Exception):
@@ -301,7 +315,78 @@ def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
   return config_map
 
 
+def _read_alternative_region_flag():
+  """Reads the batch_alternative_region feature flag. Returns
+  _ALTERNATIVE_REGION_OFF if the flag is disabled or invalid."""
+  flag = feature_flags.FeatureFlags.BATCH_ALTERNATIVE_REGION.flag
+  if not flag or not flag.enabled:
+    return _ALTERNATIVE_REGION_OFF
+
+  region = (flag.string_value or '').strip()
+  if not _REGION_PATTERN.match(region):
+    logs.error('batch_alternative_region is enabled with an invalid region: '
+               f'"{region}". Ignoring it.')
+    return _ALTERNATIVE_REGION_OFF
+
+  if flag.value is None or not 0 <= flag.value <= 1:
+    logs.error('batch_alternative_region is enabled but its value (the share '
+               f'of new jobs) is not between 0 and 1: {flag.value}. '
+               'Ignoring it.')
+    return _ALTERNATIVE_REGION_OFF
+
+  return AlternativeRegionFlag(enabled=True, region=region, share=flag.value)
+
+
+@memoize.wrap(memoize.InMemory(60))
+def _get_alternative_region_flag():
+  """Returns the batch_alternative_region flag, cached for a minute so that
+  Datastore isn't read for every job."""
+  return _read_alternative_region_flag()
+
+
+def _get_alternative_region_subconfig(batch_config, region):
+  """Returns the subconfig for the alternative |region|, with the network and
+  subnetwork from the "alternative_region" section of batch.yaml.
+
+  The region is always load-checked, whether or not it's in
+  queue_check_regions. If it's overloaded, or batch.yaml has no
+  alternative_region section, this raises AllRegionsOverloadedError. There's
+  no fallback to the subconfigs in the mapping.
+  """
+  section = batch_config.get('alternative_region') or {}
+  if not section.get('network') or not section.get('subnetwork'):
+    logs.error('batch_alternative_region is enabled but batch.yaml has no '
+               'alternative_region network and subnetwork.')
+    raise AllRegionsOverloadedError(
+        'batch.yaml has no alternative_region section.')
+
+  load = get_region_load(batch_config.get('project'), region)
+  if load >= MAX_QUEUE_SIZE:
+    logs.info(f'Alternative region {region} overloaded (load={load}).')
+    raise AllRegionsOverloadedError(
+        f'Alternative region {region} is overloaded.')
+
+  logs.info(f'Using alternative region {region} (load={load}).')
+  return {
+      'region': region,
+      'network': section['network'].replace('{region}', region),
+      'subnetwork': section['subnetwork'].replace('{region}', region),
+  }
+
+
 def _get_subconfig(batch_config, instance_spec, should_check_regions=True):
+  # If the batch_alternative_region feature flag is enabled, its share of new
+  # jobs goes to the alternative region. is_remote_task() passes
+  # should_check_regions=False only to check that a mapping exists, so the flag
+  # doesn't apply there.
+  alternative_region_flag = _get_alternative_region_flag()
+  use_alternative_region = (
+      should_check_regions and alternative_region_flag.enabled and
+      random.random() < alternative_region_flag.share)
+  if use_alternative_region:
+    return _get_alternative_region_subconfig(batch_config,
+                                             alternative_region_flag.region)
+
   all_subconfigs = batch_config.get('subconfigs', {})
   instance_subconfigs = instance_spec['subconfigs']
 
