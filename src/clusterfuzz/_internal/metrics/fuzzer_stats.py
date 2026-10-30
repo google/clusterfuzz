@@ -35,7 +35,11 @@ from clusterfuzz._internal.system import shell
 
 STATS_FILE_EXTENSION = '.stats2'
 
-_STEPS_DURATION_FIELDS = []
+_STEPS_DURATION_FIELDS = [{
+    'name': 'bad_build_check',
+    'type': 'INTERVAL',
+    'mode': 'NULLABLE'
+}]
 JOB_RUN_SCHEMA = {
     'fields': [{
         'name': 'testcases_executed',
