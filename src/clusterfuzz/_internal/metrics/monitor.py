@@ -711,7 +711,7 @@ class TimeStatTracker:
     start = time.time()
     success = True
     try:
-      yield None
+      yield
     except TimeStatTrackerFailureException:
       success = False
     except:
