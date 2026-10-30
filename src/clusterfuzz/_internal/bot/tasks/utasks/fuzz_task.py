@@ -1589,7 +1589,7 @@ class FuzzingSession:
 
     self.gcs_corpus = None
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()  # pylint: disable=no-member
-    self.tracker = monitor.TimeStatTracker(
+    self.steps_time_tracker = monitor.TimeStatTracker(
         monitoring_metrics.FUZZ_TASK_STEPS_DURATION,
         common_labels={
             'fuzzer': self.fuzzer_name,
@@ -2329,7 +2329,7 @@ class FuzzingSession:
     self.fuzz_task_output.fuzzing_duration.FromTimedelta(
         datetime.timedelta(seconds=fuzzing_session_duration_seconds))
 
-    for name, duration in self.tracker.stats.items():
+    for name, duration in self.steps_time_tracker.stats.items():
       self.fuzz_task_output.steps_duration[name].FromTimedelta(duration)
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
