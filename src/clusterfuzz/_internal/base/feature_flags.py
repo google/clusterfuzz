@@ -33,6 +33,11 @@ class FeatureFlags(Enum):
 
   GCP_BATCH_JOBS_FREQUENCY = 'gcp_batch_jobs_frequency'
 
+  # Sends a share of new GCP Batch jobs to an alternative region.
+  # string_value: the region, e.g. 'us-east1'. value: the share of new jobs,
+  # from 0 to 1. Both are required.
+  BATCH_ALTERNATIVE_REGION = 'batch_alternative_region'
+
   PREPROCESS_QUEUE_SIZE_LIMIT = 'preprocess_queue_size_limit'
 
   SWARMING_REMOTE_EXECUTION = 'swarming_remote_execution'
