@@ -15,6 +15,8 @@
 
 import os
 import tempfile
+import unittest
+from unittest import mock
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.platforms.android import adb
@@ -216,3 +218,85 @@ class ResetUsbTest(android_helpers.AndroidTest):
   def test_with_device(self):
     """Tests reset_usb with a connected device if available."""
     self.assertTrue(adb.reset_usb())
+
+
+class ResetSafetyTest(unittest.TestCase):
+  """Unit tests for hard_reset and factory_reset."""
+
+  def setUp(self):
+    super().setUp()
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.bad_state_reached',
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+        'clusterfuzz._internal.platforms.android.adb.execute_command_with_return_code',
+        'clusterfuzz._internal.platforms.android.adb.get_adb_command_line',
+        'clusterfuzz._internal.platforms.android.adb.revert_asan_device_setup_if_needed',
+        'clusterfuzz._internal.platforms.android.adb.run_as_root',
+        'clusterfuzz._internal.platforms.android.adb.run_shell_command',
+        'clusterfuzz._internal.system.environment.is_android_cuttlefish',
+        'clusterfuzz._internal.system.environment.is_android_emulator',
+        'time.sleep',
+    ])
+    self.mock.is_android_cuttlefish.return_value = False
+    self.mock.is_android_emulator.return_value = False
+    self.mock.get_adb_command_line.side_effect = lambda cmd: f'adb -s ser {cmd}'
+
+  def test_hard_reset_skips_sysrq_when_graceful_reboot_succeeds(self):
+    """Test that hard_reset syncs then reboots and skips sysrq-trigger on 0."""
+    self.mock.execute_command_with_return_code.return_value = (
+        0, '* daemon not running\n* daemon started successfully')
+    call_order = mock.Mock()
+    call_order.attach_mock(self.mock.execute_command, 'execute_command')
+    call_order.attach_mock(self.mock.execute_command_with_return_code,
+                           'execute_command_with_return_code')
+
+    adb.hard_reset()
+
+    self.assertEqual(call_order.mock_calls, [
+        mock.call.execute_command(
+            'adb -s ser shell sync', timeout=adb.GET_DEVICE_STATE_TIMEOUT),
+        mock.call.execute_command_with_return_code(
+            'adb -s ser reboot', timeout=adb.RECOVERY_CMD_TIMEOUT),
+    ])
+    self.mock.run_shell_command.assert_not_called()
+
+  def test_hard_reset_falls_back_to_root_sysrq_when_reboot_fails(self):
+    """Test fallback to root sysrq-trigger on non-zero exit, timeout, or error."""
+    failure_results = [
+        (1, 'error: device offline'),
+        (None, None),
+        (0, 'reboot (adb) failed'),
+    ]
+    for result in failure_results:
+      with self.subTest(result=result):
+        self.mock.run_shell_command.reset_mock()
+        self.mock.execute_command_with_return_code.return_value = result
+
+        adb.hard_reset()
+
+        self.mock.run_shell_command.assert_called_once_with(
+            'echo b > /proc/sysrq-trigger',
+            root=True,
+            timeout=adb.RECOVERY_CMD_TIMEOUT,
+            recover=False)
+
+  def test_factory_reset_avoids_master_clear_on_physical_device(self):
+    """Test that factory_reset calls bad_state_reached on physical devices."""
+    adb.factory_reset()
+
+    self.mock.revert_asan_device_setup_if_needed.assert_called_once()
+    self.mock.bad_state_reached.assert_called_once()
+    self.mock.run_shell_command.assert_not_called()
+
+  def test_factory_reset_runs_master_clear_on_emulator(self):
+    """Test that factory_reset still broadcasts MASTER_CLEAR on emulators."""
+    self.mock.is_android_emulator.return_value = True
+
+    adb.factory_reset()
+
+    self.mock.bad_state_reached.assert_not_called()
+    self.mock.run_as_root.assert_called_once()
+    self.mock.run_shell_command.assert_called_once()
+    self.assertIn('android.intent.action.MASTER_CLEAR',
+                  self.mock.run_shell_command.call_args[0][0])
