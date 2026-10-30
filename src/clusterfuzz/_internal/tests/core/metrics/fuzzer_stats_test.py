@@ -188,7 +188,7 @@ class FuzzerStatsTest(unittest.TestCase):
         'testcase_generation_duration': "P0DT0H0M10.500000S",
         'testcase_execution_duration': "P0DT0H0M20.500000S",
         'fuzzing_duration': "P0DT0H0M31.000000S",
-        'fuzz_task_steps_duration': {
+        'steps_duration': {
             'bad_build_check': "P0DT0H0M5.500000S"
         }
     }, json.loads(self.mock.write_data.call_args[0][0]))
@@ -319,7 +319,7 @@ class FuzzerStatsTest(unittest.TestCase):
         'testcase_generation_duration': "P0DT0H0M10.500000S",
         'testcase_execution_duration': "P0DT0H0M20.500000S",
         'fuzzing_duration': "P0DT0H0M31.000000S",
-        'fuzz_task_steps_duration': {
+        'steps_duration': {
             'bad_build_check': "P0DT0H0M5.500000S"
         }
     })
@@ -340,7 +340,7 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(job_run['testcase_execution_duration'],
                      "P0DT0H0M20.500000S")
     self.assertEqual(job_run['fuzzing_duration'], "P0DT0H0M31.000000S")
-    self.assertEqual(job_run['fuzz_task_steps_duration'],
+    self.assertEqual(job_run['steps_duration'],
                      {'bad_build_check': "P0DT0H0M5.500000S"})
 
   def test_fuzz_task_upload_job_run_stats(self):
@@ -422,7 +422,7 @@ class FuzzerStatsTest(unittest.TestCase):
             "P0DT0H0M20.500000S",
         'fuzzing_duration':
             "P0DT0H0M31.000000S",
-        'fuzz_task_steps_duration': {
+        'steps_duration': {
             'bad_build_check': "P0DT0H0M5.500000S"
         }
     }, json.loads(self.mock.write_data.call_args[0][0]))

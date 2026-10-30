@@ -1595,7 +1595,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         actual.fuzz_task_output.fuzzing_duration.ToTimedelta().total_seconds(),
         0)
     self.assertGreater(
-        actual.fuzz_task_output.fuzz_task_steps_duration['bad_build_check']
+        actual.fuzz_task_output.steps_duration['bad_build_check']
         .ToTimedelta().total_seconds(), 0)
     self.assertGreater(
         actual.fuzz_task_output.testcase_generation_duration.ToTimedelta()
