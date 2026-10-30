@@ -168,8 +168,7 @@ class FuzzerStatsTest(unittest.TestCase):
         100,
         datetime.timedelta(seconds=10.5),
         datetime.timedelta(seconds=20.5),
-        datetime.timedelta(seconds=31.0),
-        {})
+        datetime.timedelta(seconds=31.0), {})
 
     fuzzer_stats.upload_stats([fuzzer_run], filename='upload.json')
 
@@ -300,8 +299,7 @@ class FuzzerStatsTest(unittest.TestCase):
         100,
         datetime.timedelta(seconds=10.5),
         datetime.timedelta(seconds=20.5),
-        datetime.timedelta(seconds=31.0),
-        {})
+        datetime.timedelta(seconds=31.0), {})
     self.assertEqual(1, self.mock.write_data.call_count)
     self.assertEqual({
         'kind':
