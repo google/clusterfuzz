@@ -36,8 +36,6 @@ from clusterfuzz._internal.system import shell
 STATS_FILE_EXTENSION = '.stats2'
 
 _STEPS_DURATION_FIELDS = []
-_VALID_STEPS_NAMES = frozenset(
-    field['name'] for field in _STEPS_DURATION_FIELDS)
 JOB_RUN_SCHEMA = {
     'fields': [{
         'name': 'testcases_executed',
@@ -285,13 +283,14 @@ class JobRun(BaseRun):
       self._stats_data['fuzzing_duration'] = _timedelta_to_duration_string(
           fuzzing_duration)
     if steps_duration:
+      valid_names = frozenset(field['name'] for field in _STEPS_DURATION_FIELDS)
       valid_steps_duration = {}
       dropped_keys = []
       for name, duration in steps_duration.items():
-        if name not in _VALID_STEPS_NAMES:
-          dropped_keys.append(name)
-        else:
+        if name in valid_names:
           valid_steps_duration[name] = _timedelta_to_duration_string(duration)
+        else:
+          dropped_keys.append(name)
 
       if dropped_keys:
         keys_str = ', '.join(f'"{key}"' for key in dropped_keys)
