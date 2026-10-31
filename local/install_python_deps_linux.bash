@@ -53,7 +53,7 @@ if [ $install_android_emulator ]; then
 fi
 
 # Install other dependencies (e.g. bower).
-nodeenv -p --prebuilt
+nodeenv -p --prebuilt --node=26.13.0
 # Re-activate virtual environment after nodeenv modifies activate scripts and PATH
 # so that global node npm packages (like bower) install into the virtual environment bin directory.
 source "$(${PYTHON} -m pipenv --venv)/bin/activate"
