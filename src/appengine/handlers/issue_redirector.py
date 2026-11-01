@@ -16,6 +16,7 @@
 
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from handlers import base_handler
+from libs import access
 from libs import helpers
 
 
@@ -25,6 +26,9 @@ class Handler(base_handler.Handler):
   def get(self, testcase_id=None):
     """Redirect user to the correct URL."""
     testcase = helpers.get_testcase(testcase_id)
+    if not access.can_user_access_testcase(testcase):
+      raise helpers.AccessDeniedError()
+
     issue_url = helpers.get_or_exit(
         lambda: issue_tracker_utils.get_issue_url(testcase),
         'Issue tracker for testcase (id=%s) is not found.' % testcase_id,
