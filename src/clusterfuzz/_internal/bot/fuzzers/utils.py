@@ -16,7 +16,6 @@
 import functools
 import json
 import os
-import posixpath
 import re
 import stat
 import tempfile
@@ -40,15 +39,13 @@ CHROME_MANIFEST_FILENAME = 'clusterfuzz_manifest.json'
 
 def is_fuzz_target(file_path, file_opener: Optional[Callable] = None):
   """Returns whether |file_path| is a fuzz target binary (local path)."""
-  normalized_path = file_path.replace('\\', '/')
-  if '@' in normalized_path:
+  if '@' in file_path:
     # GFT targets often have periods in the name that get misinterpreted as an
     # extension.
-    filename = posixpath.basename(normalized_path)
+    filename = os.path.basename(file_path)
     file_extension = ''
   else:
-    filename, file_extension = posixpath.splitext(
-        posixpath.basename(normalized_path))
+    filename, file_extension = os.path.splitext(os.path.basename(file_path))
 
   if not VALID_TARGET_NAME_REGEX.match(filename):
     # Check fuzz target has a valid name (without any special chars).
@@ -192,8 +189,7 @@ def _get_manifest_fuzz_targets(build_dir: str) -> list[str] | None:
 
   fuzz_target_paths = []
   for target_path in manifest_targets:
-    file_path = os.path.normpath(
-        os.path.join(build_dir, target_path.replace('\\', '/')))
+    file_path = os.path.join(build_dir, target_path)
     if os.path.exists(file_path):
       fuzz_target_paths.append(file_path)
     else:
@@ -310,9 +306,9 @@ def cleanup():
 
 def normalize_target_name(target_path):
   """Normalize target path, removing file extensions."""
-  target_name = posixpath.basename(target_path.replace('\\', '/'))
+  target_name = os.path.basename(target_path)
   if '@' in target_name:
     # GFT target names often have periods in their name.
     return target_name
 
-  return posixpath.splitext(target_name)[0]
+  return os.path.splitext(target_name)[0]

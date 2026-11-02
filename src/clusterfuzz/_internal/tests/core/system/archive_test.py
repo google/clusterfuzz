@@ -17,7 +17,6 @@ import ntpath
 import os
 import tarfile
 import tempfile
-import types
 import unittest
 from unittest import mock
 import zipfile
@@ -243,14 +242,7 @@ class ArchiveReaderTest(unittest.TestCase):
           ('top/sub/b/c.txt', b'c', 0o100644 << 16),
       ])
 
-      # Stand-in for the `os` module on a Windows bot, where os.path is ntpath.
-      windows_os = types.ModuleType('windows_os')
-      windows_os.__dict__.update(os.__dict__)
-      windows_os.path = ntpath
-      windows_os.sep = ntpath.sep
-      windows_os.altsep = ntpath.altsep
-
       with archive.open(zip_path) as reader:
         self.assertEqual(reader.root_dir(), 'top/sub')
-        with mock.patch.object(archive, 'os', windows_os):
+        with helpers.emulate_host_os(ntpath, (archive,)):
           self.assertEqual(reader.root_dir(), 'top/sub')

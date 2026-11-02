@@ -101,6 +101,11 @@ class ArchiveMemberInfo:
 
 class ArchiveReader(abc.ABC):
   """Abstract class for representing an archive reader.
+
+  Archive member names, and paths derived from them such as `root_dir()`,
+  always use '/' as the separator, no matter the host OS. Use `posixpath` rather
+  than `os.path` (which is `ntpath` on Windows and produces '\\') when
+  manipulating archive-internal paths.
   """
 
   def __enter__(self):
@@ -243,8 +248,6 @@ class ArchiveReader(abc.ABC):
     """
     if not self.list_members():
       return ''
-    # Member names always use '/', whatever the host OS, so don't use os.path
-    # (ntpath on Windows, which would join the result with '\').
     return posixpath.commonpath([f.name for f in self.list_members()])
 
   def file_exists(self, path: str) -> bool:

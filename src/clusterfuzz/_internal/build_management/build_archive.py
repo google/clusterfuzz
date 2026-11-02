@@ -61,21 +61,14 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
 CHROME_MANIFEST_FILENAME = 'clusterfuzz_manifest.json'
 
 
-def _to_archive_path(path: str) -> str:
-  """Converts `path` to the form used by archive member names.
-
-  Zip and tar member names always use '/' as the separator, whatever the host
-  OS. Build metadata produced on Windows (e.g. `fuzz_targets` in
-  `clusterfuzz_manifest.json`) may use '\\' instead.
-  """
-  return path.replace('\\', '/')
-
-
 class BuildArchive(archive.ArchiveReader):
   """Abstract class for representing a build archive. This is mostly an
   enhanced and more specific version of `archive.ArchiveReader`. This
   class inherits from `archive.ArchiveReader`, so this also provides
   class archive management features.
+
+  As with `archive.ArchiveReader`, archive-internal paths always use '/', so
+  use `posixpath` rather than `os.path` for them.
   """
 
   def __init__(self, reader: archive.ArchiveReader):
@@ -198,7 +191,7 @@ class DefaultBuildArchive(BuildArchive):
 
     to_extract = []
     for file in self.list_members():
-      filepath = _to_archive_path(file.name)
+      filepath = file.name
       path_components = posixpath.normpath(filepath).split('/')
       # Is it an allowlisted binary?
       if any(
@@ -351,9 +344,9 @@ class ChromeBuildArchive(DefaultBuildArchive):
     manifest_fuzz_targets = fuzzer_utils.extract_fuzz_targets_from_manifest(
         manifest)
     if manifest_fuzz_targets is not None:
-      # Manifests produced on Windows use '\', but member names use '/'.
+      # Manifests produced on Windows use '\', but archive member names use '/'.
       self._manifest_fuzz_targets = [
-          _to_archive_path(path) for path in manifest_fuzz_targets
+          path.replace('\\', '/') for path in manifest_fuzz_targets
       ]
 
   def root_dir(self) -> str:
@@ -390,11 +383,6 @@ class ChromeBuildArchive(DefaultBuildArchive):
     # the build artifacts formerly stored in the root directory are now stored
     # in the build directory.
 
-    # Archive member names always use '/', so use posixpath rather than os.path
-    # (ntpath on Windows bots, which would produce '\' and match nothing).
-    path = _to_archive_path(path)
-    deps_file_path = _to_archive_path(deps_file_path)
-
     if self._archive_schema_version > 0:
       # Assumes the dependency path is relative to the deps file and
       # transforms it into into a full path relative to the archive root. For
@@ -424,10 +412,10 @@ class ChromeBuildArchive(DefaultBuildArchive):
     return posixpath.join(self.root_dir(), path)
 
   def _get_prefix_matcher(self, prefix: str) -> Callable[[str], bool]:
-    return lambda f: _to_archive_path(f).startswith(prefix)
+    return lambda f: f.startswith(prefix)
 
   def _get_filename_matcher(self, file: str) -> Callable[[str], bool]:
-    return lambda f: posixpath.basename(_to_archive_path(f)) == file
+    return lambda f: os.path.basename(f.replace('\\', '/')) == file
 
   def _match_files(self, matchers: List[Callable[[str], bool]]
                   ) -> List[archive.ArchiveMemberInfo]:
