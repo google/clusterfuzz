@@ -13,8 +13,10 @@
 # limitations under the License.
 """helpers.py contains convenient methods for writing tests."""
 
+import contextlib
 import os
 import time
+import types
 from unittest import mock
 
 
@@ -80,6 +82,25 @@ def patch_environ(testcase_obj, env=None):
   patcher = mock.patch.dict(os.environ, env)
   testcase_obj.addCleanup(patcher.stop)
   patcher.start()
+
+
+@contextlib.contextmanager
+def emulate_host_os(path_module, modules):
+  """Makes `modules` use `path_module` (e.g. posixpath or ntpath) as os.path.
+
+  On Linux, os.path is posixpath, which hides bugs that only appear on Windows
+  bots, where os.path is ntpath. Only the `os` name inside each of `modules` is
+  replaced; the global `os` module is left untouched.
+  """
+  host_os = types.ModuleType('host_os')
+  host_os.__dict__.update(os.__dict__)
+  host_os.path = path_module
+  host_os.sep = path_module.sep
+  host_os.altsep = path_module.altsep
+  with contextlib.ExitStack() as stack:
+    for module in modules:
+      stack.enter_context(mock.patch.object(module, 'os', host_os))
+    yield
 
 
 class MockTime:

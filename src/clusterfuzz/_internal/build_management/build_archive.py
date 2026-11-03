@@ -16,6 +16,7 @@
 import abc
 import json
 import os
+import posixpath
 from typing import BinaryIO
 from typing import Callable
 from typing import List
@@ -65,6 +66,9 @@ class BuildArchive(archive.ArchiveReader):
   enhanced and more specific version of `archive.ArchiveReader`. This
   class inherits from `archive.ArchiveReader`, so this also provides
   class archive management features.
+
+  As with `archive.ArchiveReader`, archive-internal paths always use '/', so
+  use `posixpath` rather than `os.path` for them.
   """
 
   def __init__(self, reader: archive.ArchiveReader):
@@ -188,7 +192,7 @@ class DefaultBuildArchive(BuildArchive):
     to_extract = []
     for file in self.list_members():
       filepath = file.name
-      path_components = os.path.normpath(filepath).split(os.sep)
+      path_components = posixpath.normpath(filepath).split('/')
       # Is it an allowlisted binary?
       if any(
           component.startswith(allowlisted_names)
@@ -196,7 +200,7 @@ class DefaultBuildArchive(BuildArchive):
         to_extract.append(file)
         continue
 
-      basename = os.path.basename(filepath)
+      basename = posixpath.basename(filepath)
       # Does it have a blocklisted extension?
       if basename.endswith(blocklisted_extensions):
         continue
@@ -318,7 +322,7 @@ class ChromeBuildArchive(DefaultBuildArchive):
     self._manifest_fuzz_targets = None
     # The manifest may not exist for earlier versions of archives. In this
     # case, default to schema version 0.
-    manifest_path = os.path.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
+    manifest_path = posixpath.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
     if not self.file_exists(manifest_path):
       self._archive_schema_version = default_archive_schema_version
       return
@@ -337,8 +341,13 @@ class ChromeBuildArchive(DefaultBuildArchive):
     # https://google.github.io/clusterfuzz/contributing-code/source-code/#pitfalls
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
-    self._manifest_fuzz_targets = (
-        fuzzer_utils.extract_fuzz_targets_from_manifest(manifest))
+    manifest_fuzz_targets = fuzzer_utils.extract_fuzz_targets_from_manifest(
+        manifest)
+    if manifest_fuzz_targets is not None:
+      # Manifests produced on Windows use '\', but archive member names use '/'.
+      self._manifest_fuzz_targets = [
+          path.replace('\\', '/') for path in manifest_fuzz_targets
+      ]
 
   def root_dir(self) -> str:
     if not hasattr(self, '_root_dir'):
@@ -380,27 +389,27 @@ class ChromeBuildArchive(DefaultBuildArchive):
       # example:
       #
       # deps_file_path: "/A/B/fuzz_target.runtime_deps"
-      # os.path.dirname(deps_file_path) => "/A/B/" (call this DEPS_DIR)
+      # posixpath.dirname(deps_file_path) => "/A/B/" (call this DEPS_DIR)
       # path1: "./my_dep"
       # path2: "../../C/my_dep2"
       # path3: "D/my_dep3"
       #
-      # os.path.join(DEPS_DIR, path1) => "/A/B/./my_dep"
-      # os.path.join(DEPS_DIR, path2) => "/A/B/../../C/my_dep2"
-      # os.path.join(DEPS_DIR, path3) => "/A/B/D/my_dep3"
+      # posixpath.join(DEPS_DIR, path1) => "/A/B/./my_dep"
+      # posixpath.join(DEPS_DIR, path2) => "/A/B/../../C/my_dep2"
+      # posixpath.join(DEPS_DIR, path3) => "/A/B/D/my_dep3"
       #
-      # os.path.normpath(os.path.join(DEPS_DIR, path1)) => "/A/B/my_dep"
-      # os.path.normpath(os.path.join(DEPS_DIR, path2)) => "/C/my_dep2"
-      # os.path.normpath(os.path.join(DEPS_DIR, path3)) => "/A/B/D/my_dep3"
-      return os.path.normpath(
-          os.path.join(os.path.dirname(deps_file_path), path))
+      # posixpath.normpath(posixpath.join(DEPS_DIR, path1)) => "/A/B/my_dep"
+      # posixpath.normpath(posixpath.join(DEPS_DIR, path2)) => "/C/my_dep2"
+      # posixpath.normpath(posixpath.join(DEPS_DIR, path3)) => "/A/B/D/my_dep3"
+      return posixpath.normpath(
+          posixpath.join(posixpath.dirname(deps_file_path), path))
 
     # Legacy behavior. Remap `../../` to `src_root/`.
-    path = os.path.normpath(path)
+    path = posixpath.normpath(path)
     if path.startswith('../../'):
       path = path.replace('../../', 'src_root/')
 
-    return os.path.join(self.root_dir(), path)
+    return posixpath.join(self.root_dir(), path)
 
   def _get_prefix_matcher(self, prefix: str) -> Callable[[str], bool]:
     return lambda f: f.startswith(prefix)
@@ -486,8 +495,8 @@ def open_with_reader(reader: archive.ArchiveReader) -> BuildArchive:
   # `clusterfuzz_manifest.json`. Let's use this for now.
   # Being wrong is no big deal here, because BuildArchive is designed so that
   # we always fall back on default behaviour.
-  args_gn_path = os.path.join(reader.root_dir(), 'args.gn')
-  manifest_path = os.path.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
+  args_gn_path = posixpath.join(reader.root_dir(), 'args.gn')
+  manifest_path = posixpath.join(reader.root_dir(), CHROME_MANIFEST_FILENAME)
   if reader.file_exists(args_gn_path) or reader.file_exists(manifest_path):
     return ChromeBuildArchive(reader)
   return DefaultBuildArchive(reader)
