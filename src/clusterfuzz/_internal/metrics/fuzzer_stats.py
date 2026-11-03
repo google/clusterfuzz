@@ -51,6 +51,11 @@ _STEPS_DURATION_FIELDS = [
         'type': 'INTERVAL',
         'mode': 'NULLABLE',
     },
+    {
+        'name': 'engine_prepare',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
 ]
 JOB_RUN_SCHEMA = {
     'fields': [
