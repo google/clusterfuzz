@@ -564,3 +564,16 @@ class TimeStatTrackerTest(unittest.TestCase):
     with tracker.track('step_1'):
       self.mock_time.advance(1.5)
     self.assertEqual({'step_1': datetime.timedelta(seconds=1.5)}, tracker.stats)
+
+  def test_time_accumulation(self):
+    """Test if time measurements are accumulated in stats."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('step_1'):
+      self.mock_time.advance(4.5)
+    with tracker.track('step_1'):
+      self.mock_time.advance(3.2)
+
+    self.assertEqual({'step_1': datetime.timedelta(seconds=7.7)}, tracker.stats)
+    dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': True})
+    self.assertEqual(2, dist.count)
+    self.assertAlmostEqual(7.7, dist.sum)
