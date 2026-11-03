@@ -718,13 +718,15 @@ class TimeStatTracker:
       success = False
       raise
     finally:
+      duration_secs = time.time() - start
+      duration = datetime.timedelta(seconds=duration_secs)
       if name in self.stats:
-        logs.warning(f'Overwriting already tracked stat "{name}".')
-      duration = time.time() - start
-      self.stats[name] = datetime.timedelta(seconds=duration)
+        self.stats[name] += duration
+      else:
+        self.stats[name] = duration
       if self.metric:
         self.metric.insert(
-            duration,
+            duration_secs,
             labels={
                 **self.common_labels, 'step': name,
                 'success': success
