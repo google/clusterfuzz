@@ -1112,12 +1112,12 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
     # Artificial delay to throttle appengine updates.
     time.sleep(1)
 
-  # TODO(metzman): Replace fuzz_task_output.fully_qualified_fuzzer_name` with
-  # `fuzz_task_input.fuzz_target` instead.
   steps_duration = {
       name: duration.ToTimedelta()
       for name, duration in fuzz_task_output.steps_duration.items()
   }
+  # TODO(metzman): Replace fuzz_task_output.fully_qualified_fuzzer_name` with
+  # `fuzz_task_input.fuzz_target` instead.
   upload_job_run_stats(
       fuzz_task_output.fully_qualified_fuzzer_name, uworker_input.job_type,
       fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
