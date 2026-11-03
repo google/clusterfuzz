@@ -1479,7 +1479,7 @@ def _add_issue_metadata_from_environment(metadata):
 
 
 def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
-                      testcase_directory):
+                      testcase_directory, tracker):
   """Run engine for fuzzing."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
@@ -1494,7 +1494,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   target_path = engine_common.find_fuzzer_path(build_dir, target_name)
   if target_path is None:
     raise FuzzTargetNotFoundError(f'{target_path} is not found.')
-  options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
+  with tracker.track('engine_prepare'):
+    options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
   additional_processing_time = engine_impl.fuzz_additional_processing_timeout(
@@ -1805,7 +1806,7 @@ class FuzzingSession:
                             self.job_type) as tracker:
           result, cur_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
               engine_impl, self.fuzz_target.binary, sync_corpus_directory,
-              self.testcase_directory)
+              self.testcase_directory, self.steps_time_tracker)
           # Timeouts are only accounted for in libfuzzer, this can be None
           tracker.timeout = bool(result.timed_out)
       except FuzzTargetNotFoundError:
