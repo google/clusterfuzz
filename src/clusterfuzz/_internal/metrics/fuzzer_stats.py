@@ -37,88 +37,106 @@ STATS_FILE_EXTENSION = '.stats2'
 
 _STEPS_DURATION_FIELDS = []
 JOB_RUN_SCHEMA = {
-    'fields': [{
-        'name': 'testcases_executed',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'build_revision',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'new_crashes',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'job',
-        'type': 'STRING',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'timestamp',
-        'type': 'FLOAT',
-        'mode': 'NULLABLE'
-    }, {
-        'name':
-            'crashes',
-        'type':
-            'RECORD',
-        'mode':
-            'REPEATED',
-        'fields': [{
-            'name': 'crash_type',
-            'type': 'STRING',
-            'mode': 'NULLABLE'
-        }, {
-            'name': 'is_new',
-            'type': 'BOOLEAN',
-            'mode': 'NULLABLE'
-        }, {
-            'name': 'crash_state',
-            'type': 'STRING',
-            'mode': 'NULLABLE'
-        }, {
-            'name': 'security_flag',
-            'type': 'BOOLEAN',
-            'mode': 'NULLABLE'
-        }, {
-            'name': 'count',
+    'fields': [
+        {
+            'name': 'testcases_executed',
             'type': 'INTEGER',
             'mode': 'NULLABLE'
-        }]
-    }, {
-        'name': 'known_crashes',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'fuzzer',
-        'type': 'STRING',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'kind',
-        'type': 'STRING',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'testcases_generated',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'testcase_generation_duration',
-        'type': 'INTERVAL',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'testcase_execution_duration',
-        'type': 'INTERVAL',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'fuzzing_duration',
-        'type': 'INTERVAL',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'steps_duration',
-        'type': 'RECORD',
-        'mode': 'NULLABLE',
-        'fields': _STEPS_DURATION_FIELDS
-    }]
+        },
+        {
+            'name': 'build_revision',
+            'type': 'INTEGER',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'new_crashes',
+            'type': 'INTEGER',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'job',
+            'type': 'STRING',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'timestamp',
+            'type': 'FLOAT',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name':
+                'crashes',
+            'type':
+                'RECORD',
+            'mode':
+                'REPEATED',
+            'fields': [{
+                'name': 'crash_type',
+                'type': 'STRING',
+                'mode': 'NULLABLE'
+            }, {
+                'name': 'is_new',
+                'type': 'BOOLEAN',
+                'mode': 'NULLABLE'
+            }, {
+                'name': 'crash_state',
+                'type': 'STRING',
+                'mode': 'NULLABLE'
+            }, {
+                'name': 'security_flag',
+                'type': 'BOOLEAN',
+                'mode': 'NULLABLE'
+            }, {
+                'name': 'count',
+                'type': 'INTEGER',
+                'mode': 'NULLABLE'
+            }]
+        },
+        {
+            'name': 'known_crashes',
+            'type': 'INTEGER',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'fuzzer',
+            'type': 'STRING',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'kind',
+            'type': 'STRING',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'testcases_generated',
+            'type': 'INTEGER',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'testcase_generation_duration',
+            'type': 'INTERVAL',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'testcase_execution_duration',
+            'type': 'INTERVAL',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'fuzzing_duration',
+            'type': 'INTERVAL',
+            'mode': 'NULLABLE'
+        },
+        # Measues the duration of each step of the fuzz task for successful
+        # execuons, in contrast to the FUZZ_TASK_STEPS_DURATION metric
+        # in Coud Monitoring, which includes failed executions.
+        {
+            'name': 'steps_duration',
+            'type': 'RECORD',
+            'mode': 'NULLABLE',
+            'fields': _STEPS_DURATION_FIELDS
+        }
+    ]
 }
 
 
