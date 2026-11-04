@@ -8,8 +8,10 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 FROM gcr.io/clusterfuzz-images/base:ubuntu-24-04
 
+# Pinning the latest datastore emulator version that works with Java 17, as
+# google-cloud-cli-datastore-emulator >= 592.0.0 requires Java 25.
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
-RUN apt-get update &&     apt-get install -y         gettext-base         git         golang-go         google-cloud-cli-app-engine-go         google-cloud-cli-app-engine-python         google-cloud-cli-app-engine-python-extras         google-cloud-cli-datastore-emulator         google-cloud-cli-gke-gcloud-auth-plugin         google-cloud-cli-pubsub-emulator         kubectl         liblzma-dev         openjdk-21-jdk
+RUN apt-get update &&     apt-get install -y         gettext-base         git         golang-go         google-cloud-cli-app-engine-go         google-cloud-cli-app-engine-python         google-cloud-cli-app-engine-python-extras         google-cloud-cli-datastore-emulator=591.0.0-0         google-cloud-cli-gke-gcloud-auth-plugin         google-cloud-cli-pubsub-emulator         kubectl         liblzma-dev         openjdk-21-jdk
 
 # Install Bazel as per https://docs.bazel.build/versions/master/install-ubuntu.html#using-bazel-custom-apt-repository.
 RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list &&     curl https://storage.googleapis.com/www.bazel.build/bazel-release.pub.gpg | apt-key add - &&     apt-get update &&     apt-get install -y bazel
