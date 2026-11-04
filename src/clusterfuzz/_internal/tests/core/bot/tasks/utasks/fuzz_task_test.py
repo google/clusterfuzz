@@ -1655,6 +1655,16 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertGreater(total_cleanup, 0)
     self.assertAlmostEqual(cleanup_dist.sum, total_cleanup, places=5)
 
+    # MAX_FUZZ_THREADS is 1, so the 3 testcases run in 3 batches, and the
+    # wait for each batch is tracked as a fuzz step.
+    fuzz_dist = self._get_fuzz_dist(fuzzer.name, success=True)
+    self.assertEqual(3, fuzz_dist.count)
+    self.assertAlmostEqual(
+        fuzz_dist.sum,
+        actual.fuzz_task_output.steps_duration['fuzz'].ToTimedelta()
+        .total_seconds(),
+        places=5)
+
   @mock.patch(
       'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
   )
@@ -1862,6 +1872,63 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         fuzz_task_input=fuzz_task_input,
         setup_input=setup_input,
         uworker_env={'FUZZ_TEST_TIMEOUT': '10'})
+
+  def _get_fuzz_dist(self, fuzzer_name, success):
+    return monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer_name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'fuzz',
+        'success': success,
+    })
+
+  @mock.patch('clusterfuzz._internal.metrics.monitor.time')
+  @mock.patch('clusterfuzz._internal.base.utils.wait_until_timeout')
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
+  )
+  def test_utask_main_blackbox_fuzz_accumulated(
+      self, mock_generate_blackbox_testcases, mock_wait_until_timeout,
+      mock_monitor_time):
+    """Test that the fuzz step is accumulated over all testcase batches."""
+    self._setup_utask_env()
+    fuzzer = self._create_test_fuzzer()
+    mock_time = helpers.MockTime(start_time=100.0)
+    mock_monitor_time.time.side_effect = mock_time.time
+
+    def wait_until_timeout(threads, _):
+      mock_time.advance(2.0)
+      for thread in threads:
+        thread.join()
+      return False
+
+    mock_wait_until_timeout.side_effect = wait_until_timeout
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    setup_input = uworker_msg_pb2.SetupInput(
+        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer.name,
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input,
+        setup_input=setup_input,
+        uworker_env={'FUZZ_TEST_TIMEOUT': '10'})
+    mock_generate_blackbox_testcases.return_value = (
+        fuzz_task.GenerateBlackboxTestcasesResult(
+            True, ['/tests/0', '/tests/1', '/tests/2'],
+            {'fuzzer_binary_name': fuzzer.name}))
+
+    actual = fuzz_task.utask_main(uworker_input)
+
+    # 3 batches of 2 seconds each.
+    self.assertEqual(3, mock_wait_until_timeout.call_count)
+    self.assertEqual(
+        datetime.timedelta(seconds=6),
+        actual.fuzz_task_output.steps_duration['fuzz'].ToTimedelta())
+    fuzz_dist = self._get_fuzz_dist(fuzzer.name, success=True)
+    self.assertEqual(3, fuzz_dist.count)
+    self.assertAlmostEqual(6.0, fuzz_dist.sum)
 
 
 class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):
@@ -2319,6 +2386,57 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     # The task stops at the first failing round.
     self.assertEqual(1, self._get_cleanup_dist(success=False).count)
     self.assertEqual(0, self._get_cleanup_dist(success=True).count)
+
+  def _get_fuzz_dist(self, success):
+    return monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': 'libFuzzer_fuzz',
+        'job': 'libfuzzer_asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'fuzz',
+        'success': success,
+    })
+
+  @mock.patch('clusterfuzz._internal.metrics.monitor.time')
+  def test_fuzz_accumulated_over_rounds(self, mock_monitor_time):
+    """Test that the engine fuzz call is tracked per round and accumulated."""
+    mock_time = helpers.MockTime(start_time=100.0)
+    mock_monitor_time.time.side_effect = mock_time.time
+    session = self._create_engine_fuzzing_session()
+    engine_impl = self._create_engine_impl()
+
+    def fuzz(*_):
+      mock_time.advance(10.0)
+      return engine.FuzzResult('logs', ['cmd'], [], {'stat': 1}, 10.0)
+
+    engine_impl.fuzz.side_effect = fuzz
+
+    session.do_engine_fuzzing(engine_impl)
+
+    # MAX_TESTCASES is 2, so there are two rounds of 10 seconds each.
+    self.assertEqual(2, engine_impl.fuzz.call_count)
+    self.assertEqual(
+        datetime.timedelta(seconds=20),
+        session.steps_time_tracker.stats['fuzz'])
+    dist = self._get_fuzz_dist(success=True)
+    self.assertEqual(2, dist.count)
+    self.assertAlmostEqual(20.0, dist.sum)
+    self.assertEqual(0, self._get_fuzz_dist(success=False).count)
+
+  def test_fuzz_exception(self):
+    """Test that an exception in the engine fuzz call is tracked as a
+    failure."""
+    session = self._create_engine_fuzzing_session()
+    engine_impl = self._create_engine_impl()
+    engine_impl.fuzz.side_effect = RuntimeError('fuzz failed')
+
+    with self.assertRaises(RuntimeError):
+      session.do_engine_fuzzing(engine_impl)
+
+    self.assertIn('fuzz', session.steps_time_tracker.stats)
+    # The task stops at the first failing round.
+    self.assertEqual(1, self._get_fuzz_dist(success=False).count)
+    self.assertEqual(0, self._get_fuzz_dist(success=True).count)
 
   def test_basic(self):
     """Test basic fuzzing session."""
