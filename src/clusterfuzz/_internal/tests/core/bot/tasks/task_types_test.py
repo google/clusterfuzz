@@ -541,3 +541,26 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
         self._execute(command)
         self.mock.execute_locally.assert_not_called()
         self.mock.add_utask_main.assert_not_called()
+
+
+class IsNoPrivilegeWorkloadTest(unittest.TestCase):
+  """Tests for task_types.is_no_privilege_workload."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        'clusterfuzz._internal.batch.service.is_remote_task',
+        'clusterfuzz._internal.swarming.is_swarming_job',
+    ])
+    self.mock.is_remotely_executing_utasks.return_value = True
+
+  def test_swarming_utask_is_no_privilege_workload(self):
+    """Tests that UTasks on Swarming jobs are recognized as no-privilege
+    workloads even when not configured for Cloud Batch."""
+    self.mock.is_remote_task.return_value = False
+    self.mock.is_swarming_job.return_value = True
+
+    self.assertTrue(
+        task_types.is_no_privilege_workload('variant', 'android_emu_swarming'))
+    self.assertFalse(
+        task_types.is_no_privilege_workload('impact', 'android_emu_swarming'))

@@ -622,6 +622,21 @@ class DataHandlerTest(unittest.TestCase):
     testcase.regression = 'nots NA'
     self.assertFalse(data_handler.critical_tasks_completed(testcase))
 
+    # Swarming jobs do not run impact tasks when Swarming remote execution is
+    # enabled, so impact should only block completion while the flag is off.
+    flag = data_types.FeatureFlag(id='swarming_remote_execution', enabled=False)
+    flag.put()
+    data_types.Job(
+        name='swarming_job',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+    testcase.job_type = 'swarming_job'
+    self.assertFalse(data_handler.critical_tasks_completed(testcase))
+
+    flag.enabled = True
+    flag.put()
+    self.assertTrue(data_handler.critical_tasks_completed(testcase))
+
 
 class FilterStackTraceTest(fake_filesystem_unittest.TestCase):
   """Tests for data_handler.filter_stacktrace."""

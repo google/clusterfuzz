@@ -121,3 +121,28 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     self.mock.is_chromium.return_value = False
     schedule_impact_tasks.main()
     self.mock.add_task.assert_not_called()
+
+  def test_swarming_jobs_skipped_for_impact(self):
+    """Tests that Swarming jobs are skipped when scheduling impact tasks."""
+    self.mock.is_chromium.return_value = True
+    data_types.Job(
+        name='job_swarming',
+        environment_string='IS_SWARMING_JOB = True\n',
+        platform='ANDROID_EMULATOR').put()
+    swarming_tc = data_types.Testcase(
+        open=True,
+        one_time_crasher_flag=False,
+        status='Processed',
+        job_type='job_swarming',
+        queue='jobs-android-emulator')
+    swarming_tc.put()
+
+    flag = data_types.FeatureFlag(id='swarming_remote_execution', enabled=True)
+    flag.put()
+
+    schedule_impact_tasks.main()
+    self.mock.add_task.assert_has_calls([
+        mock.call('impact', 1, 'job', queue='jobs-linux'),
+        mock.call('impact', 5, 'job_windows', queue='jobs-windows'),
+    ])
+    self.assertEqual(self.mock.add_task.call_count, 2)

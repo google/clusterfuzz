@@ -385,3 +385,54 @@ class ExternalTasksTest(unittest.TestCase):
     messages = self.client.pull_from_subscription(
         self.subscription, max_messages=1)
     self.assertEqual(0, len(messages))
+
+
+@test_utils.with_cloud_emulators('datastore', 'pubsub')
+class RedoTestcaseSwarmingTest(unittest.TestCase):
+  """Tests for redo_testcase on Swarming jobs."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.add_task',
+        'clusterfuzz._internal.base.utils.current_date_time',
+    ])
+    self.mock.current_date_time.return_value = '2026-01-01 00:00:00 UTC'
+    data_types.Job(
+        name='android_emu_swarming',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+    self.testcase = test_utils.create_generic_testcase()
+    self.testcase.job_type = 'android_emu_swarming'
+    self.testcase.queue = 'jobs-android-emulator'
+    self.testcase.is_impact_set_flag = True
+    self.testcase.set_metadata('potentially_flaky', True, update_testcase=False)
+    self.testcase.set_metadata('blame_pending', False, update_testcase=False)
+    self.testcase.put()
+
+  def test_redo_skips_impact_and_blame_when_swarming_enabled(self):
+    """Tests that redo_testcase skips impact and blame for Swarming jobs."""
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
+
+    tasks.redo_testcase(self.testcase, ['minimize', 'impact', 'blame'],
+                        'user@example.com')
+
+    self.mock.add_task.assert_called_once_with(
+        'minimize',
+        self.testcase.key.id(),
+        'android_emu_swarming',
+        queue='jobs-android-emulator',
+        wait_time=0)
+    testcase = self.testcase.key.get()
+    self.assertTrue(testcase.is_impact_set_flag)
+    self.assertFalse(testcase.get_metadata('blame_pending'))
+
+  def test_redo_only_unsupported_tasks_is_noop(self):
+    """Tests that redoing only impact/blame on a Swarming job makes no changes."""
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
+
+    tasks.redo_testcase(self.testcase, ['impact', 'blame'], 'user@example.com')
+
+    self.mock.add_task.assert_not_called()
+    testcase = self.testcase.key.get()
+    self.assertTrue(testcase.get_metadata('potentially_flaky'))

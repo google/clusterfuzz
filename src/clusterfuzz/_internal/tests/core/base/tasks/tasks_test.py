@@ -662,3 +662,34 @@ class GetTaskFuzzingFeatureFlagTest(unittest.TestCase):
       mock_flag.return_value = mock_flag_obj
       self.assertIsNone(tasks.get_task())
       self.mock.get_fuzz_task.assert_not_called()
+
+
+@test_utils.with_cloud_emulators('datastore')
+class SwarmingNonFuzzTaskRoutingTest(unittest.TestCase):
+  """Tests for routing non-fuzz tasks of Swarming jobs to platform queues."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.bulk_add_tasks',
+    ])
+    data_types.Job(
+        name='android_emulator_swarming',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+
+  def test_add_task_defaults_queue_for_swarming_job(self):
+    """Tests that add_task with queue=None routes Swarming jobs to their
+    platform queue when SWARMING_REMOTE_EXECUTION is enabled."""
+    flag = data_types.FeatureFlag(id='swarming_remote_execution', enabled=True)
+    flag.put()
+
+    tasks.add_task('minimize', '123', 'android_emulator_swarming')
+    self.assertEqual(self.mock.bulk_add_tasks.call_args[1]['queue'],
+                     'jobs-android-emulator')
+
+    self.mock.bulk_add_tasks.reset_mock()
+    flag.enabled = False
+    flag.put()
+    tasks.add_task('minimize', '123', 'android_emulator_swarming')
+    self.assertIsNone(self.mock.bulk_add_tasks.call_args[1]['queue'])
