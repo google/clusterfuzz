@@ -266,7 +266,9 @@ FUZZ_TASK_STEPS_DURATION = monitor.CumulativeDistributionMetric(
     'task/fuzz/steps_duration',
     bucketer=monitor.GeometricBucketer(),
     description=('Distribution of the duration of individual steps of the '
-                 'fuzz task, in seconds.'),
+                 'fuzz task, in seconds. For steps that run more than once '
+                 'in the same fuzz task (e.g. in a loop), each run is '
+                 'tracked separately.'),
     field_spec=[
         monitor.StringField('fuzzer'),
         monitor.StringField('job'),

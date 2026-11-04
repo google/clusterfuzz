@@ -207,11 +207,11 @@ class FuzzerStatsTest(unittest.TestCase):
 
   @mock.patch.object(fuzzer_stats, '_STEPS_DURATION_FIELDS', [{
       'name': 'fuzzing',
-      'type': 'STRING',
+      'type': 'INTERVAL',
       'mode': 'NULLABLE'
   }, {
       'name': 'setup',
-      'type': 'STRING',
+      'type': 'INTERVAL',
       'mode': 'NULLABLE'
   }])
   @mock.patch('clusterfuzz._internal.metrics.logs.error')
@@ -232,7 +232,7 @@ class FuzzerStatsTest(unittest.TestCase):
 
   @mock.patch.object(fuzzer_stats, '_STEPS_DURATION_FIELDS', [{
       'name': 'fuzzing',
-      'type': 'STRING',
+      'type': 'INTERVAL',
       'mode': 'NULLABLE'
   }])
   @mock.patch('clusterfuzz._internal.metrics.logs.error')
