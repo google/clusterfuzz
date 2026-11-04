@@ -155,9 +155,8 @@ else
         google-cloud-cli \
         google-cloud-cli-datastore-emulator
   else
-    # google-cloud-cli-datastore-emulator >= 592.0.0 requires Java 25, which
-    # isn't available on older distros like Ubuntu 20.04 (used by the deploy
-    # image). Pin to the last version that works with Java 17.
+    # Pinning the latest version that works with Java 17, as
+    # google-cloud-cli-datastore-emulator >= 592.0.0 requires Java 25.
     sudo apt-get install -y \
         google-cloud-cli \
         google-cloud-cli-app-engine-go \
