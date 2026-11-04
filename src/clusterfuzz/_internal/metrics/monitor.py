@@ -628,44 +628,6 @@ class SplitMetricHelper:
     self.job_metric.insert(value, labels=job_labels)
 
 
-class TimeMetricTracker:
-  """Context manager to track time for any metric."""
-
-  def __init__(self,
-               metric: Metric | SplitMetricHelper,
-               labels=None,
-               has_success_label: bool = False):
-    """Initializes the tracker.
-
-    Args:
-      metric: The metric which is being tracked.
-      labels: The dictionary containing the labels of the metric.
-      has_success_label: If True, a label 'success' is added to the labels
-        dictionary upon exit, which is True if and only if no exception
-        was raised and the fail method was not called.
-    """
-    self.metric = metric
-    self.labels = dict(labels) if labels else {}
-    self.has_success_label = has_success_label
-    self.start_time = None
-    self.failed = False
-
-  def __enter__(self):
-    self.start_time = time.time()
-    self.failed = False
-    return self
-
-  def __exit__(self, exc_type, value, traceback):
-    duration = time.time() - self.start_time
-    if self.has_success_label:
-      self.labels['success'] = not self.failed and exc_type is None
-
-    self.metric.insert(duration, labels=self.labels)
-
-  def fail(self):
-    self.failed = True
-
-
 @dataclasses.dataclass
 class _StepTracker:
   success: bool = True
