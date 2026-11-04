@@ -57,6 +57,26 @@ def _get_variant_testcase_for_job(testcase, job_type):
   return variant_testcase
 
 
+def _is_variant_disabled(job_type):
+  """Returns whether variant tasks are disabled for |job_type|. Uses the same
+  checks as when the tasks are created."""
+  job = data_types.Job.query(data_types.Job.name == job_type).get()
+  if not job:
+    return False
+  job_environment = job.get_environment()
+  return bool(
+      utils.string_is_true(job_environment.get('EXPERIMENTAL')) or
+      utils.string_is_true(job_environment.get('DISABLE_VARIANT')))
+
+
+def _delete_pending_variant(testcase_id, job_type):
+  """Deletes the variant left pending when the task was scheduled, so it
+  doesn't show up as pending forever."""
+  variant = data_handler.get_testcase_variant(testcase_id, job_type)
+  if variant and variant.status == data_types.TestcaseVariantStatus.PENDING:
+    variant.key.delete()
+
+
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run a test case with a different job type to see if they reproduce."""
   try:
@@ -65,6 +85,10 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     logs.warning(f'Testcase {testcase_id} no longer exists.')
     return None
   with logs.testcase_log_context(testcase, testcase.get_fuzz_target()):
+    if _is_variant_disabled(job_type):
+      logs.info(f'Variant tasks are disabled for job {job_type}, skipping.')
+      _delete_pending_variant(testcase_id, job_type)
+      return None
 
     if (environment.is_engine_fuzzer_job(testcase.job_type) !=
         environment.is_engine_fuzzer_job(job_type)):
