@@ -34,33 +34,6 @@ BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
         monitor.BooleanField('success'),
     ])
 
-FUZZER_SYNC_CORPUS_TIME = monitor.CounterMetric(
-    'task/fuzz/fuzzer/sync_corpus_time',
-    description=('The total time spent setting up and synchronizing corpus '
-                 'files with GCS in seconds (grouped by fuzzer).'),
-    field_spec=[
-        monitor.StringField('fuzzer'),
-        monitor.StringField('platform'),
-        monitor.StringField('runtime'),
-        monitor.StringField('stage'),
-        monitor.BooleanField('success'),
-    ])
-
-JOB_SYNC_CORPUS_TIME = monitor.CounterMetric(
-    'task/fuzz/job/sync_corpus_time',
-    description=('The total time spent setting up and synchronizing corpus '
-                 'files with GCS in seconds (grouped by job).'),
-    field_spec=[
-        monitor.StringField('job'),
-        monitor.StringField('platform'),
-        monitor.StringField('runtime'),
-        monitor.StringField('stage'),
-        monitor.BooleanField('success'),
-    ])
-
-SYNC_CORPUS_TIME = monitor.SplitMetricHelper(FUZZER_SYNC_CORPUS_TIME,
-                                             JOB_SYNC_CORPUS_TIME)
-
 CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
     'tip_boot_failure',
     description=
@@ -272,6 +245,22 @@ FUZZER_TESTCASE_COUNT_RATIO = monitor.CumulativeDistributionMetric(
         monitor.StringField('fuzzer'),
     ],
 )
+
+FUZZ_TASK_STEPS_DURATION = monitor.CumulativeDistributionMetric(
+    'task/fuzz/steps_duration',
+    bucketer=monitor.GeometricBucketer(),
+    description=('Distribution of the duration of individual steps of the '
+                 'fuzz task, in seconds. For steps that run more than once '
+                 'in the same fuzz task (e.g. in a loop), each run is '
+                 'tracked separately.'),
+    field_spec=[
+        monitor.StringField('fuzzer'),
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('runtime'),
+        monitor.StringField('step'),
+        monitor.BooleanField('success')
+    ])
 
 # Global error count.
 LOG_ERROR_COUNT = monitor.CounterMetric(

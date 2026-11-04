@@ -19,6 +19,7 @@
 import bisect
 import collections
 import contextlib
+import datetime
 import functools
 import itertools
 import re
@@ -424,6 +425,12 @@ class Metric:
 
     return time_series
 
+  def has_field(self, field):
+    for f in self.field_spec:
+      if f.value_type == field.value_type and f.name == field.name:
+        return True
+    return False
+
 
 class _CounterMetric(Metric):
   """Counter metric."""
@@ -620,42 +627,72 @@ class SplitMetricHelper:
     self.job_metric.insert(value, labels=job_labels)
 
 
-class TimeMetricTracker:
-  """Context manager to track time for any metric."""
+class TimeStatTrackerFailureException(Exception):
+  pass
 
-  def __init__(self,
-               metric: Metric | SplitMetricHelper,
-               labels=None,
-               has_success_label: bool = False):
+
+class TimeStatTracker:
+  """Reusable context manager to keep track of time stats.
+
+  Time measurements are emitted to the supplied Cloud Monitoring metric and
+  are saved as datetime.timedelta in the |self.stats| dictionary as well.
+  """
+
+  def __init__(self, metric: Metric | None = None, common_labels=None):
     """Initializes the tracker.
 
     Args:
-      metric: The metric which is being tracked.
-      labels: The dictionary containing the labels of the metric.
-      has_success_label: If True, a label 'success' is added to the labels
-        dictionary upon exit, which is True if and only if no exception
-        was raised and the fail method was not called.
+      metric: The Cloud Monitoring metric to submit measurements to, if not
+      None. The metric must contain the fields "step" and "success", which
+      are automatically filled by the tracker upon emission.
+      common_labels: The dictionary of labels to be submitted to the metric.
+        The "step" and "success" labels are ignored if present.
     """
+    self.stats: dict[str, datetime.timedelta] = {}
     self.metric = metric
-    self.labels = dict(labels) if labels else {}
-    self.has_success_label = has_success_label
-    self.start_time = None
-    self.failed = False
+    self.common_labels = dict(common_labels) if common_labels else {}
+    if metric:
+      if not metric.has_field(StringField('step')):
+        logs.error('Missing "step" string field in the metric.')
+        self.metric = None
+      if not metric.has_field(BooleanField('success')):
+        logs.error('Missing "success" boolean field in the metric.')
+        self.metric = None
+    if 'step' in self.common_labels or 'success' in self.common_labels:
+      logs.warning('Labels "step" or "success" are in common_labels '
+                   'and will be overwritten.')
 
-  def __enter__(self):
-    self.start_time = time.time()
-    self.failed = False
-    return self
+  @contextlib.contextmanager
+  def track(self, name: str):
+    """Tracks the stat named |name|.
 
-  def __exit__(self, exc_type, value, traceback):
-    duration = time.time() - self.start_time
-    if self.has_success_label:
-      self.labels['success'] = not self.failed and exc_type is None
-
-    self.metric.insert(duration, labels=self.labels)
-
-  def fail(self):
-    self.failed = True
+    Any raised exception is treated as a failure and re-raised, except for
+    TimeStatTrackerFailureException, which marks the step as failed without
+    propagating.
+    """
+    start = time.time()
+    success = True
+    try:
+      yield
+    except TimeStatTrackerFailureException:
+      success = False
+    except:
+      success = False
+      raise
+    finally:
+      duration_secs = time.time() - start
+      duration = datetime.timedelta(seconds=duration_secs)
+      if name in self.stats:
+        self.stats[name] += duration
+      else:
+        self.stats[name] = duration
+      if self.metric:
+        self.metric.insert(
+            duration_secs,
+            labels={
+                **self.common_labels, 'step': name,
+                'success': success
+            })
 
 
 # Global state.
