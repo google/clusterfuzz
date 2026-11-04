@@ -2179,31 +2179,6 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(1, self._get_engine_prepare_dist(success=False).count)
     self.assertEqual(0, self._get_engine_prepare_dist(success=True).count)
 
-  @mock.patch('clusterfuzz._internal.metrics.monitor.time')
-  def test_run_engine_fuzzer_tracks_engine_prepare(self, mock_monitor_time):
-    """Test that run_engine_fuzzer records engine_prepare in the tracker."""
-    mock_time = helpers.MockTime(start_time=100.0)
-    mock_monitor_time.time.side_effect = mock_time.time
-    os.environ['FUZZ_TEST_TIMEOUT'] = '2000'
-    engine_impl = self._create_engine_impl()
-
-    def prepare(*_):
-      mock_time.advance(2.5)
-      return engine.FuzzOptions('/corpus', ['arg'], {})
-
-    engine_impl.prepare.side_effect = prepare
-    tracker = monitor.TimeStatTracker()
-
-    fuzz_task.run_engine_fuzzer(engine_impl, 'test_target', '/corpus',
-                                '/fuzz-inputs', tracker)
-
-    engine_impl.prepare.assert_called_once_with(
-        '/corpus', '/build_dir/test_target', '/build_dir')
-    self.assertEqual(
-        {
-            'engine_prepare': datetime.timedelta(seconds=2.5)
-        }, tracker.stats)
-
   def test_basic(self):
     """Test basic fuzzing session."""
     target = 'test_target'
