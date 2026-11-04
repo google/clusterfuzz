@@ -13,6 +13,8 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/base
 
+# Pinning the latest datastore emulator version that works with Java 17, as
+# google-cloud-cli-datastore-emulator >= 592.0.0 requires Java 25.
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
 RUN apt-get update && \
     apt-get install -y \
@@ -22,7 +24,7 @@ RUN apt-get update && \
         google-cloud-cli-app-engine-go \
         google-cloud-cli-app-engine-python \
         google-cloud-cli-app-engine-python-extras \
-        google-cloud-cli-datastore-emulator \
+        google-cloud-cli-datastore-emulator=591.0.0-0 \
         google-cloud-cli-gke-gcloud-auth-plugin \
         google-cloud-cli-pubsub-emulator \
         kubectl \
