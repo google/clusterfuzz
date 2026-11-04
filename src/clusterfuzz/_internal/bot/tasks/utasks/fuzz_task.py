@@ -1479,7 +1479,7 @@ def _add_issue_metadata_from_environment(metadata):
 
 
 def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
-                      testcase_directory, tracker):
+                      testcase_directory, steps_time_tracker):
   """Run engine for fuzzing."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
@@ -1494,7 +1494,7 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   target_path = engine_common.find_fuzzer_path(build_dir, target_name)
   if target_path is None:
     raise FuzzTargetNotFoundError(f'{target_path} is not found.')
-  with tracker.track('engine_prepare'):
+  with steps_time_tracker.track('engine_prepare'):
     options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
