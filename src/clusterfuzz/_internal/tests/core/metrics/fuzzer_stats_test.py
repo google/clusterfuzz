@@ -250,11 +250,25 @@ class FuzzerStatsTest(unittest.TestCase):
 
   @mock.patch('clusterfuzz._internal.metrics.logs.error')
   def test_job_run_steps_duration_empty_schema(self, mock_log_error):
-    """Tests that with the default (empty) schema all keys are dropped."""
+    """Tests that keys missing from the default schema are dropped."""
     job_run = self._make_job_run({'fuzzing': datetime.timedelta(seconds=1)})
 
     self.assertNotIn('steps_duration', job_run.data)
     mock_log_error.assert_called_once()
+
+  @mock.patch('clusterfuzz._internal.metrics.logs.error')
+  def test_job_run_steps_duration_corpus_sync(self, mock_log_error):
+    """Tests that the corpus sync steps are accepted by the default schema."""
+    job_run = self._make_job_run({
+        'corpus_download': datetime.timedelta(seconds=4.5),
+        'corpus_upload': datetime.timedelta(seconds=1.25),
+    })
+
+    self.assertEqual({
+        'corpus_download': 'P0DT0H0M4.500000S',
+        'corpus_upload': 'P0DT0H0M1.250000S',
+    }, job_run['steps_duration'])
+    mock_log_error.assert_not_called()
 
   @mock.patch('clusterfuzz._internal.metrics.logs.error')
   def test_job_run_steps_duration_none(self, mock_log_error):
