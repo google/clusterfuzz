@@ -123,11 +123,16 @@ def execute_command(cmd, timeout=None, on_cuttlefish_host=False):
   return output
 
 
-def execute_command_with_return_code(cmd,
-                                     timeout=None,
-                                     on_cuttlefish_host=False):
-  """Spawns a subprocess to run the given shell command and returns
-  (return_code, output)."""
+def execute_command_with_return_code(cmd: str,
+                                     timeout: int | None = None,
+                                     on_cuttlefish_host: bool = False
+                                    ) -> tuple[int | None, str | None]:
+  """Spawns a subprocess to run the given shell command.
+
+  Returns:
+    A (return_code, output) tuple. Both values are None if the command timed
+    out.
+  """
   if on_cuttlefish_host and environment.is_android_cuttlefish():
     # Auto accept key fingerprint for ssh command.
     cmd = ('ssh -o StrictHostKeyChecking=no '
@@ -202,9 +207,10 @@ def factory_reset():
   revert_asan_device_setup_if_needed()
 
   if not environment.is_android_emulator():
-    # Broadcasting MASTER_CLEAR on physical devices wipes
-    # /data/misc/adb/adb_keys and leaves the device permanently ADB
-    # unauthorized (preventing automated reflashing as well).
+    # Don't factory reset physical devices: MASTER_CLEAR deletes the stored
+    # ADB keys (/data/misc/adb/adb_keys), leaving the phone "unauthorized" so
+    # no ADB command (including reflashing) works until someone accepts the
+    # prompt on the device. Exit instead, as for Cuttlefish above.
     bad_state_reached()
     return
 
