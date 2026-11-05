@@ -222,6 +222,11 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     logs.error(f'Unknown command "{task_name}"')
     return None
 
+  if environment.is_tworker() and isinstance(task, task_types.TrustedTask):
+    logs.error(f'Skipping legacy single-machine task "{task_name}" on tworker '
+               '(tworkers only run utask preprocess/postprocess).')
+    return None
+
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
   if should_update_task_status(task_name):
@@ -382,7 +387,8 @@ def process_command_impl(task_name,
       # This indicates we are trying to run this job on the wrong platform
       # and potentially blocks fuzzing. See the 'subqueues' feature for
       # more details: https://github.com/google/clusterfuzz/issues/3347
-      if (task_name != 'variant' and testcase_platform_id and
+      if (not environment.is_tworker() and task_name != 'variant' and
+          testcase_platform_id and
           not utils.fields_match(testcase_platform_id, current_platform_id)):
 
         logs.info(f'Testcase {testcase_id} platform {testcase_platform_id} '
@@ -474,7 +480,7 @@ def process_command_impl(task_name,
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
-  if not is_supported_cpu_arch_for_job():
+  if not environment.is_tworker() and not is_supported_cpu_arch_for_job():
     logs.info(
         'Unsupported cpu architecture specified in job definition, exiting.')
     tasks.add_task(
