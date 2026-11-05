@@ -1029,6 +1029,9 @@ def redo_testcase(testcase, tasks, user_email):
   progression = 'progression' in tasks
   impact = 'impact' in tasks
   blame = 'blame' in tasks
+  if swarming.is_swarming_applicable(testcase.job_type):
+    impact = False
+    blame = False
 
   task_list = []
   testcase_id = testcase.key.id()
@@ -1071,6 +1074,9 @@ def redo_testcase(testcase, tasks, user_email):
     task_list.append('blame')
     testcase.set_metadata('blame_pending', True, update_testcase=False)
     testcase.set_metadata('predator_result', None, update_testcase=False)
+
+  if not task_list:
+    return
 
   for key in metadata_keys_to_clear:
     testcase.delete_metadata(key, update_testcase=False)
