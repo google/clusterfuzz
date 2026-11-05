@@ -401,9 +401,9 @@ class TworkerNonFuzzGuardsCommandTest(unittest.TestCase):
 
   @mock.patch('clusterfuzz._internal.datastore.data_handler.update_task_status')
   @mock.patch('clusterfuzz._internal.bot.tasks.impact_task.execute_task')
-  def test_tworker_trusted_task_does_not_crash(self, mock_impact_execute,
-                                               mock_update_status):
-    """Tests that a stray TrustedTask on a tworker returns None cleanly."""
+  def test_tworker_trusted_task_is_dropped(self, mock_impact_execute,
+                                           mock_update_status):
+    """Tests that a stray TrustedTask on a tworker is dropped without running."""
     os.environ['TWORKER'] = 'True'
 
     result = commands.run_command('impact', str(self.testcase.key.id()),
