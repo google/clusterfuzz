@@ -337,10 +337,13 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'clusterfuzz._internal.batch.service._get_alternative_region_flag',
         'clusterfuzz._internal.batch.service.get_region_load',
         'clusterfuzz._internal.batch.service.random.choice',
         'clusterfuzz._internal.base.utils.random_weighted_choice',
     ])
+    self.mock._get_alternative_region_flag.return_value = (
+        batch_service._ALTERNATIVE_REGION_OFF)
     self.batch_config = {
         'project': 'test-project',
         'queue_check_regions': ['us-central1', 'us-east4'],
@@ -432,6 +435,195 @@ class GetSubconfigLoadBalancingTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
+class ReadAlternativeRegionFlagTest(unittest.TestCase):
+  """Tests for _read_alternative_region_flag."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.error',
+    ])
+
+  def _put_flag(self, **kwargs):
+    data_types.FeatureFlag(id='batch_alternative_region', **kwargs).put()
+
+  def test_no_flag(self):
+    """Tests that a missing flag means off."""
+    self.assertEqual(batch_service._read_alternative_region_flag(),
+                     batch_service._ALTERNATIVE_REGION_OFF)
+
+  def test_disabled(self):
+    """Tests that a disabled flag means off."""
+    self._put_flag(enabled=False, string_value='us-east1', value=1.0)
+    self.assertEqual(batch_service._read_alternative_region_flag(),
+                     batch_service._ALTERNATIVE_REGION_OFF)
+
+  def test_enabled(self):
+    """Tests that an enabled flag returns its region and share."""
+    self._put_flag(enabled=True, string_value=' us-east1 ', value=0.05)
+    self.assertEqual(
+        batch_service._read_alternative_region_flag(),
+        batch_service.AlternativeRegionFlag(True, 'us-east1', 0.05))
+
+  def test_missing_share(self):
+    """Tests that a flag without a share is ignored, so enabling it by mistake
+    doesn't move every job."""
+    self._put_flag(enabled=True, string_value='asia-east1')
+    self.assertEqual(batch_service._read_alternative_region_flag(),
+                     batch_service._ALTERNATIVE_REGION_OFF)
+    self.assertTrue(self.mock.error.called)
+
+  def test_invalid_region(self):
+    """Tests that an invalid region is ignored."""
+    for region in ['', 'us east1', 'us-east1-b', 'regions/us-east1']:
+      self._put_flag(enabled=True, string_value=region, value=1.0)
+      self.assertEqual(batch_service._read_alternative_region_flag(),
+                       batch_service._ALTERNATIVE_REGION_OFF, region)
+    self.assertEqual(self.mock.error.call_count, 4)
+
+  def test_invalid_share(self):
+    """Tests that a share outside [0, 1] is ignored."""
+    for share in [-0.1, 1.5]:
+      self._put_flag(enabled=True, string_value='us-east1', value=share)
+      self.assertEqual(batch_service._read_alternative_region_flag(),
+                       batch_service._ALTERNATIVE_REGION_OFF, share)
+    self.assertEqual(self.mock.error.call_count, 2)
+
+
+class GetSubconfigAlternativeRegionTest(unittest.TestCase):
+  """Tests for the batch_alternative_region flag in _get_subconfig."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.random_weighted_choice',
+        'clusterfuzz._internal.batch.service._get_alternative_region_flag',
+        'clusterfuzz._internal.batch.service.get_region_load',
+        'clusterfuzz._internal.batch.service.random.choice',
+        'clusterfuzz._internal.batch.service.random.random',
+        'clusterfuzz._internal.metrics.logs.error',
+    ])
+    self.batch_config = {
+        'project': 'test-project',
+        'queue_check_regions': ['us-central1'],
+        'alternative_region': {
+            'network':
+                'projects/p/global/networks/batch-alternative-{region}',
+            'subnetwork':
+                'projects/p/regions/{region}/subnetworks/batch-alternative-{region}',
+        },
+        'subconfigs': {
+            'central1': {
+                'region': 'us-central1',
+                'network': 'n1'
+            },
+        },
+    }
+    self.instance_spec = {'subconfigs': [{'name': 'central1', 'weight': 1}]}
+    self.mock.get_region_load.return_value = 0
+    self.mock.choice.side_effect = lambda items: items[0]
+    self.mock.random.return_value = 0.5
+
+  def _set_flag(self, region, share):
+    self.mock._get_alternative_region_flag.return_value = batch_service.AlternativeRegionFlag(
+        True, region, share)
+
+  def test_flag_off(self):
+    """Tests that the normal subconfigs are used when the flag is off."""
+    self.mock._get_alternative_region_flag.return_value = batch_service._ALTERNATIVE_REGION_OFF
+
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
+    self.assertEqual(subconfig['region'], 'us-central1')
+
+  def test_flag_disabled_with_region(self):
+    """Tests that a disabled flag is ignored even if it has a region."""
+    self.mock._get_alternative_region_flag.return_value = batch_service.AlternativeRegionFlag(
+        False, 'asia-east1', 1.0)
+
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
+    self.assertEqual(subconfig['region'], 'us-central1')
+
+  def test_alternative_region(self):
+    """Tests that the flag's region is used, with the network and subnetwork
+    built from batch.yaml."""
+    self._set_flag('asia-east1', 1.0)
+
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
+    self.assertEqual(
+        subconfig, {
+            'region':
+                'asia-east1',
+            'network':
+                'projects/p/global/networks/batch-alternative-asia-east1',
+            'subnetwork':
+                'projects/p/regions/asia-east1/subnetworks/'
+                'batch-alternative-asia-east1',
+        })
+    # The alternative region is load-checked even though it isn't in
+    # queue_check_regions.
+    self.mock.get_region_load.assert_called_once_with('test-project',
+                                                      'asia-east1')
+
+  def test_alternative_region_overloaded(self):
+    """Tests that jobs wait when the alternative region is full, with no fallback
+    to the normal regions."""
+    self._set_flag('asia-east1', 1.0)
+    self.mock.get_region_load.return_value = batch_service.MAX_QUEUE_SIZE
+
+    with self.assertRaises(batch_service.AllRegionsOverloadedError):
+      batch_service._get_subconfig(self.batch_config, self.instance_spec)
+    self.mock.get_region_load.assert_called_once_with('test-project',
+                                                      'asia-east1')
+
+  def test_share(self):
+    """Tests that only the flag's share of jobs goes to the alternative region."""
+    self._set_flag('asia-east1', 0.25)
+
+    self.mock.random.return_value = 0.1
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
+    self.assertEqual(subconfig['region'], 'asia-east1')
+
+    self.mock.random.return_value = 0.25
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
+    self.assertEqual(subconfig['region'], 'us-central1')
+
+  def test_share_zero(self):
+    """Tests that a share of 0 never uses the alternative region."""
+    self._set_flag('asia-east1', 0.0)
+    self.mock.random.return_value = 0.0
+
+    subconfig = batch_service._get_subconfig(self.batch_config,
+                                             self.instance_spec)
+    self.assertEqual(subconfig['region'], 'us-central1')
+
+  def test_no_alternative_region_section(self):
+    """Tests that jobs wait if batch.yaml has no alternative_region section,
+    with no fallback to the normal regions."""
+    self._set_flag('asia-east1', 1.0)
+    del self.batch_config['alternative_region']
+
+    with self.assertRaises(batch_service.AllRegionsOverloadedError):
+      batch_service._get_subconfig(self.batch_config, self.instance_spec)
+    self.assertTrue(self.mock.error.called)
+    self.assertFalse(self.mock.get_region_load.called)
+
+  def test_is_remote_task_ignores_flag(self):
+    """Tests that the flag doesn't apply when only checking that a mapping
+    exists."""
+    self._set_flag('asia-east1', 1.0)
+    self.mock.random_weighted_choice.return_value = (
+        batch_service.WeightedSubconfig('central1', 1))
+
+    subconfig = batch_service._get_subconfig(
+        self.batch_config, self.instance_spec, should_check_regions=False)
+    self.assertEqual(subconfig['region'], 'us-central1')
+    self.assertFalse(self.mock.get_region_load.called)
+
+
+@test_utils.with_cloud_emulators('datastore')
 class GetSpecsFromConfigTest(unittest.TestCase):
   """Tests for _get_specs_from_config."""
 
@@ -441,9 +633,12 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     self.job.put()
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.random_weighted_choice',
+        'clusterfuzz._internal.batch.service._get_alternative_region_flag',
         'clusterfuzz._internal.batch.service.random.choice',
         'clusterfuzz._internal.batch.service.get_region_load',
     ])
+    self.mock._get_alternative_region_flag.return_value = (
+        batch_service._ALTERNATIVE_REGION_OFF)
     self.mock.random_weighted_choice.return_value = batch_service.WeightedSubconfig(
         name='east4-network2',
         weight=1,
