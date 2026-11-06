@@ -979,6 +979,7 @@ def critical_tasks_completed(testcase):
 
   # Only require impact if it is feasible to run it. Don't require it if not
   # (when regression fails).
+  # TODO(crbug.com/582825425): Require impact for Swarming jobs once supported.
   impact_satisfied = (
       testcase.is_impact_set_flag or testcase.regression == 'NA' or
       swarming.is_swarming_applicable(testcase.job_type))

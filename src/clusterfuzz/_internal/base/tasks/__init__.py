@@ -1023,6 +1023,7 @@ def redo_testcase(testcase, tasks, user_email):
   progression = 'progression' in tasks
   impact = 'impact' in tasks
   blame = 'blame' in tasks
+  # TODO(crbug.com/582825425): Support blame and impact tasks for Swarming jobs.
   if swarming.is_swarming_applicable(testcase.job_type):
     impact = False
     blame = False
