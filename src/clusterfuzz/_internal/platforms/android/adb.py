@@ -399,7 +399,12 @@ def hard_reset():
   soft_reset_cmd = get_adb_command_line('reboot')
   return_code, reboot_output = execute_command_with_return_code(
       soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
-  if return_code != 0 or 'failed' in (reboot_output or '').lower():
+  # Successful `adb reboot` prints nothing from the device, while device-side
+  # errors (e.g. "reboot: Connection timed out") still return 0. Ignore benign
+  # host "* daemon ..." startup lines and treat any other output as a failure.
+  has_reboot_error = any(line.strip() and not line.startswith('*')
+                         for line in (reboot_output or '').splitlines())
+  if return_code != 0 or has_reboot_error:
     run_shell_command(
         'echo b > /proc/sysrq-trigger',
         root=True,

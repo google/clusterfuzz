@@ -267,6 +267,7 @@ class ResetSafetyTest(unittest.TestCase):
         (1, 'error: device offline'),
         (None, None),
         (0, 'reboot (adb) failed'),
+        (0, 'reboot: Connection timed out'),
     ]
     for result in failure_results:
       with self.subTest(result=result):
