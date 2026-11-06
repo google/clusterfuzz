@@ -454,6 +454,29 @@ class RegularBuildUnpackTest(fake_filesystem_unittest.TestCase):
                                        'gs://fake_bucket/fake.zip')
           self.assertFalse(result)
 
+  def test_unpack_build_windows_remove_directory_fails_restarts_and_exits(self):
+    """Test that _unpack_build restarts and exits non-zero on Windows when
+    clearing the build directory fails."""
+    test_helpers.patch(self, [
+        'time.sleep',
+        'clusterfuzz._internal.base.utils.restart_machine',
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.system.shell.remove_directory',
+    ])
+    self.mock.platform.return_value = 'WINDOWS'
+    self.mock.remove_directory.return_value = False
+    build = build_manager.RegularBuild('/builds/build4', 1,
+                                       'gs://fake_bucket/fake.zip')
+
+    with self.assertRaises(SystemExit) as cm:
+      build._unpack_build('/builds/build4', '/builds/build4/dir',
+                          'gs://fake_bucket/fake.zip')
+
+    self.assertEqual(cm.exception.code, 1)
+    self.mock.restart_machine.assert_called_once_with()
+    self.assertEqual(self.mock.sleep.call_args_list,
+                     [mock.call(60), mock.call(60)])
+
 
 class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
   """Tests for regular libFuzzer build setup."""
