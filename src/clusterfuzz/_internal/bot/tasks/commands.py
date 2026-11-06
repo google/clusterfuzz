@@ -222,6 +222,11 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     logs.error(f'Unknown command "{task_name}"')
     return None
 
+  if environment.is_tworker() and isinstance(task, task_types.TrustedTask):
+    # Returning (not raising) acks the message: dropped, not retried.
+    logs.error(f'Dropping TrustedTask "{task_name}" on tworker.')
+    return None
+
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
   if should_update_task_status(task_name):
@@ -308,6 +313,13 @@ def process_command_impl(task_name,
   environment.set_value('CF_TASK_NAME', task_name)
   environment.set_value('CF_TASK_ARGUMENT', task_argument)
   environment.set_value('CF_TASK_JOB_NAME', job_name)
+
+  # Tworkers never run tasks themselves: they only run utask preprocess and
+  # postprocess, and utask_main runs on Batch/Swarming. Checks that compare the
+  # task against this bot's platform or CPU arch only apply to bots that may run
+  # the task locally.
+  may_run_task_locally = not environment.is_tworker()
+
   if job_name != 'none':
     job = data_types.Job.query(data_types.Job.name == job_name).get()
     # Job might be removed. In that case, we don't want an exception
@@ -332,8 +344,7 @@ def process_command_impl(task_name,
     # old untrusted worker architecture.
     # If the job base quque is '-android', which is the default Android queue
     # ignore the mismatch since with subqueues, it is expected
-    if (not environment.get_value('DEBUG_TASK') and
-        not environment.is_tworker() and
+    if (not environment.get_value('DEBUG_TASK') and may_run_task_locally and
         not environment.is_trusted_host(ensure_connected=False) and
         job_base_queue_suffix != bot_base_queue_suffix and
         job_base_queue_suffix != '-android'):
@@ -382,7 +393,8 @@ def process_command_impl(task_name,
       # This indicates we are trying to run this job on the wrong platform
       # and potentially blocks fuzzing. See the 'subqueues' feature for
       # more details: https://github.com/google/clusterfuzz/issues/3347
-      if (task_name != 'variant' and testcase_platform_id and
+      if (may_run_task_locally and task_name != 'variant' and
+          testcase_platform_id and
           not utils.fields_match(testcase_platform_id, current_platform_id)):
 
         logs.info(f'Testcase {testcase_id} platform {testcase_platform_id} '
@@ -474,7 +486,7 @@ def process_command_impl(task_name,
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
-  if not is_supported_cpu_arch_for_job():
+  if may_run_task_locally and not is_supported_cpu_arch_for_job():
     logs.info(
         'Unsupported cpu architecture specified in job definition, exiting.')
     tasks.add_task(
