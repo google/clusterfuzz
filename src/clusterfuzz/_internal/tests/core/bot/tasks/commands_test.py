@@ -186,11 +186,10 @@ class RunCommandTest(unittest.TestCase):
     task_status_entities = list(data_types.TaskStatus.query())
     self.assertEqual(1, len(task_status_entities))
 
-    # TaskStatus should still indicate success.
     task_status = task_status_entities[0]
     self.assertDictEqual({
         'bot_name': 'bot_name',
-        'status': 'finished',
+        'status': 'errored out',
         'time': test_utils.CURRENT_TIME,
     }, task_status.to_dict())
 
@@ -201,12 +200,13 @@ class RunCommandTest(unittest.TestCase):
         errors.InvalidFuzzerError())
     with mock.patch.object(task_rate_limiting.TaskRateLimiter,
                            'record_task') as record_task:
-      commands.run_command('progression', '123', 'job', {})
+      result = commands.run_command('progression', '123', 'job', {})
 
+    self.assertIsNone(result)
     record_task.assert_called_once_with(success=False)
     task_status_entities = list(data_types.TaskStatus.query())
     self.assertEqual(1, len(task_status_entities))
-    self.assertEqual('finished', task_status_entities[0].status)
+    self.assertEqual('errored out', task_status_entities[0].status)
 
   def test_run_command_already_running(self):
     """Test run_command with another instance currently running."""
