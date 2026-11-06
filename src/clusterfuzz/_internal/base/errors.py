@@ -49,8 +49,11 @@ class Error(Exception):
 
 
 class NonRetryableError(Error):
-  """Error after which retrying the task cannot succeed, so the bot should
-  drop the task rather than leave it to be redelivered."""
+  """Error after which retrying the task cannot succeed.
+
+  The bot drops the task rather than leave it to be redelivered, so only use
+  this for conditions that are truly permanent: the task message is acked and
+  lost."""
 
 
 class InvalidTestcaseError(NonRetryableError):
