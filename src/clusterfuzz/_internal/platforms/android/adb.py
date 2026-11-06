@@ -116,8 +116,25 @@ def directory_exists(directory_path):
   return result == expected
 
 
-def execute_command(cmd, timeout=None, on_cuttlefish_host=False):
+def execute_command(cmd: str,
+                    timeout: int | None = None,
+                    on_cuttlefish_host: bool = False) -> str | None:
   """Spawns a subprocess to run the given shell command."""
+  _, output = execute_command_with_return_code(
+      cmd, timeout=timeout, on_cuttlefish_host=on_cuttlefish_host)
+  return output
+
+
+def execute_command_with_return_code(cmd: str,
+                                     timeout: int | None = None,
+                                     on_cuttlefish_host: bool = False
+                                    ) -> tuple[int | None, str | None]:
+  """Spawns a subprocess to run the given shell command.
+
+  Returns:
+    A (return_code, output) tuple. Both values are None if the command timed
+    out.
+  """
   if on_cuttlefish_host and environment.is_android_cuttlefish():
     # Auto accept key fingerprint for ssh command.
     cmd = ('ssh -o StrictHostKeyChecking=no '
@@ -162,10 +179,10 @@ def execute_command(cmd, timeout=None, on_cuttlefish_host=False):
       # Can't kill a dead process.
       pass
 
-    return None
+    return None, None
 
   bytes_output = b''.join(so)
-  return bytes_output.strip().decode('utf-8', errors='ignore')
+  return pipe.returncode, bytes_output.strip().decode('utf-8', errors='ignore')
 
 
 def copy_to_cuttlefish(src_path, dest_path, timeout=None):
@@ -189,6 +206,13 @@ def factory_reset():
   # A device can be stuck in a boot loop due to a bad clang library update.
   # Reverting that can bring a device back to good state.
   revert_asan_device_setup_if_needed()
+
+  if not environment.is_android_emulator():
+    # Don't factory reset physical devices: MASTER_CLEAR deletes the stored
+    # ADB keys (/data/misc/adb/adb_keys), leaving the phone "unauthorized" so
+    # no ADB command (including reflashing) works until someone accepts the
+    # prompt on the device. Exit instead, as for Cuttlefish above.
+    bad_state_reached()
 
   run_as_root()
   run_shell_command([
@@ -358,6 +382,19 @@ def get_property(property_name):
   return run_shell_command(['getprop', property_name])
 
 
+def _try_graceful_reboot() -> bool:
+  """Attempts a graceful `adb reboot` and returns whether it succeeded."""
+  soft_reset_cmd = get_adb_command_line('reboot')
+  return_code, reboot_output = execute_command_with_return_code(
+      soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+  # Successful `adb reboot` prints nothing from the device, while device-side
+  # errors (e.g. "reboot: Connection timed out") still return 0. Ignore benign
+  # host "* daemon ..." startup lines and treat any other output as a failure.
+  has_reboot_error = any(line.strip() and not line.startswith('*')
+                         for line in (reboot_output or '').splitlines())
+  return return_code == 0 and not has_reboot_error
+
+
 def hard_reset():
   """Perform a hard reset of the device."""
   if environment.is_android_cuttlefish():
@@ -365,15 +402,18 @@ def hard_reset():
     # and wait for reimage on next iteration.
     bad_state_reached()
 
-  # For physical device.
-  # Try hard-reset via sysrq-trigger (requires root).
-  hard_reset_sysrq_cmd = get_adb_command_line(
-      'shell echo b \\> /proc/sysrq-trigger')
-  execute_command(hard_reset_sysrq_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+  # Flush filesystem buffers on a best-effort basis before rebooting.
+  sync_cmd = get_adb_command_line('shell sync')
+  execute_command(sync_cmd, timeout=GET_DEVICE_STATE_TIMEOUT)
 
-  # Try soft-reset now (does not require root).
-  soft_reset_cmd = get_adb_command_line('reboot')
-  execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+  # Try graceful reboot first (unmounts /data cleanly and does not require
+  # root). Only fall back to sysrq-trigger if graceful reboot fails or hangs.
+  if not _try_graceful_reboot():
+    run_shell_command(
+        'echo b > /proc/sysrq-trigger',
+        root=True,
+        timeout=RECOVERY_CMD_TIMEOUT,
+        recover=False)
 
   if environment.is_android_emulator():
     logs.info('Platform ANDROID_EMULATOR detected.')
@@ -406,7 +446,8 @@ def read_data_from_file(file_path):
 
 
 def reboot():
-  """Reboots device."""
+  """Flushes filesystem buffers and reboots device."""
+  run_shell_command('sync', timeout=RECOVERY_CMD_TIMEOUT, recover=False)
   run_command('reboot')
 
 

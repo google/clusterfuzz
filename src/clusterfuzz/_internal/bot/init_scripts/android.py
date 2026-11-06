@@ -50,6 +50,11 @@ def run():
   logs.info('Init: wait_until_fully_booted.')
   android.adb.wait_until_fully_booted()
 
+  # Disable Android's 7-day automatic ADB key revocation so engine fuzzer bots
+  # and bots experiencing build setup outages do not become ADB unauthorized.
+  android.settings.set_content_setting('settings/global',
+                                       'adb_allowed_connection_time', 0)
+
   # Wait until battery charges to a minimum level and temperature threshold.
   android.battery.wait_until_good_state()
 

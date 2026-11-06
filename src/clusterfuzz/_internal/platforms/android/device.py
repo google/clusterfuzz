@@ -143,6 +143,8 @@ def configure_device_settings():
   # Write our test environment settings in content database.
   settings.set_content_setting('com.google.settings/partner',
                                'use_location_for_services', 0)
+  settings.set_content_setting('settings/global', 'adb_allowed_connection_time',
+                               0)
   settings.set_content_setting('settings/global', 'assisted_gps_enabled', 0)
   settings.set_content_setting('settings/global',
                                'development_settings_enabled', 0)
