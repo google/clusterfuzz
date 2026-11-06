@@ -341,3 +341,73 @@ class IsSupportedCpuArchForJobTest(unittest.TestCase):
     self.mock.get_target_cpu_arch.return_value = 'arm64'
     environment.set_value('CPU_ARCH', ['x86_64', 'arm64'])
     self.assertTrue(commands.is_supported_cpu_arch_for_job())
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TworkerNonFuzzGuardsCommandTest(unittest.TestCase):
+  """Tests for tworker non-fuzz preprocessing guards."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.add_task',
+        'clusterfuzz._internal.base.tasks.add_utask_main',
+        'clusterfuzz._internal.base.tasks.get_utask_main_queue_size',
+        'clusterfuzz._internal.bot.tasks.commands.cleanup_task_state',
+        'clusterfuzz._internal.bot.tasks.commands.start_web_server_if_needed',
+        'clusterfuzz._internal.bot.tasks.utasks.tworker_preprocess',
+        'clusterfuzz._internal.system.environment.get_platform_id',
+        'clusterfuzz._internal.system.environment.get_target_cpu_arch',
+        'clusterfuzz._internal.system.environment.platform',
+        'time.sleep',
+    ])
+    self.mock.get_utask_main_queue_size.return_value = 0
+    self.mock.get_platform_id.return_value = 'linux'
+    self.mock.get_target_cpu_arch.return_value = 'x86_64'
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.tworker_preprocess.return_value = (
+        'https://example.com/uworker_in', 'https://example.com/uworker_out')
+
+    os.environ['BOT_NAME'] = 'clusterfuzz-android-emulator-1'
+    os.environ['FAIL_WAIT'] = '1'
+
+    data_types.Job(
+        name='android_emu_swarming',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\nCPU_ARCH = arm64\n').put()
+    self.testcase = test_utils.create_generic_testcase()
+    self.testcase.job_type = 'android_emu_swarming'
+    self.testcase.platform = 'android'
+    self.testcase.platform_id = 'android:aluminium'
+    self.testcase.put()
+
+  def test_tworker_preprocesses_non_linux_arm64_testcase(self):
+    """Tests that a Linux x86_64 tworker preprocesses an Android arm64 UTask."""
+    os.environ['TWORKER'] = 'True'
+
+    commands.process_command_impl(
+        task_name='minimize',
+        task_argument=str(self.testcase.key.id()),
+        job_name='android_emu_swarming',
+        high_end=False,
+        is_command_override=False,
+        queue='jobs-android-emulator')
+
+    self.mock.add_task.assert_not_called()
+    self.mock.tworker_preprocess.assert_called_once()
+    self.mock.add_utask_main.assert_called_once_with(
+        'minimize', 'https://example.com/uworker_in', 'android_emu_swarming',
+        None, 'utask_main-swarming')
+
+  @mock.patch('clusterfuzz._internal.datastore.data_handler.update_task_status')
+  @mock.patch('clusterfuzz._internal.bot.tasks.impact_task.execute_task')
+  def test_tworker_trusted_task_is_dropped(self, mock_impact_execute,
+                                           mock_update_status):
+    """Tests that a stray TrustedTask on a tworker is dropped without running."""
+    os.environ['TWORKER'] = 'True'
+
+    result = commands.run_command('impact', str(self.testcase.key.id()),
+                                  'android_emu_swarming', {})
+    self.assertIsNone(result)
+    mock_impact_execute.assert_not_called()
+    mock_update_status.assert_not_called()
