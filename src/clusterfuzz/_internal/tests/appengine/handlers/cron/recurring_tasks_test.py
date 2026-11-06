@@ -121,3 +121,50 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     self.mock.is_chromium.return_value = False
     schedule_impact_tasks.main()
     self.mock.add_task.assert_not_called()
+
+  def _add_swarming_testcase(self, flag_enabled):
+    """Adds an open Swarming testcase and sets the Swarming flag."""
+    data_types.Job(
+        name='job_swarming',
+        environment_string='IS_SWARMING_JOB = True\n',
+        platform='ANDROID_EMULATOR').put()
+    testcase = data_types.Testcase(
+        open=True,
+        one_time_crasher_flag=False,
+        status='Processed',
+        job_type='job_swarming',
+        queue='jobs-android-emulator')
+    testcase.put()
+    data_types.FeatureFlag(
+        id='swarming_remote_execution', enabled=flag_enabled).put()
+    return testcase
+
+  def test_swarming_jobs_skipped_for_impact(self):
+    """Tests that Swarming jobs are skipped when scheduling impact tasks."""
+    self.mock.is_chromium.return_value = True
+    self._add_swarming_testcase(flag_enabled=True)
+
+    schedule_impact_tasks.main()
+    self.mock.add_task.assert_has_calls([
+        mock.call('impact', 1, 'job', queue='jobs-linux'),
+        mock.call('impact', 5, 'job_windows', queue='jobs-windows'),
+    ])
+    self.assertEqual(self.mock.add_task.call_count, 2)
+
+  def test_swarming_jobs_scheduled_for_impact_when_swarming_disabled(self):
+    """Tests that Swarming jobs still get impact tasks when
+    SWARMING_REMOTE_EXECUTION is disabled."""
+    self.mock.is_chromium.return_value = True
+    swarming_testcase = self._add_swarming_testcase(flag_enabled=False)
+
+    schedule_impact_tasks.main()
+    self.mock.add_task.assert_has_calls([
+        mock.call('impact', 1, 'job', queue='jobs-linux'),
+        mock.call('impact', 5, 'job_windows', queue='jobs-windows'),
+        mock.call(
+            'impact',
+            swarming_testcase.key.id(),
+            'job_swarming',
+            queue='jobs-android-emulator'),
+    ])
+    self.assertEqual(self.mock.add_task.call_count, 3)
