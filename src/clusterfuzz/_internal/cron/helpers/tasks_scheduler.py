@@ -27,6 +27,7 @@ def schedule(task):
     logs.warning('Not creating impact tasks outside of Chrome.')
     return
 
+  # TODO(b/582794433): Support blame and impact tasks for Swarming jobs.
   skip_swarming = task in ('impact', 'blame') and swarming.is_swarming_enabled()
   swarming_job_cache = {}
   testcase_ids = []

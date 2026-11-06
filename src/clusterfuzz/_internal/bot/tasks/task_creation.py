@@ -82,6 +82,7 @@ def create_blame_task_if_needed(testcase):
   if not testcase.is_chromium():
     return
 
+  # TODO(b/582794433): Support blame tasks for Swarming jobs.
   if swarming.is_swarming_applicable(testcase.job_type):
     return
 
@@ -127,6 +128,7 @@ def create_impact_task_if_needed(testcase):
   if testcase.project_name != 'chromium':
     return
 
+  # TODO(b/582794433): Support impact tasks for Swarming jobs.
   if swarming.is_swarming_applicable(testcase.job_type):
     return
 
