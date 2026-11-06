@@ -193,6 +193,14 @@
       toggle() {
         this.shouldPreview = !this.shouldPreview;
       },
+      _escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+      },
       _formatEvent(event) {
         if (!event) {
           return '';
@@ -203,11 +211,16 @@
         const keys = Object.keys(eventCopy).sort();
         let result = '{';
         result += keys.map(key => {
-          const value = JSON.stringify(eventCopy[key]);
+          // Event fields reach this template unescaped and some of them, such
+          // as task_comments, carry text produced during task execution. The
+          // result is assigned through inner-h-t-m-l, so every dynamic part is
+          // escaped here; only the <b> wrappers below are markup.
+          const escapedKey = this._escapeHtml(key);
+          const value = this._escapeHtml(JSON.stringify(eventCopy[key]));
           if (boldKeys.includes(key)) {
-            return `<b>"${key}"</b>: <b>${value}</b>`;
+            return `<b>"${escapedKey}"</b>: <b>${value}</b>`;
           }
-          return `"${key}": ${value}`;
+          return `"${escapedKey}": ${value}`;
         }).join(', ');
         result += '}';
         return result;
