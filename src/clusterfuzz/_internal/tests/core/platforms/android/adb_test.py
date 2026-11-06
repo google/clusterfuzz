@@ -238,6 +238,7 @@ class ResetSafetyTest(unittest.TestCase):
         'clusterfuzz._internal.system.environment.is_android_emulator',
         'time.sleep',
     ])
+    self.mock.bad_state_reached.side_effect = SystemExit
     self.mock.is_android_cuttlefish.return_value = False
     self.mock.is_android_emulator.return_value = False
     self.mock.get_adb_command_line.side_effect = lambda cmd: f'adb -s ser {cmd}'
@@ -284,7 +285,8 @@ class ResetSafetyTest(unittest.TestCase):
 
   def test_factory_reset_avoids_master_clear_on_physical_device(self):
     """Test that factory_reset calls bad_state_reached on physical devices."""
-    adb.factory_reset()
+    with self.assertRaises(SystemExit):
+      adb.factory_reset()
 
     self.mock.revert_asan_device_setup_if_needed.assert_called_once()
     self.mock.bad_state_reached.assert_called_once()

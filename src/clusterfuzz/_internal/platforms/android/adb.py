@@ -116,7 +116,9 @@ def directory_exists(directory_path):
   return result == expected
 
 
-def execute_command(cmd, timeout=None, on_cuttlefish_host=False):
+def execute_command(cmd: str,
+                    timeout: int | None = None,
+                    on_cuttlefish_host: bool = False) -> str | None:
   """Spawns a subprocess to run the given shell command."""
   _, output = execute_command_with_return_code(
       cmd, timeout=timeout, on_cuttlefish_host=on_cuttlefish_host)
@@ -200,7 +202,6 @@ def factory_reset():
     # corruption in /data/data. Till the bug is fixed, we just need to wait
     # for reimage in next iteration.
     bad_state_reached()
-    return
 
   # A device can be stuck in a boot loop due to a bad clang library update.
   # Reverting that can bring a device back to good state.
@@ -212,7 +213,6 @@ def factory_reset():
     # no ADB command (including reflashing) works until someone accepts the
     # prompt on the device. Exit instead, as for Cuttlefish above.
     bad_state_reached()
-    return
 
   run_as_root()
   run_shell_command([
@@ -382,20 +382,8 @@ def get_property(property_name):
   return run_shell_command(['getprop', property_name])
 
 
-def hard_reset():
-  """Perform a hard reset of the device."""
-  if environment.is_android_cuttlefish():
-    # There is no recovery step at this point for a cuttlefish bot, so just exit
-    # and wait for reimage on next iteration.
-    bad_state_reached()
-    return
-
-  # Flush filesystem buffers on a best-effort basis before rebooting.
-  sync_cmd = get_adb_command_line('shell sync')
-  execute_command(sync_cmd, timeout=GET_DEVICE_STATE_TIMEOUT)
-
-  # Try graceful reboot first (unmounts /data cleanly and does not require
-  # root). Only fall back to sysrq-trigger if graceful reboot fails or hangs.
+def _try_graceful_reboot() -> bool:
+  """Attempts a graceful `adb reboot` and returns whether it succeeded."""
   soft_reset_cmd = get_adb_command_line('reboot')
   return_code, reboot_output = execute_command_with_return_code(
       soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
@@ -404,7 +392,23 @@ def hard_reset():
   # host "* daemon ..." startup lines and treat any other output as a failure.
   has_reboot_error = any(line.strip() and not line.startswith('*')
                          for line in (reboot_output or '').splitlines())
-  if return_code != 0 or has_reboot_error:
+  return return_code == 0 and not has_reboot_error
+
+
+def hard_reset():
+  """Perform a hard reset of the device."""
+  if environment.is_android_cuttlefish():
+    # There is no recovery step at this point for a cuttlefish bot, so just exit
+    # and wait for reimage on next iteration.
+    bad_state_reached()
+
+  # Flush filesystem buffers on a best-effort basis before rebooting.
+  sync_cmd = get_adb_command_line('shell sync')
+  execute_command(sync_cmd, timeout=GET_DEVICE_STATE_TIMEOUT)
+
+  # Try graceful reboot first (unmounts /data cleanly and does not require
+  # root). Only fall back to sysrq-trigger if graceful reboot fails or hangs.
+  if not _try_graceful_reboot():
     run_shell_command(
         'echo b > /proc/sysrq-trigger',
         root=True,
