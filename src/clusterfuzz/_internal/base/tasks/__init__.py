@@ -931,7 +931,11 @@ def add_task(command,
              queue=None,
              wait_time=None,
              extra_info=None):
-  """Add a new task to the job queue."""
+  """Adds a new task to the job queue.
+
+  When `queue` is None, tasks for Swarming-applicable jobs are routed to the
+  job's platform queue instead of the default Linux queue.
+  """
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
