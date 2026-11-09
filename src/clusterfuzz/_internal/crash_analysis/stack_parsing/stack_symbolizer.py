@@ -200,7 +200,7 @@ def is_valid_arch(s):
   """Check if this is a valid supported architecture."""
   return s in [
       "i386", "x86_64", "x86_64h", "arm", "armv6", "armv7", "armv7s", "armv7k",
-      "arm64", "powerpc64", "powerpc64le", "s390x", "s390"
+      "arm64", "arm64e", "powerpc64", "powerpc64le", "s390x", "s390"
   ]
 
 
@@ -208,6 +208,8 @@ def guess_arch(address):
   """Guess which architecture we're running on (32/64).
   10 = len('0x') + 8 hex digits."""
   if len(address) > 10:
+    if environment.get_host_cpu_arch() == 'arm64':
+      return 'arm64'
     return 'x86_64'
   else:
     return 'i386'

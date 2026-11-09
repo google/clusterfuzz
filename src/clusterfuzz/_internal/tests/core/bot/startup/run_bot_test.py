@@ -171,6 +171,38 @@ class TaskLoopTest(unittest.TestCase):
         'Invalid value for MAX_TASK_EXECUTIONS: invalid')
     self.assertEqual(0, self.mock.process_command.call_count)
 
+  @mock.patch('time.sleep')
+  @mock.patch('clusterfuzz._internal.bot.tasks.utasks.uworker_bot_main')
+  @mock.patch('clusterfuzz._internal.system.environment.is_uworker')
+  def test_uworker_clean_exit_skips_fail_wait(
+      self, mock_is_uworker, mock_uworker_bot_main, mock_sleep):
+    """Tests that a clean uworker exit (code 0) breaks without sleeping FAIL_WAIT."""
+    mock_is_uworker.return_value = True
+    mock_uworker_bot_main.return_value = 0
+
+    _, clean_exit, payload = run_bot.task_loop()
+
+    self.assertTrue(clean_exit)
+    self.assertIsNone(payload)
+    mock_uworker_bot_main.assert_called_once()
+    mock_sleep.assert_not_called()
+
+  @mock.patch('time.sleep')
+  @mock.patch('clusterfuzz._internal.bot.tasks.utasks.uworker_bot_main')
+  @mock.patch('clusterfuzz._internal.system.environment.is_uworker')
+  def test_uworker_error_exit_waits_fail_wait(
+      self, mock_is_uworker, mock_uworker_bot_main, mock_sleep):
+    """Tests that a non-zero uworker exit sleeps FAIL_WAIT before breaking."""
+    mock_is_uworker.return_value = True
+    mock_uworker_bot_main.return_value = 1
+
+    _, clean_exit, payload = run_bot.task_loop()
+
+    self.assertFalse(clean_exit)
+    self.assertIsNone(payload)
+    mock_uworker_bot_main.assert_called_once()
+    mock_sleep.assert_called_once()
+
 
 class UpdateTaskEnabledTest(unittest.TestCase):
   """Test update_task_enabled check"""

@@ -534,3 +534,30 @@ class SymbolizeStacktraceChainTest(unittest.TestCase):
     self.mock_loop.process_stacktrace.assert_called_once_with(
         'unsymbolized_input')
     self.assertEqual('final_symbolized_output', result)
+
+
+class ArchParsingTest(unittest.TestCase):
+  """Tests for architecture validation and parsing in stack_symbolizer."""
+
+  def test_arm64e_and_guess_arch(self):
+    """Tests that arm64e is recognized as a valid arch and guess_arch supports arm64."""
+    self.assertTrue(stack_symbolizer.is_valid_arch('arm64e'))
+    loop = stack_symbolizer.SymbolizationLoop()
+    line = ('    #0 0x1a5216a24  '
+            '(/usr/lib/system/libsystem_blocks.dylib:arm64e+0x1234)')
+    _, addr, binary, offset, arch = loop._line_parser(line)  # pylint: disable=protected-access
+    self.assertEqual('0x1a5216a24', addr)
+    self.assertEqual('/usr/lib/system/libsystem_blocks.dylib', binary)
+    self.assertEqual('0x1234', offset)
+    self.assertEqual('arm64e', arch)
+
+    with mock.patch(
+        'clusterfuzz._internal.system.environment.get_host_cpu_arch',
+        return_value='arm64'):
+      self.assertEqual('arm64',
+                       stack_symbolizer.guess_arch('0x0000000102e770b8'))
+    with mock.patch(
+        'clusterfuzz._internal.system.environment.get_host_cpu_arch',
+        return_value='x86_64'):
+      self.assertEqual('x86_64',
+                       stack_symbolizer.guess_arch('0x0000000102e770b8'))
