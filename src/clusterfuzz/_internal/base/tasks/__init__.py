@@ -25,6 +25,7 @@ from typing import Optional
 
 from google.cloud import monitoring_v3
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
@@ -956,6 +957,9 @@ def add_task(command,
     if job.is_external():
       external_tasks.add_external_task(command, argument, job)
       return
+
+    if queue is None and swarming.is_swarming_applicable(job_type, job=job):
+      queue = queue_for_platform(job.platform)
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)

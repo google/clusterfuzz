@@ -85,6 +85,13 @@ def is_swarming_job(job_name: str, job: data_types.Job | None = None) -> bool:
   return _get_instance_spec(swarming_config, job) is not None
 
 
+def is_swarming_applicable(job_name: str,
+                           job: data_types.Job | None = None) -> bool:
+  """Returns True if swarming remote execution is enabled and the job is a
+  swarming job."""
+  return is_swarming_enabled() and is_swarming_job(job_name, job=job)
+
+
 def _get_instance_spec(swarming_config: local_config.SwarmingConfig,
                        job: data_types.Job) -> dict | None:
   return swarming_config.get('mapping').get(job.platform, None)
