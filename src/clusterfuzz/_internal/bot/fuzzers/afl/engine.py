@@ -112,6 +112,23 @@ class Engine(engine.Engine):
     return engine.FuzzResult(fuzzing_logs, command, crashes, stats_getter.stats,
                              time_executed)
 
+  @staticmethod
+  def _get_reproduce_output(runner, reproduce_result):
+    """Returns fuzzer stderr, falling back to process output on startup errors.
+
+    When the OS dynamic linker fails before afl_driver initializes stderr.out
+    (for example, exit 127 on a missing shared library or exit 1 on a symbol
+    version mismatch), fuzzer_stderr is empty and the loader error is only
+    present in reproduce_result.output.
+    """
+    if runner.fuzzer_stderr:
+      return runner.fuzzer_stderr
+
+    if reproduce_result.return_code and reproduce_result.output:
+      return reproduce_result.output
+
+    return ''
+
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
 
@@ -136,12 +153,7 @@ class Engine(engine.Engine):
     command = reproduce_result.command
     return_code = reproduce_result.return_code
     time_executed = reproduce_result.time_executed
-    output = runner.fuzzer_stderr
-    if not output and return_code and reproduce_result.output:
-      # When the OS loader fails before afl_driver initializes stderr.out
-      # (e.g. missing .so exit 127 or symbol version mismatch exit 1), surface
-      # the raw process output so callers can detect bad builds.
-      output = reproduce_result.output
+    output = self._get_reproduce_output(runner, reproduce_result)
 
     return engine.ReproduceResult(command, return_code, time_executed, output)
 
