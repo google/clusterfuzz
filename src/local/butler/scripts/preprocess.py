@@ -86,6 +86,10 @@ def execute(args):
   job = args.script_args[1]
 
   environment.set_value('LOG_TO_CONSOLE', True)
+  environment.set_value('TWORKER', True)
+  environment.set_value('REMOTE_UTASK_EXECUTION', True)
+  environment.set_value('TASK_NAME', 'fuzz')
+  environment.set_value('JOB_NAME', job)
   logs.configure('run_bot')
 
   print(f'Running preprocess for fuzzer: {fuzzer}, job: {job}')
