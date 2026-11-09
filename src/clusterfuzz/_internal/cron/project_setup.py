@@ -35,6 +35,7 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 from . import service_accounts
 
@@ -654,7 +655,9 @@ class ProjectSetup:
                fuzzer_entities=None,
                add_info_labels=False,
                add_revision_mappings=False,
-               additional_vars=None):
+               additional_vars=None,
+               base_os_version=None,
+               is_oss_fuzz=False):
     self._build_type = build_type
     self._config_suffix = config_suffix
     self._external_config = external_config
@@ -667,6 +670,8 @@ class ProjectSetup:
     self._add_info_labels = add_info_labels
     self._add_revision_mappings = add_revision_mappings
     self._additional_vars = additional_vars
+    self._base_os_version = base_os_version
+    self._is_oss_fuzz = is_oss_fuzz
 
   def _get_build_bucket(self, engine, architecture):
     """Return the bucket for the given |engine| and |architecture|."""
@@ -945,6 +950,11 @@ class ProjectSetup:
 
         create_pubsub_topics_for_queue_id(job.platform)
 
+      if not self._is_oss_fuzz:
+        base_os_version = info.get('base_os_version') or self._base_os_version
+        if base_os_version and 'LINUX' in job.platform.upper():
+          job.base_os_version = base_os_version
+
       if self._additional_vars:
         additional_vars = {}
         additional_vars.update(self._additional_vars.get('all', {}))
@@ -1108,6 +1118,7 @@ def main():
     if not bucket_config:
       raise ProjectSetupError('Project setup buckets not specified.')
 
+    projects_source = setup_config.get('source')
     config = ProjectSetup(
         BUILD_BUCKET_PATH_TEMPLATE,
         REVISION_URL,
@@ -1129,9 +1140,11 @@ def main():
         fuzzer_entities=fuzzer_entities,
         add_info_labels=setup_config.get('add_info_labels', False),
         add_revision_mappings=setup_config.get('add_revision_mappings', False),
-        additional_vars=setup_config.get('additional_vars'))
+        additional_vars=setup_config.get('additional_vars'),
+        base_os_version=(setup_config.get('base_os_version') or
+                         environment.get_value('DEFAULT_BASE_OS_VERSION')),
+        is_oss_fuzz=projects_source == 'oss-fuzz')
 
-    projects_source = setup_config.get('source')
     if projects_source == 'oss-fuzz':
       projects = get_oss_fuzz_projects()
     elif projects_source.startswith(storage.GS_PREFIX):
