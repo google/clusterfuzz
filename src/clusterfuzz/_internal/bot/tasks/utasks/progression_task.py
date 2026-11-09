@@ -246,6 +246,40 @@ def _write_to_bigquery(testcase, progression_range_start,
       end=progression_range_end)
 
 
+_FATAL_EXECUTION_RETURN_CODES = frozenset({126, 127})
+_FATAL_LINKER_MARKERS = (
+    'error while loading shared libraries:',
+    'cannot open shared object file',
+)
+_ABI_VERSION_TOKENS = ('GLIBC_', 'GLIBCXX_', 'CXXABI_')
+
+
+def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
+  """Returns True if execution failed due to OS loader / library errors."""
+  if crash_result is None:
+    return False
+
+  return_code = getattr(crash_result, 'return_code', None)
+  if isinstance(return_code, int) and not isinstance(
+      return_code, bool) and return_code in _FATAL_EXECUTION_RETURN_CODES:
+    return True
+
+  candidate_outputs = [getattr(crash_result, 'output', None)]
+  if hasattr(crash_result, 'get_stacktrace'):
+    candidate_outputs.append(crash_result.get_stacktrace(symbolized=False))
+
+  for text in candidate_outputs:
+    if not isinstance(text, str) or not text:
+      continue
+    if 'not found' in text and any(
+        token in text for token in _ABI_VERSION_TOKENS):
+      return True
+    if any(marker in text for marker in _FATAL_LINKER_MARKERS):
+      return True
+
+  return False
+
+
 def _log_output(revision, crash_result):
   """Log process output."""
   logs.info(
@@ -279,6 +313,16 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
       test_timeout,
       http_flag=testcase.http_flag)
   _log_output(revision, result)
+
+  if _is_fatal_execution_or_linker_failure(result):
+    error_message = (
+        f'Target execution failed with loader error '
+        f'(code={result.return_code}) on custom build r{revision}.')
+    logs.error(error_message)
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
+        progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(),  # pylint: disable=no-member
+        error_message=error_message,
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)  # pylint: disable=no-member
 
   # If this still crashes on the most recent build, it's not fixed. The task
   # will be rescheduled by a cron job and re-attempted eventually.
@@ -369,6 +413,15 @@ def _testcase_reproduces_in_revision(
       test_timeout,
       http_flag=testcase.http_flag)
   _log_output(revision, result)
+  if _is_fatal_execution_or_linker_failure(result):
+    progression_task_output.build_data_list[-1].is_bad_build = True
+    error_message = (f'Target execution failed with loader error '
+                     f'(code={result.return_code}) at r{revision}. Skipping')
+    logs.error(error_message)
+    return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
+        progression_task_output=progression_task_output,
+        error_message=error_message,
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)  # pylint: disable=no-member
   return result, None
 
 

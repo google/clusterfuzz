@@ -71,6 +71,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     ])
     helpers.patch_environ(self)
     os.environ['APP_NAME'] = 'app_name'
+    os.environ['CONFIG_DIR_OVERRIDE'] = './configs/test'
 
   def test_error_on_failed_setup(self):
     """Ensure that we throw an exception if we fail to set up a build."""
@@ -119,6 +120,52 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     self.assertIsNotNone(result)
     self.assertEqual(len(progression_task_output.build_data_list), 1)
     self.assertEqual(progression_task_output.build_data_list[0], build_data)
+
+  def test_exit_127_missing_shared_library_treated_as_bad_build(self):
+    """Ensures exit 126/127 or missing .so aborts as PROGRESSION_BAD_BUILD."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
+    build_data = uworker_msg_pb2.BuildData(
+        revision=42,
+        is_bad_build=False,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
+    self.mock.check_for_bad_build.return_value = build_data
+    self.mock.test_for_crash_with_retries.return_value = CrashResult(
+        127, 0.1,
+        '/out/fuzzer: error while loading shared libraries: libssl.so.1.1: '
+        'cannot open shared object file: No such file or directory')
+    testcase = data_types.Testcase()
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+        testcase, '/tmp/blah', 'job_type', 42, None, progression_task_output)
+    self.assertIsNone(result)
+    self.assertIsNotNone(worker_output)
+    self.assertEqual(worker_output.error_type,
+                     uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
+    self.assertTrue(progression_task_output.build_data_list[0].is_bad_build)
+
+  def test_glibc_symbol_mismatch_with_zero_return_code_treated_as_bad_build(
+      self):
+    """Ensures ABI errors abort even after reproduce_with_retries sets 0."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
+    build_data = uworker_msg_pb2.BuildData(
+        revision=43,
+        is_bad_build=False,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
+    self.mock.check_for_bad_build.return_value = build_data
+    self.mock.test_for_crash_with_retries.return_value = CrashResult(
+        0, 0, '/out/fuzzer: /lib/x86_64-linux-gnu/libc.so.6: '
+        "version `GLIBC_2.38' not found")
+    testcase = data_types.Testcase()
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+        testcase, '/tmp/blah', 'job_type', 43, None, progression_task_output)
+    self.assertIsNone(result)
+    self.assertEqual(worker_output.error_type,
+                     uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
 
 
 @test_utils.with_cloud_emulators('datastore')
