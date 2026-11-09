@@ -819,3 +819,60 @@ def dont_use_strategies(obj):
       'clusterfuzz._internal.bot.fuzzers.engine_common.decide_with_probability',
   ])
   obj.mock.decide_with_probability.return_value = False
+
+
+class AflEngineReproduceLoaderOutputTest(LauncherTestBase):
+  """Tests AFL Engine.reproduce surfaces loader errors when stderr is empty."""
+
+  def setUp(self):
+    super().setUp()
+    self._create_file('target', directory=self.BUILD_DIR, contents='elf')
+    self._create_file('testcase', directory=self.INPUT_DIR, contents='in')
+
+  def test_surfaces_process_output_when_fuzzer_stderr_empty_on_abnormal_exit(
+      self):
+    """Loader errors (exit 127 or GLIBC exit 1) are preserved in output."""
+    from clusterfuzz._internal.bot.fuzzers.afl import engine as afl_engine
+    engine_impl = afl_engine.Engine()
+    target_path = os.path.join(self.BUILD_DIR, 'target')
+    input_path = os.path.join(self.INPUT_DIR, 'testcase')
+
+    for exit_code, loader_err in (
+        (127, '/build/target: error while loading shared libraries: libssl.so'),
+        (1, "/build/target: libc.so.6: version `GLIBC_2.38' not found"),
+    ):
+      fake_runner = mock.Mock()
+      fake_runner.executable_path = target_path
+      fake_runner.fuzzer_stderr = ''
+      fake_runner.run_single_testcase.return_value = new_process.ProcessResult(
+          command=[target_path, input_path],
+          return_code=exit_code,
+          output=loader_err,
+          time_executed=0.01)
+      with mock.patch(
+          'clusterfuzz._internal.bot.fuzzers.afl.launcher.prepare_runner',
+          return_value=fake_runner):
+        res = engine_impl.reproduce(target_path, input_path, [], 5)
+      self.assertEqual(res.return_code, exit_code)
+      self.assertEqual(res.output, loader_err)
+
+  def test_keeps_empty_output_on_clean_zero_exit(self):
+    """Clean exit 0 does not leak arbitrary stdout when fuzzer_stderr empty."""
+    from clusterfuzz._internal.bot.fuzzers.afl import engine as afl_engine
+    engine_impl = afl_engine.Engine()
+    target_path = os.path.join(self.BUILD_DIR, 'target')
+    input_path = os.path.join(self.INPUT_DIR, 'testcase')
+    fake_runner = mock.Mock()
+    fake_runner.executable_path = target_path
+    fake_runner.fuzzer_stderr = ''
+    fake_runner.run_single_testcase.return_value = new_process.ProcessResult(
+        command=[target_path, input_path],
+        return_code=0,
+        output='Running command: ...',
+        time_executed=0.01)
+    with mock.patch(
+        'clusterfuzz._internal.bot.fuzzers.afl.launcher.prepare_runner',
+        return_value=fake_runner):
+      res = engine_impl.reproduce(target_path, input_path, [], 5)
+    self.assertEqual(res.return_code, 0)
+    self.assertEqual(res.output, '')

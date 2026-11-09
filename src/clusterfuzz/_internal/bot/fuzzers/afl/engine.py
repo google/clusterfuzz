@@ -137,6 +137,11 @@ class Engine(engine.Engine):
     return_code = reproduce_result.return_code
     time_executed = reproduce_result.time_executed
     output = runner.fuzzer_stderr
+    if not output and return_code and reproduce_result.output:
+      # When the OS loader fails before afl_driver initializes stderr.out
+      # (e.g. missing .so exit 127 or symbol version mismatch exit 1), surface
+      # the raw process output so callers can detect bad builds.
+      output = reproduce_result.output
 
     return engine.ReproduceResult(command, return_code, time_executed, output)
 

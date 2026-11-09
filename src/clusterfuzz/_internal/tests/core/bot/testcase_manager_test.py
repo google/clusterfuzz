@@ -533,6 +533,21 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             mock.call("Didn't crash at all.")
         ])
 
+  def test_test_for_crash_with_retries_preserves_raw_return_code(self):
+    """Ensures fatal exit codes like 127 survive retry normalization."""
+    mock_engine = mock.Mock()
+    mock_engine.reproduce.return_value = engine.ReproduceResult(
+        ['cmd'], 127, 0.01,
+        '/build_dir/target: error while loading shared libraries: libfoo.so')
+    self.mock.get.return_value = mock_engine
+
+    crash_result = testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
+        self.greybox_testcase, '/fuzz-testcase', 10)
+    self.assertEqual(0, crash_result.return_code)
+    self.assertEqual(127, crash_result.raw_return_code)
+    self.assertFalse(crash_result.is_crash())
+
   def test_test_for_crash_with_retries_blackbox_succeed(self):
     """Test test_for_crash_with_retries reproducing a crash (blackbox)."""
     self.mock.run_process.side_effect = [

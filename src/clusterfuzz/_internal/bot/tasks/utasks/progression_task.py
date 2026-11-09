@@ -14,6 +14,7 @@
 """Test to see if test cases are fixed."""
 
 import json
+import re
 import time
 from typing import List
 
@@ -39,6 +40,7 @@ from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
+from clusterfuzz.stacktraces import constants as stacktrace_constants
 
 
 def _maybe_clear_progression_last_min_max_metadata(
@@ -230,7 +232,10 @@ def handle_progression_bad_build(uworker_output: uworker_msg_pb2.Output):  # pyl
   # reach this point.
   testcase_id = uworker_output.uworker_input.testcase_id
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  data_handler.clear_progression_pending(testcase)
   error_message = 'Unable to recover from bad build'
+  if uworker_output.error_message:
+    error_message = f'{error_message}: {uworker_output.error_message}'
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        error_message)
 
@@ -250,8 +255,20 @@ _FATAL_EXECUTION_RETURN_CODES = frozenset({126, 127})
 _FATAL_LINKER_MARKERS = (
     'error while loading shared libraries:',
     'cannot open shared object file',
+    'unshare: failed to execute ',
 )
 _ABI_VERSION_TOKENS = ('GLIBC_', 'GLIBCXX_', 'CXXABI_')
+_SYMBOL_VERSION_NOT_FOUND_REGEX = re.compile(
+    r"version [`'\"][^`'\"]+[`'\"] not found")
+
+
+def _get_effective_return_code(crash_result):
+  """Returns the underlying process exit code prior to retry normalization."""
+  for attr in ('raw_return_code', 'return_code'):
+    code = getattr(crash_result, attr, None)
+    if isinstance(code, int) and not isinstance(code, bool):
+      return code
+  return getattr(crash_result, 'return_code', None)
 
 
 def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
@@ -259,10 +276,11 @@ def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
   if crash_result is None:
     return False
 
-  return_code = getattr(crash_result, 'return_code', None)
-  if isinstance(return_code, int) and not isinstance(
-      return_code, bool) and return_code in _FATAL_EXECUTION_RETURN_CODES:
-    return True
+  for attr in ('return_code', 'raw_return_code'):
+    code = getattr(crash_result, attr, None)
+    if isinstance(code, int) and not isinstance(
+        code, bool) and code in _FATAL_EXECUTION_RETURN_CODES:
+      return True
 
   candidate_outputs = [getattr(crash_result, 'output', None)]
   if hasattr(crash_result, 'get_stacktrace'):
@@ -271,8 +289,15 @@ def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
   for text in candidate_outputs:
     if not isinstance(text, str) or not text:
       continue
+    if _SYMBOL_VERSION_NOT_FOUND_REGEX.search(text):
+      return True
     if 'not found' in text and any(
         token in text for token in _ABI_VERSION_TOKENS):
+      return True
+    if 'symbol lookup error:' in text and 'undefined symbol:' in text:
+      return True
+    if (stacktrace_constants.LIBRARY_NOT_FOUND_ANDROID_REGEX.search(text) or
+        stacktrace_constants.SYMBOL_NOT_FOUND_REGEX.search(text)):
       return True
     if any(marker in text for marker in _FATAL_LINKER_MARKERS):
       return True
@@ -315,9 +340,9 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
   _log_output(revision, result)
 
   if _is_fatal_execution_or_linker_failure(result):
-    error_message = (
-        f'Target execution failed with loader error '
-        f'(code={result.return_code}) on custom build r{revision}.')
+    effective_code = _get_effective_return_code(result)
+    error_message = (f'Target execution failed with loader error '
+                     f'(code={effective_code}) on custom build r{revision}.')
     logs.error(error_message)
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(),  # pylint: disable=no-member
@@ -414,9 +439,11 @@ def _testcase_reproduces_in_revision(
       http_flag=testcase.http_flag)
   _log_output(revision, result)
   if _is_fatal_execution_or_linker_failure(result):
-    progression_task_output.build_data_list[-1].is_bad_build = True
+    if fuzz_target is None:
+      progression_task_output.build_data_list[-1].is_bad_build = True
+    effective_code = _get_effective_return_code(result)
     error_message = (f'Target execution failed with loader error '
-                     f'(code={result.return_code}) at r{revision}. Skipping')
+                     f'(code={effective_code}) at r{revision}. Skipping')
     logs.error(error_message)
     return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
         progression_task_output=progression_task_output,
