@@ -2328,6 +2328,18 @@ class CleanupUnusedFuzzTargetsTest(unittest.TestCase):
         'libFuzzer_binary4/job2'
     ], list([t.key.id() for t in data_types.FuzzTargetJob.query()]))
 
+  def test_cleanup_fuzz_target_job_without_last_run(self):
+    """Test that FuzzTargetJobs without last_run are considered unused."""
+    data_types.FuzzTarget(
+        engine='libFuzzer', binary='binary1', project='test-project').put()
+    data_types.FuzzTargetJob(
+        fuzz_target_name='libFuzzer_binary1', job='job1', last_run=None).put()
+
+    cleanup.cleanup_unused_fuzz_targets_and_jobs()
+
+    self.assertEqual([], [t.key.id() for t in data_types.FuzzTarget.query()])
+    self.assertEqual([], [t.key.id() for t in data_types.FuzzTargetJob.query()])
+
 
 @test_utils.with_cloud_emulators('datastore')
 class CleanupUnusedHeartbeatsTest(unittest.TestCase):
