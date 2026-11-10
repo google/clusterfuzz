@@ -1961,6 +1961,30 @@ class GetPrimaryBucketPathTest(unittest.TestCase):
       build_manager.get_primary_bucket_path()
 
 
+class GetBuildDirectoryTest(unittest.TestCase):
+  """Tests for _get_build_directory."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    os.environ['BUILDS_DIR'] = '/builds'
+
+  def test_full_hash_on_non_windows(self):
+    """Test that the full file pattern hash is used on non-Windows."""
+    os.environ['OS_OVERRIDE'] = 'LINUX'
+    self.assertEqual(
+        '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+        build_manager._get_build_directory(
+            'gs://path/file-release-([0-9]+).zip', 'job'))
+
+  def test_truncated_hash_on_windows(self):
+    """Test that the file pattern hash is truncated on Windows."""
+    os.environ['OS_OVERRIDE'] = 'WINDOWS'
+    self.assertEqual(
+        '/builds/path_be4c9ca0267a',
+        build_manager._get_build_directory(
+            'gs://path/file-release-([0-9]+).zip', 'job'))
+
+
 class BuildPropertyTest(unittest.TestCase):
   """Tests for Build class properties."""
 
