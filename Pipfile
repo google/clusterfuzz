@@ -9,7 +9,7 @@ name = "pypi"
 # src/Pipfile.lock), make sure to also update src/platform_requirements.txt.
 cryptography = "==37.0.4"
 crcmod = "==1.7"
-future = "==0.17.1"
+future = "==1.0.0"
 protobuf = "==4.23.4"
 psutil = "==5.9.4"
 google-cloud-ndb = "==2.3.4"
