@@ -205,22 +205,25 @@ def cleanup_unused_fuzz_targets_and_jobs():
   last_run_cutoff = utils.utcnow() - datetime.timedelta(
       days=FUZZ_TARGET_UNUSED_THRESHOLD)
 
-  unused_target_jobs = data_types.FuzzTargetJob.query(
-      data_types.FuzzTargetJob.last_run < last_run_cutoff)
-  # The order by last_run DESC filter is from b/418807403
-  valid_target_jobs = list(
-      data_types.FuzzTargetJob.query(
-          data_types.FuzzTargetJob.last_run >= last_run_cutoff).order(
-              -data_types.FuzzTargetJob.last_run))
+  # Scan in key order and filter client-side: querying the frequently rewritten
+  # last_run index times out and can skip entities (b/406250205).
+  unused_target_jobs = []
+  valid_fuzz_targets = set()
+  num_valid_target_jobs = 0
+  for target_job in ndb_utils.get_all_from_model(data_types.FuzzTargetJob):
+    if target_job.last_run is None or target_job.last_run < last_run_cutoff:
+      unused_target_jobs.append(target_job.key)
+    else:
+      valid_fuzz_targets.add(target_job.fuzz_target_name)
+      num_valid_target_jobs += 1
 
-  to_delete = [t.key for t in unused_target_jobs]
+  to_delete = list(unused_target_jobs)
   num_fuzz_target_jobs_to_delete = len(to_delete)
 
   logs.info(
-      f'{len(to_delete)} FuzzTargetJob entities are marked for deletion and'
-      f'{len(valid_target_jobs)} are considered valid.')
+      f'{num_fuzz_target_jobs_to_delete} FuzzTargetJob entities are marked for '
+      f'deletion and {num_valid_target_jobs} are considered valid.')
 
-  valid_fuzz_targets = {t.fuzz_target_name for t in valid_target_jobs}
   for fuzz_target in ndb_utils.get_all_from_model(data_types.FuzzTarget):
     if fuzz_target.fully_qualified_name() not in valid_fuzz_targets:
       to_delete.append(fuzz_target.key)
@@ -229,7 +232,7 @@ def cleanup_unused_fuzz_targets_and_jobs():
   logs.info(
       f'Deleted {num_fuzz_target_jobs_to_delete} FuzzTargetJob entities and '
       f'{len(to_delete) - num_fuzz_target_jobs_to_delete} FuzzTarget entities. '
-      f'{len(valid_target_jobs)} valid FuzzTargetJob entities remain.')
+      f'{num_valid_target_jobs} valid FuzzTargetJob entities remain.')
 
 
 def get_jobs_and_platforms_for_project():
