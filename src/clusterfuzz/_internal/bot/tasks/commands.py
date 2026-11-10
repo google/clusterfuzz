@@ -208,7 +208,8 @@ def get_command_object(task_name):
     return task
 
   if isinstance(task, task_types.TrustedTask):
-    # We don't need to execute this remotely.
+    # TrustedTasks have no utask split and cannot run on tworkers; return
+    # as-is so run_command drops them.
     return task
 
   # Force remote execution.
