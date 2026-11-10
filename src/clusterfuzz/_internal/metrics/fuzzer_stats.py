@@ -35,7 +35,63 @@ from clusterfuzz._internal.system import shell
 
 STATS_FILE_EXTENSION = '.stats2'
 
-_STEPS_DURATION_FIELDS = []
+_STEPS_DURATION_FIELDS = [
+    {
+        'name': 'process_crash',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'build_setup',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'fuzzer_setup',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'engine_prepare',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'parse_crash',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'cleanup',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'remove_testcase_file',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'bad_build_check',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'corpus_download',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'corpus_upload',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'fuzz',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+]
 JOB_RUN_SCHEMA = {
     'fields': [
         {
@@ -130,13 +186,12 @@ JOB_RUN_SCHEMA = {
         # Measures the duration of each step of the fuzz task for successful
         # executions, in contrast to the FUZZ_TASK_STEPS_DURATION metric
         # in Cloud Monitoring, which includes failed executions.
-        # UNCOMMENT THIS WHEN _STEPS_DURATION_FIELDS IS NOT EMPTY
-        # {
-        #     'name': 'steps_duration',
-        #     'type': 'RECORD',
-        #     'mode': 'NULLABLE',
-        #     'fields': _STEPS_DURATION_FIELDS
-        # }
+        {
+            'name': 'steps_duration',
+            'type': 'RECORD',
+            'mode': 'NULLABLE',
+            'fields': _STEPS_DURATION_FIELDS
+        }
     ]
 }
 
