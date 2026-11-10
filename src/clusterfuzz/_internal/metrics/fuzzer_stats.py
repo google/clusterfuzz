@@ -130,12 +130,13 @@ JOB_RUN_SCHEMA = {
         # Measures the duration of each step of the fuzz task for successful
         # executions, in contrast to the FUZZ_TASK_STEPS_DURATION metric
         # in Cloud Monitoring, which includes failed executions.
-        {
-            'name': 'steps_duration',
-            'type': 'RECORD',
-            'mode': 'NULLABLE',
-            'fields': _STEPS_DURATION_FIELDS
-        }
+        # UNCOMMENT THIS WHEN _STEPS_DURATION_FIELDS IS NOT EMPTY
+        # {
+        #     'name': 'steps_duration',
+        #     'type': 'RECORD',
+        #     'mode': 'NULLABLE',
+        #     'fields': _STEPS_DURATION_FIELDS
+        # }
     ]
 }
 
