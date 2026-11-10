@@ -57,6 +57,7 @@ def main():
     pass
 
   task = sys.argv[1]
+  task_args = sys.argv[2:]
 
   task_module_name = f'clusterfuzz._internal.cron.{task}'
 
@@ -65,7 +66,8 @@ def main():
   with monitor.wrap_with_monitoring(), ndb_init.context():
     try:
       task_module = importlib.import_module(task_module_name)
-      return 0 if task_module.main() else 1
+      result = task_module.main(task_args) if task_args else task_module.main()
+      return 0 if result else 1
     except Exception as e:
       logs.error(f'Unhandled exception in cron: {e}')
       return 1
