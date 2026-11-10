@@ -104,12 +104,15 @@ RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11 && \
     ln -s /usr/bin/python3.11 /usr/bin/python3
 
-# Install Node.js 20.x from binary to maintain version consistency
+# Install Node.js 22.x from binary to maintain version consistency
 RUN cd /tmp && \
-    curl -sSL https://nodejs.org/dist/v20.12.2/node-v20.12.2-linux-x64.tar.xz -o node.tar.xz && \
+    curl -sSL https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.xz -o node.tar.xz && \
     tar -xJf node.tar.xz && \
-    mv node-v20.12.2-linux-x64 /usr/local/node && \
-    rm node.tar.xz
+    mv node-v22.23.4-linux-x64 /usr/local/node && \
+    rm node.tar.xz && \
+    # Upgrade the npm that comes with Node 22.
+    PATH="/usr/local/node/bin:${PATH}" npm install -g npm@12.2.2 && \
+    rm -rf /root/.npm
 ENV PATH="/usr/local/node/bin:${PATH}"
 
 # Support i386.
