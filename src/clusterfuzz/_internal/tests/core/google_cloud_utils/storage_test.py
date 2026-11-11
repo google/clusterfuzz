@@ -14,11 +14,13 @@
 """Storage tests."""
 import datetime
 import os
+import threading
 import unittest
 from unittest import mock
 import urllib.parse
 
 from pyfakefs import fake_filesystem_unittest
+import requests
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -659,3 +661,85 @@ class GetRelativePathFromSignedUrlTest(unittest.TestCase):
           storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
               url, 'gs://b')
         self.assertNotIn('X-Goog-Signature', str(ctx.exception))
+
+
+class SignedUrlSessionTest(unittest.TestCase):
+  """Tests for the requests.Session shared by signed URL operations."""
+
+  def setUp(self):
+    self._reset_session()
+    self.addCleanup(self._reset_session)
+
+    patcher = mock.patch.object(
+        storage,
+        '_integration_test_env_doesnt_support_signed_urls',
+        return_value=False)
+    patcher.start()
+    self.addCleanup(patcher.stop)
+
+  @staticmethod
+  def _reset_session():
+    """Drops the session cached for the current thread, if any."""
+    for name in ('signed_url_session', 'signed_url_session_pid'):
+      if hasattr(storage._local, name):  # pylint: disable=protected-access
+        delattr(storage._local, name)  # pylint: disable=protected-access
+
+  @staticmethod
+  def _session():
+    return storage._signed_url_session()  # pylint: disable=protected-access
+
+  def test_reused_within_thread(self):
+    """A thread gets the same session on every call."""
+    session = self._session()
+    self.assertIsInstance(session, requests.Session)
+    self.assertIs(self._session(), session)
+
+  def test_new_session_per_thread(self):
+    """Each thread gets its own session."""
+    other_thread_sessions = []
+
+    def record_session():
+      other_thread_sessions.append(self._session())
+
+    thread = threading.Thread(target=record_session)
+    thread.start()
+    thread.join()
+
+    self.assertEqual(len(other_thread_sessions), 1)
+    self.assertIsNot(other_thread_sessions[0], self._session())
+
+  def test_new_session_after_fork(self):
+    """A process that inherited its parent's session creates its own."""
+    parent_session = self._session()
+
+    with mock.patch.object(storage.os, 'getpid', return_value=os.getpid() + 1):
+      child_session = self._session()
+      self.assertIsNot(child_session, parent_session)
+      self.assertIs(self._session(), child_session)
+
+  def test_operations_share_one_session(self):
+    """Downloads, uploads and deletes all go through a single session."""
+    with mock.patch.object(storage.requests, 'Session') as session_class:
+      session = session_class.return_value
+      session.get.return_value.ok = True
+      session.get.return_value.content = b'data'
+      provider = storage.GcsProvider()
+
+      self.assertEqual(
+          provider.download_signed_url('https://signed/a'), b'data')
+      self.assertEqual(
+          provider.download_signed_url('https://signed/b'), b'data')
+      self.assertTrue(provider.upload_signed_url(b'data', 'https://signed/c'))
+      provider.delete_signed_url('https://signed/d')
+
+    session_class.assert_called_once_with()
+    session.get.assert_has_calls([
+        mock.call('https://signed/a', timeout=storage.HTTP_TIMEOUT_SECONDS),
+        mock.call('https://signed/b', timeout=storage.HTTP_TIMEOUT_SECONDS),
+    ])
+    session.put.assert_called_once_with(
+        'https://signed/c', data=b'data', timeout=storage.HTTP_TIMEOUT_SECONDS)
+    session.put.return_value.raise_for_status.assert_called_once_with()
+    session.delete.assert_called_once_with(
+        'https://signed/d', timeout=storage.HTTP_TIMEOUT_SECONDS)
+    session.delete.return_value.raise_for_status.assert_called_once_with()

@@ -460,7 +460,7 @@ class GcsProvider(StorageProvider):
 
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
     """Uploads |data| to |signed_url|."""
-    requests.put(
+    _signed_url_session().put(
         signed_url, data=data_or_fileobj,
         timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
     return True
@@ -472,7 +472,8 @@ class GcsProvider(StorageProvider):
 
   def delete_signed_url(self, signed_url):
     """Makes a DELETE HTTP request to |signed_url|."""
-    requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
+    _signed_url_session().delete(
+        signed_url, timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
 
 
 def _sign_url(remote_path: str,
@@ -826,6 +827,27 @@ def _signing_creds():
     _new_signing_creds()
 
   return _local.signing_creds
+
+
+def _signed_url_session() -> requests.Session:
+  """Returns the requests.Session to use for signed URL operations.
+
+  Signed URLs are downloaded, uploaded and deleted one request per file, often
+  for thousands of files in a row. Without a session, every request opens a new
+  HTTPS connection, and setting up TLS (which reloads the CA bundle) costs far
+  more CPU than the request itself. A session keeps the connection to the
+  storage host open between requests.
+
+  The session belongs to the current thread and process: a session must not be
+  shared between threads, and a forked pool worker must not reuse the sockets it
+  inherited from its parent.
+  """
+  pid = os.getpid()
+  if getattr(_local, 'signed_url_session_pid', None) != pid:
+    _local.signed_url_session = requests.Session()
+    _local.signed_url_session_pid = pid
+
+  return _local.signed_url_session
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
@@ -1269,7 +1291,7 @@ def _download_url(url):
   """Downloads |url| and returns the contents."""
   if _integration_test_env_doesnt_support_signed_urls():
     return read_data(url)
-  response = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
+  response = _signed_url_session().get(url, timeout=HTTP_TIMEOUT_SECONDS)
   if not response.ok:
     try:
       element_tree = ET.fromstring(response.text)
