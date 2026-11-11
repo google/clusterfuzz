@@ -168,7 +168,7 @@ class FuzzerStatsTest(unittest.TestCase):
         100,
         datetime.timedelta(seconds=10.5),
         datetime.timedelta(seconds=20.5),
-        datetime.timedelta(seconds=31.0))
+        datetime.timedelta(seconds=31.0), {})
 
     fuzzer_stats.upload_stats([fuzzer_run], filename='upload.json')
 
@@ -192,6 +192,76 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(
         'gs://test-bigquery-bucket/fuzzer/JobRun/date/20160902/upload.json',
         self.mock.write_data.call_args[0][1])
+
+  def _make_job_run(self, steps_duration):
+    """Creates a JobRun with the given steps_duration."""
+    return fuzzer_stats.JobRun(
+        'fuzzer',
+        'job',
+        123,
+        1472846341.017923,
+        9001,
+        0,
+        1, [],
+        steps_duration=steps_duration)
+
+  @mock.patch.object(fuzzer_stats, '_STEPS_DURATION_FIELDS', [{
+      'name': 'fuzzing',
+      'type': 'INTERVAL',
+      'mode': 'NULLABLE'
+  }, {
+      'name': 'setup',
+      'type': 'INTERVAL',
+      'mode': 'NULLABLE'
+  }])
+  @mock.patch('clusterfuzz._internal.metrics.logs.error')
+  def test_job_run_steps_duration_drops_unknown_keys(self, mock_log_error):
+    """Tests that steps_duration keys not in the schema are dropped."""
+    job_run = self._make_job_run({
+        'fuzzing': datetime.timedelta(seconds=1.5),
+        'setup': datetime.timedelta(seconds=2),
+        'evil_key': datetime.timedelta(seconds=3),
+    })
+
+    self.assertEqual({
+        'fuzzing': 'P0DT0H0M1.500000S',
+        'setup': 'P0DT0H0M2.000000S',
+    }, job_run['steps_duration'])
+    mock_log_error.assert_called_once()
+    self.assertIn('"evil_key"', mock_log_error.call_args[0][0])
+
+  @mock.patch.object(fuzzer_stats, '_STEPS_DURATION_FIELDS', [{
+      'name': 'fuzzing',
+      'type': 'INTERVAL',
+      'mode': 'NULLABLE'
+  }])
+  @mock.patch('clusterfuzz._internal.metrics.logs.error')
+  def test_job_run_steps_duration_all_unknown(self, mock_log_error):
+    """Tests that steps_duration is omitted when every key is unknown."""
+    job_run = self._make_job_run({
+        'a': datetime.timedelta(seconds=1),
+        'b': datetime.timedelta(seconds=2),
+    })
+
+    self.assertNotIn('steps_duration', job_run.data)
+    mock_log_error.assert_called_once()
+    self.assertIn('"b"', mock_log_error.call_args[0][0])
+    self.assertIn('"a"', mock_log_error.call_args[0][0])
+
+  @mock.patch('clusterfuzz._internal.metrics.logs.error')
+  def test_job_run_steps_duration_empty_schema(self, mock_log_error):
+    """Tests that with the default (empty) schema all keys are dropped."""
+    job_run = self._make_job_run({'fuzzing': datetime.timedelta(seconds=1)})
+
+    self.assertNotIn('steps_duration', job_run.data)
+    mock_log_error.assert_called_once()
+
+  @mock.patch('clusterfuzz._internal.metrics.logs.error')
+  def test_job_run_steps_duration_none(self, mock_log_error):
+    """Tests that no steps_duration produces no field and no logs."""
+    self.assertNotIn('steps_duration', self._make_job_run(None).data)
+    self.assertNotIn('steps_duration', self._make_job_run({}).data)
+    mock_log_error.assert_not_called()
 
   @mock.patch('os.path.exists')
   def test_testcase_run_read_from_disk(self, mock_path_exists):
@@ -244,7 +314,7 @@ class FuzzerStatsTest(unittest.TestCase):
         'testcases_generated': 100,
         'testcase_generation_duration': "P0DT0H0M10.500000S",
         'testcase_execution_duration': "P0DT0H0M20.500000S",
-        'fuzzing_duration': "P0DT0H0M31.000000S"
+        'fuzzing_duration': "P0DT0H0M31.000000S",
     })
     job_run = fuzzer_stats.BaseRun.from_json(data)
     self.assertIsNotNone(job_run)
@@ -299,7 +369,7 @@ class FuzzerStatsTest(unittest.TestCase):
         100,
         datetime.timedelta(seconds=10.5),
         datetime.timedelta(seconds=20.5),
-        datetime.timedelta(seconds=31.0))
+        datetime.timedelta(seconds=31.0), {})
     self.assertEqual(1, self.mock.write_data.call_count)
     self.assertEqual({
         'kind':

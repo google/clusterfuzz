@@ -841,14 +841,15 @@ def upload_job_run_stats(
     testcases_generated: int = None,
     testcase_generation_duration: datetime.timedelta = None,
     testcase_execution_duration: datetime.timedelta = None,
-    fuzzing_duration: datetime.timedelta = None):
+    fuzzing_duration: datetime.timedelta = None,
+    steps_duration: dict[str, datetime.timedelta] | None = None):
   """Upload job run stats."""
   # New format.
-  job_run = fuzzer_stats.JobRun(fuzzer_name, job_type, revision, timestamp,
-                                testcases_executed, new_crash_count,
-                                known_crash_count, groups, testcases_generated,
-                                testcase_generation_duration,
-                                testcase_execution_duration, fuzzing_duration)
+  job_run = fuzzer_stats.JobRun(
+      fuzzer_name, job_type, revision, timestamp, testcases_executed,
+      new_crash_count, known_crash_count, groups, testcases_generated,
+      testcase_generation_duration, testcase_execution_duration,
+      fuzzing_duration, steps_duration)
   fuzzer_stats.upload_stats([job_run])
 
   _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
@@ -1111,6 +1112,10 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
     # Artificial delay to throttle appengine updates.
     time.sleep(1)
 
+  steps_duration = {
+      name: duration.ToTimedelta()
+      for name, duration in fuzz_task_output.steps_duration.items()
+  }
   # TODO(metzman): Replace fuzz_task_output.fully_qualified_fuzzer_name` with
   # `fuzz_task_input.fuzz_target` instead.
   upload_job_run_stats(
@@ -1123,8 +1128,8 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
       if fuzz_task_output.HasField('testcase_generation_duration') else None,
       fuzz_task_output.testcase_execution_duration.ToTimedelta()
       if fuzz_task_output.HasField('testcase_execution_duration') else None,
-      fuzz_task_output.fuzzing_duration.ToTimedelta()
-      if fuzz_task_output.HasField('fuzzing_duration') else None)
+      fuzz_task_output.fuzzing_duration.ToTimedelta() if
+      fuzz_task_output.HasField('fuzzing_duration') else None, steps_duration)
 
   logs.info(f'Finished processing crashes.\nNew crashes: {new_crash_count}, '
             f'known crashes: {known_crash_count}, '
@@ -1559,6 +1564,14 @@ class FuzzingSession:
 
     self.gcs_corpus = None
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()  # pylint: disable=no-member
+    self.steps_time_tracker = monitor.TimeStatTracker(
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION,
+        common_labels={
+            'fuzzer': self.fuzzer_name,
+            'job': self.job_type,
+            'platform': environment.platform(),
+            'runtime': environment.get_runtime().value
+        })
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -2291,6 +2304,8 @@ class FuzzingSession:
     self.fuzz_task_output.fuzzing_duration.FromTimedelta(
         datetime.timedelta(seconds=fuzzing_session_duration_seconds))
 
+    for name, duration in self.steps_time_tracker.stats.items():
+      self.fuzz_task_output.steps_duration[name].FromTimedelta(duration)
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
   def postprocess(self, uworker_output):
