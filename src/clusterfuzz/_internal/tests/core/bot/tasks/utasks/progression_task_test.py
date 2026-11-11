@@ -227,15 +227,22 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
                        uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
 
   def test_benign_not_found_and_gui_none_return_code_not_false_positive(self):
-    """Ensures benign 'not found' logs or GUI None exit codes pass cleanly."""
+    """Ensures benign 'not found' logs, exit 0 runs, or None exit pass."""
     from clusterfuzz._internal.crash_analysis.crash_result import \
         CrashResult  # pylint: disable=import-outside-toplevel
     for crash_result in (
         CrashResult(
             0,
             0.1,
-            'optional config file not found\nversion header not found',
+            "requested version '2.0' not found\n"
+            'dlopen warning: cannot open shared object file',
             raw_return_code=1),
+        CrashResult(
+            0,
+            0.1,
+            '/out/helper: error while loading shared libraries: libopt.so: '
+            'cannot open shared object file',
+            raw_return_code=0),
         CrashResult(0, 0, '', raw_return_code=None),
     ):
       build_data = uworker_msg_pb2.BuildData(
@@ -248,6 +255,31 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
           progression_task_output)
       self.assertIsNone(worker_output)
       self.assertIs(result, crash_result)
+
+  def test_reproducing_crash_with_optional_dlopen_log_not_bad_build(self):
+    """Ensures reproducing crashes are preserved even with loader errors."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
+    stacktrace = (
+        '/out/helper: error while loading shared libraries: libopt.so: '
+        'cannot open shared object file: No such file or directory\n'
+        '==12==ERROR: AddressSanitizer: heap-buffer-overflow on address '
+        '0x602000000014 at pc 0x55a1234 bp 0x7ffd00 sp 0x7ffd08\n'
+        'READ of size 4 at 0x602000000014 thread T0\n'
+        '    #0 0x55a1233 in parse_frame /src/parser.c:42:9\n'
+        'SUMMARY: AddressSanitizer: heap-buffer-overflow /src/parser.c:42:9\n')
+    crash_result = CrashResult(1, 0.2, stacktrace)
+    build_data = uworker_msg_pb2.BuildData(
+        revision=47, is_bad_build=False, should_ignore_crash_result=False)
+    self.mock.check_for_bad_build.return_value = build_data
+    self.mock.test_for_crash_with_retries.return_value = crash_result
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+        data_types.Testcase(), '/tmp/blah', 'job_type', 47, None,
+        progression_task_output)
+    self.assertIsNone(worker_output)
+    self.assertIs(result, crash_result)
+    self.assertTrue(result.is_crash())
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -589,6 +621,7 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
         'cannot open shared object file',
         raw_return_code=127)
     self.mock.test_for_crash_with_retries.return_value = crash_result
+    self.mock.is_crash.return_value = False
     self.mock.get_stacktrace.return_value = ''
     testcase = test_utils.create_generic_testcase()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access

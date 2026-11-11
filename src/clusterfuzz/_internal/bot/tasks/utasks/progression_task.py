@@ -252,14 +252,10 @@ def _write_to_bigquery(testcase, progression_range_start,
 
 
 _FATAL_EXECUTION_RETURN_CODES = frozenset({126, 127})
-_FATAL_LINKER_MARKERS = (
-    'error while loading shared libraries:',
-    'cannot open shared object file',
-    'unshare: failed to execute ',
-)
-_ABI_VERSION_TOKENS = ('GLIBC_', 'GLIBCXX_', 'CXXABI_')
-_SYMBOL_VERSION_NOT_FOUND_REGEX = re.compile(
-    r"version [`'\"][^`'\"]+[`'\"] not found")
+_ELF_VERSION_NOT_FOUND_REGEX = re.compile(
+    r": version [`'\"][A-Za-z0-9_.-]+[`'\"] not found \(required by ")
+_LINUX_SYMBOL_LOOKUP_ERROR_REGEX = re.compile(
+    r': symbol lookup error: .+: undefined symbol: ')
 
 
 def _get_effective_return_code(crash_result):
@@ -268,7 +264,7 @@ def _get_effective_return_code(crash_result):
     code = getattr(crash_result, attr, None)
     if isinstance(code, int) and not isinstance(code, bool):
       return code
-  return getattr(crash_result, 'return_code', None)
+  return None
 
 
 def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
@@ -276,33 +272,35 @@ def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
   if crash_result is None:
     return False
 
-  for attr in ('return_code', 'raw_return_code'):
-    code = getattr(crash_result, attr, None)
-    if isinstance(code, int) and not isinstance(
-        code, bool) and code in _FATAL_EXECUTION_RETURN_CODES:
-      return True
+  effective_code = _get_effective_return_code(crash_result)
+  if not effective_code:
+    return False
 
-  candidate_outputs = [getattr(crash_result, 'output', None)]
-  if hasattr(crash_result, 'get_stacktrace'):
-    candidate_outputs.append(crash_result.get_stacktrace(symbolized=False))
+  has_loader_failure = effective_code in _FATAL_EXECUTION_RETURN_CODES
+  if not has_loader_failure:
+    candidate_outputs = [getattr(crash_result, 'output', None)]
+    if hasattr(crash_result, 'get_stacktrace'):
+      candidate_outputs.append(crash_result.get_stacktrace(symbolized=False))
 
-  for text in candidate_outputs:
-    if not isinstance(text, str) or not text:
-      continue
-    if _SYMBOL_VERSION_NOT_FOUND_REGEX.search(text):
-      return True
-    if 'not found' in text and any(
-        token in text for token in _ABI_VERSION_TOKENS):
-      return True
-    if 'symbol lookup error:' in text and 'undefined symbol:' in text:
-      return True
-    if (stacktrace_constants.LIBRARY_NOT_FOUND_ANDROID_REGEX.search(text) or
-        stacktrace_constants.SYMBOL_NOT_FOUND_REGEX.search(text)):
-      return True
-    if any(marker in text for marker in _FATAL_LINKER_MARKERS):
-      return True
+    for text in candidate_outputs:
+      if not isinstance(text, str) or not text:
+        continue
+      if (stacktrace_constants.LIBRARY_NOT_FOUND_LINUX_REGEX.search(text) or
+          stacktrace_constants.LIBRARY_NOT_FOUND_ANDROID_REGEX.search(text) or
+          stacktrace_constants.SYMBOL_NOT_FOUND_REGEX.search(text) or
+          _ELF_VERSION_NOT_FOUND_REGEX.search(text) or
+          _LINUX_SYMBOL_LOOKUP_ERROR_REGEX.search(text) or
+          'unshare: failed to execute ' in text):
+        has_loader_failure = True
+        break
 
-  return False
+  if not has_loader_failure:
+    return False
+
+  if crash_result.is_crash() and crash_result.get_type() != 'Missing-library':
+    return False
+
+  return True
 
 
 def _log_output(revision, crash_result):
