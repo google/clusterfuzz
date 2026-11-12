@@ -729,10 +729,13 @@ def remove_sub_strings(string, substrings):
 def restart_machine():
   """Restart machine."""
   if environment.platform() == 'WINDOWS':
-    os.system('shutdown /f /r /t 0')
+    return_code = os.system('shutdown /f /r /t 0')
   else:
     # POSIX platforms.
-    os.system('sudo shutdown -r now')
+    return_code = os.system('sudo shutdown -r now')
+
+  if return_code:
+    logs.error(f'Failed to restart machine (exit={return_code}).')
 
 
 def search_bytes_in_file(search_bytes, file_handle) -> bool:
