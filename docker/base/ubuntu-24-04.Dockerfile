@@ -65,7 +65,7 @@ RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.b
 
 # Install Ruby, for Ruby fuzzing.
 RUN apt-get update && apt-get install -y binutils xz-utils libyaml-dev libffi-dev zlib1g-dev && \
-    RUBY_VERSION=3.3.1 && \
+    RUBY_VERSION=3.3.13 && \
     curl -O https://cache.ruby-lang.org/pub/ruby/3.3/ruby-$RUBY_VERSION.tar.gz && \
     tar -xvf ruby-$RUBY_VERSION.tar.gz && \
     cd ruby-$RUBY_VERSION && \
@@ -73,7 +73,10 @@ RUN apt-get update && apt-get install -y binutils xz-utils libyaml-dev libffi-de
     make -j$(nproc) && \
     make install && \
     cd - && \
-    rm -rf ruby-$RUBY_VERSION ruby-$RUBY_VERSION.tar.gz
+    rm -rf ruby-$RUBY_VERSION ruby-$RUBY_VERSION.tar.gz && \
+    # Ruby 3.3 bundles net-imap 0.4.x; replace it with the 0.5 line.
+    gem install --no-document net-imap -v 0.5.15 && \
+    gem cleanup net-imap
 
 # Install OpenJDK 17 for Jazzer (Java fuzzer).
 # Copied from gcr.io/oss-fuzz-base/base-runner.
@@ -96,11 +99,22 @@ RUN cd /tmp && \
     rm -rf openjdk*.tar.gz $JAVA_15_HOME/lib/src.zip
 
 # Install Python 3.11
-RUN curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz | tar -C /tmp -xzv && \
-    cd /tmp/Python-3.11.4 && \
+RUN curl -sS https://www.python.org/ftp/python/3.11.18/Python-3.11.18.tgz | tar -C /tmp -xzv && \
+    cd /tmp/Python-3.11.18 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
-    rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
-RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
+    rm -rf /tmp/Python-3.11.18 /tmp/Python-3.11.18.tar.xz && \
+    cd / && \
+    # Upgrade the pip and setuptools that ensurepip installed, and drop its
+    # bundled wheels: nothing in the image uses ensurepip.
+    # setuptools stays on 81: 82 dropped pkg_resources, which pipenv 2022.8.5
+    # still imports.
+    pip3.11 --no-cache-dir install --upgrade pip==26.2.2 setuptools==81.0.0 && \
+    rm -f /usr/local/lib/python3.11/ensurepip/_bundled/*.whl
+# virtualenv also embeds pip and setuptools wheels for Python 3.9 environments.
+# Only the Python 3.11 ones are used here.
+RUN pip3.11 --no-cache-dir install pipenv==2022.8.5 virtualenv==21.15.1 && \
+    cd /usr/local/lib/python3.11/site-packages/virtualenv/seed/wheels/embed && \
+    rm pip-26.0.1-py3-none-any.whl setuptools-82.0.1-py3-none-any.whl
 RUN ln -s /usr/local/bin/python3.11 /usr/bin/python3.11 && \
     ln -s /usr/bin/python3.11 /usr/bin/python3
 
@@ -156,6 +170,7 @@ COPY Pipfile Pipfile.lock setup_common.sh setup_clusterfuzz.sh start_clusterfuzz
 RUN cd /data && \
     # Make pip3.11 the default so that pipenv install --system works.
     mv /usr/local/bin/pip3.11 /usr/local/bin/pip && \
-    python3.11 -m pipenv install --deploy --system
+    python3.11 -m pipenv install --deploy --system && \
+    rm -rf /root/.cache/pipenv
 
 CMD ["bash", "-ex", "/data/start.sh"]
