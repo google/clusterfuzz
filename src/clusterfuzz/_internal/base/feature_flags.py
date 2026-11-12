@@ -46,6 +46,9 @@ class FeatureFlags(Enum):
   STORAGE_THREADED_OPS_FUZZ_TARGETS = 'storage_threaded_ops_fuzz_targets'
   CALL_ANDROID_API = 'call_android_api'
 
+  # Authenticate requests to Git-on-Borg (*.googlesource.com) hosts.
+  GOB_AUTHENTICATED_REQUESTS = 'gob_authenticated_requests'
+
   @property
   def flag(self):
     """Get the feature flag."""

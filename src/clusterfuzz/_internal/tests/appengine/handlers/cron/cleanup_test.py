@@ -1625,6 +1625,38 @@ class UpdateComponentsTest(unittest.TestCase):
     self.assertIn('Type-BUG', self.issue.labels)
     self.assertEqual(cleanup.CHROMIUM_COMPONENT_ID, self.issue.component_id)
 
+  def test_component_id_not_changed_with_no_routing_label(self):
+    """Ensure we don't move issues that have a no-routing label."""
+    self.testcase.set_metadata(
+        'predator_result',
+        {'result': {
+            'suspected_buganizer_component_id': '111111'
+        }})
+    self.issue.component_id = '123456'
+    self.issue.labels.add('prodsec-sheepdog-reproduce')
+
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
+    self.assertEqual('123456', self.issue.component_id)
+    self.assertIn(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL,
+                  self.issue.labels)
+
+  def test_component_id_not_changed_if_no_routing_label_was_removed(self):
+    """Ensure the label is respected even if it was later removed."""
+    self.testcase.set_metadata(
+        'predator_result',
+        {'result': {
+            'suspected_buganizer_component_id': '111111'
+        }})
+    self.issue.component_id = '123456'
+    comment = appengine_test_utils.create_generic_issue_comment(
+        labels=data_types.CHROMIUM_ISSUE_NO_COMPONENT_ROUTING_LABELS)
+    self.issue._monorail_issue.comments.append(comment)
+
+    cleanup.update_component_labels_and_id(self.policy, self.testcase,
+                                           self.issue)
+    self.assertEqual('123456', self.issue.component_id)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
@@ -2295,6 +2327,18 @@ class CleanupUnusedFuzzTargetsTest(unittest.TestCase):
         'libFuzzer_binary3/job1', 'libFuzzer_binary4/job1',
         'libFuzzer_binary4/job2'
     ], list([t.key.id() for t in data_types.FuzzTargetJob.query()]))
+
+  def test_cleanup_fuzz_target_job_without_last_run(self):
+    """Test that FuzzTargetJobs without last_run are considered unused."""
+    data_types.FuzzTarget(
+        engine='libFuzzer', binary='binary1', project='test-project').put()
+    data_types.FuzzTargetJob(
+        fuzz_target_name='libFuzzer_binary1', job='job1', last_run=None).put()
+
+    cleanup.cleanup_unused_fuzz_targets_and_jobs()
+
+    self.assertEqual([], [t.key.id() for t in data_types.FuzzTarget.query()])
+    self.assertEqual([], [t.key.id() for t in data_types.FuzzTargetJob.query()])
 
 
 @test_utils.with_cloud_emulators('datastore')

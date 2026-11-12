@@ -34,6 +34,33 @@ BIG_QUERY_WRITE_COUNT = monitor.CounterMetric(
         monitor.BooleanField('success'),
     ])
 
+FUZZER_SYNC_CORPUS_TIME = monitor.CounterMetric(
+    'task/fuzz/fuzzer/sync_corpus_time',
+    description=('The total time spent setting up and synchronizing corpus '
+                 'files with GCS in seconds (grouped by fuzzer).'),
+    field_spec=[
+        monitor.StringField('fuzzer'),
+        monitor.StringField('platform'),
+        monitor.StringField('runtime'),
+        monitor.StringField('stage'),
+        monitor.BooleanField('success'),
+    ])
+
+JOB_SYNC_CORPUS_TIME = monitor.CounterMetric(
+    'task/fuzz/job/sync_corpus_time',
+    description=('The total time spent setting up and synchronizing corpus '
+                 'files with GCS in seconds (grouped by job).'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('runtime'),
+        monitor.StringField('stage'),
+        monitor.BooleanField('success'),
+    ])
+
+SYNC_CORPUS_TIME = monitor.SplitMetricHelper(FUZZER_SYNC_CORPUS_TIME,
+                                             JOB_SYNC_CORPUS_TIME)
+
 CF_TIP_BOOT_FAILED_COUNT = monitor.CounterMetric(
     'tip_boot_failure',
     description=
@@ -130,6 +157,11 @@ JOB_NEW_CRASH_COUNT = monitor.CounterMetric(
         monitor.StringField('runtime')
     ])
 
+KNOWN_CRASH_COUNT = monitor.SplitMetricHelper(FUZZER_KNOWN_CRASH_COUNT,
+                                              JOB_KNOWN_CRASH_COUNT)
+NEW_CRASH_COUNT = monitor.SplitMetricHelper(FUZZER_NEW_CRASH_COUNT,
+                                            JOB_NEW_CRASH_COUNT)
+
 FUZZER_RETURN_CODE_COUNT = monitor.CounterMetric(
     'task/fuzz/fuzzer/return_code_count',
     description=("Count of fuzz task's return codes "
@@ -158,6 +190,24 @@ FUZZER_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
+JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
+    'task/fuzz/job/total_time',
+    description=('The total fuzz time in seconds '
+                 '(grouped by job)'),
+    field_spec=[
+        monitor.StringField('job'),
+        monitor.BooleanField('timeout'),
+        monitor.StringField('platform'),
+        # Even this label is duplicated with "runtime"
+        # we are keeping it to avoid missing the historical metrics.
+        monitor.StringField('is_batch'),
+        monitor.StringField('runtime')
+    ],
+)
+
+TOTAL_FUZZ_TIME = monitor.SplitMetricHelper(FUZZER_TOTAL_FUZZ_TIME,
+                                            JOB_TOTAL_FUZZ_TIME)
+
 FUZZER_PREEMPTED_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     'task/fuzz/fuzzer/preempted_total_time',
     description=('The total fuzz time wasted due to preemption in seconds '
@@ -182,6 +232,9 @@ JOB_PREEMPTED_TOTAL_FUZZ_TIME = monitor.CounterMetric(
     ],
 )
 
+PREEMPTED_TOTAL_FUZZ_TIME = monitor.SplitMetricHelper(
+    FUZZER_PREEMPTED_TOTAL_FUZZ_TIME, JOB_PREEMPTED_TOTAL_FUZZ_TIME)
+
 # This metric tracks fuzzer setup and data bundle update,
 # fuzzing time and crash processing on the worker
 FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
@@ -192,21 +245,6 @@ FUZZING_SESSION_DURATION = monitor.CumulativeDistributionMetric(
         monitor.StringField('fuzzer'),
         monitor.StringField('job'),
         monitor.StringField('platform'),
-        monitor.StringField('runtime')
-    ],
-)
-
-JOB_TOTAL_FUZZ_TIME = monitor.CounterMetric(
-    'task/fuzz/job/total_time',
-    description=('The total fuzz time in seconds '
-                 '(grouped by job)'),
-    field_spec=[
-        monitor.StringField('job'),
-        monitor.BooleanField('timeout'),
-        monitor.StringField('platform'),
-        # Even this label is duplicated with "runtime"
-        # we are keeping it to avoid missing the historical metrics.
-        monitor.StringField('is_batch'),
         monitor.StringField('runtime')
     ],
 )
@@ -234,6 +272,22 @@ FUZZER_TESTCASE_COUNT_RATIO = monitor.CumulativeDistributionMetric(
         monitor.StringField('fuzzer'),
     ],
 )
+
+FUZZ_TASK_STEPS_DURATION = monitor.CumulativeDistributionMetric(
+    'task/fuzz/steps_duration',
+    bucketer=monitor.GeometricBucketer(),
+    description=('Distribution of the duration of individual steps of the '
+                 'fuzz task, in seconds. For steps that run more than once '
+                 'in the same fuzz task (e.g. in a loop), each run is '
+                 'tracked separately.'),
+    field_spec=[
+        monitor.StringField('fuzzer'),
+        monitor.StringField('job'),
+        monitor.StringField('platform'),
+        monitor.StringField('runtime'),
+        monitor.StringField('step'),
+        monitor.BooleanField('success')
+    ])
 
 # Global error count.
 LOG_ERROR_COUNT = monitor.CounterMetric(
@@ -364,6 +418,22 @@ UTASK_SUBTASK_DURATION_SECS = monitor.CumulativeDistributionMetric(
         '"postprocess"). Mode is either "batch" or "queue" depending on ' +
         'whether uworker_main was scheduled and executed on Cloud Batch or ' +
         'not, respectively.'),
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
+    ],
+)
+
+UTASK_SUBTASK_WAIT_DURATION_SECS = monitor.CumulativeDistributionMetric(
+    'utask/subtask_wait_duration_secs',
+    description=(
+        'Time elapsed between the previous subtask finishing and the current '
+        'subtask starting, in seconds, per subtask. '
+        'Mode is "batch", "swarming", or "queue".'),
     bucketer=monitor.GeometricBucketer(),
     field_spec=[
         monitor.StringField('task'),

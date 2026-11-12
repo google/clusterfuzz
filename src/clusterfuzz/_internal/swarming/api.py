@@ -14,11 +14,10 @@
 """Swarming pRPC API client."""
 
 from typing import Optional
+import urllib.parse
 
 from google.auth import exceptions as auth_exceptions
 from google.protobuf import json_format
-from google.protobuf.timestamp_pb2 import \
-    Timestamp  # pylint: disable=no-name-in-module
 from requests.exceptions import HTTPError
 
 from clusterfuzz._internal.base import utils
@@ -26,20 +25,8 @@ from clusterfuzz._internal.config.local_config import SwarmingConfig
 from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
+from clusterfuzz._internal.swarming import constants
 from clusterfuzz._internal.swarming import get_swarming_config
-
-# TODO(b/516627559): Move scopes to config file
-_SWARMING_SCOPES = [
-    'https://www.googleapis.com/auth/cloud-platform',
-    'https://www.googleapis.com/auth/userinfo.email'
-]
-
-_COUNT_TASKS_ENDPOINT = 'swarming.v2.Tasks/CountTasks'
-_NEW_TASK_ENDPOINT = 'swarming.v2.Tasks/NewTask'
-
-_MIN_TASK_START_TIME = "2026-06-01T00:00:00Z"
-_MIN_TASK_START_TIME_PROTO = json_format.Parse(f'"{_MIN_TASK_START_TIME}"',
-                                               Timestamp())
 
 
 class SwarmingApiError(Exception):
@@ -54,7 +41,13 @@ class SwarmingApi:
 
   def __init__(self, config: SwarmingConfig):
     self._config = config
-    self._base_url = f"https://{self._config.get('swarming_server')}/prpc/"
+    server = self._config.get('swarming_server')
+    parsed = urllib.parse.urlsplit(server) if isinstance(server, str) else None
+    if (not parsed or parsed.scheme not in ('http', 'https') or
+        not parsed.netloc):
+      raise ValueError(f'Invalid swarming_server URL: {server!r}. '
+                       'Must be a valid http:// or https:// URL.')
+    self._base_url = server.rstrip('/')
 
   @staticmethod
   def create() -> Optional['SwarmingApi']:
@@ -73,7 +66,7 @@ class SwarmingApi:
     """Gets a valid token for the Swarming API.  Returns "" if it fails."""
     try:
       creds = credentials.get_scoped_service_account_credentials(
-          _SWARMING_SCOPES)
+          constants.SWARMING_SCOPES)
       if not creds:
         logs.error('[Swarming] Failed to get credentials. None found.')
         return ""
@@ -129,8 +122,8 @@ class SwarmingApi:
       return None
 
     # Strip XSSI prefix if present.
-    if response.startswith(")]}'\n"):
-      response = response[len(")]}'\n"):]
+    if response.startswith(constants.XSSI_PREFIX):
+      response = response[len(constants.XSSI_PREFIX):]
 
     return response
 
@@ -152,7 +145,8 @@ class SwarmingApi:
     message_body = json_format.MessageToJson(task_request)
 
     try:
-      raw_response = self._make_request(_NEW_TASK_ENDPOINT, message_body)
+      raw_response = self._make_request(constants.NEW_TASK_ENDPOINT,
+                                        message_body)
     except HTTPError as e:
       raise SwarmingApiError(f'HTTP error calling push_task: {e}') from e
 
@@ -185,11 +179,12 @@ class SwarmingApi:
       SwarmingApiError: If the pRPC request fails or response parsing fails.
     """
     if not count_request.HasField('start'):
-      count_request.start.CopyFrom(_MIN_TASK_START_TIME_PROTO)
+      count_request.start.CopyFrom(constants.MIN_TASK_START_TIME_PROTO)
     message_body = json_format.MessageToJson(count_request)
 
     try:
-      response_str = self._make_request(_COUNT_TASKS_ENDPOINT, message_body)
+      response_str = self._make_request(constants.COUNT_TASKS_ENDPOINT,
+                                        message_body)
     except HTTPError as e:
       raise SwarmingApiError(f"HTTP error calling count_tasks: {e}") from e
 

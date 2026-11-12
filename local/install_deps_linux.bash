@@ -155,12 +155,14 @@ else
         google-cloud-cli \
         google-cloud-cli-datastore-emulator
   else
+    # Pinning the latest version that works with Java 17, as
+    # google-cloud-cli-datastore-emulator >= 592.0.0 requires Java 25.
     sudo apt-get install -y \
         google-cloud-cli \
         google-cloud-cli-app-engine-go \
         google-cloud-cli-app-engine-python \
         google-cloud-cli-app-engine-python-extras \
-        google-cloud-cli-datastore-emulator \
+        google-cloud-cli-datastore-emulator=591.0.0-0 \
         google-cloud-cli-pubsub-emulator
   fi
 fi

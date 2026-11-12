@@ -35,84 +35,119 @@ from clusterfuzz._internal.system import shell
 
 STATS_FILE_EXTENSION = '.stats2'
 
+_STEPS_DURATION_FIELDS = [
+    {
+        'name': 'process_crash',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+    {
+        'name': 'build_setup',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
+]
 JOB_RUN_SCHEMA = {
-    'fields': [{
-        'name': 'testcases_executed',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'build_revision',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'new_crashes',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'job',
-        'type': 'STRING',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'timestamp',
-        'type': 'FLOAT',
-        'mode': 'NULLABLE'
-    }, {
-        'name':
-            'crashes',
-        'type':
-            'RECORD',
-        'mode':
-            'REPEATED',
-        'fields': [{
-            'name': 'crash_type',
-            'type': 'STRING',
-            'mode': 'NULLABLE'
-        }, {
-            'name': 'is_new',
-            'type': 'BOOLEAN',
-            'mode': 'NULLABLE'
-        }, {
-            'name': 'crash_state',
-            'type': 'STRING',
-            'mode': 'NULLABLE'
-        }, {
-            'name': 'security_flag',
-            'type': 'BOOLEAN',
-            'mode': 'NULLABLE'
-        }, {
-            'name': 'count',
+    'fields': [
+        {
+            'name': 'testcases_executed',
             'type': 'INTEGER',
             'mode': 'NULLABLE'
-        }]
-    }, {
-        'name': 'known_crashes',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'fuzzer',
-        'type': 'STRING',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'kind',
-        'type': 'STRING',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'testcases_generated',
-        'type': 'INTEGER',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'testcase_generation_duration',
-        'type': 'INTERVAL',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'testcase_execution_duration',
-        'type': 'INTERVAL',
-        'mode': 'NULLABLE'
-    }, {
-        'name': 'fuzzing_duration',
-        'type': 'INTERVAL',
-        'mode': 'NULLABLE'
-    }]
+        },
+        {
+            'name': 'build_revision',
+            'type': 'INTEGER',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'new_crashes',
+            'type': 'INTEGER',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'job',
+            'type': 'STRING',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'timestamp',
+            'type': 'FLOAT',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name':
+                'crashes',
+            'type':
+                'RECORD',
+            'mode':
+                'REPEATED',
+            'fields': [{
+                'name': 'crash_type',
+                'type': 'STRING',
+                'mode': 'NULLABLE'
+            }, {
+                'name': 'is_new',
+                'type': 'BOOLEAN',
+                'mode': 'NULLABLE'
+            }, {
+                'name': 'crash_state',
+                'type': 'STRING',
+                'mode': 'NULLABLE'
+            }, {
+                'name': 'security_flag',
+                'type': 'BOOLEAN',
+                'mode': 'NULLABLE'
+            }, {
+                'name': 'count',
+                'type': 'INTEGER',
+                'mode': 'NULLABLE'
+            }]
+        },
+        {
+            'name': 'known_crashes',
+            'type': 'INTEGER',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'fuzzer',
+            'type': 'STRING',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'kind',
+            'type': 'STRING',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'testcases_generated',
+            'type': 'INTEGER',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'testcase_generation_duration',
+            'type': 'INTERVAL',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'testcase_execution_duration',
+            'type': 'INTERVAL',
+            'mode': 'NULLABLE'
+        },
+        {
+            'name': 'fuzzing_duration',
+            'type': 'INTERVAL',
+            'mode': 'NULLABLE'
+        },
+        # Measures the duration of each step of the fuzz task for successful
+        # executions, in contrast to the FUZZ_TASK_STEPS_DURATION metric
+        # in Cloud Monitoring, which includes failed executions.
+        {
+            'name': 'steps_duration',
+            'type': 'RECORD',
+            'mode': 'NULLABLE',
+            'fields': _STEPS_DURATION_FIELDS
+        }
+    ]
 }
 
 
@@ -225,7 +260,8 @@ class BaseRun:
                         data.get('crashes'), data.get('testcases_generated'),
                         data.get('testcase_generation_duration'),
                         data.get('testcase_execution_duration'),
-                        data.get('fuzzing_duration'))
+                        data.get('fuzzing_duration'),
+                        data.get('steps_duration'))
     except KeyError:
       return None
 
@@ -252,7 +288,8 @@ class JobRun(BaseRun):
                testcases_generated=None,
                testcase_generation_duration=None,
                testcase_execution_duration=None,
-               fuzzing_duration=None):
+               fuzzing_duration=None,
+               steps_duration=None):
     super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'JobRun',
@@ -274,6 +311,22 @@ class JobRun(BaseRun):
     if fuzzing_duration is not None:
       self._stats_data['fuzzing_duration'] = _timedelta_to_duration_string(
           fuzzing_duration)
+    if steps_duration:
+      valid_names = frozenset(field['name'] for field in _STEPS_DURATION_FIELDS)
+      valid_steps_duration = {}
+      dropped_keys = []
+      for name, duration in steps_duration.items():
+        if name in valid_names:
+          valid_steps_duration[name] = _timedelta_to_duration_string(duration)
+        else:
+          dropped_keys.append(name)
+
+      if dropped_keys:
+        keys_str = ', '.join(f'"{key}"' for key in dropped_keys)
+        logs.error(f'Dropped keys {keys_str} because they are not accepted '
+                   'by any field in JobRun.steps_duration schema.')
+      if valid_steps_duration:
+        self._stats_data['steps_duration'] = valid_steps_duration
 
 
 class TestcaseRun(BaseRun):

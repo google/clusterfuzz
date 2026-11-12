@@ -1914,6 +1914,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'project_setup': [
             {
                 'source': 'gs://bucket/projects.json',
+                'base_os_version': 'ubuntu-24-04',
                 'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
                 'experimental_sanitizers': ['memory'],
                 'build_buckets': {
@@ -1977,6 +1978,7 @@ class GenericProjectSetupTest(unittest.TestCase):
             },
             {
                 'source': 'gs://bucket-android/projects.json',
+                'base_os_version': 'ubuntu-24-04',
                 'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
                 'build_buckets': {
                     'afl': 'clusterfuzz-builds-afl-android',
@@ -2066,6 +2068,7 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
+    self.assertEqual('ubuntu-24-04', job.base_os_version)
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_msan_a-b').get()
@@ -2284,6 +2287,11 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
     self.assertEqual("ANDROID_MTE:PIXEL8", job.platform)
+    self.assertIsNone(job.base_os_version)
+
+    job_dbg = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_a-b_dbg').get()
+    self.assertIsNone(job_dbg.base_os_version)
 
     expected_topics = [
         'projects/clusterfuzz-external/topics/jobs-linux',

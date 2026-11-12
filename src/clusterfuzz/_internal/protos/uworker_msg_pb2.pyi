@@ -636,6 +636,7 @@ class Input(google.protobuf.message.Message):
     PREPROCESS_START_TIME_FIELD_NUMBER: builtins.int
     GLOBAL_BLACKLISTED_FUNCTIONS_FIELD_NUMBER: builtins.int
     FUZZ_TARGET_FIELD_NUMBER: builtins.int
+    PREPROCESS_END_TIME_FIELD_NUMBER: builtins.int
     @property
     def testcase(self) -> google.protobuf.any_pb2.Any: ...
     @property
@@ -672,6 +673,8 @@ class Input(google.protobuf.message.Message):
     def global_blacklisted_functions(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
     def fuzz_target(self) -> google.protobuf.any_pb2.Any: ...
+    @property
+    def preprocess_end_time(self) -> google.protobuf.timestamp_pb2.Timestamp: ...
     def __init__(
         self,
         *,
@@ -695,9 +698,10 @@ class Input(google.protobuf.message.Message):
         preprocess_start_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         global_blacklisted_functions: collections.abc.Iterable[builtins.str] | None = ...,
         fuzz_target: google.protobuf.any_pb2.Any | None = ...,
+        preprocess_end_time: google.protobuf.timestamp_pb2.Timestamp | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_analyze_task_input", b"_analyze_task_input", "_corpus_pruning_task_input", b"_corpus_pruning_task_input", "_fuzz_target", b"_fuzz_target", "_fuzz_task_input", b"_fuzz_task_input", "_fuzzer_name", b"_fuzzer_name", "_job_type", b"_job_type", "_minimize_task_input", b"_minimize_task_input", "_module_name", b"_module_name", "_preprocess_start_time", b"_preprocess_start_time", "_progression_task_input", b"_progression_task_input", "_regression_task_input", b"_regression_task_input", "_setup_input", b"_setup_input", "_symbolize_task_input", b"_symbolize_task_input", "_testcase", b"_testcase", "_testcase_id", b"_testcase_id", "_testcase_upload_metadata", b"_testcase_upload_metadata", "_uworker_output_upload_url", b"_uworker_output_upload_url", "_variant_task_input", b"_variant_task_input", "analyze_task_input", b"analyze_task_input", "corpus_pruning_task_input", b"corpus_pruning_task_input", "fuzz_target", b"fuzz_target", "fuzz_task_input", b"fuzz_task_input", "fuzzer_name", b"fuzzer_name", "job_type", b"job_type", "minimize_task_input", b"minimize_task_input", "module_name", b"module_name", "preprocess_start_time", b"preprocess_start_time", "progression_task_input", b"progression_task_input", "regression_task_input", b"regression_task_input", "setup_input", b"setup_input", "symbolize_task_input", b"symbolize_task_input", "testcase", b"testcase", "testcase_id", b"testcase_id", "testcase_upload_metadata", b"testcase_upload_metadata", "uworker_output_upload_url", b"uworker_output_upload_url", "variant_task_input", b"variant_task_input"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_analyze_task_input", b"_analyze_task_input", "_corpus_pruning_task_input", b"_corpus_pruning_task_input", "_fuzz_target", b"_fuzz_target", "_fuzz_task_input", b"_fuzz_task_input", "_fuzzer_name", b"_fuzzer_name", "_job_type", b"_job_type", "_minimize_task_input", b"_minimize_task_input", "_module_name", b"_module_name", "_preprocess_start_time", b"_preprocess_start_time", "_progression_task_input", b"_progression_task_input", "_regression_task_input", b"_regression_task_input", "_setup_input", b"_setup_input", "_symbolize_task_input", b"_symbolize_task_input", "_testcase", b"_testcase", "_testcase_id", b"_testcase_id", "_testcase_upload_metadata", b"_testcase_upload_metadata", "_uworker_output_upload_url", b"_uworker_output_upload_url", "_variant_task_input", b"_variant_task_input", "analyze_task_input", b"analyze_task_input", "corpus_pruning_task_input", b"corpus_pruning_task_input", "fuzz_target", b"fuzz_target", "fuzz_task_input", b"fuzz_task_input", "fuzzer_name", b"fuzzer_name", "global_blacklisted_functions", b"global_blacklisted_functions", "job_type", b"job_type", "minimize_task_input", b"minimize_task_input", "module_name", b"module_name", "preprocess_start_time", b"preprocess_start_time", "progression_task_input", b"progression_task_input", "regression_task_input", b"regression_task_input", "setup_input", b"setup_input", "symbolize_task_input", b"symbolize_task_input", "testcase", b"testcase", "testcase_id", b"testcase_id", "testcase_upload_metadata", b"testcase_upload_metadata", "uworker_env", b"uworker_env", "uworker_output_upload_url", b"uworker_output_upload_url", "variant_task_input", b"variant_task_input"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_analyze_task_input", b"_analyze_task_input", "_corpus_pruning_task_input", b"_corpus_pruning_task_input", "_fuzz_target", b"_fuzz_target", "_fuzz_task_input", b"_fuzz_task_input", "_fuzzer_name", b"_fuzzer_name", "_job_type", b"_job_type", "_minimize_task_input", b"_minimize_task_input", "_module_name", b"_module_name", "_preprocess_end_time", b"_preprocess_end_time", "_preprocess_start_time", b"_preprocess_start_time", "_progression_task_input", b"_progression_task_input", "_regression_task_input", b"_regression_task_input", "_setup_input", b"_setup_input", "_symbolize_task_input", b"_symbolize_task_input", "_testcase", b"_testcase", "_testcase_id", b"_testcase_id", "_testcase_upload_metadata", b"_testcase_upload_metadata", "_uworker_output_upload_url", b"_uworker_output_upload_url", "_variant_task_input", b"_variant_task_input", "analyze_task_input", b"analyze_task_input", "corpus_pruning_task_input", b"corpus_pruning_task_input", "fuzz_target", b"fuzz_target", "fuzz_task_input", b"fuzz_task_input", "fuzzer_name", b"fuzzer_name", "job_type", b"job_type", "minimize_task_input", b"minimize_task_input", "module_name", b"module_name", "preprocess_end_time", b"preprocess_end_time", "preprocess_start_time", b"preprocess_start_time", "progression_task_input", b"progression_task_input", "regression_task_input", b"regression_task_input", "setup_input", b"setup_input", "symbolize_task_input", b"symbolize_task_input", "testcase", b"testcase", "testcase_id", b"testcase_id", "testcase_upload_metadata", b"testcase_upload_metadata", "uworker_output_upload_url", b"uworker_output_upload_url", "variant_task_input", b"variant_task_input"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_analyze_task_input", b"_analyze_task_input", "_corpus_pruning_task_input", b"_corpus_pruning_task_input", "_fuzz_target", b"_fuzz_target", "_fuzz_task_input", b"_fuzz_task_input", "_fuzzer_name", b"_fuzzer_name", "_job_type", b"_job_type", "_minimize_task_input", b"_minimize_task_input", "_module_name", b"_module_name", "_preprocess_end_time", b"_preprocess_end_time", "_preprocess_start_time", b"_preprocess_start_time", "_progression_task_input", b"_progression_task_input", "_regression_task_input", b"_regression_task_input", "_setup_input", b"_setup_input", "_symbolize_task_input", b"_symbolize_task_input", "_testcase", b"_testcase", "_testcase_id", b"_testcase_id", "_testcase_upload_metadata", b"_testcase_upload_metadata", "_uworker_output_upload_url", b"_uworker_output_upload_url", "_variant_task_input", b"_variant_task_input", "analyze_task_input", b"analyze_task_input", "corpus_pruning_task_input", b"corpus_pruning_task_input", "fuzz_target", b"fuzz_target", "fuzz_task_input", b"fuzz_task_input", "fuzzer_name", b"fuzzer_name", "global_blacklisted_functions", b"global_blacklisted_functions", "job_type", b"job_type", "minimize_task_input", b"minimize_task_input", "module_name", b"module_name", "preprocess_end_time", b"preprocess_end_time", "preprocess_start_time", b"preprocess_start_time", "progression_task_input", b"progression_task_input", "regression_task_input", b"regression_task_input", "setup_input", b"setup_input", "symbolize_task_input", b"symbolize_task_input", "testcase", b"testcase", "testcase_id", b"testcase_id", "testcase_upload_metadata", b"testcase_upload_metadata", "uworker_env", b"uworker_env", "uworker_output_upload_url", b"uworker_output_upload_url", "variant_task_input", b"variant_task_input"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_analyze_task_input", b"_analyze_task_input"]) -> typing_extensions.Literal["analyze_task_input"] | None: ...
     @typing.overload
@@ -714,6 +718,8 @@ class Input(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_minimize_task_input", b"_minimize_task_input"]) -> typing_extensions.Literal["minimize_task_input"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_module_name", b"_module_name"]) -> typing_extensions.Literal["module_name"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_preprocess_end_time", b"_preprocess_end_time"]) -> typing_extensions.Literal["preprocess_end_time"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_preprocess_start_time", b"_preprocess_start_time"]) -> typing_extensions.Literal["preprocess_start_time"] | None: ...
     @typing.overload
@@ -1234,6 +1240,24 @@ global___FuzzerRunOutput = FuzzerRunOutput
 class FuzzTaskOutput(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
+    @typing_extensions.final
+    class StepsDurationEntry(google.protobuf.message.Message):
+        DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+        KEY_FIELD_NUMBER: builtins.int
+        VALUE_FIELD_NUMBER: builtins.int
+        key: builtins.str
+        @property
+        def value(self) -> google.protobuf.duration_pb2.Duration: ...
+        def __init__(
+            self,
+            *,
+            key: builtins.str = ...,
+            value: google.protobuf.duration_pb2.Duration | None = ...,
+        ) -> None: ...
+        def HasField(self, field_name: typing_extensions.Literal["value", b"value"]) -> builtins.bool: ...
+        def ClearField(self, field_name: typing_extensions.Literal["key", b"key", "value", b"value"]) -> None: ...
+
     FULLY_QUALIFIED_FUZZER_NAME_FIELD_NUMBER: builtins.int
     CRASH_REVISION_FIELD_NUMBER: builtins.int
     JOB_RUN_TIMESTAMP_FIELD_NUMBER: builtins.int
@@ -1254,6 +1278,7 @@ class FuzzTaskOutput(google.protobuf.message.Message):
     TESTCASE_GENERATION_DURATION_FIELD_NUMBER: builtins.int
     TESTCASE_EXECUTION_DURATION_FIELD_NUMBER: builtins.int
     FUZZING_DURATION_FIELD_NUMBER: builtins.int
+    STEPS_DURATION_FIELD_NUMBER: builtins.int
     fully_qualified_fuzzer_name: builtins.str
     """TODO(metzman): Remove this since tworkers should know what this is based on
     the input.
@@ -1290,6 +1315,11 @@ class FuzzTaskOutput(google.protobuf.message.Message):
         """Total fuzzing session time. Includes time spent updating the fuzzer, build
         and test corpus set up, and crash processing.
         """
+    @property
+    def steps_duration(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, google.protobuf.duration_pb2.Duration]:
+        """Map of {step: duration}, which tracks the duration of each step in the
+        fuzz task
+        """
     def __init__(
         self,
         *,
@@ -1313,9 +1343,10 @@ class FuzzTaskOutput(google.protobuf.message.Message):
         testcase_generation_duration: google.protobuf.duration_pb2.Duration | None = ...,
         testcase_execution_duration: google.protobuf.duration_pb2.Duration | None = ...,
         fuzzing_duration: google.protobuf.duration_pb2.Duration | None = ...,
+        steps_duration: collections.abc.Mapping[builtins.str, google.protobuf.duration_pb2.Duration] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing_extensions.Literal["_app_revision", b"_app_revision", "_build_data", b"_build_data", "_build_key", b"_build_key", "_build_url", b"_build_url", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_fuzzing_duration", b"_fuzzing_duration", "_gn_args", b"_gn_args", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcase_execution_duration", b"_testcase_execution_duration", "_testcase_generation_duration", b"_testcase_generation_duration", "_testcases_executed", b"_testcases_executed", "_testcases_generated", b"_testcases_generated", "app_revision", b"app_revision", "build_data", b"build_data", "build_key", b"build_key", "build_url", b"build_url", "crash_revision", b"crash_revision", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_results", b"fuzzer_run_results", "fuzzing_duration", b"fuzzing_duration", "gn_args", b"gn_args", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcase_execution_duration", b"testcase_execution_duration", "testcase_generation_duration", b"testcase_generation_duration", "testcases_executed", b"testcases_executed", "testcases_generated", b"testcases_generated"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_app_revision", b"_app_revision", "_build_data", b"_build_data", "_build_key", b"_build_key", "_build_url", b"_build_url", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_fuzzing_duration", b"_fuzzing_duration", "_gn_args", b"_gn_args", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcase_execution_duration", b"_testcase_execution_duration", "_testcase_generation_duration", b"_testcase_generation_duration", "_testcases_executed", b"_testcases_executed", "_testcases_generated", b"_testcases_generated", "app_revision", b"app_revision", "build_data", b"build_data", "build_key", b"build_key", "build_url", b"build_url", "crash_groups", b"crash_groups", "crash_revision", b"crash_revision", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzz_targets", b"fuzz_targets", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_outputs", b"fuzzer_run_outputs", "fuzzer_run_results", b"fuzzer_run_results", "fuzzing_duration", b"fuzzing_duration", "gn_args", b"gn_args", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "testcase_execution_duration", b"testcase_execution_duration", "testcase_generation_duration", b"testcase_generation_duration", "testcase_run_jsons", b"testcase_run_jsons", "testcases_executed", b"testcases_executed", "testcases_generated", b"testcases_generated"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_app_revision", b"_app_revision", "_build_data", b"_build_data", "_build_key", b"_build_key", "_build_url", b"_build_url", "_crash_revision", b"_crash_revision", "_fully_qualified_fuzzer_name", b"_fully_qualified_fuzzer_name", "_fuzzer_revision", b"_fuzzer_revision", "_fuzzer_run_results", b"_fuzzer_run_results", "_fuzzing_duration", b"_fuzzing_duration", "_gn_args", b"_gn_args", "_job_run_timestamp", b"_job_run_timestamp", "_new_targets_count", b"_new_targets_count", "_testcase_execution_duration", b"_testcase_execution_duration", "_testcase_generation_duration", b"_testcase_generation_duration", "_testcases_executed", b"_testcases_executed", "_testcases_generated", b"_testcases_generated", "app_revision", b"app_revision", "build_data", b"build_data", "build_key", b"build_key", "build_url", b"build_url", "crash_groups", b"crash_groups", "crash_revision", b"crash_revision", "fully_qualified_fuzzer_name", b"fully_qualified_fuzzer_name", "fuzz_targets", b"fuzz_targets", "fuzzer_revision", b"fuzzer_revision", "fuzzer_run_outputs", b"fuzzer_run_outputs", "fuzzer_run_results", b"fuzzer_run_results", "fuzzing_duration", b"fuzzing_duration", "gn_args", b"gn_args", "job_run_timestamp", b"job_run_timestamp", "new_targets_count", b"new_targets_count", "steps_duration", b"steps_duration", "testcase_execution_duration", b"testcase_execution_duration", "testcase_generation_duration", b"testcase_generation_duration", "testcase_run_jsons", b"testcase_run_jsons", "testcases_executed", b"testcases_executed", "testcases_generated", b"testcases_generated"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_app_revision", b"_app_revision"]) -> typing_extensions.Literal["app_revision"] | None: ...
     @typing.overload

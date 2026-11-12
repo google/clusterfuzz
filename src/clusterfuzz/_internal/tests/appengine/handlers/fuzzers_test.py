@@ -15,7 +15,10 @@
 # pylint: disable=protected-access
 
 import datetime
+import io
 import unittest
+from unittest import mock
+import zipfile
 
 import flask
 import webtest
@@ -26,6 +29,7 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers import fuzzers
 from libs import form
+from libs import helpers
 
 
 class BaseEditHandlerTest(unittest.TestCase):
@@ -63,6 +67,104 @@ class BaseEditHandlerTest(unittest.TestCase):
     self.assertNotIn('sample_testcase:', state_str)
     self.assertNotIn('stats_columns:', state_str)
     self.assertNotIn('stats_column_descriptions:', state_str)
+
+
+class GetExecutablePathTest(unittest.TestCase):
+  """Tests for BaseEditHandler._get_executable_path."""
+
+  def setUp(self):
+    self.handler = fuzzers.BaseEditHandler()
+
+    # Flask's `request` is a LocalProxy. An active test request context is
+    # required so that introspecting `request` during mock.patch doesn't fail
+    # with RuntimeError("Working outside of request context.").
+    flaskapp = flask.Flask('testflask')
+    self.request_context = flaskapp.test_request_context()
+    self.request_context.push()
+    self.addCleanup(self.request_context.pop)
+
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage.read_data',
+    ])
+
+    request_patcher = mock.patch(
+        'handlers.fuzzers.request', new_callable=mock.MagicMock)
+    self.mock.request = request_patcher.start()
+    self.addCleanup(request_patcher.stop)
+
+  def _create_zip(self, file_names):
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w') as zip_file:
+      for file_name in file_names:
+        zip_file.writestr(file_name, 'content')
+    return buffer.getvalue()
+
+  def test_get_executable_path_exact_match(self):
+    """Test that an exact match in the archive is returned."""
+    self.mock.request.get.return_value = 'fuzz.py'
+    self.mock.read_data.return_value = self._create_zip(
+        ['fuzz.py', 'helper.py'])
+    upload_info = mock.Mock(
+        size=100, filename='fuzzer.zip', gcs_path='/gcs/fuzzer.zip')
+
+    self.assertEqual('fuzz.py', self.handler._get_executable_path(upload_info))
+
+  def test_get_executable_path_not_found(self):
+    """Test that missing executable in archive raises EarlyExitError 400."""
+    self.mock.request.get.return_value = 'missing.py'
+    self.mock.read_data.return_value = self._create_zip(
+        ['fuzz.py', 'helper.py'])
+    upload_info = mock.Mock(
+        size=100, filename='fuzzer.zip', gcs_path='/gcs/fuzzer.zip')
+
+    with self.assertRaises(helpers.EarlyExitError) as cm:
+      self.handler._get_executable_path(upload_info)
+
+    self.assertEqual(400, cm.exception.status)
+    self.assertEqual(
+        'Failed to find an executable in the archive. Please specify an '
+        'executable path that matches a file in the archive.',
+        str(cm.exception))
+
+  def test_get_executable_path_fallback_to_run(self):
+    """Test fallback to 'run' when executable_path is empty."""
+    self.mock.request.get.return_value = ''
+    self.mock.read_data.return_value = self._create_zip(['run.py', 'helper.py'])
+    upload_info = mock.Mock(
+        size=100, filename='fuzzer.zip', gcs_path='/gcs/fuzzer.zip')
+
+    self.assertEqual('run.py', self.handler._get_executable_path(upload_info))
+
+  def test_get_executable_path_fallback_none_found(self):
+    """Test fallback raises EarlyExitError 400 when empty and no 'run' matches."""
+    self.mock.request.get.return_value = ''
+    self.mock.read_data.return_value = self._create_zip(
+        ['exec.py', 'helper.py'])
+    upload_info = mock.Mock(
+        size=100, filename='fuzzer.zip', gcs_path='/gcs/fuzzer.zip')
+
+    with self.assertRaises(helpers.EarlyExitError) as cm:
+      self.handler._get_executable_path(upload_info)
+
+    self.assertEqual(400, cm.exception.status)
+    self.assertEqual(
+        'Failed to find an executable in the archive. Please specify an '
+        'executable path that matches a file in the archive.',
+        str(cm.exception))
+
+  def test_get_executable_path_no_upload_info(self):
+    """Test returning request value directly when there is no upload info."""
+    self.mock.request.get.return_value = 'fuzz.py'
+    self.assertEqual('fuzz.py', self.handler._get_executable_path(None))
+
+  def test_get_executable_path_oversized_archive(self):
+    """Test returning request value directly for oversized archives."""
+    self.mock.request.get.return_value = 'fuzz.py'
+    upload_info = mock.Mock(
+        size=fuzzers.ARCHIVE_READ_SIZE_LIMIT + 1,
+        filename='fuzzer.zip',
+        gcs_path='/gcs/fuzzer.zip')
+    self.assertEqual('fuzz.py', self.handler._get_executable_path(upload_info))
 
 
 @test_utils.with_cloud_emulators('datastore')

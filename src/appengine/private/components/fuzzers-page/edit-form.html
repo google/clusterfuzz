@@ -128,7 +128,7 @@
           <div slot="dropdown-trigger">
             <paper-input
                 readonly
-                label="Select/modify jobs"
+                label="[[computeJobsLabel(fuzzer.jobs.*)]]"
                 title="Set of jobs to run with this fuzzer.">
               <iron-icon icon="paper-dropdown-menu:arrow-drop-down" suffix slot="suffix"></iron-icon>
             </paper-input>
@@ -345,6 +345,24 @@
 
       handleFinishResponse(ev) {
         window.location.href = '/fuzzers';
+      }
+
+      static get observers() {
+        return ['fuzzerChanged(fuzzer)'];
+      }
+
+      fuzzerChanged(fuzzer) {
+        // Normalize null and undefined values to match the "None" selector.
+        if (fuzzer && fuzzer.data_bundle_name == null) {
+          this.set('fuzzer.data_bundle_name', '');
+        }
+      }
+
+      computeJobsLabel() {
+        const jobs = this.fuzzer && this.fuzzer.jobs;
+        if (!jobs || jobs.length == 0)
+          return 'No jobs selected';
+        return 'Select/modify jobs';
       }
 
       nameIsReadOnly(create) {

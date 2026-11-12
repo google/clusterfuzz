@@ -241,6 +241,166 @@ class TrackFuzzTimeTest(unittest.TestCase):
     self._test(True)
 
 
+class TrackSyncCorpusTimeTest(unittest.TestCase):
+  """Test SYNC_CORPUS_TIME metric emission during corpus sync."""
+
+  def setUp(self):
+    monitor.metrics_store().reset_for_testing()
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus',
+        'clusterfuzz._internal.system.environment.platform',
+        'clusterfuzz._internal.system.environment.get_runtime',
+        'time.time',
+    ])
+    self.mock.platform.return_value = 'some_platform'
+    self.mock.get_runtime.return_value = (
+        environment.UtaskMainRuntime.KATA_CONTAINER)
+    self.mock_time = helpers.MockTime(start_time=10.0)
+    self.mock.time.side_effect = self.mock_time.time
+
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name='libFuzzer',
+        job_type='libfuzzer_asan_test',
+        fuzz_task_input=uworker_msg_pb2.FuzzTaskInput())
+    self.session = fuzz_task.FuzzingSession(uworker_input, 10)
+    self.session.fuzz_target = data_types.FuzzTarget(
+        engine='libFuzzer', binary='test_target')
+    self.session.data_directory = '/data'
+
+  def _assert_metrics(self, expected_value, stage, success):
+    """Assert that both fuzzer and job sync corpus metrics match expected."""
+    common_labels = {
+        'platform': 'some_platform',
+        'runtime': 'kata_container',
+        'stage': stage,
+        'success': success,
+    }
+    self.assertEqual(
+        expected_value,
+        monitoring_metrics.FUZZER_SYNC_CORPUS_TIME.get({
+            **common_labels,
+            'fuzzer': 'libFuzzer_test_target',
+        }))
+    self.assertEqual(
+        expected_value,
+        monitoring_metrics.JOB_SYNC_CORPUS_TIME.get({
+            **common_labels,
+            'job': 'libfuzzer_asan_test',
+        }))
+
+  def test_sync_corpus_success(self):
+    """Test metric recorded when sync_corpus succeeds."""
+
+    def sync_side_effect():
+      self.mock_time.advance(5.8)
+      return True
+
+    self.mock.GcsCorpus.return_value.sync_from_gcs.side_effect = (
+        sync_side_effect)
+
+    self.session.sync_corpus('/corpus')
+    self._assert_metrics(5, stage='download', success=True)
+
+  def test_sync_corpus_failure(self):
+    """Test metric recorded when sync_corpus fails and raises FuzzTaskError."""
+
+    def sync_side_effect():
+      self.mock_time.advance(5.8)
+      return False
+
+    self.mock.GcsCorpus.return_value.sync_from_gcs.side_effect = (
+        sync_side_effect)
+
+    with self.assertRaises(fuzz_task.FuzzTaskError):
+      self.session.sync_corpus('/corpus')
+
+    self._assert_metrics(5, stage='download', success=False)
+
+  def test_sync_new_corpus_files_success(self):
+    """Test metric recorded when sync_new_corpus_files succeeds."""
+    self.session.gcs_corpus = mock.MagicMock()
+    self.session.gcs_corpus.get_new_files.return_value = []
+
+    def upload_side_effect(_):
+      self.mock_time.advance(5.8)
+      return [True, True]
+
+    self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
+
+    self.session.sync_new_corpus_files()
+    self._assert_metrics(5, stage='upload', success=True)
+
+  def test_sync_new_corpus_files_failure(self):
+    """Test metric recorded when sync_new_corpus_files fails."""
+    self.session.gcs_corpus = mock.MagicMock()
+    self.session.gcs_corpus.get_new_files.return_value = []
+
+    def upload_side_effect(_):
+      self.mock_time.advance(5.8)
+      return [True, False]
+
+    self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
+
+    self.session.sync_new_corpus_files()
+    self._assert_metrics(5, stage='upload', success=False)
+
+  def _patch_preprocess(self):
+    """Patch dependencies of _utask_preprocess."""
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
+        'clusterfuzz._internal.bot.tasks.trials.preprocess_get_db_trials',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._preprocess_get_fuzz_target',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.preprocess_store_fuzzer_run_results',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task_knobs.do_multiarmed_bandit_strategy_selection',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.entity_to_protobuf',
+        'clusterfuzz._internal.datastore.data_handler.get_project_name',
+        'clusterfuzz._internal.fuzzing.corpus_manager.get_fuzz_target_corpus',
+        'clusterfuzz._internal.google_cloud_utils.blobs.generate_new_blob_name',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
+    ])
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = (
+        uworker_msg_pb2.SetupInput())
+    self.mock.entity_to_protobuf.return_value = (
+        uworker_msg_pb2.FuzzTaskInput().fuzz_target)
+    self.mock.get_project_name.return_value = 'test_project'
+    self.mock._preprocess_get_fuzz_target.return_value = (
+        self.session.fuzz_target)
+    self.mock.preprocess_get_db_trials.return_value = []
+    self.mock.generate_new_blob_name.return_value = 'blob_key'
+    self.mock.get_signed_upload_url.return_value = 'https://signed_url'
+
+  def test_preprocess_sync_corpus_success(self):
+    """Test metric recorded during _utask_preprocess when getting corpus."""
+    self._patch_preprocess()
+
+    def get_corpus_side_effect(*args, **kwargs):  # pylint: disable=unused-argument
+      self.mock_time.advance(5.8)
+      mock_corpus = mock.MagicMock()
+      mock_corpus.serialize.return_value = uworker_msg_pb2.FuzzTargetCorpus()
+      return mock_corpus
+
+    self.mock.get_fuzz_target_corpus.side_effect = get_corpus_side_effect
+
+    fuzz_task._utask_preprocess('libFuzzer', 'libfuzzer_asan_test', {})
+    self._assert_metrics(5, stage='preprocess', success=True)
+
+  def test_preprocess_sync_corpus_failure(self):
+    """Test metric recorded when get_fuzz_target_corpus raises in preprocess."""
+    self._patch_preprocess()
+
+    def get_corpus_side_effect(*args, **kwargs):  # pylint: disable=unused-argument
+      self.mock_time.advance(5.8)
+      raise RuntimeError('GCS failure')
+
+    self.mock.get_fuzz_target_corpus.side_effect = get_corpus_side_effect
+
+    with self.assertRaises(RuntimeError):
+      fuzz_task._utask_preprocess('libFuzzer', 'libfuzzer_asan_test', {})
+
+    self._assert_metrics(5, stage='preprocess', success=False)
+
+
 class GetFuzzerMetadataFromOutputTest(unittest.TestCase):
   """Test get_fuzzer_metadata_from_output."""
 
@@ -1228,6 +1388,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.get_queue.return_value = queue.Queue()
     self.mock.get_process.return_value = threading.Thread
 
+    monitor.metrics_store().reset_for_testing()
+
   def _setup_utask_env(self):
     """Sets up the utask environment for fuzzing."""
     helpers.patch(self, [
@@ -1442,6 +1604,122 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         .total_seconds(), 0)
     self.assertEqual(3, actual.fuzz_task_output.testcases_generated)
     self.assertEqual(3, actual.fuzz_task_output.testcases_executed)
+
+    self.mock.process_crashes.assert_called_once()
+    self.assertGreater(
+        actual.fuzz_task_output.steps_duration['process_crash']
+        .ToTimedelta().total_seconds(), 0)
+    dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'process_crash',
+        'success': True,
+    })
+    self.assertEqual(1, dist.count)
+    self.assertGreater(dist.sum, 0)
+
+    self.assertGreater(
+        actual.fuzz_task_output.steps_duration['build_setup']
+        .ToTimedelta().total_seconds(), 0)
+    dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'build_setup',
+        'success': True,
+    })
+    self.assertEqual(1, dist.count)
+    self.assertGreater(dist.sum, 0)
+
+  @mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.FuzzingSession.generate_blackbox_testcases'
+  )
+  def test_utask_main_process_crashes_exception(
+      self, mock_generate_blackbox_testcases):
+    """Test that an exception in crash processing is tracked as a failure."""
+    self._setup_utask_env()
+    self.mock.process_crashes.side_effect = RuntimeError('crash processing')
+    fuzzer = self._create_test_fuzzer()
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    setup_input = uworker_msg_pb2.SetupInput(
+        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer.name,
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input,
+        setup_input=setup_input,
+        uworker_env={'FUZZ_TEST_TIMEOUT': '10'})
+
+    mock_generate_blackbox_testcases.return_value = (
+        fuzz_task.GenerateBlackboxTestcasesResult(
+            True, ['/tests/0', '/tests/1', '/tests/2'],
+            {'fuzzer_binary_name': fuzzer.name}))
+
+    with self.assertRaises(RuntimeError):
+      fuzz_task.utask_main(uworker_input)
+
+    labels = {
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'process_crash',
+    }
+    failed_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        **labels, 'success': False
+    })
+    self.assertEqual(1, failed_dist.count)
+    self.assertGreater(failed_dist.sum, 0)
+    self.assertEqual(
+        0,
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+            **labels, 'success': True
+        }).count)
+
+  def test_utask_main_build_setup_failure(self):
+    """Test that a failed build setup is tracked as a failed step."""
+    self._setup_utask_env()
+    self.mock.setup_build.return_value = None
+    fuzzer = self._create_test_fuzzer()
+
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    setup_input = uworker_msg_pb2.SetupInput(
+        fuzzer_name=fuzzer.name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer.name,
+        job_type='asan_test',
+        fuzz_task_input=fuzz_task_input,
+        setup_input=setup_input,
+        uworker_env={'FUZZ_TEST_TIMEOUT': '10'})
+
+    actual = fuzz_task.utask_main(uworker_input)
+
+    self.assertEqual(uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE,
+                     actual.error_type)
+    self.mock.check_for_bad_build.assert_not_called()
+    labels = {
+        'fuzzer': fuzzer.name,
+        'job': 'asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'build_setup',
+    }
+    failed_dist = monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        **labels, 'success': False
+    })
+    self.assertEqual(1, failed_dist.count)
+    self.assertGreater(failed_dist.sum, 0)
+    self.assertEqual(
+        0,
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+            **labels, 'success': True
+        }).count)
 
 
 class DoBlackboxFuzzingDeferredLoggingTest(fake_filesystem_unittest.TestCase):

@@ -249,23 +249,22 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     return None
   try:
     result = task.execute(task_argument, job_name, uworker_env)
-  except errors.InvalidTestcaseError:
-    # It is difficult to try to handle the case where a test case is deleted
-    # during processing. Rather than trying to catch by checking every point
-    # where a test case is reloaded from the datastore, just abort the task.
-    logs.warning('Test case %s no longer exists.' % task_argument)
-    rate_limiter.record_task(success=False)
-  except BaseException:
-    # On any other exceptions, update state to reflect error and re-raise.
+  except BaseException as e:
     rate_limiter.record_task(success=False)
     if should_update_task_status(task_name):
       data_handler.update_task_status(task_state_name,
                                       data_types.TaskState.ERROR)
+    if isinstance(e, errors.NonRetryableError):
+      # Return normally so the task is acked rather than redelivered: retrying
+      # cannot succeed, e.g. once the test case or its fuzzer is deleted.
+      # TODO(b/582875759): Drop tasks in one place; Task.dont_retry() also drops
+      # fuzz tasks with no fuzzer and tasks with unparseable uworker output.
+      logs.warning(f'Aborting task "{task_state_name}": {e}')
+      return None
     raise
-  else:
-    rate_limiter.record_task(success=True)
 
   # Task completed successfully.
+  rate_limiter.record_task(success=True)
   if should_update_task_status(task_name):
     data_handler.update_task_status(task_state_name,
                                     data_types.TaskState.FINISHED)

@@ -56,6 +56,12 @@ BUILD_TYPE_SUBSTRINGS = [
     '-beta', '-stable', '-debug', '-release', '-symbolized', '-extended_stable'
 ]
 
+# Windows CreateProcess cannot launch executables whose path is >= MAX_PATH
+# (260) characters, so we need to shorten directory names. The hash only needs
+# to distinguish file patterns within the same bucket path, so 12 hex
+# characters (48 bits) is plenty.
+WINDOWS_BUILD_DIR_HASH_LENGTH = 12
+
 # Build eviction constants.
 MAX_EVICTED_BUILDS = 100
 MIN_FREE_DISK_SPACE_CHROMIUM = 10 * 1024 * 1024 * 1024  # 10 GB
@@ -189,6 +195,8 @@ def _get_build_directory(bucket_path, job_name):
     file_pattern = utils.remove_sub_strings(file_pattern, BUILD_TYPE_SUBSTRINGS)
 
     file_pattern_hash = utils.string_hash(file_pattern)
+    if environment.platform() == 'WINDOWS':
+      file_pattern_hash = file_pattern_hash[:WINDOWS_BUILD_DIR_HASH_LENGTH]
     job_directory = f'{bucket_path}_{file_pattern_hash}'
   else:
     job_directory = job_name

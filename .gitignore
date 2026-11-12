@@ -59,6 +59,8 @@ bazel-*
 # Ignore temporary build files.
 docker/base/Pipfile
 docker/base/Pipfile.lock
+docker/chromium/base/install-build-deps.py
+docker/chromium/builder/install-build-deps.py
 
 # Tags and Cscope files
 tags

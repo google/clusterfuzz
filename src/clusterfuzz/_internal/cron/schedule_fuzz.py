@@ -42,6 +42,7 @@ def get_queue_size(creds, project_id, subscription_id):
   # TODO(metzman): Not all of these are fuzz_tasks. Deal with that.
   metric = 'pubsub.googleapis.com/subscription/num_undelivered_messages'
   query_filter = (f'metric.type="{metric}" AND '
+                  f'resource.labels.project_id="{project_id}" AND '
                   f'resource.labels.subscription_id="{subscription_id}"')
   time_now = time.time()
   # Get the last 5 minutes.

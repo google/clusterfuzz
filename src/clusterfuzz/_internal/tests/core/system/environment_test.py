@@ -647,3 +647,45 @@ class GetPlatformResourcesDirectoryTest(unittest.TestCase):
     self.mock.get_host_cpu_arch.return_value = 'x86_64'
     self.assertEqual('/resources/platform/android',
                      environment.get_platform_resources_directory('android'))
+
+
+class GetLlvmSymbolizerPathTest(unittest.TestCase):
+  """Tests for get_llvm_symbolizer_path."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.warning',
+        'clusterfuzz._internal.system.environment.get_default_tool_path',
+        'os.chmod',
+        'os.path.exists',
+        'subprocess.call',
+    ])
+    os.environ['LLVM_SYMBOLIZER_PATH'] = '/build/llvm-symbolizer'
+    self.mock.get_default_tool_path.return_value = '/default/llvm-symbolizer'
+    self.mock.exists.return_value = True
+
+  def test_build_symbolizer_works(self):
+    """Test that a working packaged llvm-symbolizer is used."""
+    self.mock.call.return_value = 0
+    self.assertEqual('/build/llvm-symbolizer',
+                     environment.get_llvm_symbolizer_path())
+
+  def test_packaged_symbolizer_fails(self):
+    """Test fallback to the default llvm-symbolizer on non-zero exit."""
+    self.mock.call.return_value = 1
+    self.assertEqual('/default/llvm-symbolizer',
+                     environment.get_llvm_symbolizer_path())
+    self.mock.warning.assert_called_once()
+
+  def test_build_symbolizer_wrong_arch(self):
+    """Test fallback to the default llvm-symbolizer on OSError.
+
+    E.g. the packaged llvm-symbolizer was built for the wrong architecture.
+    """
+    # macOS EBADARCH (not in the errno module on Linux): binary built for
+    # another arch.
+    self.mock.call.side_effect = OSError(86, 'Bad CPU type in executable')
+    self.assertEqual('/default/llvm-symbolizer',
+                     environment.get_llvm_symbolizer_path())
+    self.mock.warning.assert_called_once()

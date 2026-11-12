@@ -126,6 +126,7 @@ class SwarmingTest(unittest.TestCase):
         priority=1,
         realm='realm-name',
         service_account='test-clusterfuzz-service-account-email',
+        tags=['spec_name:clusterfuzz.linux:corpus_pruning'],
         task_slices=[
             swarming_pb2.TaskSlice(
                 expiration_secs=86400,
@@ -193,6 +194,7 @@ class SwarmingTest(unittest.TestCase):
         priority=1,
         realm='realm-name',
         service_account='test-clusterfuzz-service-account-email',
+        tags=['spec_name:clusterfuzz.mac:corpus_pruning'],
         task_slices=[
             swarming_pb2.TaskSlice(
                 expiration_secs=86400,
@@ -269,6 +271,7 @@ class SwarmingTest(unittest.TestCase):
         priority=1,
         realm='realm-name',
         service_account='test-clusterfuzz-service-account-email',
+        tags=['spec_name:clusterfuzz.linux:fuzz'],
         task_slices=[
             swarming_pb2.TaskSlice(
                 expiration_secs=86400,
@@ -331,6 +334,7 @@ class SwarmingTest(unittest.TestCase):
         priority=1,
         realm='realm-name',
         service_account='test-clusterfuzz-service-account-email',
+        tags=['spec_name:clusterfuzz.android_emulator:corpus_pruning'],
         task_slices=[
             swarming_pb2.TaskSlice(
                 expiration_secs=86400,

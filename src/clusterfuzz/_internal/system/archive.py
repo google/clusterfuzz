@@ -17,6 +17,7 @@ import abc
 import dataclasses
 import io
 import os
+import posixpath
 import tarfile
 from typing import BinaryIO
 from typing import Callable
@@ -100,6 +101,11 @@ class ArchiveMemberInfo:
 
 class ArchiveReader(abc.ABC):
   """Abstract class for representing an archive reader.
+
+  Archive member names, and paths derived from them such as `root_dir()`,
+  always use '/' as the separator, no matter the host OS. Use `posixpath` rather
+  than `os.path` (which is `ntpath` on Windows and produces '\\') when
+  manipulating archive-internal paths.
   """
 
   def __enter__(self):
@@ -242,7 +248,7 @@ class ArchiveReader(abc.ABC):
     """
     if not self.list_members():
       return ''
-    return os.path.commonpath([f.name for f in self.list_members()])
+    return posixpath.commonpath([f.name for f in self.list_members()])
 
   def file_exists(self, path: str) -> bool:
     """Returns whether the path exists in the archive. The path must exactly

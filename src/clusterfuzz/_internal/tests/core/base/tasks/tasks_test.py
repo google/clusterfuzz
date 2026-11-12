@@ -662,3 +662,37 @@ class GetTaskFuzzingFeatureFlagTest(unittest.TestCase):
       mock_flag.return_value = mock_flag_obj
       self.assertIsNone(tasks.get_task())
       self.mock.get_fuzz_task.assert_not_called()
+
+  def test_base_platform_in_string_value(self):
+    """Test fuzz task is returned when subqueue base platform matches."""
+    self.mock.platform.return_value = 'ANDROID:PIXEL6'
+    mock_flag_obj = mock.MagicMock(enabled=True, string_value='linux,android')
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertEqual(tasks.get_task(), self.mock_fuzz_task)
+      self.mock.get_fuzz_task.assert_called_once()
+
+  def test_subqueue_platform_in_string_value(self):
+    """Test fuzz task is returned when full subqueue platform matches."""
+    self.mock.platform.return_value = 'ANDROID:PIXEL6'
+    mock_flag_obj = mock.MagicMock(
+        enabled=True, string_value='linux,android:pixel6')
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertEqual(tasks.get_task(), self.mock_fuzz_task)
+      self.mock.get_fuzz_task.assert_called_once()
+
+  def test_subqueue_and_base_platform_not_in_string_value(self):
+    """Test fuzz task is not returned when neither platform nor base matches."""
+    self.mock.platform.return_value = 'ANDROID_MTE:PIXEL8'
+    mock_flag_obj = mock.MagicMock(enabled=True, string_value='linux,android')
+    with mock.patch.object(
+        feature_flags.FeatureFlags, 'flag',
+        new_callable=mock.PropertyMock) as mock_flag:
+      mock_flag.return_value = mock_flag_obj
+      self.assertIsNone(tasks.get_task())
+      self.mock.get_fuzz_task.assert_not_called()

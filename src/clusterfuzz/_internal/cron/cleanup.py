@@ -205,22 +205,25 @@ def cleanup_unused_fuzz_targets_and_jobs():
   last_run_cutoff = utils.utcnow() - datetime.timedelta(
       days=FUZZ_TARGET_UNUSED_THRESHOLD)
 
-  unused_target_jobs = data_types.FuzzTargetJob.query(
-      data_types.FuzzTargetJob.last_run < last_run_cutoff)
-  # The order by last_run DESC filter is from b/418807403
-  valid_target_jobs = list(
-      data_types.FuzzTargetJob.query(
-          data_types.FuzzTargetJob.last_run >= last_run_cutoff).order(
-              -data_types.FuzzTargetJob.last_run))
+  # Scan in key order and filter client-side: querying the frequently rewritten
+  # last_run index times out and can skip entities (b/406250205).
+  unused_target_jobs = []
+  valid_fuzz_targets = set()
+  num_valid_target_jobs = 0
+  for target_job in ndb_utils.get_all_from_model(data_types.FuzzTargetJob):
+    if target_job.last_run is None or target_job.last_run < last_run_cutoff:
+      unused_target_jobs.append(target_job.key)
+    else:
+      valid_fuzz_targets.add(target_job.fuzz_target_name)
+      num_valid_target_jobs += 1
 
-  to_delete = [t.key for t in unused_target_jobs]
+  to_delete = list(unused_target_jobs)
   num_fuzz_target_jobs_to_delete = len(to_delete)
 
   logs.info(
-      f'{len(to_delete)} FuzzTargetJob entities are marked for deletion and'
-      f'{len(valid_target_jobs)} are considered valid.')
+      f'{num_fuzz_target_jobs_to_delete} FuzzTargetJob entities are marked for '
+      f'deletion and {num_valid_target_jobs} are considered valid.')
 
-  valid_fuzz_targets = {t.fuzz_target_name for t in valid_target_jobs}
   for fuzz_target in ndb_utils.get_all_from_model(data_types.FuzzTarget):
     if fuzz_target.fully_qualified_name() not in valid_fuzz_targets:
       to_delete.append(fuzz_target.key)
@@ -229,7 +232,7 @@ def cleanup_unused_fuzz_targets_and_jobs():
   logs.info(
       f'Deleted {num_fuzz_target_jobs_to_delete} FuzzTargetJob entities and '
       f'{len(to_delete) - num_fuzz_target_jobs_to_delete} FuzzTarget entities. '
-      f'{len(valid_target_jobs)} valid FuzzTargetJob entities remain.')
+      f'{num_valid_target_jobs} valid FuzzTargetJob entities remain.')
 
 
 def get_jobs_and_platforms_for_project():
@@ -1166,25 +1169,41 @@ def update_component_labels_and_id(policy, testcase, issue):
           data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)):
     return
 
-  for filtered_component in filtered_components:
-    issue.components.add(filtered_component)
-
-  # This is very specific to google_issue_tracker, so this attribute might not
-  # be available for other issue trackers.
-  if component_id and hasattr(issue, 'component_id'):
-    issue.component_id = component_id
-
   issue.labels.add(
       policy.substitution_mapping(
           data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL))
-  label_text = issue.issue_tracker.label_text(
-      policy.substitution_mapping(
-          data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL))
-  issue_comment = (
-      'Automatically applying components based on crash stacktrace and '
-      'information from OWNERS files.\n\n'
-      f'If this is incorrect, please apply the {label_text}.')
-  issue.save(new_comment=issue_comment, notify=True)
+
+  skip_component_change_for_label = None
+  # If issue has one of these labels, it should be assumed to already be in the
+  # correct component and should not be moved.
+  for label in data_types.CHROMIUM_ISSUE_NO_COMPONENT_ROUTING_LABELS:
+    # was_label_added() checks if the label was *ever* added to the issue.
+    if issue_tracker_utils.was_label_added(issue,
+                                           policy.substitution_mapping(label)):
+      skip_component_change_for_label = label
+
+  if skip_component_change_for_label is None:
+    for filtered_component in filtered_components:
+      issue.components.add(filtered_component)
+
+    # This is very specific to google_issue_tracker, so this attribute might not
+    # be available for other issue trackers.
+    if component_id and hasattr(issue, 'component_id'):
+      issue.component_id = component_id
+
+    label_text = issue.issue_tracker.label_text(
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL))
+    issue_comment = (
+        'Automatically applying components based on crash stacktrace and '
+        'information from OWNERS files.\n\n'
+        f'If this is incorrect, please apply the {label_text}.')
+  else:
+    issue_comment = ('Skipping component reassignment because of label '
+                     f'{skip_component_change_for_label}')
+
+  issue.save(
+      new_comment=issue_comment, notify=skip_component_change_for_label is None)
 
 
 def _sanitize_ccs_list(ccs_list):

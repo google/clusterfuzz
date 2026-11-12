@@ -121,3 +121,83 @@ class UtaskPreprocessTest(unittest.TestCase):
     result = variant_task.utask_preprocess(
         testcase_id='999999', job_type='job_type', uworker_env={})
     self.assertIsNone(result)
+
+  def _create_job_and_variant(self,
+                              testcase,
+                              job_type,
+                              environment_string,
+                              status=data_types.TestcaseVariantStatus.PENDING):
+    """Creates |job_type| and a variant of |testcase| on it."""
+    data_types.Job(name=job_type, environment_string=environment_string).put()
+    variant = data_handler.get_or_create_testcase_variant(
+        testcase.key.id(), job_type)
+    variant.status = status
+    variant.put()
+
+  def test_variant_disabled(self):
+    """Test that tasks for a job with DISABLE_VARIANT are dropped and the
+    pending variant is deleted."""
+    testcase = test_utils.create_generic_testcase()
+    self._create_job_and_variant(testcase, 'disabled_job',
+                                 'DISABLE_VARIANT = True\n')
+
+    result = variant_task.utask_preprocess(
+        testcase_id=str(testcase.key.id()),
+        job_type='disabled_job',
+        uworker_env={})
+
+    self.assertIsNone(result)
+    self.mock.preprocess_setup_testcase.assert_not_called()
+    self.assertIsNone(
+        data_handler.get_testcase_variant(testcase.key.id(), 'disabled_job'))
+
+  def test_variant_experimental(self):
+    """Test that tasks for an experimental job are dropped and the pending
+    variant is deleted."""
+    testcase = test_utils.create_generic_testcase()
+    self._create_job_and_variant(testcase, 'experimental_job',
+                                 'EXPERIMENTAL = True\n')
+
+    result = variant_task.utask_preprocess(
+        testcase_id=str(testcase.key.id()),
+        job_type='experimental_job',
+        uworker_env={})
+
+    self.assertIsNone(result)
+    self.mock.preprocess_setup_testcase.assert_not_called()
+    self.assertIsNone(
+        data_handler.get_testcase_variant(testcase.key.id(),
+                                          'experimental_job'))
+
+  def test_variant_disabled_keeps_finished_variant(self):
+    """Test that only pending variants are deleted when variant is disabled."""
+    testcase = test_utils.create_generic_testcase()
+    self._create_job_and_variant(
+        testcase,
+        'disabled_job',
+        'DISABLE_VARIANT = True\n',
+        status=data_types.TestcaseVariantStatus.REPRODUCIBLE)
+
+    result = variant_task.utask_preprocess(
+        testcase_id=str(testcase.key.id()),
+        job_type='disabled_job',
+        uworker_env={})
+
+    self.assertIsNone(result)
+    self.assertIsNotNone(
+        data_handler.get_testcase_variant(testcase.key.id(), 'disabled_job'))
+
+  def test_variant_not_disabled(self):
+    """Test that tasks for a job without DISABLE_VARIANT still run."""
+    testcase = test_utils.create_generic_testcase()
+    self._create_job_and_variant(testcase, 'enabled_job', '')
+
+    result = variant_task.utask_preprocess(
+        testcase_id=str(testcase.key.id()),
+        job_type='enabled_job',
+        uworker_env={})
+
+    self.assertIsNotNone(result)
+    self.mock.preprocess_setup_testcase.assert_called_once()
+    self.assertIsNotNone(
+        data_handler.get_testcase_variant(testcase.key.id(), 'enabled_job'))

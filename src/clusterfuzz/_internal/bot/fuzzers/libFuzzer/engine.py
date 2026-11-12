@@ -15,7 +15,6 @@
 
 import os
 import re
-import tempfile
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
@@ -202,8 +201,7 @@ class Engine(engine.Engine):
 
   def _create_empty_testcase_file(self, reproducers_dir):
     """Create an empty testcase file in temporary directory."""
-    _, path = tempfile.mkstemp(dir=reproducers_dir)
-    return path
+    return utils.create_temp_file(reproducers_dir, prefix='tmp', suffix='')
 
   def _create_temp_dir(self, name):
     """Create a temporary directory suitable for putting into the TMPDIR

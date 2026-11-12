@@ -15,6 +15,7 @@
 
 import os
 import unittest
+from unittest import mock
 
 from pyfakefs import fake_filesystem_unittest
 
@@ -68,6 +69,13 @@ class RequestHandlerTest(fake_filesystem_unittest.TestCase):
         os.path.join('/input', 'unreadable.txt'), contents='unreadable file')
     os.chmod(os.path.join('/input', 'unreadable.txt'), 0)
 
+  def _assert_get(self, request_path, expected_code, expected_contents=''):
+    handler = TestRequestHandler(request_path)
+    handler.do_GET()
+    self.assertEqual(handler.response_code, expected_code, msg=request_path)
+    self.assertEqual(
+        handler.wfile.contents, expected_contents, msg=request_path)
+
   def test_nonexistent_file(self):
     """Ensure that we respond with 404 for a nonexistent file."""
     handler = TestRequestHandler('/invalid.txt')
@@ -91,6 +99,61 @@ class RequestHandlerTest(fake_filesystem_unittest.TestCase):
 
     self.assertEqual(handler.response_code, 200)
     self.assertEqual(handler.wfile.contents, 'valid file')
+
+  def test_http_aliases(self):
+    """Ensure every HTTP_ALIASES prefix resolves to each of its targets."""
+    for i, (prefix, targets) in enumerate(http_server.HTTP_ALIASES):
+      for j, target in enumerate(targets):
+        # Unique filename so only this target can satisfy the request.
+        filename = f'alias_{i}_{j}.js'
+        target_relpath = os.path.join(target, filename)
+        self.fs.create_file(
+            os.path.join('/data', target_relpath), contents=target_relpath)
+        self._assert_get(prefix + filename, 200, target_relpath)
+
+  def test_url_normalization(self):
+    """Ensure ?query, #fragment, and %20 are handled for aliased paths."""
+    self.fs.create_file(
+        '/data/WebKit/LayoutTests/http/tests/resources/payment request.js',
+        contents='payment')
+    self._assert_get('/resources/payment%20request.js?pipe=sub#frag', 200,
+                     'payment')
+
+  def test_longest_alias_prefix_wins(self):
+    """Ensure /tests/SimpleTest/ beats /tests/ regardless of alias order."""
+    self.fs.create_file('/data/gecko-tests/SimpleTest/shared.js', contents='no')
+    self.fs.create_file(
+        '/data/gecko-tests/testing/mochitest/tests/SimpleTest/shared.js',
+        contents='yes')
+    self._assert_get('/tests/SimpleTest/shared.js', 200, 'yes')
+
+    # Declaration order must not matter.
+    with mock.patch.object(http_server, 'HTTP_ALIASES',
+                           tuple(reversed(http_server.HTTP_ALIASES))):
+      self._assert_get('/tests/SimpleTest/shared.js', 200, 'yes')
+
+  def test_search_paths_take_precedence_over_aliases(self):
+    """Ensure root search_paths (WPT) win over the WebKit alias fallback."""
+    self.fs.create_file(
+        '/data/LayoutTests/external/wpt/resources/testharness.js',
+        contents='wpt')
+    self.fs.create_file(
+        '/data/WebKit/LayoutTests/resources/testharness.js', contents='webkit')
+    self._assert_get('/resources/testharness.js?pipe=sub', 200, 'wpt')
+
+  def test_path_traversal_rejected(self):
+    """Ensure raw and percent-encoded ../ or ..\\ traversals return 404."""
+    self.fs.create_file('/etc/passwd', contents='secret')
+    self.fs.create_file('/data/secret.txt', contents='secret')
+    self.fs.create_dir('/data/gecko-tests/sub')
+
+    for malicious_path in [
+        '/../etc/passwd',
+        '/tests/../../secret.txt',
+        '/%2e%2e/%2e%2e/etc/passwd',
+        '/%5c..%5c..%5cetc/passwd',
+    ]:
+      self._assert_get(malicious_path, 404)
 
 
 class GuessMimeTypeTest(unittest.TestCase):

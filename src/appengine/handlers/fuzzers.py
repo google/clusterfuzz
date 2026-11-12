@@ -98,15 +98,26 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     if upload_info.size > ARCHIVE_READ_SIZE_LIMIT:
       return executable_path
 
-    if not executable_path:
-      executable_path = 'run'  # Check for default.
-
     reader = self._read_to_bytesio(upload_info.gcs_path)
     with archive.open(upload_info.filename, reader) as archive_reader:
-      return archive_reader.get_first_file_matching(executable_path)
+      # Fallback to executable file named 'run'.
+      if not executable_path:
+        executable_path = archive_reader.get_first_file_matching('run')
+
+      # Verify that there is a matching executable before updating the fuzzer.
+      if not executable_path or not archive_reader.file_exists(executable_path):
+        raise helpers.EarlyExitError(
+            'Failed to find an executable in the archive. Please specify an '
+            'executable path that matches a file in the archive.', 400)
+
+      return executable_path
 
   def _get_launcher_script(self, upload_info):
-    """Get launcher script path."""
+    """Get launcher script path.
+
+    Note: Launcher scripts are used to launch the target binary when executing
+    testcases (distinct from executable_path). Not used for blackbox fuzzing.
+    """
     launcher_script = request.get('launcher_script')
     if not upload_info:
       return launcher_script

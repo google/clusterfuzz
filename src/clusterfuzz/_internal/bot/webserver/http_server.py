@@ -18,9 +18,39 @@ import mimetypes
 import os
 import socket
 import threading
+import urllib.parse
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+
+# Virtual directory mounts for legacy browser test harnesses synced into
+# web_tests.zip. New cross-browser tests target WPT (served directly from
+# LayoutTests/external/wpt), so these legacy mounts have rarely changed in many
+# years:
+# - Gecko Mochitest: gecko-dev/{testing,dom/tests}/mochitest
+# - Blink: apache_http.py
+# https://cs.chromium.org/chromium/src/third_party/blink/tools/blinkpy/web_tests/servers/apache_http.py?q=apache_http.py&sq=package:chromium&dr&l=60
+# - WebKit: WebKit Tools/Scripts/webkitpy/layout_tests/servers/aliases.json
+#   and apache_http_server.py (LayoutTests/resources is in search_paths).
+#
+# Resolution order for a request path:
+# 1. Root search_paths (cwd, fuzzers, input, LayoutTests, http/tests, WPT), so
+#    real files always win over aliases.
+# 2. HTTP_ALIASES, longest matching prefix first (e.g. /tests/SimpleTest/ is
+#    tried before /tests/), independent of declaration order. Within one
+#    prefix, targets are tried in the order listed.
+HTTP_ALIASES = (
+    ('/tests/SimpleTest/', ('gecko-tests/testing/mochitest/tests/SimpleTest',)),
+    ('/MochiKit/', ('gecko-tests/dom/tests/mochitest/ajax/mochikit/MochiKit',)),
+    ('/tests/', ('gecko-tests',)),
+    ('/js-test-resources/', ('LayoutTests/resources',
+                             'WebKit/LayoutTests/resources')),
+    ('/resources/', ('WebKit/LayoutTests/resources',
+                     'WebKit/LayoutTests/http/tests/resources')),
+    ('/w3c/resources/', ('LayoutTests/resources',)),
+    ('/media-resources/', ('LayoutTests/media', 'WebKit/LayoutTests/media')),
+    ('/forms-test-resources/', ('LayoutTests/fast/forms/resources',)),
+)
 
 
 def get_absolute_testcase_file(request_path):
@@ -36,9 +66,6 @@ def get_absolute_testcase_file(request_path):
   layout_tests_wpt_tests_directory = os.path.join(layout_tests_directory,
                                                   'external', 'wpt')
 
-  # TODO(mbarbella): Add support for aliasing and directories from
-  # https://cs.chromium.org/chromium/src/third_party/blink/tools/blinkpy/web_tests/servers/apache_http.py?q=apache_http.py&sq=package:chromium&dr&l=60
-
   # Check all search paths for the requested file.
   search_paths = [
       current_working_directory,
@@ -48,9 +75,21 @@ def get_absolute_testcase_file(request_path):
       layout_tests_http_tests_directory,
       layout_tests_wpt_tests_directory,
   ]
-  for search_path in search_paths:
-    base_string = search_path + os.path.sep
-    path = request_path.lstrip('/')
+
+  clean_path = '/' + urllib.parse.unquote(
+      request_path.split('#')[0].split('?')[0]).replace('\\', '/').lstrip('/')
+  candidates = [(root, clean_path[1:]) for root in search_paths if root]
+  if data_directory:
+    # Longest prefix wins: try more specific aliases before broader ones.
+    for prefix, targets in sorted(
+        HTTP_ALIASES, key=lambda alias: len(alias[0]), reverse=True):
+      if clean_path.startswith(prefix):
+        subpath = clean_path[len(prefix):].lstrip('/')
+        for target in targets:
+          candidates.append((os.path.join(data_directory, target), subpath))
+
+  for search_path, path in candidates:
+    base_string = os.path.join(os.path.abspath(search_path), '')
     if not path or path.endswith('/'):
       path += 'index.html'
     absolute_path = os.path.abspath(os.path.join(search_path, path))

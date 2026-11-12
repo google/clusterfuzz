@@ -64,15 +64,36 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     return response
 
   def check_public_testcase(self, issue, blob_info, testcase):
-    """Check public testcase. |issue| is the already-fetched issue (or None)."""
+    """Check if a testcase can be downloaded publicly (without access).
+
+    Only the minimized testcase is ever served publicly, and only if the
+    associated bug has no view restrictions (i.e. it has been made public).
+
+    Gated on OSS-Fuzz and Chromium, whose bugs live on public Google Issue
+    Tracker instances (issues.oss-fuzz.com and issues.chromium.org) where an
+    unrestricted (LIMIT_NONE) bug is truly public. Other deployments (e.g.
+    internal ones) may use trackers where LIMIT_NONE doesn't mean truly public,
+    so public downloads are never allowed there.
+
+    |issue| is the already-fetched issue (or None).
+    """
+    if not utils.is_oss_fuzz() and not utils.is_chromium():
+      return False
+
     if blob_info.key() != testcase.minimized_keys:
       return False
 
     if not issue:
       return False
 
+    # The bug must have been made public. This is the authoritative check: a
+    # view-restricted (e.g. embargoed security) bug must never expose its
+    # reproducer, regardless of whether it is open or closed.
+    if not issue.is_unrestricted:
+      return False
+
     # If the issue is explicitly marked as view restricted to committers only
-    # (OSS-Fuzz only), then don't allow public download.
+    # (legacy Monorail label), then don't allow public download.
     if 'restrict-view-commit' in issue.labels:
       return False
 
@@ -85,26 +106,6 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
       return False
 
     return True
-
-  def check_derestricted_testcase(self, issue, blob_info, testcase):
-    """Check if a testcase's associated bug has been derestricted (made public).
-
-    For Chromium deployments, checks if the corresponding bug tracker issue has
-    no view restrictions, indicating it has been derestricted. Only allows
-    access to the minimized testcase. Gated on is_chromium() to avoid exposing
-    testcases on internal deployments where LIMIT_NONE doesn't mean truly
-    public. |issue| is the already-fetched issue (or None).
-    """
-    if not utils.is_chromium():
-      return False
-
-    if blob_info.key() != testcase.minimized_keys:
-      return False
-
-    if not issue:
-      return False
-
-    return issue.is_unrestricted
 
   def get(self, resource=None):
     """Handle a get request with resource."""
@@ -154,21 +155,17 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
       return self._send_blob(blob_info, testcase_id, is_minimized,
                              fuzzer_binary_name)
 
-    # Unauthorized: allow a public download if the testcase's bug has been made
-    # public, either via the OSS-Fuzz public reproducer policy or a derestricted
-    # (LIMIT_NONE) Chromium bug. Fetch the issue once and reuse it below.
+    # Unauthorized: allow a public download only if the testcase's bug has been
+    # made public on a public issue tracker (OSS-Fuzz or Chromium). Fetch the
+    # issue once and reuse it below.
     issue = None
     if testcase.bug_information:
       issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
           testcase)
-      issue = issue_tracker.get_issue(testcase.bug_information)
+      if issue_tracker:
+        issue = issue_tracker.get_issue(testcase.bug_information)
 
-    if utils.is_oss_fuzz() and self.check_public_testcase(
-        issue, blob_info, testcase):
-      return self._send_blob(blob_info, testcase.key.id(), is_minimized,
-                             fuzzer_binary_name)
-
-    if self.check_derestricted_testcase(issue, blob_info, testcase):
+    if self.check_public_testcase(issue, blob_info, testcase):
       return self._send_blob(blob_info, testcase.key.id(), is_minimized,
                              fuzzer_binary_name)
 

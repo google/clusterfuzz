@@ -12,7 +12,7 @@ Prebuilt Clang toolchains can be downloaded directly from:
 | Platform | `$PLATFORM` | Target Path | Version |
 | :--- | :--- | :--- | :--- |
 | Linux | `Linux_x64` | `resources/platform/linux/llvm-symbolizer` | LLVM 18 |
-| macOS (Intel) | `Mac` | `resources/platform/mac/llvm-symbolizer` | LLVM 8 |
+| macOS (Intel) | `Mac` | `resources/platform/mac/llvm-symbolizer` | LLVM 24 |
 | macOS (ARM64) | `Mac_arm64` | `resources/platform/mac_arm64/llvm-symbolizer` | LLVM 24 |
 | Windows | `Win` | `resources/platform/windows/llvm-symbolizer.exe` | LLVM 24 |
 

@@ -49,6 +49,13 @@ For example, to build the `base` image for `ubuntu-24.04`:
 docker build -f docker/base/ubuntu-24-04.Dockerfile docker/base
 ```
 
+The `chromium/base` and `chromium/builder` images also need Chromium's `install-build-deps.py` in their build context. `build.sh` fetches it for you; to build them manually, download it into the image's directory first, e.g.:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/chromium/chromium/main/build/install-build-deps.py \
+  -o docker/chromium/base/install-build-deps.py
+```
+
 ## Production Builds
 
 Production images are built using Google Cloud Build. The configuration is defined in `cloudbuild.yaml`, which uses the `build.sh` script. The build process is automated with the following triggers:

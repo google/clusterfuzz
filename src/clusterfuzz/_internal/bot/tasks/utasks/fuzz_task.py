@@ -15,6 +15,7 @@
 
 import collections
 import datetime
+import enum
 import itertools
 import json
 import os
@@ -449,28 +450,19 @@ class _TrackFuzzTime:
                      timeout=None,
                      is_preempted=False):
     """Helper to record metrics consistently."""
-    common_labels = {
+    labels = {
+        'fuzzer': fuzzer_name,
+        'job': job_type,
         'platform': environment.platform(),
         'is_batch': environment.is_uworker(),
         'runtime': environment.get_runtime().value,
     }
 
     if is_preempted:
-      fuzzer_metric = monitoring_metrics.FUZZER_PREEMPTED_TOTAL_FUZZ_TIME
-      job_metric = monitoring_metrics.JOB_PREEMPTED_TOTAL_FUZZ_TIME
-      fuzzer_labels = {**common_labels, 'fuzzer': fuzzer_name}
-      job_labels = {**common_labels, 'job': job_type}
+      monitoring_metrics.PREEMPTED_TOTAL_FUZZ_TIME.insert(duration, labels)
     else:
-      fuzzer_metric = monitoring_metrics.FUZZER_TOTAL_FUZZ_TIME
-      job_metric = monitoring_metrics.JOB_TOTAL_FUZZ_TIME
-      fuzzer_labels = {
-          **common_labels, 'fuzzer': fuzzer_name,
-          'timeout': timeout
-      }
-      job_labels = {**common_labels, 'job': job_type, 'timeout': timeout}
-
-    fuzzer_metric.increment_by(int(duration), fuzzer_labels)
-    job_metric.increment_by(int(duration), job_labels)
+      labels['timeout'] = timeout
+      monitoring_metrics.TOTAL_FUZZ_TIME.insert(duration, labels)
 
   @classmethod
   def _preemption_callback(cls):
@@ -597,30 +589,34 @@ def _track_build_run_result(job_type, _, is_bad_build):
 def _track_testcase_run_result(fuzzer, job_type, new_crash_count,
                                known_crash_count):
   """Track testcase run result."""
-  monitoring_metrics.FUZZER_KNOWN_CRASH_COUNT.increment_by(
-      known_crash_count, {
-          'fuzzer': fuzzer,
-          'platform': environment.platform(),
-          'runtime': environment.get_runtime().value
-      })
-  monitoring_metrics.FUZZER_NEW_CRASH_COUNT.increment_by(
-      new_crash_count, {
-          'fuzzer': fuzzer,
-          'platform': environment.platform(),
-          'runtime': environment.get_runtime().value
-      })
-  monitoring_metrics.JOB_KNOWN_CRASH_COUNT.increment_by(
-      known_crash_count, {
-          'job': job_type,
-          'platform': environment.platform(),
-          'runtime': environment.get_runtime().value
-      })
-  monitoring_metrics.JOB_NEW_CRASH_COUNT.increment_by(
-      new_crash_count, {
-          'job': job_type,
-          'platform': environment.platform(),
-          'runtime': environment.get_runtime().value
-      })
+  labels = {
+      'fuzzer': fuzzer,
+      'job': job_type,
+      'platform': environment.platform(),
+      'runtime': environment.get_runtime().value
+  }
+  monitoring_metrics.KNOWN_CRASH_COUNT.insert(known_crash_count, labels)
+  monitoring_metrics.NEW_CRASH_COUNT.insert(new_crash_count, labels)
+
+
+class CorpusSyncStage(enum.Enum):
+  """Stages of corpus synchronization."""
+  PREPROCESS = 'preprocess'
+  DOWNLOAD = 'download'
+  UPLOAD = 'upload'
+
+
+def _track_sync_corpus_metric(fuzzer: str, job: str, stage: CorpusSyncStage):
+  """Context manager to track time spent synchronizing corpus with GCS."""
+  labels = {
+      'fuzzer': fuzzer,
+      'job': job,
+      'platform': environment.platform(),
+      'runtime': environment.get_runtime().value,
+      'stage': stage.value,
+  }
+  return monitor.TimeMetricTracker(
+      monitoring_metrics.SYNC_CORPUS_TIME, labels, has_success_label=True)
 
 
 def _last_sync_time(sync_file_path):
@@ -727,7 +723,7 @@ class GcsCorpus:
 
     return result
 
-  def upload_files(self, new_files):
+  def upload_files(self, new_files) -> bool | list[bool]:
     """Update state after files are uploaded."""
     result = self.gcs_corpus.upload_files(new_files)
     self._synced_files.update(new_files)
@@ -848,14 +844,15 @@ def upload_job_run_stats(
     testcases_generated: int = None,
     testcase_generation_duration: datetime.timedelta = None,
     testcase_execution_duration: datetime.timedelta = None,
-    fuzzing_duration: datetime.timedelta = None):
+    fuzzing_duration: datetime.timedelta = None,
+    steps_duration: dict[str, datetime.timedelta] | None = None):
   """Upload job run stats."""
   # New format.
-  job_run = fuzzer_stats.JobRun(fuzzer_name, job_type, revision, timestamp,
-                                testcases_executed, new_crash_count,
-                                known_crash_count, groups, testcases_generated,
-                                testcase_generation_duration,
-                                testcase_execution_duration, fuzzing_duration)
+  job_run = fuzzer_stats.JobRun(
+      fuzzer_name, job_type, revision, timestamp, testcases_executed,
+      new_crash_count, known_crash_count, groups, testcases_generated,
+      testcase_generation_duration, testcase_execution_duration,
+      fuzzing_duration, steps_duration)
   fuzzer_stats.upload_stats([job_run])
 
   _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
@@ -1118,6 +1115,10 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
     # Artificial delay to throttle appengine updates.
     time.sleep(1)
 
+  steps_duration = {
+      name: duration.ToTimedelta()
+      for name, duration in fuzz_task_output.steps_duration.items()
+  }
   # TODO(metzman): Replace fuzz_task_output.fully_qualified_fuzzer_name` with
   # `fuzz_task_input.fuzz_target` instead.
   upload_job_run_stats(
@@ -1130,8 +1131,8 @@ def postprocess_process_crashes(uworker_input: uworker_msg_pb2.Input,
       if fuzz_task_output.HasField('testcase_generation_duration') else None,
       fuzz_task_output.testcase_execution_duration.ToTimedelta()
       if fuzz_task_output.HasField('testcase_execution_duration') else None,
-      fuzz_task_output.fuzzing_duration.ToTimedelta()
-      if fuzz_task_output.HasField('fuzzing_duration') else None)
+      fuzz_task_output.fuzzing_duration.ToTimedelta() if
+      fuzz_task_output.HasField('fuzzing_duration') else None, steps_duration)
 
   logs.info(f'Finished processing crashes.\nNew crashes: {new_crash_count}, '
             f'known crashes: {known_crash_count}, '
@@ -1566,6 +1567,14 @@ class FuzzingSession:
 
     self.gcs_corpus = None
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()  # pylint: disable=no-member
+    self.steps_time_tracker = monitor.TimeStatTracker(
+        monitoring_metrics.FUZZ_TASK_STEPS_DURATION,
+        common_labels={
+            'fuzzer': self.fuzzer_name,
+            'job': self.job_type,
+            'platform': environment.platform(),
+            'runtime': environment.get_runtime().value
+        })
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -1577,15 +1586,17 @@ class FuzzingSession:
 
   def sync_corpus(self, sync_corpus_directory):
     """Sync corpus from GCS."""
-    # Corpus should always be set at this point.
-    self.gcs_corpus = GcsCorpus(self.fuzzer_name,
-                                self.fuzz_target.project_qualified_name(),
-                                sync_corpus_directory, self.data_directory,
-                                self.uworker_input.fuzz_task_input.corpus)
-    if not self.gcs_corpus.sync_from_gcs():
-      raise FuzzTaskError(
-          'Failed to sync corpus for fuzzer %s (job %s).' %
-          (self.fuzz_target.project_qualified_name(), self.job_type))
+    with _track_sync_corpus_metric(self.fully_qualified_fuzzer_name,
+                                   self.job_type, CorpusSyncStage.DOWNLOAD):
+      # Corpus should always be set at this point.
+      self.gcs_corpus = GcsCorpus(self.fuzzer_name,
+                                  self.fuzz_target.project_qualified_name(),
+                                  sync_corpus_directory, self.data_directory,
+                                  self.uworker_input.fuzz_task_input.corpus)
+      if not self.gcs_corpus.sync_from_gcs():
+        raise FuzzTaskError(
+            'Failed to sync corpus for fuzzer %s (job %s).' %
+            (self.fuzz_target.project_qualified_name(), self.job_type))
 
   def _file_size(self, file_path):
     """Return file size depending on whether file is local or remote (untrusted
@@ -1599,29 +1610,39 @@ class FuzzingSession:
 
   def sync_new_corpus_files(self):
     """Sync new files from corpus to GCS."""
-    new_files = self.gcs_corpus.get_new_files()
-    new_files_count = len(new_files)
-    logs.info('%d new corpus files generated by fuzzer %s (job %s).' %
-              (new_files_count, self.fuzz_target.project_qualified_name(),
-               self.job_type))
+    with _track_sync_corpus_metric(self.fully_qualified_fuzzer_name,
+                                   self.job_type,
+                                   CorpusSyncStage.UPLOAD) as tracker:
+      new_files = self.gcs_corpus.get_new_files()
+      new_files_count = len(new_files)
+      logs.info('%d new corpus files generated by fuzzer %s (job %s).' %
+                (new_files_count, self.fuzz_target.project_qualified_name(),
+                 self.job_type))
 
-    filtered_new_files = []
-    filtered_new_files_count = 0
-    for new_file in new_files:
-      if filtered_new_files_count >= MAX_NEW_CORPUS_FILES:
-        break
-      if self._file_size(new_file) > engine_common.CORPUS_INPUT_SIZE_LIMIT:
-        continue
-      filtered_new_files.append(new_file)
-      filtered_new_files_count += 1
+      filtered_new_files = []
+      filtered_new_files_count = 0
+      for new_file in new_files:
+        if filtered_new_files_count >= MAX_NEW_CORPUS_FILES:
+          break
+        if self._file_size(new_file) > engine_common.CORPUS_INPUT_SIZE_LIMIT:
+          continue
+        filtered_new_files.append(new_file)
+        filtered_new_files_count += 1
 
-    if filtered_new_files_count < new_files_count:
-      logs.info(('Uploading only %d out of %d new corpus files '
-                 'generated by fuzzer %s (job %s).') %
-                (filtered_new_files_count, new_files_count,
-                 self.fuzz_target.project_qualified_name(), self.job_type))
+      if filtered_new_files_count < new_files_count:
+        logs.info(('Uploading only %d out of %d new corpus files '
+                   'generated by fuzzer %s (job %s).') %
+                  (filtered_new_files_count, new_files_count,
+                   self.fuzz_target.project_qualified_name(), self.job_type))
 
-    self.gcs_corpus.upload_files(filtered_new_files)
+      upload_success = self.gcs_corpus.upload_files(filtered_new_files)
+      if isinstance(upload_success, list):
+        success = all(upload_success)
+      else:
+        success = bool(upload_success)
+
+      if not success:
+        tracker.fail()
 
   def generate_blackbox_testcases(
       self, fuzzer, job_type, fuzzer_directory,
@@ -2144,8 +2165,11 @@ class FuzzingSession:
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
     fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
-    build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
+    with self.steps_time_tracker.track('build_setup'):
+      build_setup_result = build_manager.setup_build(
+          environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
+      if not build_setup_result:
+        raise monitor.TimeStatTrackerFailureException
     _add_build_metadata_to_output(self.fuzz_task_output)
 
     engine_impl = engine.get(self.fuzzer.name)
@@ -2226,25 +2250,27 @@ class FuzzingSession:
     # Process and save crashes to datastore.
     bot_name = environment.get_value('BOT_NAME')
     project_name = environment.get_value('PROJECT_NAME')
-    crash_groups = process_crashes(
-        crashes=crashes,
-        context=Context(
-            project_name=project_name,
-            bot_name=bot_name,
-            job_type=self.job_type,
-            fuzz_target=self.fuzz_target,
-            redzone=self.redzone,
-            disable_ubsan=self.disable_ubsan,
-            platform_id=environment.get_platform_id(),
-            crash_revision=crash_revision,
-            fuzzer_name=self.fuzzer_name,
-            window_argument=self.window_argument,
-            fuzzer_metadata=fuzzer_metadata,
-            testcases_metadata=testcases_metadata,
-            timeout_multiplier=self.timeout_multiplier,
-            test_timeout=self.test_timeout,
-            data_directory=self.data_directory),
-        upload_urls=list(self.uworker_input.fuzz_task_input.crash_upload_urls))
+    with self.steps_time_tracker.track('process_crash'):
+      crash_groups = process_crashes(
+          crashes=crashes,
+          context=Context(
+              project_name=project_name,
+              bot_name=bot_name,
+              job_type=self.job_type,
+              fuzz_target=self.fuzz_target,
+              redzone=self.redzone,
+              disable_ubsan=self.disable_ubsan,
+              platform_id=environment.get_platform_id(),
+              crash_revision=crash_revision,
+              fuzzer_name=self.fuzzer_name,
+              window_argument=self.window_argument,
+              fuzzer_metadata=fuzzer_metadata,
+              testcases_metadata=testcases_metadata,
+              timeout_multiplier=self.timeout_multiplier,
+              test_timeout=self.test_timeout,
+              data_directory=self.data_directory),
+          upload_urls=list(
+              self.uworker_input.fuzz_task_input.crash_upload_urls))
 
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's
@@ -2286,6 +2312,8 @@ class FuzzingSession:
     self.fuzz_task_output.fuzzing_duration.FromTimedelta(
         datetime.timedelta(seconds=fuzzing_session_duration_seconds))
 
+    for name, duration in self.steps_time_tracker.stats.items():
+      self.fuzz_task_output.steps_duration[name].FromTimedelta(duration)
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)  # pylint: disable=no-member
 
   def postprocess(self, uworker_output):
@@ -2452,14 +2480,16 @@ def _utask_preprocess(fuzzer_name, job_type, uworker_env):
     logs.log_contexts.add_metadata('fuzz_target', fuzz_target.binary)
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
-    fuzz_task_input.corpus.CopyFrom(
-        corpus_manager.get_fuzz_target_corpus(
-            fuzzer_name,
-            fuzz_target.project_qualified_name(),
-            include_delete_urls=False,
-            max_upload_urls=_get_max_corpus_uploads_per_task(),
-            max_download_urls=25000,
-            use_backup=True).serialize())
+    with _track_sync_corpus_metric(fuzz_target.fully_qualified_name(), job_type,
+                                   CorpusSyncStage.PREPROCESS):
+      fuzz_task_input.corpus.CopyFrom(
+          corpus_manager.get_fuzz_target_corpus(
+              fuzzer_name,
+              fuzz_target.project_qualified_name(),
+              include_delete_urls=False,
+              max_upload_urls=_get_max_corpus_uploads_per_task(),
+              max_download_urls=25000,
+              use_backup=True).serialize())
 
   fuzz_task_input.trials.extend(trials.preprocess_get_db_trials())
   web_tests_url = environment.get_value('WEB_TESTS_URL')

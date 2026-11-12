@@ -13,7 +13,6 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
-from typing import Tuple
 from typing import Type
 from typing import TypeVar
 import uuid
@@ -99,9 +98,8 @@ def serialize_uworker_input(uworker_input: uworker_msg_pb2.Input) -> bytes:  # p
   return uworker_input.SerializeToString()
 
 
-def serialize_and_upload_uworker_input(
-    uworker_input: uworker_msg_pb2.Input) -> Tuple[str, str]:  # pylint: disable=no-member
-  """Serializes input for the untrusted portion of a task."""
+def prepare_uworker_io_urls() -> tuple[str, str, str, str]:
+  """Generates URLs for GCS upload/download."""
   signed_input_download_url, input_gcs_url = get_uworker_input_urls()
   logs.info(f'input_gcs_url: {input_gcs_url}')
   # Get URLs for the uworker'ps output. We need a signed upload URL so it can
@@ -111,12 +109,22 @@ def serialize_and_upload_uworker_input(
       input_gcs_url)
   logs.info(f'output_gcs_url: {output_gcs_url}')
 
+  return (signed_input_download_url, signed_output_upload_url, input_gcs_url,
+          output_gcs_url)
+
+
+def serialize_and_upload_uworker_input(
+    uworker_input: uworker_msg_pb2.Input,  # pylint: disable=no-member
+    urls: tuple[str, str, str, str]) -> tuple[str, str]:
+  """Serializes input for the untrusted portion of a task."""
+  (signed_input_download_url, signed_output_upload_url, input_gcs_url,
+   output_gcs_url) = urls
+
   assert not uworker_input.HasField('uworker_output_upload_url')
   uworker_input.uworker_output_upload_url = signed_output_upload_url
 
   serialized_uworker_input = zlib.compress(uworker_input.SerializeToString())
   upload_uworker_input(serialized_uworker_input, input_gcs_url)
-
   return signed_input_download_url, output_gcs_url
 
 

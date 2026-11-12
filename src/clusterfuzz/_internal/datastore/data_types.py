@@ -123,6 +123,10 @@ CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL = (
     'Test-Predator-Wrong-Components')
 CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL = 'Test-Predator-Wrong-CLs'
 
+# These labels should signal that the issue should not be moved to a new
+# component.
+CHROMIUM_ISSUE_NO_COMPONENT_ROUTING_LABELS = {'prodsec-sheepdog-reproduce'}
+
 MISSING_VALUE_STRING = '---'
 
 COVERAGE_INFORMATION_DATE_FORMAT = '%Y%m%d'
@@ -322,7 +326,9 @@ class Fuzzer(Model):
   # Supported platforms.
   supported_platforms = ndb.StringProperty()
 
-  # Custom script that should be used to launch chrome for this fuzzer.
+  # Custom script path (relative to archive root) used to launch the target
+  # binary when executing testcases. Distinct from executable_path, which runs
+  # the fuzzer itself. Not used for blackbox fuzzing.
   launcher_script = ndb.StringProperty()
 
   # Result from the last fuzzer run showing the number of testcases generated.
