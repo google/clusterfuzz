@@ -256,6 +256,13 @@ _ELF_VERSION_NOT_FOUND_REGEX = re.compile(
     r": version [`'\"][A-Za-z0-9_.-]+[`'\"] not found \(required by ")
 _LINUX_SYMBOL_LOOKUP_ERROR_REGEX = re.compile(
     r': symbol lookup error: .+: undefined symbol: ')
+_LOADER_FAILURE_REGEXES = (
+    stacktrace_constants.LIBRARY_NOT_FOUND_LINUX_REGEX,
+    stacktrace_constants.LIBRARY_NOT_FOUND_ANDROID_REGEX,
+    stacktrace_constants.SYMBOL_NOT_FOUND_REGEX,
+    _ELF_VERSION_NOT_FOUND_REGEX,
+    _LINUX_SYMBOL_LOOKUP_ERROR_REGEX,
+)
 
 
 def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
@@ -266,12 +273,8 @@ def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
   text = crash_result.output
   has_loader_failure = (
       crash_result.raw_return_code in _FATAL_EXECUTION_RETURN_CODES or
-      bool(stacktrace_constants.LIBRARY_NOT_FOUND_LINUX_REGEX.search(text)) or
-      bool(stacktrace_constants.LIBRARY_NOT_FOUND_ANDROID_REGEX.search(text)) or
-      bool(stacktrace_constants.SYMBOL_NOT_FOUND_REGEX.search(text)) or
-      bool(_ELF_VERSION_NOT_FOUND_REGEX.search(text)) or
-      bool(_LINUX_SYMBOL_LOOKUP_ERROR_REGEX.search(text)) or
-      'unshare: failed to execute ' in text)
+      'unshare: failed to execute ' in text or
+      any(r.search(text) for r in _LOADER_FAILURE_REGEXES))
   if not has_loader_failure:
     return False
 
@@ -319,7 +322,7 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
     error_message = (f'Target execution failed with loader error '
                      f'(code={result.raw_return_code}) on custom build '
                      f'r{revision}.')
-    logs.error(error_message)
+    logs.warning(error_message)
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(),  # pylint: disable=no-member
         error_message=error_message,
@@ -420,7 +423,7 @@ def _testcase_reproduces_in_revision(
     error_message = (f'Target execution failed with loader error '
                      f'(code={result.raw_return_code}) at r{revision}. '
                      'Skipping')
-    logs.error(error_message)
+    logs.warning(error_message)
     return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
         progression_task_output=progression_task_output,
         error_message=error_message,

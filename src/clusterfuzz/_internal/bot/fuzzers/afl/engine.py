@@ -116,10 +116,10 @@ class Engine(engine.Engine):
   def _get_reproduce_output(runner, reproduce_result):
     """Returns fuzzer stderr, falling back to process output on startup errors.
 
-    When the OS dynamic linker fails before afl_driver creates stderr.out
-    (for example, exit 127 on a missing shared library or exit 1 on a symbol
-    version mismatch), stderr_file_path does not exist and the loader error is
-    only present in reproduce_result.output.
+    When execution fails before afl_driver creates stderr.out (for example,
+    exit 127 on a missing shared library, exit 1 on a symbol version mismatch,
+    or a crash in a pre-main initializer), stderr_file_path does not exist and
+    the failure output is only present in reproduce_result.output.
     """
     if runner.fuzzer_stderr or os.path.exists(runner.stderr_file_path):
       return runner.fuzzer_stderr

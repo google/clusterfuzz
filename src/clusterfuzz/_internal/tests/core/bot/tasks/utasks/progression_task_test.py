@@ -140,8 +140,15 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
         'cannot open shared object file: No such file or directory')
     testcase = data_types.Testcase()
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
-    result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        testcase, '/tmp/blah', 'job_type', 42, None, progression_task_output)
+    with mock.patch(
+        'clusterfuzz._internal.metrics.logs.warning') as mock_warn, mock.patch(
+            'clusterfuzz._internal.metrics.logs.error') as mock_err:
+      result, worker_output = (
+          progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+              testcase, '/tmp/blah', 'job_type', 42, None,
+              progression_task_output))
+    mock_warn.assert_called_once()
+    mock_err.assert_not_called()
     self.assertIsNone(result)
     self.assertIsNotNone(worker_output)
     self.assertEqual(worker_output.error_type,
@@ -634,8 +641,13 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     self.mock.is_crash.return_value = False
     self.mock.get_stacktrace.return_value = ''
     testcase = test_utils.create_generic_testcase()
-    result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, '/a/b/c', uworker_msg_pb2.Input())
+    with mock.patch(
+        'clusterfuzz._internal.metrics.logs.warning') as mock_warn, mock.patch(
+            'clusterfuzz._internal.metrics.logs.error') as mock_err:
+      result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
+          testcase, '/a/b/c', uworker_msg_pb2.Input())
+    mock_warn.assert_called_once()
+    mock_err.assert_not_called()
     self.assertEqual(result.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
     self.assertIn('code=127', result.error_message)
