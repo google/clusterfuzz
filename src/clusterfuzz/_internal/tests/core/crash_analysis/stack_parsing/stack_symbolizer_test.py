@@ -20,6 +20,9 @@ from unittest import mock
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
 from clusterfuzz._internal.tests.test_libs import helpers
 
+DATA_DIRECTORY = os.path.join(
+    os.path.dirname(__file__), 'stack_symbolizer_data')
+
 TEST_STACK_TRACE = ("    #0 0x0001 (/lib/foo.so+0x1000)\n"
                     "    #1 0x0002 (/lib/foo.so+0x2000)\n"
                     "    #2 0x0003 (/lib/foo.so+0x3000)\n")
@@ -430,6 +433,90 @@ class LLVMSymbolizerTest(unittest.TestCase):
         ],
         mock_popen=mock_popen,
         mock_log_error=mock_log_error)
+
+
+def _data_path(name):
+  """Returns the path of a file in the test data directory. See the README.md
+  there for what each file is."""
+  return os.path.join(DATA_DIRECTORY, name)
+
+
+class PeImageBaseAndSizeTest(unittest.TestCase):
+  """Tests for get_pe_image_base_and_size."""
+
+  def test_64_bit(self):
+    """Tests that ImageBase and SizeOfImage are read from PE32+ files."""
+    self.assertEqual((0x180000000, 0x3000),
+                     stack_symbolizer.get_pe_image_base_and_size(
+                         _data_path('x64.dll')))
+    self.assertEqual((0x140000000, 0x3000),
+                     stack_symbolizer.get_pe_image_base_and_size(
+                         _data_path('x64.exe')))
+
+  def test_32_bit(self):
+    """Tests that ImageBase and SizeOfImage are read from PE32 files."""
+    self.assertEqual((0x10000000, 0x3000),
+                     stack_symbolizer.get_pe_image_base_and_size(
+                         _data_path('x86.dll')))
+    self.assertEqual((0x400000, 0x804000),
+                     stack_symbolizer.get_pe_image_base_and_size(
+                         _data_path('x86_large.exe')))
+
+  def test_unreadable_file(self):
+    """Tests that None is returned for files that are missing, truncated or
+    not PE files."""
+    for name in ('missing.dll', 'truncated.dll', 'not_pe.dll'):
+      self.assertIsNone(
+          stack_symbolizer.get_pe_image_base_and_size(_data_path(name)), name)
+
+
+class AddPeImageBaseIfMissingTest(unittest.TestCase):
+  """Tests for add_pe_image_base_if_missing."""
+
+  def _add(self, name, offset):
+    """Calls add_pe_image_base_if_missing for the test data file |name|."""
+    return stack_symbolizer.add_pe_image_base_if_missing(
+        _data_path(name), offset)
+
+  def test_missing_image_base(self):
+    """Tests that ImageBase is added to plain RVAs, which is what sandboxed
+    processes report."""
+    self.assertEqual('0x180001000', self._add('x64.dll', '0x1000'))
+    self.assertEqual('0x140001000', self._add('x64.exe', '0x1000'))
+    self.assertEqual('0x10001000', self._add('x86.dll', '0x1000'))
+
+  def test_has_image_base(self):
+    """Tests that offsets that already include ImageBase are unchanged."""
+    self.assertEqual('0x180001000', self._add('x64.dll', '0x180001000'))
+    self.assertEqual('0x140001000', self._add('x64.exe', '0x140001000'))
+    self.assertEqual('0x10001000', self._add('x86.dll', '0x10001000'))
+
+  def test_image_bounds(self):
+    """Tests the first and last offsets of the RVA and ImageBase + RVA ranges
+    of x64.dll, which has ImageBase 0x180000000 and SizeOfImage 0x3000."""
+    # [0, SizeOfImage) is missing ImageBase.
+    self.assertEqual('0x180000000', self._add('x64.dll', '0x0'))
+    self.assertEqual('0x180002fff', self._add('x64.dll', '0x2fff'))
+    # Neither a valid RVA nor a valid ImageBase + RVA.
+    self.assertEqual('0x3000', self._add('x64.dll', '0x3000'))
+    self.assertEqual('0x17fffffff', self._add('x64.dll', '0x17fffffff'))
+    # [ImageBase, ImageBase + SizeOfImage) already includes ImageBase.
+    self.assertEqual('0x180000000', self._add('x64.dll', '0x180000000'))
+    self.assertEqual('0x180002fff', self._add('x64.dll', '0x180002fff'))
+    self.assertEqual('0x180003000', self._add('x64.dll', '0x180003000'))
+
+  def test_overlapping_ranges(self):
+    """Tests that offsets are unchanged if ImageBase < SizeOfImage, since then
+    an offset can be both a valid RVA and a valid ImageBase + RVA."""
+    # ImageBase 0x400000, SizeOfImage 0x804000.
+    self.assertEqual('0x1000', self._add('x86_large.exe', '0x1000'))
+    self.assertEqual('0x401000', self._add('x86_large.exe', '0x401000'))
+
+  def test_unreadable_binary(self):
+    """Tests that offsets are unchanged for binaries that are missing,
+    truncated or not PE files."""
+    for name in ('missing.dll', 'truncated.dll', 'not_pe.dll'):
+      self.assertEqual('0x1000', self._add(name, '0x1000'), name)
 
 
 class ProcessTrustyStacktraceTest(unittest.TestCase):

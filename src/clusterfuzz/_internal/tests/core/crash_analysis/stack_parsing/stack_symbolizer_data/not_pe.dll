@@ -1,0 +1,2 @@
+This is not a PE file. It is used to test that reading the PE header of a file
+in another format fails cleanly.

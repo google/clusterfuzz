@@ -31,6 +31,7 @@
 import collections
 import os
 import re
+import struct
 import subprocess
 import sys
 import threading
@@ -69,6 +70,56 @@ STACK_TRACE_LINE_REGEX_LKL = re.compile(
 # uSP+0x7c80: 0x00000000000922a8 libc_start_main_stage2+0x3c/0x40
 STACK_TRACE_LINE_TRUSTY = re.compile(
     r'(^kSP|^uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16})')
+
+
+def get_pe_image_base_and_size(binary_path):
+  """Returns (ImageBase, SizeOfImage) from the PE header of |binary_path|, or
+  None if it can't be read. See
+  https://learn.microsoft.com/en-us/windows/win32/debug/pe-format."""
+  try:
+    with open(binary_path, 'rb') as f:
+      # The DOS header has the file offset of the PE signature at 0x3c.
+      f.seek(0x3c)
+      f.seek(struct.unpack('<I', f.read(4))[0])
+      # Signature (4 bytes) and file header (20 bytes), then optional header.
+      signature, optional_header = f.read(4), f.read(20 + 60)[20:]
+
+    if signature != b'PE\0\0':
+      return None
+    # ImageBase is 4 bytes at offset 28 in PE32, 8 bytes at offset 24 in PE32+.
+    magic = struct.unpack_from('<H', optional_header)[0]
+    image_base_format = {0x10b: '<28xI', 0x20b: '<24xQ'}[magic]
+    image_base = struct.unpack_from(image_base_format, optional_header)[0]
+    size_of_image = struct.unpack_from('<56xI', optional_header)[0]
+    return image_base, size_of_image
+  except (OSError, ValueError, KeyError, struct.error):
+    # The file is missing, unreadable, truncated or not a PE file.
+    return None
+
+
+def add_pe_image_base_if_missing(binary, offset):
+  """Returns |offset| in the PE file |binary|, with ImageBase added if it is
+  missing.
+
+  llvm-symbolizer expects ImageBase + RVA rather than a plain RVA. The
+  sanitizer runtime reads ImageBase from the module on disk at crash time,
+  which fails in tightly sandboxed processes (e.g. Chrome renderers). In that
+  case it reports the plain RVA, which llvm-symbolizer can't symbolize.
+  """
+  image_base_and_size = get_pe_image_base_and_size(binary)
+  if not image_base_and_size:
+    return offset
+
+  # An offset that includes ImageBase is in
+  # [ImageBase, ImageBase + SizeOfImage), and a plain RVA is in
+  # [0, SizeOfImage). These don't overlap when ImageBase >= SizeOfImage, so an
+  # offset in the latter range is unambiguously a plain RVA.
+  image_base, size_of_image = image_base_and_size
+  offset_value = int(offset, 16)
+  if image_base >= size_of_image and offset_value < size_of_image:
+    return '0x%x' % (image_base + offset_value)
+
+  return offset
 
 
 class LineBuffered:
@@ -307,8 +358,10 @@ class LLVMSymbolizer(Symbolizer):
       return ['%s in' % addr]
 
     result = []
+    if self.system == 'win32':
+      offset = add_pe_image_base_if_missing(binary, offset)
+    symbolizer_input = '"%s" %s' % (binary, offset)
     try:
-      symbolizer_input = '"%s" %s' % (binary, offset)
       self.pipe.stdin.write(symbolizer_input.encode('utf-8') + b'\n')
       self.pipe.stdin.flush()
       while True:
