@@ -240,9 +240,10 @@ def task_loop():
       stacktrace = traceback.format_exc()
 
     if exception_occurred:
-      # Prevent looping too quickly. See: crbug.com/644830
-      failure_wait_interval = environment.get_value('FAIL_WAIT')
-      time.sleep(utils.random_number(1, failure_wait_interval))
+      if not clean_exit:
+        # Prevent looping too quickly. See: crbug.com/644830
+        failure_wait_interval = environment.get_value('FAIL_WAIT')
+        time.sleep(utils.random_number(1, failure_wait_interval))
       break
 
     execution_count += 1
@@ -373,6 +374,7 @@ if __name__ == '__main__':
   multiprocessing.set_start_method('spawn')
 
   try:
+    environment.set_bot_environment()
     with monitor.wrap_with_monitoring(), ndb_init.context():
       main()
     exit_code = 0

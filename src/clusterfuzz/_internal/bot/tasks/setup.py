@@ -504,8 +504,8 @@ def update_data_bundle(
         f'{data_bundle.name}, and the fuzzer is configured with '
         f'{fuzzer.data_bundle_name}. The Tworker failed to generate signed URLs'
         ' during preprocess.')
-  else:
-    logs.info(f'Setting up data bundle {data_bundle.name}.')
+    return False
+  logs.info(f'Setting up data bundle {data_bundle.name}.')
   data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
 
   if not _should_update_data_bundle(data_bundle, data_bundle_directory):
