@@ -21,13 +21,6 @@ from clusterfuzz._internal.system import environment
 from . import constants
 
 
-def _should_download_symbols():
-  """Return True if we should continue to download symbols."""
-  # For local testing, we do not have access to the cloud storage bucket with
-  # the symbols. In this case, just bail out.
-  return not environment.get_value('LOCAL_DEVELOPMENT')
-
-
 def get_kernel_prefix_and_full_hash(build_id):
   """Download repo.prop and return the full hash and prefix."""
   android_kernel_repo_data = _get_repo_prop_data(build_id,
@@ -50,19 +43,10 @@ def _get_repo_prop_data(build_id, fuzz_target):
       build_id, fuzz_target)
 
   # Grab repo.prop, it is not on the device nor in the build_dir.
-  _download_kernel_repo_prop_if_needed(symbols_directory, build_id, fuzz_target)
+  symbols_downloader.download_repo_prop_if_needed(
+      symbols_directory, build_id, fuzz_target, [fuzz_target], 'lkl_fuzzer')
   local_repo_path = utils.find_binary_path(symbols_directory, repro_filename)
   if local_repo_path and os.path.exists(local_repo_path):
     return utils.read_data_from_file(local_repo_path, eval_data=False).decode()
 
   return None
-
-
-def _download_kernel_repo_prop_if_needed(symbols_directory, build_id,
-                                         fuzz_target):
-  """Downloads the repo.prop for an LKL fuzzer"""
-  if not _should_download_symbols():
-    return
-
-  symbols_downloader.download_repo_prop_if_needed(
-      symbols_directory, build_id, fuzz_target, [fuzz_target], 'lkl_fuzzer')
