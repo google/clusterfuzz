@@ -791,11 +791,14 @@ class TestcaseRunner:
       logs.info('Crash stacktrace does not match original stacktrace.')
 
     logs.info('Didn\'t crash at all.')
+    last_return_code = crash_result.return_code if crash_result else 0
+    last_output = crash_result.output if crash_result else ''
     return CrashResult(
         return_code=0,
         crash_time=0,
-        output=crash_result.output,
-        unexpected_crash=unexpected_crash)
+        output=last_output,
+        unexpected_crash=unexpected_crash,
+        raw_return_code=last_return_code)
 
   def test_reproduce_reliability(self, retries, expected_state,
                                  expected_security_flag) -> bool:

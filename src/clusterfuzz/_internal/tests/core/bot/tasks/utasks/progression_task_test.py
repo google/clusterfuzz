@@ -71,6 +71,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     ])
     helpers.patch_environ(self)
     os.environ['APP_NAME'] = 'app_name'
+    os.environ['CONFIG_DIR_OVERRIDE'] = './configs/test'
 
   def test_error_on_failed_setup(self):
     """Ensure that we throw an exception if we fail to set up a build."""
@@ -105,12 +106,15 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 
   def test_no_crash(self):
     """Tests _testcase_reproduces_in_revision behaviour with no crash or error."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
     build_data = uworker_msg_pb2.BuildData(
         revision=1,
         is_bad_build=False,
         should_ignore_crash_result=False,
         build_run_console_output='')
     self.mock.check_for_bad_build.return_value = build_data
+    self.mock.test_for_crash_with_retries.return_value = CrashResult(0, 0, '')
     testcase = data_types.Testcase()
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
@@ -119,6 +123,180 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     self.assertIsNotNone(result)
     self.assertEqual(len(progression_task_output.build_data_list), 1)
     self.assertEqual(progression_task_output.build_data_list[0], build_data)
+
+  def test_exit_127_missing_shared_library_treated_as_bad_build(self):
+    """Ensures exit 126/127 or missing .so aborts as PROGRESSION_BAD_BUILD."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
+    build_data = uworker_msg_pb2.BuildData(
+        revision=42,
+        is_bad_build=False,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
+    self.mock.check_for_bad_build.return_value = build_data
+    self.mock.test_for_crash_with_retries.return_value = CrashResult(
+        127, 0.1,
+        '/out/fuzzer: error while loading shared libraries: libssl.so.1.1: '
+        'cannot open shared object file: No such file or directory')
+    testcase = data_types.Testcase()
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    with mock.patch(
+        'clusterfuzz._internal.metrics.logs.warning') as mock_warn, mock.patch(
+            'clusterfuzz._internal.metrics.logs.error') as mock_err:
+      result, worker_output = (
+          progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+              testcase, '/tmp/blah', 'job_type', 42, None,
+              progression_task_output))
+    mock_warn.assert_called_once()
+    mock_err.assert_not_called()
+    self.assertIsNone(result)
+    self.assertIsNotNone(worker_output)
+    self.assertEqual(worker_output.error_type,
+                     uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
+    self.assertFalse(progression_task_output.build_data_list[0].is_bad_build)
+    self.assertTrue(
+        progression_task_output.build_data_list[0].should_ignore_crash_result)
+
+  def test_glibc_symbol_mismatch_with_zero_return_code_treated_as_bad_build(
+      self):
+    """Ensures ABI errors abort even after reproduce_with_retries sets 0."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
+    build_data = uworker_msg_pb2.BuildData(
+        revision=43,
+        is_bad_build=False,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
+    self.mock.check_for_bad_build.return_value = build_data
+    self.mock.test_for_crash_with_retries.return_value = CrashResult(
+        0,
+        0,
+        '/out/fuzzer: /lib/x86_64-linux-gnu/libc.so.6: '
+        "version `GLIBC_2.38' not found (required by /out/fuzzer)",
+        raw_return_code=1)
+    testcase = data_types.Testcase()
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+        testcase, '/tmp/blah', 'job_type', 43, None, progression_task_output)
+    self.assertIsNone(result)
+    self.assertEqual(worker_output.error_type,
+                     uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
+    self.assertIn('code=1', worker_output.error_message)
+
+  def test_engine_fuzz_target_loader_error_does_not_mark_job_build_bad(self):
+    """Ensures single-target .so errors do not poison job-wide BuildMetadata."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
+    build_data = uworker_msg_pb2.BuildData(
+        revision=44,
+        is_bad_build=False,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
+    self.mock.check_for_bad_build.return_value = build_data
+    self.mock.test_for_crash_with_retries.return_value = CrashResult(
+        0,
+        0,
+        '/out/target_a: error while loading shared libraries: libfoo.so: '
+        'cannot open shared object file: No such file or directory',
+        raw_return_code=127)
+    testcase = data_types.Testcase()
+    fuzz_target = data_types.FuzzTarget(
+        engine='libFuzzer', project='proj', binary='target_a')
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+        testcase, '/tmp/blah', 'job_type', 44, fuzz_target,
+        progression_task_output)
+    self.assertIsNone(result)
+    self.assertEqual(worker_output.error_type,
+                     uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
+    self.assertIn('code=127', worker_output.error_message)
+    self.assertFalse(progression_task_output.build_data_list[0].is_bad_build)
+    self.assertTrue(
+        progression_task_output.build_data_list[0].should_ignore_crash_result)
+
+  def test_non_glibc_version_and_undefined_symbol_treated_as_bad_build(self):
+    """Ensures OPENSSL version tags and undefined symbols abort safely."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
+    for raw_code, stderr_line in (
+        (1, "/out/fuzzer: /lib/libcrypto.so.3: version `OPENSSL_3.2.0' "
+         'not found (required by /out/fuzzer)'),
+        (127,
+         '/out/fuzzer: symbol lookup error: /out/fuzzer: undefined symbol: '
+         'foo_v2'),
+        (126, 'unshare: failed to execute /out/fuzzer: Permission denied'),
+        (127, 'No output!'),
+    ):
+      build_data = uworker_msg_pb2.BuildData(
+          revision=45, is_bad_build=False, should_ignore_crash_result=True)
+      self.mock.check_for_bad_build.return_value = build_data
+      self.mock.test_for_crash_with_retries.return_value = CrashResult(
+          0, 0, stderr_line, raw_return_code=raw_code)
+      progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+      result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+          data_types.Testcase(), '/tmp/blah', 'job_type', 45, None,
+          progression_task_output)
+      self.assertIsNone(result)
+      self.assertEqual(worker_output.error_type,
+                       uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
+
+  def test_benign_not_found_and_gui_none_return_code_not_false_positive(self):
+    """Ensures benign 'not found' logs, exit 0 runs, or None exit pass."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
+    for crash_result in (
+        CrashResult(
+            0,
+            0.1,
+            "requested version '2.0' not found\n"
+            'dlopen warning: cannot open shared object file',
+            raw_return_code=1),
+        CrashResult(
+            0,
+            0.1,
+            '/out/helper: error while loading shared libraries: libopt.so: '
+            'cannot open shared object file',
+            raw_return_code=0),
+        CrashResult(
+            None, 0,
+            '/out/helper: error while loading shared libraries: libopt.so: '
+            'cannot open shared object file'),
+    ):
+      build_data = uworker_msg_pb2.BuildData(
+          revision=46, is_bad_build=False, should_ignore_crash_result=True)
+      self.mock.check_for_bad_build.return_value = build_data
+      self.mock.test_for_crash_with_retries.return_value = crash_result
+      progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+      result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+          data_types.Testcase(), '/tmp/blah', 'job_type', 46, None,
+          progression_task_output)
+      self.assertIsNone(worker_output)
+      self.assertIs(result, crash_result)
+
+  def test_reproducing_crash_with_optional_dlopen_log_not_bad_build(self):
+    """Ensures reproducing crashes are preserved even with loader errors."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
+    stacktrace = (
+        '/out/helper: error while loading shared libraries: libopt.so: '
+        'cannot open shared object file: No such file or directory\n'
+        '==12==ERROR: AddressSanitizer: heap-buffer-overflow on address '
+        '0x602000000014 at pc 0x55a1234 bp 0x7ffd00 sp 0x7ffd08\n'
+        'READ of size 4 at 0x602000000014 thread T0\n'
+        '    #0 0x55a1233 in parse_frame /src/parser.c:42:9\n'
+        'SUMMARY: AddressSanitizer: heap-buffer-overflow /src/parser.c:42:9\n')
+    crash_result = CrashResult(1, 0.2, stacktrace)
+    build_data = uworker_msg_pb2.BuildData(
+        revision=47, is_bad_build=False, should_ignore_crash_result=False)
+    self.mock.check_for_bad_build.return_value = build_data
+    self.mock.test_for_crash_with_retries.return_value = crash_result
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+        data_types.Testcase(), '/tmp/blah', 'job_type', 47, None,
+        progression_task_output)
+    self.assertIsNone(worker_output)
+    self.assertIs(result, crash_result)
+    self.assertTrue(result.is_crash())
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -230,7 +408,29 @@ class UTaskPostprocessTest(unittest.TestCase):
       return progression_task.handle_progression_build_not_found(output)
     if output.error_type == uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX:
       return progression_task.handle_progression_bad_state_min_max(output)
+    if output.error_type == uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
+      return progression_task.handle_progression_bad_build(output)
     return None
+
+  def test_handling_bad_build_keeps_testcase_open_and_clears_pending(self):
+    """Tests PROGRESSION_BAD_BUILD keeps testcase open and clears pending."""
+    self.mock.handle.side_effect = self._error_handling_if_needed
+    self.testcase.set_metadata('progression_pending', True)
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self.uworker_input,
+        progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(),
+        error_message=(
+            'Target execution failed with loader error (code=127) at r200. '
+            'Skipping'),
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
+    progression_task.utask_postprocess(uworker_output)
+    updated_testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertTrue(updated_testcase.open)
+    self.assertEqual(updated_testcase.fixed, '')
+    self.assertFalse(bool(updated_testcase.get_metadata('progression_pending')))
+    self.mock.emit.assert_not_called()
+    self.assertIn('Unable to recover from bad build: Target execution failed',
+                  updated_testcase.comments)
 
   def test_error_handling_called_on_error(self):
     """Checks that an output with an error is handled properly."""
@@ -427,6 +627,30 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     self.assertFalse(result.progression_task_output.crash_on_latest)
     self.assertEqual(result.progression_task_output.crash_revision, 1234)
     self.assertEqual(result.progression_task_output.crash_on_latest_message, '')
+
+  def test_loader_failure_returns_bad_build(self):
+    """Tests _check_fixed_for_custom_binary aborts on loader failure."""
+    from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
+    crash_result = CrashResult(
+        0,
+        0,
+        '/out/custom: error while loading shared libraries: libfoo.so: '
+        'cannot open shared object file',
+        raw_return_code=127)
+    self.mock.test_for_crash_with_retries.return_value = crash_result
+    self.mock.is_crash.return_value = False
+    self.mock.get_stacktrace.return_value = ''
+    testcase = test_utils.create_generic_testcase()
+    with mock.patch(
+        'clusterfuzz._internal.metrics.logs.warning') as mock_warn, mock.patch(
+            'clusterfuzz._internal.metrics.logs.error') as mock_err:
+      result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
+          testcase, '/a/b/c', uworker_msg_pb2.Input())
+    mock_warn.assert_called_once()
+    mock_err.assert_not_called()
+    self.assertEqual(result.error_type,
+                     uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
+    self.assertIn('code=127', result.error_message)
 
 
 @test_utils.with_cloud_emulators('datastore')

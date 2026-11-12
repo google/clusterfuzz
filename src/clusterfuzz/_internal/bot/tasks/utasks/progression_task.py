@@ -14,6 +14,7 @@
 """Test to see if test cases are fixed."""
 
 import json
+import re
 import time
 from typing import List
 
@@ -39,6 +40,7 @@ from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
+from clusterfuzz.stacktraces import constants as stacktrace_constants
 
 
 def _maybe_clear_progression_last_min_max_metadata(
@@ -230,7 +232,10 @@ def handle_progression_bad_build(uworker_output: uworker_msg_pb2.Output):  # pyl
   # reach this point.
   testcase_id = uworker_output.uworker_input.testcase_id
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  data_handler.clear_progression_pending(testcase)
   error_message = 'Unable to recover from bad build'
+  if uworker_output.error_message:
+    error_message = f'{error_message}: {uworker_output.error_message}'
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        error_message)
 
@@ -244,6 +249,39 @@ def _write_to_bigquery(testcase, progression_range_start,
       range_name='fixed',
       start=progression_range_start,
       end=progression_range_end)
+
+
+_FATAL_EXECUTION_RETURN_CODES = frozenset({126, 127})
+_ELF_VERSION_NOT_FOUND_REGEX = re.compile(
+    r": version [`'\"][A-Za-z0-9_.-]+[`'\"] not found \(required by ")
+_LINUX_SYMBOL_LOOKUP_ERROR_REGEX = re.compile(
+    r': symbol lookup error: .+: undefined symbol: ')
+_LOADER_FAILURE_REGEXES = (
+    stacktrace_constants.LIBRARY_NOT_FOUND_LINUX_REGEX,
+    stacktrace_constants.LIBRARY_NOT_FOUND_ANDROID_REGEX,
+    stacktrace_constants.SYMBOL_NOT_FOUND_REGEX,
+    _ELF_VERSION_NOT_FOUND_REGEX,
+    _LINUX_SYMBOL_LOOKUP_ERROR_REGEX,
+)
+
+
+def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
+  """Returns True if execution failed due to OS loader / library errors."""
+  if crash_result is None or not crash_result.raw_return_code:
+    return False
+
+  text = crash_result.output
+  has_loader_failure = (
+      crash_result.raw_return_code in _FATAL_EXECUTION_RETURN_CODES or
+      'unshare: failed to execute ' in text or
+      any(r.search(text) for r in _LOADER_FAILURE_REGEXES))
+  if not has_loader_failure:
+    return False
+
+  if crash_result.is_crash() and crash_result.get_type() != 'Missing-library':
+    return False
+
+  return True
 
 
 def _log_output(revision, crash_result):
@@ -279,6 +317,16 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
       test_timeout,
       http_flag=testcase.http_flag)
   _log_output(revision, result)
+
+  if _is_fatal_execution_or_linker_failure(result):
+    error_message = (f'Target execution failed with loader error '
+                     f'(code={result.raw_return_code}) on custom build '
+                     f'r{revision}.')
+    logs.warning(error_message)
+    return uworker_msg_pb2.Output(  # pylint: disable=no-member
+        progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(),  # pylint: disable=no-member
+        error_message=error_message,
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)  # pylint: disable=no-member
 
   # If this still crashes on the most recent build, it's not fixed. The task
   # will be rescheduled by a cron job and re-attempted eventually.
@@ -369,6 +417,17 @@ def _testcase_reproduces_in_revision(
       test_timeout,
       http_flag=testcase.http_flag)
   _log_output(revision, result)
+  if _is_fatal_execution_or_linker_failure(result):
+    progression_task_output.build_data_list[-1].should_ignore_crash_result = (
+        True)
+    error_message = (f'Target execution failed with loader error '
+                     f'(code={result.raw_return_code}) at r{revision}. '
+                     'Skipping')
+    logs.warning(error_message)
+    return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
+        progression_task_output=progression_task_output,
+        error_message=error_message,
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)  # pylint: disable=no-member
   return result, None
 
 

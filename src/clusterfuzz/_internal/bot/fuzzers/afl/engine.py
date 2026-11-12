@@ -112,6 +112,23 @@ class Engine(engine.Engine):
     return engine.FuzzResult(fuzzing_logs, command, crashes, stats_getter.stats,
                              time_executed)
 
+  @staticmethod
+  def _get_reproduce_output(runner, reproduce_result):
+    """Returns fuzzer stderr, falling back to process output on startup errors.
+
+    When execution fails before afl_driver creates stderr.out (for example,
+    exit 127 on a missing shared library, exit 1 on a symbol version mismatch,
+    or a crash in a pre-main initializer), stderr_file_path does not exist and
+    the failure output is only present in reproduce_result.output.
+    """
+    if runner.fuzzer_stderr or os.path.exists(runner.stderr_file_path):
+      return runner.fuzzer_stderr
+
+    if reproduce_result.return_code and reproduce_result.output:
+      return reproduce_result.output
+
+    return ''
+
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
 
@@ -136,7 +153,7 @@ class Engine(engine.Engine):
     command = reproduce_result.command
     return_code = reproduce_result.return_code
     time_executed = reproduce_result.time_executed
-    output = runner.fuzzer_stderr
+    output = self._get_reproduce_output(runner, reproduce_result)
 
     return engine.ReproduceResult(command, return_code, time_executed, output)
 

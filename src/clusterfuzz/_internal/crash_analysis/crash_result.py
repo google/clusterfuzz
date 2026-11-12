@@ -24,8 +24,15 @@ from clusterfuzz.stacktraces import CrashInfo
 class CrashResult:
   """Represents a crash result from a test run."""
 
-  def __init__(self, return_code, crash_time, output, unexpected_crash=False):
+  def __init__(self,
+               return_code,
+               crash_time,
+               output,
+               unexpected_crash=False,
+               raw_return_code=None):
     self.return_code = return_code
+    self.raw_return_code = (
+        return_code if raw_return_code is None else raw_return_code)
     self.crash_time = crash_time
     self.output = utils.decode_to_unicode(output) if output else 'No output!'
     # For crashes against an expected state, this indicates whether if there
