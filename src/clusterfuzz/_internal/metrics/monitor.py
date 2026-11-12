@@ -665,10 +665,6 @@ class TimeMetricTracker:
     self.failed = True
 
 
-class TimeStatTrackerFailureException(Exception):
-  pass
-
-
 class TimeStatTracker:
   """Reusable context manager to keep track of time stats.
 
@@ -704,16 +700,19 @@ class TimeStatTracker:
   def track(self, name: str):
     """Tracks the stat named |name|.
 
-    Any raised exception is treated as a failure and re-raised, except for
-    TimeStatTrackerFailureException, which marks the step as failed without
-    propagating.
+    Yields a callable that, when invoked, marks the step as failed without
+    interrupting the block. Any raised exception is also treated as a failure
+    and re-raised.
     """
     start = time.time()
     success = True
-    try:
-      yield
-    except TimeStatTrackerFailureException:
+
+    def _tracker_fail():
+      nonlocal success
       success = False
+
+    try:
+      yield _tracker_fail
     except:
       success = False
       raise

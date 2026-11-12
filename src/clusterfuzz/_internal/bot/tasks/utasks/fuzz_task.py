@@ -2129,7 +2129,7 @@ class FuzzingSession:
   def run(self):
     """Run the fuzzing session."""
     start_time = time.time()
-    with self.steps_time_tracker.track('fuzzer_setup'):
+    with self.steps_time_tracker.track('fuzzer_setup') as tracker_fail:
       # Update LSAN local blacklist with global blacklist.
       global_blacklisted_functions = (
           self.uworker_input.fuzz_task_input.global_blacklisted_functions)
@@ -2141,18 +2141,17 @@ class FuzzingSession:
       logs.info('Setting up fuzzer and data bundles.')
       self.fuzzer = setup.update_fuzzer_and_data_bundles(
           self.uworker_input.setup_input)
+
       if not self.fuzzer:
-        raise monitor.TimeStatTrackerFailureException
+        logs.error(f'Unable to setup fuzzer {self.fuzzer_name}.')
+        tracker_fail()
 
-    if not self.fuzzer:
-      logs.error(f'Unable to setup fuzzer {self.fuzzer_name}.')
-
-      # Artificial sleep to slow down continuous failed fuzzer runs if the bot
-      # is using command override for task execution.
-      failure_wait_interval = environment.get_value('FAIL_WAIT')
-      time.sleep(failure_wait_interval)
-      return uworker_msg_pb2.Output(  # pylint: disable=no-member
-          error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
+        # Artificial sleep to slow down continuous failed fuzzer runs if the bot
+        # is using command override for task execution.
+        failure_wait_interval = environment.get_value('FAIL_WAIT')
+        time.sleep(failure_wait_interval)
+        return uworker_msg_pb2.Output(  # pylint: disable=no-member
+            error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)  # pylint: disable=no-member
     uworker_io.check_running_fuzzer_safe(self.fuzzer)
 
     # Update the session's test_timeout to use the fuzzer's timeout (if any).
@@ -2166,11 +2165,11 @@ class FuzzingSession:
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
     fuzz_target = self.fuzz_target.binary if self.fuzz_target else None
-    with self.steps_time_tracker.track('build_setup'):
+    with self.steps_time_tracker.track('build_setup') as tracker_fail:
       build_setup_result = build_manager.setup_build(
           environment.get_value('APP_REVISION'), fuzz_target=fuzz_target)
       if not build_setup_result:
-        raise monitor.TimeStatTrackerFailureException
+        tracker_fail()
     _add_build_metadata_to_output(self.fuzz_task_output)
 
     engine_impl = engine.get(self.fuzzer.name)
