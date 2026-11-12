@@ -843,6 +843,8 @@ class AflEngineReproduceLoaderOutputTest(LauncherTestBase):
     ):
       fake_runner = mock.Mock()
       fake_runner.executable_path = target_path
+      fake_runner.stderr_file_path = os.path.join(self.TEMP_DIR,
+                                                  'missing_stderr.out')
       fake_runner.fuzzer_stderr = ''
       fake_runner.run_single_testcase.return_value = new_process.ProcessResult(
           command=[target_path, input_path],
@@ -856,23 +858,32 @@ class AflEngineReproduceLoaderOutputTest(LauncherTestBase):
       self.assertEqual(res.return_code, exit_code)
       self.assertEqual(res.output, loader_err)
 
-  def test_keeps_empty_output_on_clean_zero_exit(self):
-    """Clean exit 0 does not leak arbitrary stdout when fuzzer_stderr empty."""
+  def test_keeps_empty_output_when_afl_driver_created_stderr_or_clean_exit(
+      self):
+    """Existing AFL runs where stderr.out exists or exit is 0 do not change."""
     from clusterfuzz._internal.bot.fuzzers.afl import engine as afl_engine
     engine_impl = afl_engine.Engine()
     target_path = os.path.join(self.BUILD_DIR, 'target')
     input_path = os.path.join(self.INPUT_DIR, 'testcase')
-    fake_runner = mock.Mock()
-    fake_runner.executable_path = target_path
-    fake_runner.fuzzer_stderr = ''
-    fake_runner.run_single_testcase.return_value = new_process.ProcessResult(
-        command=[target_path, input_path],
-        return_code=0,
-        output='Running command: ...',
-        time_executed=0.01)
-    with mock.patch(
-        'clusterfuzz._internal.bot.fuzzers.afl.launcher.prepare_runner',
-        return_value=fake_runner):
-      res = engine_impl.reproduce(target_path, input_path, [], 5)
-    self.assertEqual(res.return_code, 0)
-    self.assertEqual(res.output, '')
+
+    self._create_file('stderr.out', directory=self.TEMP_DIR, contents='')
+    created_stderr = os.path.join(self.TEMP_DIR, 'stderr.out')
+    for return_code, stderr_path in (
+        (0, os.path.join(self.TEMP_DIR, 'missing_stderr.out')),
+        (-6, created_stderr),
+    ):
+      fake_runner = mock.Mock()
+      fake_runner.executable_path = target_path
+      fake_runner.stderr_file_path = stderr_path
+      fake_runner.fuzzer_stderr = ''
+      fake_runner.run_single_testcase.return_value = new_process.ProcessResult(
+          command=[target_path, input_path],
+          return_code=return_code,
+          output='FATAL ERROR: stdout log that must not alter crash_state',
+          time_executed=0.01)
+      with mock.patch(
+          'clusterfuzz._internal.bot.fuzzers.afl.launcher.prepare_runner',
+          return_value=fake_runner):
+        res = engine_impl.reproduce(target_path, input_path, [], 5)
+      self.assertEqual(res.return_code, return_code)
+      self.assertEqual(res.output, '')

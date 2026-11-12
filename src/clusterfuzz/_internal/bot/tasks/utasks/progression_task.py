@@ -258,42 +258,20 @@ _LINUX_SYMBOL_LOOKUP_ERROR_REGEX = re.compile(
     r': symbol lookup error: .+: undefined symbol: ')
 
 
-def _get_effective_return_code(crash_result):
-  """Returns the underlying process exit code prior to retry normalization."""
-  for attr in ('raw_return_code', 'return_code'):
-    code = getattr(crash_result, attr, None)
-    if isinstance(code, int) and not isinstance(code, bool):
-      return code
-  return None
-
-
 def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
   """Returns True if execution failed due to OS loader / library errors."""
-  if crash_result is None:
+  if crash_result is None or not crash_result.raw_return_code:
     return False
 
-  effective_code = _get_effective_return_code(crash_result)
-  if not effective_code:
-    return False
-
-  has_loader_failure = effective_code in _FATAL_EXECUTION_RETURN_CODES
-  if not has_loader_failure:
-    candidate_outputs = [getattr(crash_result, 'output', None)]
-    if hasattr(crash_result, 'get_stacktrace'):
-      candidate_outputs.append(crash_result.get_stacktrace(symbolized=False))
-
-    for text in candidate_outputs:
-      if not isinstance(text, str) or not text:
-        continue
-      if (stacktrace_constants.LIBRARY_NOT_FOUND_LINUX_REGEX.search(text) or
-          stacktrace_constants.LIBRARY_NOT_FOUND_ANDROID_REGEX.search(text) or
-          stacktrace_constants.SYMBOL_NOT_FOUND_REGEX.search(text) or
-          _ELF_VERSION_NOT_FOUND_REGEX.search(text) or
-          _LINUX_SYMBOL_LOOKUP_ERROR_REGEX.search(text) or
-          'unshare: failed to execute ' in text):
-        has_loader_failure = True
-        break
-
+  text = crash_result.output
+  has_loader_failure = (
+      crash_result.raw_return_code in _FATAL_EXECUTION_RETURN_CODES or
+      bool(stacktrace_constants.LIBRARY_NOT_FOUND_LINUX_REGEX.search(text)) or
+      bool(stacktrace_constants.LIBRARY_NOT_FOUND_ANDROID_REGEX.search(text)) or
+      bool(stacktrace_constants.SYMBOL_NOT_FOUND_REGEX.search(text)) or
+      bool(_ELF_VERSION_NOT_FOUND_REGEX.search(text)) or
+      bool(_LINUX_SYMBOL_LOOKUP_ERROR_REGEX.search(text)) or
+      'unshare: failed to execute ' in text)
   if not has_loader_failure:
     return False
 
@@ -338,9 +316,9 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
   _log_output(revision, result)
 
   if _is_fatal_execution_or_linker_failure(result):
-    effective_code = _get_effective_return_code(result)
     error_message = (f'Target execution failed with loader error '
-                     f'(code={effective_code}) on custom build r{revision}.')
+                     f'(code={result.raw_return_code}) on custom build '
+                     f'r{revision}.')
     logs.error(error_message)
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
         progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(),  # pylint: disable=no-member
@@ -437,11 +415,11 @@ def _testcase_reproduces_in_revision(
       http_flag=testcase.http_flag)
   _log_output(revision, result)
   if _is_fatal_execution_or_linker_failure(result):
-    if fuzz_target is None:
-      progression_task_output.build_data_list[-1].is_bad_build = True
-    effective_code = _get_effective_return_code(result)
+    progression_task_output.build_data_list[-1].should_ignore_crash_result = (
+        True)
     error_message = (f'Target execution failed with loader error '
-                     f'(code={effective_code}) at r{revision}. Skipping')
+                     f'(code={result.raw_return_code}) at r{revision}. '
+                     'Skipping')
     logs.error(error_message)
     return None, uworker_msg_pb2.Output(  # pylint: disable=no-member
         progression_task_output=progression_task_output,

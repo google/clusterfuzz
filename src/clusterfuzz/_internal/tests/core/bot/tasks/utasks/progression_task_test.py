@@ -106,12 +106,15 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 
   def test_no_crash(self):
     """Tests _testcase_reproduces_in_revision behaviour with no crash or error."""
+    from clusterfuzz._internal.crash_analysis.crash_result import \
+        CrashResult  # pylint: disable=import-outside-toplevel
     build_data = uworker_msg_pb2.BuildData(
         revision=1,
         is_bad_build=False,
         should_ignore_crash_result=False,
         build_run_console_output='')
     self.mock.check_for_bad_build.return_value = build_data
+    self.mock.test_for_crash_with_retries.return_value = CrashResult(0, 0, '')
     testcase = data_types.Testcase()
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
@@ -143,7 +146,9 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     self.assertIsNotNone(worker_output)
     self.assertEqual(worker_output.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
-    self.assertTrue(progression_task_output.build_data_list[0].is_bad_build)
+    self.assertFalse(progression_task_output.build_data_list[0].is_bad_build)
+    self.assertTrue(
+        progression_task_output.build_data_list[0].should_ignore_crash_result)
 
   def test_glibc_symbol_mismatch_with_zero_return_code_treated_as_bad_build(
       self):
@@ -199,6 +204,8 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
     self.assertIn('code=127', worker_output.error_message)
     self.assertFalse(progression_task_output.build_data_list[0].is_bad_build)
+    self.assertTrue(
+        progression_task_output.build_data_list[0].should_ignore_crash_result)
 
   def test_non_glibc_version_and_undefined_symbol_treated_as_bad_build(self):
     """Ensures OPENSSL version tags and undefined symbols abort safely."""
@@ -243,7 +250,10 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
             '/out/helper: error while loading shared libraries: libopt.so: '
             'cannot open shared object file',
             raw_return_code=0),
-        CrashResult(0, 0, '', raw_return_code=None),
+        CrashResult(
+            None, 0,
+            '/out/helper: error while loading shared libraries: libopt.so: '
+            'cannot open shared object file'),
     ):
       build_data = uworker_msg_pb2.BuildData(
           revision=46, is_bad_build=False, should_ignore_crash_result=True)
