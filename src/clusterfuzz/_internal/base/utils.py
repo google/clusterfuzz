@@ -103,7 +103,7 @@ def decode_to_unicode(obj):
   if not hasattr(obj, 'decode'):
     return obj
 
-  return obj.decode('utf-8', errors='ignore')
+  return obj.decode('utf-8', errors='replace')
 
 
 def encode_as_unicode(obj):
