@@ -14,6 +14,7 @@
 """Tests for the stack symbolizer module."""
 
 import os
+import tempfile
 import unittest
 from unittest import mock
 
@@ -469,15 +470,152 @@ class ProcessTrustyStacktraceTest(unittest.TestCase):
                      self.loop.process_trusty_stacktrace(stacktrace))
     self.mock.download_trusty_symbols_if_needed.assert_not_called()
 
-  def test_early_return_on_uworker_without_symbols_dir(self):
-    """Tests that we avoid processing the Trusty stacktrace and downloading symbols when on a uworker without a SYMBOLS_DIR (even if both trusty_app and trusty_bid are present)."""
-    self.mock.is_uworker.return_value = True
-    self.mock.get_value.return_value = None
 
-    stacktrace = '(app: keymaster), Build: 1234567, Built:\n#0 0x1234'
-    self.assertEqual(stacktrace,
-                     self.loop.process_trusty_stacktrace(stacktrace))
-    self.mock.download_trusty_symbols_if_needed.assert_not_called()
+class ProcessTrustyStacktraceSymbolsTest(unittest.TestCase):
+  """Tests Trusted App stacktrace symbolization when symbols are local,
+  downloaded, or unavailable."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.Addr2LineSymbolizer',
+        ('fetch_artifact_get',
+         'clusterfuzz._internal.platforms.android.fetch_artifact.get'),
+        'clusterfuzz._internal.platforms.android.settings.get_build_parameters',
+    ])
+    temp_dir = tempfile.TemporaryDirectory()
+    self.addCleanup(temp_dir.cleanup)
+    self.symbols_dir = temp_dir.name
+
+  def test_uworker_without_bundled_symbols(self):
+    """Verifies that untrusted workers leave the stacktrace unsymbolized and
+    keep existing local files intact when Trusty symbols are absent."""
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ['UWORKER'] = 'True'
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
+    placeholder = os.path.join(self.symbols_dir, 'README.md')
+    with open(placeholder, 'wb'):
+      pass
+
+    stacktrace = (
+        'panic notifier - trusty version Project: cloudripper-fuzz-test-debug, '
+        'Build: 1234567, Built: 10:17:59 Dec 30 2022\n'
+        '(app: keymaster)\n'
+        'kSP+0x0df0: 0xffff000000022f5c\n'
+        'uSP+0x06f0: 0x000000000001da10\n')
+    loop = stack_symbolizer.SymbolizationLoop()
+
+    actual = loop.process_trusty_stacktrace(stacktrace)
+
+    self.assertEqual(stacktrace, actual)
+    self.assertTrue(os.path.exists(placeholder))
+    self.mock.fetch_artifact_get.assert_not_called()
+    self.mock.Addr2LineSymbolizer.assert_not_called()
+
+  def test_uworker_with_bundled_symbols(self):
+    """Verifies that untrusted workers symbolize kernel and app frames using
+    locally available symbols without attempting remote downloads."""
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ['UWORKER'] = 'True'
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
+    kernel_binary = os.path.join(self.symbols_dir, 'lk.elf')
+    trusty_binary = os.path.join(self.symbols_dir, 'keymaster.syms.elf')
+    with open(kernel_binary, 'wb'):
+      pass
+    with open(trusty_binary, 'wb'):
+      pass
+
+    self.mock.Addr2LineSymbolizer.return_value.symbolize.side_effect = (
+        lambda _addr, binary, _offset: [
+            'kernel_frame' if binary == kernel_binary else 'trusty_app_frame'
+        ])
+
+    stacktrace = (
+        'panic notifier - trusty version Project: cloudripper-fuzz-test-debug, '
+        'Build: 1234567, Built: 10:17:59 Dec 30 2022\n'
+        '(app: keymaster)\n'
+        'kSP+0x0df0: 0xffff000000022f5c\n'
+        'uSP+0x06f0: 0x000000000001da10\n')
+    expected = (
+        'panic notifier - trusty version Project: cloudripper-fuzz-test-debug, '
+        'Build: 1234567, Built: 10:17:59 Dec 30 2022\n'
+        '(app: keymaster)\n'
+        'kSP+0x0df0: kernel_frame\n'
+        'uSP+0x06f0: trusty_app_frame\n')
+    loop = stack_symbolizer.SymbolizationLoop()
+
+    actual = loop.process_trusty_stacktrace(stacktrace)
+
+    self.assertEqual(expected, actual)
+    self.assertTrue(os.path.exists(kernel_binary))
+    self.assertTrue(os.path.exists(trusty_binary))
+    self.mock.fetch_artifact_get.assert_not_called()
+
+  def test_regular_bot_downloads_symbols(self):
+    """Verifies that regular bots download the Trusty symbols and symbolize
+    both kernel and app frames."""
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ.pop('UWORKER', None)
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
+    kernel_binary = os.path.join(self.symbols_dir, 'lk.elf')
+    trusty_binary = os.path.join(self.symbols_dir, 'keymaster.syms.elf')
+
+    def create_downloaded_symbols(*_args, **_kwargs):
+      with open(kernel_binary, 'wb'):
+        pass
+      with open(trusty_binary, 'wb'):
+        pass
+
+    with mock.patch.object(
+        stack_symbolizer.symbols_downloader,
+        'download_trusty_symbols_if_needed',
+        side_effect=create_downloaded_symbols) as mock_download:
+      self.mock.Addr2LineSymbolizer.return_value.symbolize.side_effect = (
+          lambda _addr, binary, _offset: [
+              'kernel_frame' if binary == kernel_binary else 'trusty_app_frame'
+          ])
+
+      stacktrace = (
+          'panic notifier - trusty version Project: cloudripper-fuzz-test-debug, '
+          'Build: 1234567, Built: 10:17:59 Dec 30 2022\n'
+          '(app: keymaster)\n'
+          'kSP+0x0df0: 0xffff000000022f5c\n'
+          'uSP+0x06f0: 0x000000000001da10\n')
+      expected = (
+          'panic notifier - trusty version Project: cloudripper-fuzz-test-debug, '
+          'Build: 1234567, Built: 10:17:59 Dec 30 2022\n'
+          '(app: keymaster)\n'
+          'kSP+0x0df0: kernel_frame\n'
+          'uSP+0x06f0: trusty_app_frame\n')
+      loop = stack_symbolizer.SymbolizationLoop()
+
+      actual = loop.process_trusty_stacktrace(stacktrace)
+
+      self.assertEqual(expected, actual)
+      mock_download.assert_called_once_with(self.symbols_dir, 'keymaster',
+                                            '1234567')
+
+  def test_regular_bot_without_downloaded_symbols(self):
+    """Verifies that regular bots return the original stacktrace untouched when
+    symbol download fails."""
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ.pop('UWORKER', None)
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
+    self.mock.get_build_parameters.return_value = {'target': 'cheetah'}
+
+    stacktrace = (
+        'panic notifier - trusty version Project: cloudripper-fuzz-test-debug, '
+        'Build: 1234567, Built: 10:17:59 Dec 30 2022\n'
+        '(app: keymaster)\n'
+        'kSP+0x0df0: 0xffff000000022f5c\n'
+        'uSP+0x06f0: 0x000000000001da10\n')
+    loop = stack_symbolizer.SymbolizationLoop()
+
+    actual = loop.process_trusty_stacktrace(stacktrace)
+
+    self.assertEqual(stacktrace, actual)
+    self.mock.fetch_artifact_get.assert_called_once()
+    self.mock.Addr2LineSymbolizer.assert_not_called()
 
 
 class SymbolizeStacktraceChainTest(unittest.TestCase):
