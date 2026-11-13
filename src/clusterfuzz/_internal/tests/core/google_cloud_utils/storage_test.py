@@ -14,6 +14,7 @@
 """Storage tests."""
 import datetime
 import os
+import threading
 import unittest
 from unittest import mock
 import urllib.parse
@@ -659,3 +660,78 @@ class GetRelativePathFromSignedUrlTest(unittest.TestCase):
           storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
               url, 'gs://b')
         self.assertNotIn('X-Goog-Signature', str(ctx.exception))
+
+
+class SignedUrlSessionTest(unittest.TestCase):
+  """Tests for the requests.Session shared by signed URL operations."""
+
+  def setUp(self):
+    self._reset_session()
+    self.addCleanup(self._reset_session)
+
+    patcher = mock.patch.object(
+        storage,
+        '_integration_test_env_doesnt_support_signed_urls',
+        return_value=False)
+    patcher.start()
+    self.addCleanup(patcher.stop)
+
+  @staticmethod
+  def _reset_session():
+    """Drops the session cached for the current thread, if any."""
+    for name in ('signed_url_session', 'signed_url_session_pid'):
+      if hasattr(storage._local, name):  # pylint: disable=protected-access
+        delattr(storage._local, name)  # pylint: disable=protected-access
+
+  @staticmethod
+  def _session():
+    return storage._signed_url_session()  # pylint: disable=protected-access
+
+  def test_operations_reuse_one_session(self):
+    """Downloads, uploads and deletes all reuse a single session."""
+    # Bare requests.get/put/delete are mocked too, so a call site that stops
+    # using the session fails the assertions below instead of reaching the
+    # network.
+    with mock.patch.multiple(
+        storage.requests,
+        Session=mock.DEFAULT,
+        get=mock.DEFAULT,
+        put=mock.DEFAULT,
+        delete=mock.DEFAULT) as mocks:
+      session = mocks['Session'].return_value
+      session.get.return_value.ok = True
+      session.get.return_value.content = b'data'
+      provider = storage.GcsProvider()
+
+      provider.download_signed_url('https://signed/a')
+      provider.download_signed_url('https://signed/b')
+      provider.upload_signed_url(b'data', 'https://signed/c')
+      provider.delete_signed_url('https://signed/d')
+
+    mocks['Session'].assert_called_once_with()
+    self.assertEqual(session.get.call_count, 2)
+    session.put.assert_called_once()
+    session.delete.assert_called_once()
+
+  def test_new_session_per_thread(self):
+    """Each thread gets its own session."""
+    other_thread_sessions = []
+
+    def record_session():
+      other_thread_sessions.append(self._session())
+
+    thread = threading.Thread(target=record_session)
+    thread.start()
+    thread.join()
+
+    self.assertEqual(len(other_thread_sessions), 1)
+    self.assertIsNot(other_thread_sessions[0], self._session())
+
+  def test_new_session_after_fork(self):
+    """A process that inherited its parent's session creates its own."""
+    parent_session = self._session()
+
+    with mock.patch.object(storage.os, 'getpid', return_value=os.getpid() + 1):
+      child_session = self._session()
+      self.assertIsNot(child_session, parent_session)
+      self.assertIs(self._session(), child_session)
