@@ -71,6 +71,11 @@ _STEPS_DURATION_FIELDS = [
         'type': 'INTERVAL',
         'mode': 'NULLABLE',
     },
+    {
+        'name': 'bad_build_check',
+        'type': 'INTERVAL',
+        'mode': 'NULLABLE',
+    },
 ]
 JOB_RUN_SCHEMA = {
     'fields': [
