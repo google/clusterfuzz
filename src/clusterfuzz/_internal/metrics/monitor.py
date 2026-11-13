@@ -19,6 +19,7 @@
 import bisect
 import collections
 import contextlib
+import dataclasses
 import datetime
 import functools
 import itertools
@@ -665,6 +666,14 @@ class TimeMetricTracker:
     self.failed = True
 
 
+@dataclasses.dataclass
+class _StepTracker:
+  success: bool = True
+
+  def fail(self):
+    self.success = False
+
+
 class TimeStatTracker:
   """Reusable context manager to keep track of time stats.
 
@@ -700,21 +709,17 @@ class TimeStatTracker:
   def track(self, name: str):
     """Tracks the stat named |name|.
 
-    Yields a callable that, when invoked, marks the step as failed without
-    interrupting the block. Any raised exception is also treated as a failure
-    and re-raised.
+    Yields a step tracker whose fail() method, when invoked, marks the step as
+    failed without interrupting the block. Any raised exception is also treated
+    as a failure and re-raised.
     """
     start = time.time()
-    success = True
-
-    def _tracker_fail():
-      nonlocal success
-      success = False
+    step = _StepTracker()
 
     try:
-      yield _tracker_fail
+      yield step
     except:
-      success = False
+      step.fail()
       raise
     finally:
       duration_secs = time.time() - start
@@ -728,7 +733,7 @@ class TimeStatTracker:
             duration_secs,
             labels={
                 **self.common_labels, 'step': name,
-                'success': success
+                'success': step.success
             })
 
 

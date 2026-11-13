@@ -518,12 +518,12 @@ class TimeStatTrackerTest(unittest.TestCase):
     self.assertEqual(1, dist.count)
     self.assertAlmostEqual(4.5, dist.sum)
 
-  def test_track_failure_function(self):
-    """Test if tracker_fail marks failure."""
+  def test_track_step_fail(self):
+    """Test if step.fail() marks failure."""
     tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
-    with tracker.track('step_1') as tracker_fail:
+    with tracker.track('step_1') as step:
       self.mock_time.advance(3.2)
-      tracker_fail()
+      step.fail()
 
     self.assertEqual({'step_1': datetime.timedelta(seconds=3.2)}, tracker.stats)
     dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': False})
