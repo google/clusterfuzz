@@ -203,8 +203,10 @@ RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
 RUST_ASSERT_REGEX = re.compile(r'thread\s.*\spanicked at \'([^\']*)',
                                re.IGNORECASE)
-SAN_ABRT_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ABRT ')
-SAN_BREAKPOINT_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: breakpoint ')
+# Match a single letter before 'Sanitizer' since greedy '.*' already consumes
+# any preceding letters; '.*[a-zA-Z]+' causes O(N^2) backtracking on long lines.
+SAN_ABRT_REGEX = re.compile(r'.*[a-zA-Z]Sanitizer: ABRT ')
+SAN_BREAKPOINT_REGEX = re.compile(r'.*[a-zA-Z]Sanitizer: breakpoint ')
 SAN_CHECK_FAILURE_REGEX = re.compile(
     r'.*Sanitizer CHECK failed[:]\s*[^ ]*\s*(.*)')
 SAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
@@ -217,9 +219,9 @@ CONCATENATED_SAN_DEADLYSIGNAL_REGEX = re.compile(
     r'\n(?=.*Sanitizer\:DEADLYSIGNAL.*)([^\n]*\S[^\n]*)(' +
     SAN_DEADLYSIGNAL_REGEX.pattern + r')\n')
 SPLIT_CONCATENATED_SAN_DEADLYSIGNAL_REGEX = r'\n\1\n\2\n'
-SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: FPE ')
-SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ILL ')
-SAN_TRAP_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: TRAP ')
+SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]Sanitizer: FPE ')
+SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]Sanitizer: ILL ')
+SAN_TRAP_REGEX = re.compile(r'.*[a-zA-Z]Sanitizer: TRAP ')
 SAN_SEGV_CRASH_TYPE_REGEX = re.compile(
     r'.*The signal is caused by a ([A-Z]+) memory access.')
 # FIXME: Replace when better ways to check signal crashes are available.
@@ -249,7 +251,7 @@ SAN_STACK_FRAME_REGEX = re.compile(
     r')')
 SAN_ADDR_REGEX = re.compile(r'.*(ERROR: [a-zA-Z]+Sanitizer)[: ]*(.*) on '
                             r'(unknown address |address |)([xX0-9a-fA-F]+)')
-SAN_SEGV_REGEX = re.compile(r'.*([a-zA-Z]+Sanitizer).*(SEGV|access-violation) '
+SAN_SEGV_REGEX = re.compile(r'.*([a-zA-Z]Sanitizer).*(SEGV|access-violation) '
                             r'on unknown address ([xX0-9a-fA-F]+)')
 SECURITY_CHECK_FAILURE_REGEX = re.compile(
     r'.*\[[^\]]*[:]([^\](]*).*\].*Security CHECK failed[:]\s*(.*)\.\s*')
@@ -333,7 +335,7 @@ WINDOWS_CDB_CRASH_TYPE_REGEX = re.compile(
     r'.*DEFAULT_BUCKET_ID[ ]*[:][ ]*([a-zA-Z_]+)')
 WINDOWS_CDB_STACK_OVERFLOW_REGEX = re.compile(
     r'.*ExceptionCode: .*\(Stack overflow\).*')
-WINDOWS_SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: illegal-instruction')
+WINDOWS_SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]Sanitizer: illegal-instruction')
 
 WYCHEPROOF_JAVA_EXCEPTION = re.compile(
     r'.*\) (.*\(com\.google\.security\.wycheproof\.[a-zA-Z0-9]*\))')

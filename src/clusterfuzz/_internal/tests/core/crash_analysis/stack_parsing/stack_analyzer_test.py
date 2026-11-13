@@ -3992,6 +3992,12 @@ class StackAnalyzerTestcase(unittest.TestCase):
     stacktrace = "S text\n" + " 42 " * 100000 + "j text\n"
     StackParser.split_stacktrace(stacktrace)
 
+  def test_parse_long_line_no_dos(self):
+    """Tests that parsing a single long line does not backtrack quadratically."""
+    stacktrace = 'ReferenceError: ' + ('a' * 100000) + ' is not defined\n'
+    actual_state = stack_analyzer.get_crash_data(stacktrace)
+    self.assertEqual(actual_state.crash_type, '')
+
   def test_jazzer_js_javascript(self):
     """Test Jazzer.js JS stacktrace."""
     data = self._read_test_data('jazzer_js_javascript.txt')

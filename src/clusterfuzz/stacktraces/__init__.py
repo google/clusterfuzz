@@ -802,13 +802,12 @@ class StackParser:
       if (state.crash_type not in
           IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS):
         # Android SIGTRAP handling
-        mte_match = ANDROID_SIGTRAP_REGEX.search(line)
         self.update_state_on_match(
             ANDROID_SIGTRAP_REGEX,
             line,
             state,
             new_type='Trap',
-            new_address=(mte_match.group(1) if mte_match else ''))
+            address_from_group=1)
 
         # Android SIGABRT handling.
         self.update_state_on_match(
