@@ -33,13 +33,17 @@ def get_repo_prop_archive_filename(build_id, target):
   return f'{target}-{build_id}-repo.prop'
 
 
+def can_fetch_build_symbols() -> bool:
+  """Return whether the current bot can fetch unbundled build symbols via
+  fetch_artifact (unavailable in local development or on uworkers)."""
+  return (not environment.get_value('LOCAL_DEVELOPMENT') and
+          not environment.is_uworker())
+
+
 def should_download_symbols():
   """Return True if we should continue to download symbols."""
-  # For local testing, we do not have access to the cloud storage bucket with
-  # the symbols. In this case, just bail out. We have archived symbols for
-  # google builds only.
-  return (not environment.get_value('LOCAL_DEVELOPMENT') and
-          settings.is_google_device())
+  # We have archived symbols for google builds only.
+  return can_fetch_build_symbols() and settings.is_google_device()
 
 
 def download_artifact_if_needed(
@@ -67,6 +71,9 @@ def check_symbols_cached(build_params_check_path, build_params):
 def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
                                  targets_with_type_and_san, cache_type):
   """Downloads the repo.prop for a branch"""
+  if not can_fetch_build_symbols():
+    return
+
   artifact_file_name = 'repo.prop'
   symbols_archive_filename = get_repo_prop_archive_filename(
       build_id, cache_target)
@@ -186,6 +193,9 @@ def download_system_symbols_if_needed(symbols_directory) -> bool:
 
 def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
   """Downloads and extracts Trusted App ELF files"""
+  if not can_fetch_build_symbols():
+    return
+
   ab_target = ''
   device = settings.get_build_parameters().get('target')
   if 'cheetah' in device or 'panther' in device:
@@ -270,5 +280,8 @@ def filter_binary_path(binary_path):
       return local_binary_path
 
   # Unable to find library.
-  logs.error('Unable to find library %s for symbolization.' % binary_path)
+  if environment.is_uworker():
+    logs.debug(f'Unable to find library {binary_path} for symbolization.')
+  else:
+    logs.error(f'Unable to find library {binary_path} for symbolization.')
   return ''
