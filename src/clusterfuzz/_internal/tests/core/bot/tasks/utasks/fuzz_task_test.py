@@ -242,7 +242,7 @@ class TrackFuzzTimeTest(unittest.TestCase):
 
 
 class TrackSyncCorpusTimeTest(unittest.TestCase):
-  """Test SYNC_CORPUS_TIME metric emission during corpus sync."""
+  """Test corpus sync steps emitted to FUZZ_TASK_STEPS_DURATION."""
 
   def setUp(self):
     monitor.metrics_store().reset_for_testing()
@@ -268,29 +268,28 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
         engine='libFuzzer', binary='test_target')
     self.session.data_directory = '/data'
 
-  def _assert_metrics(self, expected_value, stage, success):
-    """Assert that both fuzzer and job sync corpus metrics match expected."""
-    common_labels = {
+  def _get_dist(self, step, success):
+    return monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': 'libFuzzer',
+        'job': 'libfuzzer_asan_test',
         'platform': 'some_platform',
         'runtime': 'kata_container',
-        'stage': stage,
+        'step': step,
         'success': success,
-    }
+    })
+
+  def _assert_step(self, step, expected_seconds, success):
+    """Assert that a single measurement of the step was emitted and saved."""
+    dist = self._get_dist(step, success)
+    self.assertEqual(1, dist.count)
+    self.assertAlmostEqual(expected_seconds, dist.sum)
+    self.assertEqual(0, self._get_dist(step, not success).count)
     self.assertEqual(
-        expected_value,
-        monitoring_metrics.FUZZER_SYNC_CORPUS_TIME.get({
-            **common_labels,
-            'fuzzer': 'libFuzzer_test_target',
-        }))
-    self.assertEqual(
-        expected_value,
-        monitoring_metrics.JOB_SYNC_CORPUS_TIME.get({
-            **common_labels,
-            'job': 'libfuzzer_asan_test',
-        }))
+        datetime.timedelta(seconds=expected_seconds),
+        self.session.steps_time_tracker.stats[step])
 
   def test_sync_corpus_success(self):
-    """Test metric recorded when sync_corpus succeeds."""
+    """Test corpus_download step recorded when sync_corpus succeeds."""
 
     def sync_side_effect():
       self.mock_time.advance(5.8)
@@ -300,10 +299,11 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
         sync_side_effect)
 
     self.session.sync_corpus('/corpus')
-    self._assert_metrics(5, stage='download', success=True)
+    self._assert_step('corpus_download', 5.8, success=True)
 
   def test_sync_corpus_failure(self):
-    """Test metric recorded when sync_corpus fails and raises FuzzTaskError."""
+    """Test corpus_download step recorded as failure when sync_corpus fails
+    and raises FuzzTaskError."""
 
     def sync_side_effect():
       self.mock_time.advance(5.8)
@@ -315,10 +315,10 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     with self.assertRaises(fuzz_task.FuzzTaskError):
       self.session.sync_corpus('/corpus')
 
-    self._assert_metrics(5, stage='download', success=False)
+    self._assert_step('corpus_download', 5.8, success=False)
 
   def test_sync_new_corpus_files_success(self):
-    """Test metric recorded when sync_new_corpus_files succeeds."""
+    """Test corpus_upload step recorded when sync_new_corpus_files succeeds."""
     self.session.gcs_corpus = mock.MagicMock()
     self.session.gcs_corpus.get_new_files.return_value = []
 
@@ -329,10 +329,11 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
 
     self.session.sync_new_corpus_files()
-    self._assert_metrics(5, stage='upload', success=True)
+    self._assert_step('corpus_upload', 5.8, success=True)
 
   def test_sync_new_corpus_files_failure(self):
-    """Test metric recorded when sync_new_corpus_files fails."""
+    """Test corpus_upload step recorded as failure, without raising, when
+    some uploads fail."""
     self.session.gcs_corpus = mock.MagicMock()
     self.session.gcs_corpus.get_new_files.return_value = []
 
@@ -343,62 +344,22 @@ class TrackSyncCorpusTimeTest(unittest.TestCase):
     self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
 
     self.session.sync_new_corpus_files()
-    self._assert_metrics(5, stage='upload', success=False)
+    self._assert_step('corpus_upload', 5.8, success=False)
 
-  def _patch_preprocess(self):
-    """Patch dependencies of _utask_preprocess."""
-    helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
-        'clusterfuzz._internal.bot.tasks.trials.preprocess_get_db_trials',
-        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task._preprocess_get_fuzz_target',
-        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.preprocess_store_fuzzer_run_results',
-        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task_knobs.do_multiarmed_bandit_strategy_selection',
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.entity_to_protobuf',
-        'clusterfuzz._internal.datastore.data_handler.get_project_name',
-        'clusterfuzz._internal.fuzzing.corpus_manager.get_fuzz_target_corpus',
-        'clusterfuzz._internal.google_cloud_utils.blobs.generate_new_blob_name',
-        'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
-    ])
-    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = (
-        uworker_msg_pb2.SetupInput())
-    self.mock.entity_to_protobuf.return_value = (
-        uworker_msg_pb2.FuzzTaskInput().fuzz_target)
-    self.mock.get_project_name.return_value = 'test_project'
-    self.mock._preprocess_get_fuzz_target.return_value = (
-        self.session.fuzz_target)
-    self.mock.preprocess_get_db_trials.return_value = []
-    self.mock.generate_new_blob_name.return_value = 'blob_key'
-    self.mock.get_signed_upload_url.return_value = 'https://signed_url'
+  def test_sync_new_corpus_files_upload_returns_false(self):
+    """Test corpus_upload step recorded as failure when upload_files returns a
+    falsy non-list value."""
+    self.session.gcs_corpus = mock.MagicMock()
+    self.session.gcs_corpus.get_new_files.return_value = []
 
-  def test_preprocess_sync_corpus_success(self):
-    """Test metric recorded during _utask_preprocess when getting corpus."""
-    self._patch_preprocess()
+    def upload_side_effect(_):
+      self.mock_time.advance(2.5)
+      return False
 
-    def get_corpus_side_effect(*args, **kwargs):  # pylint: disable=unused-argument
-      self.mock_time.advance(5.8)
-      mock_corpus = mock.MagicMock()
-      mock_corpus.serialize.return_value = uworker_msg_pb2.FuzzTargetCorpus()
-      return mock_corpus
+    self.session.gcs_corpus.upload_files.side_effect = upload_side_effect
 
-    self.mock.get_fuzz_target_corpus.side_effect = get_corpus_side_effect
-
-    fuzz_task._utask_preprocess('libFuzzer', 'libfuzzer_asan_test', {})
-    self._assert_metrics(5, stage='preprocess', success=True)
-
-  def test_preprocess_sync_corpus_failure(self):
-    """Test metric recorded when get_fuzz_target_corpus raises in preprocess."""
-    self._patch_preprocess()
-
-    def get_corpus_side_effect(*args, **kwargs):  # pylint: disable=unused-argument
-      self.mock_time.advance(5.8)
-      raise RuntimeError('GCS failure')
-
-    self.mock.get_fuzz_target_corpus.side_effect = get_corpus_side_effect
-
-    with self.assertRaises(RuntimeError):
-      fuzz_task._utask_preprocess('libFuzzer', 'libfuzzer_asan_test', {})
-
-    self._assert_metrics(5, stage='preprocess', success=False)
+    self.session.sync_new_corpus_files()
+    self._assert_step('corpus_upload', 2.5, success=False)
 
 
 class GetFuzzerMetadataFromOutputTest(unittest.TestCase):
