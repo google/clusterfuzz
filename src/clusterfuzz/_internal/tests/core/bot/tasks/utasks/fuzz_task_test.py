@@ -2094,6 +2094,91 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.get_arbitrary_signed_upload_urls.return_value = ['http://a'] * 100
     self.mock.last_updated.return_value = None
 
+    monitor.metrics_store().reset_for_testing()
+
+  def _create_engine_fuzzing_session(self):
+    """Creates a FuzzingSession ready for do_engine_fuzzing."""
+    target = 'test_target'
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
+        fuzz_target=uworker_io.entity_to_protobuf(
+            data_types.FuzzTarget(engine='libFuzzer', binary=target)),)
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name='libFuzzer_fuzz',
+        job_type='libfuzzer_asan_test',
+        fuzz_task_input=fuzz_task_input)
+    session = fuzz_task.FuzzingSession(uworker_input, 60)
+    session.testcase_directory = os.environ['FUZZ_INPUTS']
+    session.data_directory = '/data_dir'
+
+    os.environ['FUZZ_TARGET'] = target
+    os.environ['APP_REVISION'] = '1'
+    os.environ['FUZZ_TEST_TIMEOUT'] = '2000'
+    os.environ['BOT_NAME'] = 'hostname.company.com'
+    os.environ['FUZZ_LOGS_BUCKET'] = '/fuzz-logs'
+    return session
+
+  def _create_engine_impl(self):
+    """Creates a mock engine whose fuzz call yields no crashes."""
+    engine_impl = mock.Mock()
+    engine_impl.name = 'libFuzzer'
+    engine_impl.prepare.return_value = engine.FuzzOptions(
+        '/corpus', ['arg'], {})
+    engine_impl.fuzz.side_effect = lambda *_: engine.FuzzResult(
+        'logs', ['cmd'], [], {'stat': 1}, 42.0)
+    engine_impl.fuzz_additional_processing_timeout.return_value = 1337
+    return engine_impl
+
+  def _get_engine_prepare_dist(self, success):
+    return monitoring_metrics.FUZZ_TASK_STEPS_DURATION.get({
+        'fuzzer': 'libFuzzer_fuzz',
+        'job': 'libfuzzer_asan_test',
+        'platform': environment.platform(),
+        'runtime': environment.get_runtime().value,
+        'step': 'engine_prepare',
+        'success': success,
+    })
+
+  @mock.patch('clusterfuzz._internal.metrics.monitor.time')
+  def test_engine_prepare_accumulated_over_rounds(self, mock_monitor_time):
+    """Test that engine_prepare is tracked once per round and accumulated."""
+    mock_time = helpers.MockTime(start_time=100.0)
+    mock_monitor_time.time.side_effect = mock_time.time
+    session = self._create_engine_fuzzing_session()
+    engine_impl = self._create_engine_impl()
+
+    def prepare(*_):
+      mock_time.advance(1.5)
+      return engine.FuzzOptions('/corpus', ['arg'], {})
+
+    engine_impl.prepare.side_effect = prepare
+
+    session.do_engine_fuzzing(engine_impl)
+
+    # MAX_TESTCASES is 2, so there are two rounds of 1.5 seconds each.
+    self.assertEqual(2, engine_impl.prepare.call_count)
+    self.assertEqual(
+        datetime.timedelta(seconds=3),
+        session.steps_time_tracker.stats['engine_prepare'])
+    dist = self._get_engine_prepare_dist(success=True)
+    self.assertEqual(2, dist.count)
+    self.assertAlmostEqual(3.0, dist.sum)
+    self.assertEqual(0, self._get_engine_prepare_dist(success=False).count)
+
+  def test_engine_prepare_exception(self):
+    """Test that an exception in engine prepare is tracked as a failure."""
+    session = self._create_engine_fuzzing_session()
+    engine_impl = self._create_engine_impl()
+    engine_impl.prepare.side_effect = RuntimeError('prepare failed')
+
+    with self.assertRaises(RuntimeError):
+      session.do_engine_fuzzing(engine_impl)
+
+    engine_impl.fuzz.assert_not_called()
+    self.assertIn('engine_prepare', session.steps_time_tracker.stats)
+    # The task stops at the first failing round.
+    self.assertEqual(1, self._get_engine_prepare_dist(success=False).count)
+    self.assertEqual(0, self._get_engine_prepare_dist(success=True).count)
+
   def test_basic(self):
     """Test basic fuzzing session."""
     target = 'test_target'
@@ -2213,7 +2298,7 @@ class UntrustedRunEngineFuzzerTest(
 
     result, fuzzer_metadata, strategies = fuzz_task.run_engine_fuzzer(
         libfuzzer_engine.Engine(), 'test_fuzzer', corpus_directory,
-        testcase_directory)
+        testcase_directory, monitor.TimeStatTracker())
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
         result.logs)
