@@ -1484,8 +1484,9 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
     raise FuzzTaskError(f'Invalid engine timeout: '
                         f'{fuzz_test_timeout} - {additional_processing_time}')
 
-  result = engine_impl.fuzz(target_path, options, testcase_directory,
-                            adjusted_fuzz_test_timeout)
+  with steps_time_tracker.track('fuzz'):
+    result = engine_impl.fuzz(target_path, options, testcase_directory,
+                              adjusted_fuzz_test_timeout)
 
   logs.info('Used strategies.', strategies=options.strategies)
   for strategy, value in options.strategies.items():
@@ -2010,44 +2011,44 @@ class FuzzingSession:
 
       temp_queue = process_handler.get_queue()
       if not temp_queue:
-        with self.steps_time_tracker.track('cleanup'):
-          process_handler.terminate_stale_application_instances()
+        process_handler.terminate_stale_application_instances()
         logs.error('Unable to create temporary crash queue.')
         break
 
-      while thread_index < max_threads and test_number < len(
-          testcase_file_paths):
-        testcase_file_path = testcase_file_paths[test_number]
-        gestures = testcases_metadata[testcase_file_path]['gestures']
+      with self.steps_time_tracker.track('fuzz') as step:
+        while thread_index < max_threads and test_number < len(
+            testcase_file_paths):
+          testcase_file_path = testcase_file_paths[test_number]
+          gestures = testcases_metadata[testcase_file_path]['gestures']
 
-        env_copy = environment.copy()
+          env_copy = environment.copy()
 
-        thread = process_handler.get_process()(
-            target=testcase_manager.run_testcase_and_return_result_in_queue,
-            args=(temp_queue, thread_index, testcase_file_path, gestures,
-                  env_copy))
+          thread = process_handler.get_process()(
+              target=testcase_manager.run_testcase_and_return_result_in_queue,
+              args=(temp_queue, thread_index, testcase_file_path, gestures,
+                    env_copy))
 
-        try:
-          thread.start()
-        except:
-          with self.steps_time_tracker.track('cleanup'):
+          try:
+            thread.start()
+          except:
             process_handler.terminate_stale_application_instances()
-          thread_error_occurred = True
-          logs.error('Unable to start new thread.')
-          break
+            thread_error_occurred = True
+            logs.error('Unable to start new thread.')
+            step.fail()
+            break
 
-        threads.append(thread)
-        thread_index += 1
-        test_number += 1
+          threads.append(thread)
+          thread_index += 1
+          test_number += 1
 
-        if test_number % testcases_before_stale_process_cleanup == 0:
-          needs_stale_process_cleanup = True
+          if test_number % testcases_before_stale_process_cleanup == 0:
+            needs_stale_process_cleanup = True
 
-        time.sleep(thread_delay)
+          time.sleep(thread_delay)
 
-      with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
-                          job_type) as tracker:
-        tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
+        with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
+                            job_type) as tracker:
+          tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
 
       with self.steps_time_tracker.track('cleanup'):
         # Allow for some time to finish processing before terminating the
