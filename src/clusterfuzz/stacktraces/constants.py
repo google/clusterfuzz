@@ -409,14 +409,17 @@ ANDROID_KERNEL_STATUS_TO_STRING = {
 # Ignore lists.
 STACK_FRAME_IGNORE_REGEXES = [
     # Function names (exact match).
-    r'^abort$',
-    r'^exit$',
     r'^pthread_create$',
-    r'^pthread_kill$',
-    r'^raise$',
-    r'^tgkill$',
-    r'^__chk_fail$',
-    r'^__fortify_fail$',
+
+    # Abort/exit/fortify helpers (exact function name, optionally followed by
+    # parameters or source info before _filter_stack_frame strips them).
+    r'^abort($|[\s(\[])',
+    r'^exit($|[\s(\[])',
+    r'^pthread_kill($|[\s(\[])',
+    r'^raise($|[\s(\[])',
+    r'^tgkill($|[\s(\[])',
+    r'^__chk_fail($|[\s(\[])',
+    r'^__fortify_fail($|[\s(\[])',
 
     # Function names (startswith).
     r'^(|__)aeabi_',

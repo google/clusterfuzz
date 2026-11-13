@@ -753,6 +753,34 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_ignore_abort_frames_with_source_info(self):
+    """Test that abort/exit/fortify frames with source info or args are ignored."""
+    data = (
+        '==1==ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 '
+        '(pc 0x7fb31a28e418 bp 0x7ffc4aa89af0 sp 0x7ffc4aa898b8 T0)\n'
+        'SCARINESS: 10 (signal)\n'
+        '    #0 0x7fb31a28e417 in pthread_kill ./nptl/pthread_kill.c:44:76\n'
+        '    #1 0x7fb31a28e390 in raise ./signal/../sysdeps/posix/raise.c:26:13\n'
+        '    #2 0x7fb31a290019 in abort ./stdlib/abort.c:79:7\n'
+        '    #3 0x7fb31a290100 in tgkill(int, int, int)\n'
+        '    #4 0x7fb31a290200 in __chk_fail ./debug/chk_fail.c:28:3\n'
+        '    #5 0x7fb31a290300 in __fortify_fail ./debug/fortify_fail.c:30:3\n'
+        '    #6 0x7fb31a290400 in exit ./stdlib/exit.c:148:3\n'
+        '    #7 0x55a1b2c30001 in raise_error /src/foo.cc:10:3\n'
+        '    #8 0x55a1b2c30002 in exit_helper /src/foo.cc:20:3\n'
+        '    #9 0x7fb31a290500 in pthread_create ./nptl/pthread_create.c:447:8\n'
+        'SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35417)\n'
+    )
+    expected_type = 'Abrt'
+    expected_address = '0x000000000001'
+    expected_state = 'raise_error\nexit_helper\npthread_create\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_ignore_honggfuzz(self):
     """Test that frames from honggfuzz wrappers are ignored."""
     data = self._read_test_data('ignore_honggfuzz.txt')
