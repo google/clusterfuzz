@@ -13,6 +13,7 @@
 # limitations under the License.
 """Task scheduler used to recreate recurring tasks."""
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
@@ -26,12 +27,21 @@ def schedule(task):
     logs.warning('Not creating impact tasks outside of Chrome.')
     return
 
+  # TODO(crbug.com/582825425): Support blame and impact tasks for Swarming jobs.
+  skip_swarming = task in ('impact', 'blame') and swarming.is_swarming_enabled()
+  swarming_job_cache = {}
   testcase_ids = []
   for status in ['Processed', 'Duplicate']:
     for testcase in data_types.Testcase.query(
         ndb_utils.is_true(data_types.Testcase.open),
         ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag),
         data_types.Testcase.status == status):
+      if skip_swarming:
+        if testcase.job_type not in swarming_job_cache:
+          swarming_job_cache[testcase.job_type] = swarming.is_swarming_job(
+              testcase.job_type)
+        if swarming_job_cache[testcase.job_type]:
+          continue
       testcase_id = testcase.key.id()
       try:
         tasks.add_task(

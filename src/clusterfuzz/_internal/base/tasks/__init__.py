@@ -1024,6 +1024,12 @@ def redo_testcase(testcase, tasks, user_email):
     if task not in VALID_REDO_TASKS:
       raise InvalidRedoTask(task)
 
+  # TODO(crbug.com/582825425): Support blame and impact tasks for Swarming jobs.
+  if swarming.is_swarming_applicable(testcase.job_type):
+    for task in tasks:
+      if task in ('impact', 'blame'):
+        raise InvalidRedoTask(task)
+
   minimize = 'minimize' in tasks
   regression = 'regression' in tasks
   progression = 'progression' in tasks

@@ -28,6 +28,7 @@ from typing import TypeAlias
 from google.cloud import ndb
 
 from clusterfuzz._internal import fuzzing
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
@@ -962,6 +963,15 @@ def get_open_testcase_id_iterator():
     yield key.id()
 
 
+def is_impact_required(testcase):
+  """Return whether an impact task is expected to run on a testcase."""
+  # Only require impact if it is feasible to run it. Don't require it if not
+  # (when regression fails).
+  # TODO(crbug.com/582825425): Require impact for Swarming jobs once supported.
+  return (testcase.regression != 'NA' and
+          not swarming.is_swarming_applicable(testcase.job_type))
+
+
 def critical_tasks_completed(testcase):
   """Check to see if all critical tasks have finished running on a test case."""
   if testcase.status == 'Unreproducible':
@@ -976,9 +986,8 @@ def critical_tasks_completed(testcase):
   if not utils.is_chromium():
     return testcase.minimized_keys and testcase.regression
 
-  # Only require impact if it is feasible to run it. Don't require it if not
-  # (when regression fails).
-  impact_satisfied = testcase.is_impact_set_flag or testcase.regression == 'NA'
+  impact_satisfied = (
+      testcase.is_impact_set_flag or not is_impact_required(testcase))
 
   return bool(testcase.minimized_keys and testcase.regression and
               impact_satisfied and not testcase.analyze_pending)

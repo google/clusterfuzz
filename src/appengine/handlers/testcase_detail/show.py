@@ -442,7 +442,8 @@ def get_testcase_detail(testcase):
       testcase.has_blame() and 'blame_pending' in metadata and
       metadata['blame_pending'])
   pending_impact_task = (
-      testcase.has_impacts() and not testcase.is_impact_set_flag)
+      testcase.has_impacts() and not testcase.is_impact_set_flag and
+      data_handler.is_impact_required(testcase))
   pending_minimize_task = not testcase.minimized_keys
   pending_progression_task = ('progression_pending' in metadata and
                               metadata['progression_pending'])
