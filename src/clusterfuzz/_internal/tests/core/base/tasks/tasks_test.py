@@ -696,3 +696,55 @@ class GetTaskFuzzingFeatureFlagTest(unittest.TestCase):
       mock_flag.return_value = mock_flag_obj
       self.assertIsNone(tasks.get_task())
       self.mock.get_fuzz_task.assert_not_called()
+
+
+@test_utils.with_cloud_emulators('datastore')
+class SwarmingNonFuzzTaskRoutingTest(unittest.TestCase):
+  """Tests for routing non-fuzz tasks of Swarming jobs to platform queues."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.bulk_add_tasks',
+    ])
+    data_types.Job(
+        name='android_emulator_swarming',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+    data_types.Job(
+        name='android_emulator_non_swarming',
+        platform='ANDROID_EMULATOR',
+        environment_string='').put()
+    self.flag = data_types.FeatureFlag(
+        id='swarming_remote_execution', enabled=True)
+    self.flag.put()
+
+  def _queue_used(self):
+    return self.mock.bulk_add_tasks.call_args[1]['queue']
+
+  def test_swarming_job_routes_to_platform_queue(self):
+    """Tests that a Swarming job task with no explicit queue is routed to its
+    platform queue when SWARMING_REMOTE_EXECUTION is enabled."""
+    tasks.add_task('minimize', '123', 'android_emulator_swarming')
+    self.assertEqual(self._queue_used(), 'jobs-android-emulator')
+
+  def test_swarming_disabled_keeps_default_queue(self):
+    """Tests that Swarming jobs keep the default queue when
+    SWARMING_REMOTE_EXECUTION is disabled."""
+    self.flag.enabled = False
+    self.flag.put()
+    tasks.add_task('minimize', '123', 'android_emulator_swarming')
+    self.assertIsNone(self._queue_used())
+
+  def test_non_swarming_job_keeps_default_queue(self):
+    """Tests that non-Swarming jobs keep the default queue even when
+    SWARMING_REMOTE_EXECUTION is enabled."""
+    tasks.add_task('minimize', '123', 'android_emulator_non_swarming')
+    self.assertIsNone(self._queue_used())
+
+  def test_explicit_queue_is_not_overridden(self):
+    """Tests that an explicitly provided queue is preserved for Swarming
+    jobs."""
+    tasks.add_task(
+        'minimize', '123', 'android_emulator_swarming', queue='custom-queue')
+    self.assertEqual(self._queue_used(), 'custom-queue')

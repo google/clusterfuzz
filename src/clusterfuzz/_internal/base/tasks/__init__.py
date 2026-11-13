@@ -25,6 +25,7 @@ from typing import Optional
 
 from google.cloud import monitoring_v3
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import feature_flags
 from clusterfuzz._internal.base import memoize
@@ -932,7 +933,11 @@ def add_task(command,
              queue=None,
              wait_time=None,
              extra_info=None):
-  """Add a new task to the job queue."""
+  """Adds a new task to the job queue.
+
+  When `queue` is None, tasks for Swarming-applicable jobs are routed to the
+  job's platform queue instead of the default Linux queue.
+  """
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
@@ -956,6 +961,9 @@ def add_task(command,
     if job.is_external():
       external_tasks.add_external_task(command, argument, job)
       return
+
+    if queue is None and swarming.is_swarming_applicable(job_type, job=job):
+      queue = queue_for_platform(job.platform)
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
