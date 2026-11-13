@@ -28,6 +28,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+import uuid
 
 from google.cloud import ndb
 
@@ -740,9 +741,10 @@ class GcsCorpus:
     return new_files
 
 
-def upload_testcase_run_stats(testcase_run):
+def upload_testcase_run_stats(testcase_run, index: int):
   """Upload TestcaseRun stats."""
-  fuzzer_stats.upload_stats([testcase_run])
+  filename = f'{postprocess_get_unique_file_prefix()}-{index}.json'
+  fuzzer_stats.upload_stats([testcase_run], filename=filename)
 
 
 def add_additional_testcase_run_data(testcase_run, fully_qualified_fuzzer_name,
@@ -829,6 +831,21 @@ def truncate_fuzzer_output(output, limit):
   return ''.join([output[:left], separator, output[-right:]])
 
 
+def postprocess_get_unique_file_prefix() -> str:
+  """Return a filename prefix for JobRun and TestcaseRun stats.
+
+  The prefix should be the same on every retry of a task, in order to not
+  upload duplicated JobRun and TestcaseRun stats. It must also begin with a hex
+  digit because load_bigquery_stats would silently skip it otherwise.
+  """
+  task_id = environment.get_value('CF_TASK_ID')
+  if not task_id:
+    logs.error('Missing CF_TASK_ID environment variable, falling back to '
+               'random UUID. JobRun or TestcaseRun stats might be duplicated.')
+    return str(uuid.uuid4())
+  return task_id
+
+
 def upload_job_run_stats(
     fuzzer_name: str,
     job_type: str,
@@ -850,7 +867,8 @@ def upload_job_run_stats(
       new_crash_count, known_crash_count, groups, testcases_generated,
       testcase_generation_duration, testcase_execution_duration,
       fuzzing_duration, steps_duration)
-  fuzzer_stats.upload_stats([job_run])
+  filename = f'{postprocess_get_unique_file_prefix()}.json'
+  fuzzer_stats.upload_stats([job_run], filename=filename)
 
   _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
                              known_crash_count)
@@ -2345,12 +2363,12 @@ class FuzzingSession:
 
 
 def _upload_testcase_run_jsons(testcase_run_jsons):
-  for testcase_run in testcase_run_jsons:
+  for index, testcase_run in enumerate(testcase_run_jsons):
     testcase_run = fuzzer_stats.BaseRun.from_json(testcase_run)
     if not testcase_run:
       logs.error('Failed to create testcase_run')
       continue
-    upload_testcase_run_stats(testcase_run)
+    upload_testcase_run_stats(testcase_run, index)
   # TODO(metzman): Find out if this can be a single upload.
 
 
