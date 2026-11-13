@@ -410,12 +410,11 @@ class RedoTestcaseSwarmingTest(unittest.TestCase):
     self.testcase.set_metadata('blame_pending', False, update_testcase=False)
     self.testcase.put()
 
-  def test_redo_skips_impact_and_blame_when_swarming_enabled(self):
-    """Tests that redo_testcase skips impact and blame for Swarming jobs."""
+  def test_redo_supported_task_succeeds_when_swarming_enabled(self):
+    """Tests that supported redo tasks still run on Swarming jobs."""
     data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
 
-    tasks.redo_testcase(self.testcase, ['minimize', 'impact', 'blame'],
-                        'user@example.com')
+    tasks.redo_testcase(self.testcase, ['minimize'], 'user@example.com')
 
     self.mock.add_task.assert_called_once_with(
         'minimize',
@@ -427,12 +426,14 @@ class RedoTestcaseSwarmingTest(unittest.TestCase):
     self.assertTrue(testcase.is_impact_set_flag)
     self.assertFalse(testcase.get_metadata('blame_pending'))
 
-  def test_redo_only_unsupported_tasks_is_noop(self):
-    """Tests that redoing only impact/blame on a Swarming job makes no changes."""
+  def test_redo_rejects_impact_and_blame_when_swarming_enabled(self):
+    """Tests that redoing impact or blame on a Swarming job raises InvalidRedoTask."""
     data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
     original_comments = self.testcase.comments
 
-    tasks.redo_testcase(self.testcase, ['impact', 'blame'], 'user@example.com')
+    with self.assertRaises(tasks.InvalidRedoTask):
+      tasks.redo_testcase(self.testcase, ['minimize', 'impact', 'blame'],
+                          'user@example.com')
 
     self.mock.add_task.assert_not_called()
     testcase = self.testcase.key.get()
