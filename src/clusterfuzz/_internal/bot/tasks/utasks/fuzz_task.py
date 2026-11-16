@@ -2040,8 +2040,7 @@ class FuzzingSession:
 
       temp_queue = process_handler.get_queue()
       if not temp_queue:
-        with self.steps_time_tracker.track('cleanup'):
-          process_handler.terminate_stale_application_instances()
+        process_handler.terminate_stale_application_instances()
         logs.error('Unable to create temporary crash queue.')
         break
 
@@ -2060,8 +2059,7 @@ class FuzzingSession:
         try:
           thread.start()
         except:
-          with self.steps_time_tracker.track('cleanup'):
-            process_handler.terminate_stale_application_instances()
+          process_handler.terminate_stale_application_instances()
           thread_error_occurred = True
           logs.error('Unable to start new thread.')
           break
