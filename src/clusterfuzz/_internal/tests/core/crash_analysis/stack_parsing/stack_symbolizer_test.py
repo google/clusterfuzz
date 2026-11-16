@@ -20,6 +20,9 @@ from unittest import mock
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
 from clusterfuzz._internal.tests.test_libs import helpers
 
+DATA_DIRECTORY = os.path.join(
+    os.path.dirname(__file__), 'stack_symbolizer_data')
+
 TEST_STACK_TRACE = ("    #0 0x0001 (/lib/foo.so+0x1000)\n"
                     "    #1 0x0002 (/lib/foo.so+0x2000)\n"
                     "    #2 0x0003 (/lib/foo.so+0x3000)\n")
@@ -432,8 +435,149 @@ class LLVMSymbolizerTest(unittest.TestCase):
         mock_log_error=mock_log_error)
 
 
+def _data_path(name):
+  """Returns the path of a file in the test data directory. See the README.md
+  there for what each file is."""
+  return os.path.join(DATA_DIRECTORY, name)
+
+
+class PeImageBaseAndSizeTest(unittest.TestCase):
+  """Tests for get_pe_image_base_and_size."""
+
+  def test_64_bit(self):
+    """Tests that ImageBase and SizeOfImage are read from PE32+ files."""
+    self.assertEqual((0x180000000, 0x3000),
+                     stack_symbolizer.get_pe_image_base_and_size(
+                         _data_path('x64.dll')))
+    self.assertEqual((0x140000000, 0x3000),
+                     stack_symbolizer.get_pe_image_base_and_size(
+                         _data_path('x64.exe')))
+
+  def test_32_bit(self):
+    """Tests that ImageBase and SizeOfImage are read from PE32 files."""
+    self.assertEqual((0x10000000, 0x3000),
+                     stack_symbolizer.get_pe_image_base_and_size(
+                         _data_path('x86.dll')))
+    self.assertEqual((0x400000, 0x804000),
+                     stack_symbolizer.get_pe_image_base_and_size(
+                         _data_path('x86_large.exe')))
+
+  def test_unreadable_file(self):
+    """Tests that None is returned for files that are missing, truncated or
+    not PE files."""
+    for name in ('missing.dll', 'truncated.dll', 'not_pe.dll'):
+      self.assertIsNone(
+          stack_symbolizer.get_pe_image_base_and_size(_data_path(name)), name)
+
+
+class AddPeImageBaseIfMissingTest(unittest.TestCase):
+  """Tests for add_pe_image_base_if_missing."""
+
+  def _add_image_base_if_missing(self, name, offset):
+    """Calls add_pe_image_base_if_missing for the test data file |name|."""
+    return stack_symbolizer.add_pe_image_base_if_missing(
+        _data_path(name), offset)
+
+  def test_missing_image_base(self):
+    """Tests that ImageBase is added to plain RVAs, which is what sandboxed
+    processes report."""
+    self.assertEqual('0x180001000',
+                     self._add_image_base_if_missing('x64.dll', '0x1000'))
+    self.assertEqual('0x140001000',
+                     self._add_image_base_if_missing('x64.exe', '0x1000'))
+    self.assertEqual('0x10001000',
+                     self._add_image_base_if_missing('x86.dll', '0x1000'))
+
+  def test_has_image_base(self):
+    """Tests that offsets that already include ImageBase are unchanged."""
+    self.assertEqual('0x180001000',
+                     self._add_image_base_if_missing('x64.dll', '0x180001000'))
+    self.assertEqual('0x140001000',
+                     self._add_image_base_if_missing('x64.exe', '0x140001000'))
+    self.assertEqual('0x10001000',
+                     self._add_image_base_if_missing('x86.dll', '0x10001000'))
+
+  def test_image_bounds(self):
+    """Tests the first and last offsets of the RVA and ImageBase + RVA ranges
+    of x64.dll, which has ImageBase 0x180000000 and SizeOfImage 0x3000."""
+    # [0, SizeOfImage) is missing ImageBase.
+    self.assertEqual('0x180000000',
+                     self._add_image_base_if_missing('x64.dll', '0x0'))
+    self.assertEqual('0x180002fff',
+                     self._add_image_base_if_missing('x64.dll', '0x2fff'))
+    # Neither a valid RVA nor a valid ImageBase + RVA.
+    self.assertEqual('0x3000',
+                     self._add_image_base_if_missing('x64.dll', '0x3000'))
+    self.assertEqual('0x17fffffff',
+                     self._add_image_base_if_missing('x64.dll', '0x17fffffff'))
+    # [ImageBase, ImageBase + SizeOfImage) already includes ImageBase.
+    self.assertEqual('0x180000000',
+                     self._add_image_base_if_missing('x64.dll', '0x180000000'))
+    self.assertEqual('0x180002fff',
+                     self._add_image_base_if_missing('x64.dll', '0x180002fff'))
+    self.assertEqual('0x180003000',
+                     self._add_image_base_if_missing('x64.dll', '0x180003000'))
+
+  def test_overlapping_ranges(self):
+    """Tests that offsets are unchanged if ImageBase < SizeOfImage, since then
+    an offset can be both a valid RVA and a valid ImageBase + RVA."""
+    # ImageBase 0x400000, SizeOfImage 0x804000.
+    self.assertEqual('0x1000',
+                     self._add_image_base_if_missing('x86_large.exe', '0x1000'))
+    self.assertEqual(
+        '0x401000', self._add_image_base_if_missing('x86_large.exe',
+                                                    '0x401000'))
+
+  def test_unreadable_binary(self):
+    """Tests that offsets are unchanged for binaries that are missing,
+    truncated or not PE files."""
+    for name in ('missing.dll', 'truncated.dll', 'not_pe.dll'):
+      self.assertEqual('0x1000', self._add_image_base_if_missing(
+          name, '0x1000'), name)
+
+
+class SymbolizeAddressPeImageBaseTest(unittest.TestCase):
+  """Tests that SymbolizationLoop.symbolize_address adds a missing PE ImageBase
+  to the offset it passes to the symbolizer."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.LLVMSymbolizerFactory',
+    ])
+    self.symbolizer = self.mock.LLVMSymbolizerFactory.return_value
+    # symbolize_address caches symbolizers by binary in this global.
+    stack_symbolizer.symbolizers = {}
+    # ImageBase 0x180000000.
+    self.binary = _data_path('x64.dll')
+
+  @mock.patch('sys.platform', 'win32')
+  def test_windows_missing_image_base(self):
+    """Tests that ImageBase is added to plain RVAs on Windows."""
+    stack_symbolizer.SymbolizationLoop().symbolize_address(
+        '0x7ff600001000', self.binary, '0x1000', 'x86_64')
+    self.symbolizer.symbolize.assert_called_once_with(
+        '0x7ff600001000', self.binary, '0x180001000')
+
+  @mock.patch('sys.platform', 'win32')
+  def test_windows_has_image_base(self):
+    """Tests that offsets that already include ImageBase are unchanged on
+    Windows."""
+    stack_symbolizer.SymbolizationLoop().symbolize_address(
+        '0x7ff600001000', self.binary, '0x180001000', 'x86_64')
+    self.symbolizer.symbolize.assert_called_once_with(
+        '0x7ff600001000', self.binary, '0x180001000')
+
+  @mock.patch('sys.platform', 'linux')
+  def test_other_platforms(self):
+    """Tests that offsets are unchanged on platforms other than Windows."""
+    stack_symbolizer.SymbolizationLoop().symbolize_address(
+        '0x7ff600001000', self.binary, '0x1000', 'x86_64')
+    self.symbolizer.symbolize.assert_called_once_with('0x7ff600001000',
+                                                      self.binary, '0x1000')
+
+
 class ProcessTrustyStacktraceTest(unittest.TestCase):
-  """Tests that process_trusty_stacktrace returns early without downloading symbols 
+  """Tests that process_trusty_stacktrace returns early without downloading symbols
   when required Trusty metadata is missing."""
 
   def setUp(self):
@@ -446,7 +590,7 @@ class ProcessTrustyStacktraceTest(unittest.TestCase):
     self.loop = stack_symbolizer.SymbolizationLoop()
 
   def test_early_return_when_missing_app_and_bid(self):
-    """Tests that we avoid processing the Trusty stacktrace and downloading 
+    """Tests that we avoid processing the Trusty stacktrace and downloading
     symbols when both trusty_app and trusty_bid are missing."""
     stacktrace = 'Some standard crash without trusty metadata\n#0 0x1234'
     self.assertEqual(stacktrace,
@@ -462,7 +606,7 @@ class ProcessTrustyStacktraceTest(unittest.TestCase):
     self.mock.download_trusty_symbols_if_needed.assert_not_called()
 
   def test_early_return_when_missing_bid(self):
-    """Tests that we avoid processing the Trusty stacktrace and downloading symbols 
+    """Tests that we avoid processing the Trusty stacktrace and downloading symbols
     when trusty_bid is missing (even if trusty_app is present)."""
     stacktrace = '(app: keymaster)\n#0 0x1234'
     self.assertEqual(stacktrace,
@@ -498,7 +642,7 @@ class SymbolizeStacktraceChainTest(unittest.TestCase):
     self.mock_loop.process_stacktrace.return_value = 'final_symbolized_output'
 
   def test_symbolize_stacktrace_chaining_on_android_emulator(self):
-    """Tests that on an Android emulator, both process_trusty_stacktrace and process_stacktrace 
+    """Tests that on an Android emulator, both process_trusty_stacktrace and process_stacktrace
     execute sequentially and preserve intermediate results."""
     self.mock.is_android_emulator.return_value = True
     self.mock_loop.process_trusty_stacktrace.return_value = (
@@ -513,7 +657,7 @@ class SymbolizeStacktraceChainTest(unittest.TestCase):
     self.assertEqual('final_symbolized_output', result)
 
   def test_symbolize_stacktrace_no_trusty_on_non_emulator(self):
-    """Tests that on non-emulator environments, process_trusty_stacktrace is bypassed and process_stacktrace 
+    """Tests that on non-emulator environments, process_trusty_stacktrace is bypassed and process_stacktrace
     receives the raw unsymbolized stacktrace directly."""
     self.mock.is_android_emulator.return_value = False
 
