@@ -1478,9 +1478,15 @@ def _add_issue_metadata_from_environment(metadata):
     metadata['issue_labels'] = _append(metadata.get('issue_labels'), labels)
 
 
-def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
-                      testcase_directory, steps_time_tracker):
+def run_engine_fuzzer(
+    engine_impl,
+    target_name,
+    sync_corpus_directory,
+    testcase_directory,
+    steps_time_tracker: monitor.TimeStatTracker | None = None):
   """Run engine for fuzzing."""
+  if steps_time_tracker is None:
+    steps_time_tracker = monitor.TimeStatTracker()
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
     logs.info('Running remote engine fuzz.')

@@ -2298,7 +2298,7 @@ class UntrustedRunEngineFuzzerTest(
 
     result, fuzzer_metadata, strategies = fuzz_task.run_engine_fuzzer(
         libfuzzer_engine.Engine(), 'test_fuzzer', corpus_directory,
-        testcase_directory, monitor.TimeStatTracker())
+        testcase_directory)
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
         result.logs)
