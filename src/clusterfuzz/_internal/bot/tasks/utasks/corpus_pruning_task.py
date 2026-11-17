@@ -991,6 +991,8 @@ def _get_cross_pollinate_fuzzers_from_protos(cross_pollinate_fuzzers_protos):
   ]
 
 
+MAX_COVERAGE_DATE_DRIFT_DAYS = 1
+
 TrustedCoverageLocations = collections.namedtuple('TrustedCoverageLocations', [
     'project_name', 'corpus_location', 'quarantine_location',
     'dated_backup_location'
@@ -1013,6 +1015,17 @@ def _get_trusted_coverage_locations(task_input):
       dated_backup_location=task_input.dated_backup_gcs_url)
 
 
+def _resolve_coverage_date(cov_info):
+  """Returns a validated CoverageInformation date within 1 day of UTC today."""
+  today = datetime.datetime.utcnow().date()
+  if not cov_info.HasField('timestamp'):
+    return today
+  reported_date = cov_info.timestamp.ToDatetime().date()
+  if abs((today - reported_date).days) <= MAX_COVERAGE_DATE_DRIFT_DAYS:
+    return reported_date
+  return today
+
+
 def _save_coverage_information(output):
   """Saves coverage information in datastore using an atomic transaction."""
   if not output.corpus_pruning_task_output.HasField('coverage_info'):
@@ -1021,6 +1034,7 @@ def _save_coverage_information(output):
   cov_info = output.corpus_pruning_task_output.coverage_info
   trusted_locations = _get_trusted_coverage_locations(
       output.uworker_input.corpus_pruning_task_input)
+  coverage_date = _resolve_coverage_date(cov_info)
   has_backup = (
       output.corpus_pruning_task_output.corpus_backup_uploaded or
       bool(cov_info.corpus_backup_location))
@@ -1028,9 +1042,7 @@ def _save_coverage_information(output):
   def _try_save_coverage_information():
     """Persists validated coverage metrics in Datastore."""
     coverage_info = data_handler.get_coverage_information(
-        trusted_locations.project_name,
-        cov_info.timestamp.ToDatetime().date(),
-        create_if_needed=True)
+        trusted_locations.project_name, coverage_date, create_if_needed=True)
 
     coverage_info.corpus_size_units = cov_info.corpus_size_units
     coverage_info.corpus_size_bytes = cov_info.corpus_size_bytes
@@ -1116,7 +1128,8 @@ def _utask_main(uworker_input):
             fuzzer_binary_name=result.fuzzer_binary_name,
             crash_revision=result.revision,
             crashes=result.crashes,
-            corpus_backup_uploaded=bool(result.coverage_info.corpus_location)),
+            corpus_backup_uploaded=bool(
+                result.coverage_info.corpus_backup_location)),
         issue_metadata=json.dumps(issue_metadata))
     _fill_cross_pollination_stats(result.cross_pollination_stats,
                                   uworker_output)

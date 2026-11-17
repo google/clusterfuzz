@@ -331,6 +331,117 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         uworker_input.corpus_pruning_task_input.dated_backup_gcs_url,
         coverage_info.corpus_backup_location)
 
+  def test_postprocess_oss_fuzz_prefixed_target_and_override_engine(self):
+    """Tests non-default OSS-Fuzz prefixed targets and engine name overrides."""
+    data_types.FuzzTarget(
+        engine='libFuzzer', binary='test_fuzzer', project='ffmpeg').put()
+    data_types.FuzzTargetJob(
+        fuzz_target_name='libFuzzer_ffmpeg_test_fuzzer',
+        engine='libFuzzer',
+        job='libfuzzer_ffmpeg_asan').put()
+    os.environ['JOB_NAME'] = 'libfuzzer_ffmpeg_asan'
+    os.environ['CORPUS_BUCKET'] = 'ffmpeg-corpus'
+    os.environ['QUARANTINE_BUCKET'] = 'ffmpeg-quarantine'
+    os.environ['BACKUP_BUCKET'] = 'ffmpeg-backup'
+    os.environ['CORPUS_FUZZER_NAME_OVERRIDE'] = 'libfuzzer'
+
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_ffmpeg_asan',
+        fuzzer_name='libFuzzer_ffmpeg_test_fuzzer',
+        uworker_env={})
+    output = corpus_pruning_task.utask_main(uworker_input)
+    output.uworker_input.CopyFrom(uworker_input)
+    output.corpus_pruning_task_output.coverage_info.project_name = 'test_fuzzer'
+    corpus_pruning_task.utask_postprocess(output)
+
+    today = datetime.datetime.utcnow().date()
+    cov = data_handler.get_coverage_information('ffmpeg_test_fuzzer', today)
+    self.assertIsNotNone(cov)
+    self.assertEqual('gs://ffmpeg-corpus/libfuzzer/ffmpeg_test_fuzzer/',
+                     cov.corpus_location)
+    self.assertEqual('gs://ffmpeg-quarantine/libfuzzer/ffmpeg_test_fuzzer/',
+                     cov.quarantine_location)
+    self.assertTrue(
+        cov.corpus_backup_location.startswith(
+            'gs://ffmpeg-backup/corpus/libfuzzer/ffmpeg_test_fuzzer/'))
+
+  def test_postprocess_skips_backup_location_when_backup_fails_or_unset(self):
+    """Tests that failed or unconfigured corpus backups leave backup URL None."""
+    self.mock.backup_corpus.return_value = False
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
+    output = corpus_pruning_task.utask_main(uworker_input)
+    self.assertFalse(output.corpus_pruning_task_output.corpus_backup_uploaded)
+    output.uworker_input.CopyFrom(uworker_input)
+    corpus_pruning_task.utask_postprocess(output)
+
+    today = datetime.datetime.utcnow().date()
+    cov = data_handler.get_coverage_information('test_fuzzer', today)
+    self.assertIsNotNone(cov)
+    self.assertIsNone(cov.corpus_backup_location)
+
+    os.environ['BACKUP_BUCKET'] = ''
+    self.mock.backup_corpus.return_value = True
+    uworker_input_no_bkp = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
+    output_no_bkp = corpus_pruning_task.utask_main(uworker_input_no_bkp)
+    output_no_bkp.uworker_input.CopyFrom(uworker_input_no_bkp)
+    output_no_bkp.corpus_pruning_task_output.coverage_info.corpus_backup_location = (
+        'gs://evil/backup.zip')
+    corpus_pruning_task.utask_postprocess(output_no_bkp)
+
+    cov_after = data_handler.get_coverage_information('test_fuzzer', today)
+    self.assertIsNone(cov_after.corpus_backup_location)
+
+  def test_postprocess_clamps_forged_dates_and_preserves_coverage_fields(self):
+    """Tests date clamping and preservation of fuzzer_coverage cron fields."""
+    today = datetime.datetime.utcnow().date()
+    yesterday = today - datetime.timedelta(days=1)
+
+    existing = data_handler.get_coverage_information(
+        'test_fuzzer', today, create_if_needed=True)
+    existing.edges_covered = 120
+    existing.edges_total = 200
+    existing.functions_covered = 30
+    existing.functions_total = 50
+    existing.html_report_url = 'https://storage.googleapis.com/cov/index.html'
+    existing.put()
+
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
+    output = corpus_pruning_task.utask_main(uworker_input)
+    output.uworker_input.CopyFrom(uworker_input)
+
+    forged_date = datetime.datetime(2020, 1, 1, 0, 0, 0)
+    output.corpus_pruning_task_output.coverage_info.timestamp.FromDatetime(
+        forged_date)
+    corpus_pruning_task.utask_postprocess(output)
+
+    self.assertIsNone(
+        data_handler.get_coverage_information('test_fuzzer',
+                                              forged_date.date()))
+    merged = data_handler.get_coverage_information('test_fuzzer', today)
+    self.assertEqual(120, merged.edges_covered)
+    self.assertEqual(200, merged.edges_total)
+    self.assertEqual(30, merged.functions_covered)
+    self.assertEqual(50, merged.functions_total)
+    self.assertEqual('https://storage.googleapis.com/cov/index.html',
+                     merged.html_report_url)
+    self.assertEqual(2, merged.corpus_size_units)
+
+    midnight_dt = datetime.datetime.combine(yesterday, datetime.time(23, 58))
+    output.corpus_pruning_task_output.coverage_info.timestamp.FromDatetime(
+        midnight_dt)
+    corpus_pruning_task.utask_postprocess(output)
+    self.assertIsNotNone(
+        data_handler.get_coverage_information('test_fuzzer', yesterday))
+
   def test_get_libfuzzer_flags(self):
     """Test get_libfuzzer_flags logic."""
     fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')
