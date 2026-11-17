@@ -386,7 +386,7 @@ class CommandExecutionSafetyTest(unittest.TestCase):
         on_cuttlefish_host=False)
     self.assertEqual([
         '/usr/bin/adb', '-s', 'emulator-5554', 'shell',
-        'su root sh -c "mount -o ro,remount /system"'
+        "su root sh -c 'mount -o ro,remount /system'"
     ], remount_argv)
 
   def test_write_data_to_file_quotes_metacharacters(self):
@@ -398,7 +398,7 @@ class CommandExecutionSafetyTest(unittest.TestCase):
     ])
     self.mock.execute_command.return_value = ''
     adb.write_data_to_file("chrome --flag='x' $(id)",
-                           '/data/local/tmp/cmd file')
+                           '/data/local/tmp/cmd $(id)')
     first_host_cmd = self.mock.execute_command.call_args_list[0][0][0]
     second_host_cmd = self.mock.execute_command.call_args_list[1][0][0]
     first_argv = adb._build_host_command_args(  # pylint: disable=protected-access
@@ -413,5 +413,29 @@ class CommandExecutionSafetyTest(unittest.TestCase):
                   first_argv[4])
     self.assertEqual([
         '/usr/bin/adb', '-s', 'emulator-5554', 'shell',
-        'su root sh -c "chmod 0644 \'/data/local/tmp/cmd file\'"'
+        'su root sh -c \'chmod 0644 \'"\'"\'/data/local/tmp/cmd $(id)\'"\'"\'\''
     ], second_argv)
+
+  def test_remove_file_and_malformed_command_handling(self):
+    """Tests device path quoting in remove_file and malformed quote handling."""
+    os.environ['ADB'] = '/usr/bin/adb'
+    os.environ['ANDROID_SERIAL'] = 'emulator-5554'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+    ])
+    self.mock.execute_command.return_value = ''
+    adb.remove_file('/data/local/tmp/bad $(id)')
+    rm_argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        self.mock.execute_command.call_args[0][0],
+        on_cuttlefish_host=False)
+    self.assertEqual([
+        '/usr/bin/adb', '-s', 'emulator-5554', 'shell',
+        'su root sh -c \'rm -f \'"\'"\'/data/local/tmp/bad $(id)\'"\'"\'\''
+    ], rm_argv)
+
+    return_code, output = adb.execute_command_with_return_code('echo "unclosed')
+    self.assertEqual(adb.MALFORMED_COMMAND_RETURN_CODE, return_code)
+    self.assertIn('No closing quotation', output)
+    empty_code, empty_out = adb.execute_command_with_return_code('   ')
+    self.assertEqual(0, empty_code)
+    self.assertEqual('', empty_out)

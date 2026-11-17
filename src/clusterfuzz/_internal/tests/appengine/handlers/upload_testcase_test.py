@@ -422,10 +422,12 @@ class UploadOAuthTest(unittest.TestCase):
               'job': 'libfuzzer_proj_android',
               'target': 'target',
               'revision': '1337',
-              'args': '',
+              'args': '   ',
               'file': (io.BytesIO(b'contents'), 'file'),
           })
     self.assertEqual(200, empty_args_resp.status_code, empty_args_resp.data)
+    empty_tc = data_handler.get_testcase_by_id(empty_args_resp.json['id'])
+    self.assertIsNone(empty_tc.get_metadata('uploaded_additional_args'))
 
     email = 'uploader@email'
     data_types.Config(privileged_users=email).put()

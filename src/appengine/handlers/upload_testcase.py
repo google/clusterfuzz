@@ -495,6 +495,9 @@ class UploadHandlerCommon:
         raise helpers.EarlyExitError(
             'You are not privileged to run arbitrary launch commands.', 400)
 
+      if additional_arguments and not additional_arguments.strip():
+        additional_arguments = ''
+
       if (additional_arguments and not _allow_unprivileged_additional_arguments(
           job, platform_id, trusted)):
         raise helpers.EarlyExitError(

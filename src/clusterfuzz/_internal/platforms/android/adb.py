@@ -126,6 +126,9 @@ def execute_command(cmd: str,
   return output
 
 
+MALFORMED_COMMAND_RETURN_CODE = 2
+
+
 def _build_host_command_args(cmd: str, on_cuttlefish_host: bool) -> list[str]:
   """Builds argv for host subprocess execution without a host shell."""
   if on_cuttlefish_host and environment.is_android_cuttlefish():
@@ -148,7 +151,13 @@ def execute_command_with_return_code(cmd: str,
     A (return_code, output) tuple. Both values are None if the command timed
     out.
   """
-  argv = _build_host_command_args(cmd, on_cuttlefish_host)
+  try:
+    argv = _build_host_command_args(cmd, on_cuttlefish_host)
+  except ValueError as error:
+    logs.warning('Failed to parse command %s: %s' % (cmd, error))
+    return MALFORMED_COMMAND_RETURN_CODE, str(error)
+  if not argv:
+    return 0, ''
 
   so = []
   # pylint: disable=consider-using-with
@@ -552,14 +561,14 @@ def restart_adb():
 
 def remove_directory(device_directory, recreate=False):
   """Delete everything inside of a device directory and recreate if needed."""
-  run_shell_command('rm -rf %s' % device_directory, root=True)
+  run_shell_command(f'rm -rf {shlex.quote(device_directory)}', root=True)
   if recreate:
     create_directory_if_needed(device_directory)
 
 
 def remove_file(file_path):
   """Remove file."""
-  run_shell_command('rm -f %s' % file_path, root=True)
+  run_shell_command(f'rm -f {shlex.quote(file_path)}', root=True)
 
 
 def reset_device_connection():
@@ -786,13 +795,12 @@ def run_shell_command(cmd,
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
 
-  if cmd[0] not in ['"', "'"]:
-    cmd = '"{}"'.format(_escape_specials(cmd))
-
   if root:
-    root_cmd_prefix = 'su root sh -c '
-    full_cmd = f'shell {shlex.quote(root_cmd_prefix + cmd)}'
+    device_cmd = f'su root sh -c {shlex.quote(cmd)}'
+    full_cmd = f'shell {shlex.quote(device_cmd)}'
   else:
+    if not cmd or cmd[0] not in ['"', "'"]:
+      cmd = '"{}"'.format(_escape_specials(cmd))
     full_cmd = f'shell {cmd}'
 
   return run_command(
