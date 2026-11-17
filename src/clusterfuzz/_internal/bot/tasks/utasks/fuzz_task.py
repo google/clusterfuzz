@@ -843,6 +843,10 @@ def postprocess_get_unique_file_prefix() -> str:
     logs.error('Missing CF_TASK_ID environment variable, falling back to '
                'random UUID. JobRun or TestcaseRun stats might be duplicated.')
     return str(uuid.uuid4())
+  if task_id[0] not in '0123456789abcdef':
+    logs.error('CF_TASK_ID does not start with a hex digit, falling back to '
+               'random UUID. JobRun or TestcaseRun stats might be duplicated.')
+    return str(uuid.uuid4())
   return task_id
 
 
