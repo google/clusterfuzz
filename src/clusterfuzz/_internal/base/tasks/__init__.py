@@ -99,6 +99,7 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'CHROMEOS': 'Chrome OS',
     'FUCHSIA': 'Fuchsia OS',
     'MAC': 'Mac',
+    'MAC_ARM64': 'Mac (ARM64)',
     'WINDOWS': 'Windows',
     'WINDOWS_WITH_GPU': 'Windows (with GPU)',
 }
