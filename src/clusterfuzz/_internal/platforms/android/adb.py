@@ -347,8 +347,15 @@ def get_ps_output():
   return run_shell_command(['ps', '-A'])
 
 
-def get_process_and_child_pids(process_name):
-  """Return process and child pids matching a process name."""
+def get_process_and_child_pids(process_name: str) -> list[int]:
+  """Returns PIDs of processes matching a substring (plus monkey) and children.
+
+  Args:
+    process_name: Substring to match against process names in `ps -A`.
+
+  Returns:
+    List of matching process and descendant PIDs, with exact matches first.
+  """
   pids = []
   ps_output_lines = get_ps_output().splitlines()
 

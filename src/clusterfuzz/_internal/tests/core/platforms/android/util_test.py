@@ -280,3 +280,52 @@ class ActivityCrashedByPackageTest(unittest.TestCase):
   def test_empty_package(self):
     """Checks that activity_crashed_by_package returns False when app_package is empty."""
     self.assertFalse(util.activity_crashed_by_package(''))
+
+
+class IsPackageRunningTest(unittest.TestCase):
+  """Tests strict package liveness checks against `ps -A` output."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.get_ps_output',
+    ])
+
+  def test_returns_true_when_main_process_running(self):
+    """Verifies a package is reported as running when its main process appears
+    in `ps -A`."""
+    self.mock.get_ps_output.return_value = (
+        'USER   PID PPID   VSZ  RSS WCHAN ADDR S NAME\n'
+        'root     1    0  1000  100     0    0 S init\n'
+        'u0_a2  100   50  1000  100     0    0 S com.example.app\n')
+
+    self.assertTrue(util.is_package_running('com.example.app'))
+    self.mock.get_ps_output.assert_called_once_with()
+
+  def test_returns_true_when_only_service_process_running(self):
+    """Verifies a `<package>:*` service process still counts as the package
+    running even when the main process is absent."""
+    self.mock.get_ps_output.return_value = (
+        'USER   PID PPID   VSZ  RSS WCHAN ADDR S NAME\n'
+        'u0_a2  101   50  1000  100     0    0 S com.example.app:sandboxed0\n')
+
+    self.assertTrue(util.is_package_running('com.example.app'))
+
+  def test_returns_false_for_prefix_sharing_and_monkey_processes(self):
+    """Verifies dead packages return False even when a lingering app zygote
+    (`<package>_zygote_native`) or monkey process is still running."""
+    self.mock.get_ps_output.return_value = (
+        'USER   PID PPID   VSZ  RSS WCHAN ADDR S NAME\n'
+        'root     1    0  1000  100     0    0 S init\n'
+        'u0_a2  200   50  1000  100     0    0 S com.example.app_zygote_native\n'
+        'shell  300    1  1000  100     0    0 S com.android.commands.monkey\n')
+
+    self.assertFalse(util.is_package_running('com.example.app'))
+
+  def test_returns_false_when_ps_output_empty_or_none(self):
+    """Verifies empty or None `ps -A` output (e.g. adb failure) returns False
+    instead of raising."""
+    self.mock.get_ps_output.return_value = ''
+    self.assertFalse(util.is_package_running('com.example.app'))
+
+    self.mock.get_ps_output.return_value = None
+    self.assertFalse(util.is_package_running('com.example.app'))
