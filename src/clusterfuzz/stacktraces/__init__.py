@@ -1306,8 +1306,9 @@ class StackParser:
           CHROME_WIN_STACK_FRAME_REGEX,
           line,
           state,
-          group=1,
-          frame_spec=CHROME_WIN_STACK_FRAME_SPEC):
+          group=2,
+          frame_spec=CHROME_WIN_STACK_FRAME_SPEC,
+          frame_override_func=llvm_test_one_input_override):
         continue
 
       if state.found_java_exception:

@@ -4149,3 +4149,63 @@ class StackAnalyzerTestcase(unittest.TestCase):
         expected_stacktrace,
         expected_security_flag,
     )
+
+  def test_check_failure_chrome_win_module_prefix_and_hex_offset(self):
+    """Tests Windows CHECK stacktraces with module! prefixes and hex offsets."""
+    data = (
+        '[1117/081932.001:FATAL:command_line.cc(450)] Check failed: !name.empty().\n'
+        '\tcommand_line_fuzzer!base::debug::CollectStackTrace [0x7ff67c571700+40]'
+        ' (C:\\b\\s\\src\\base\\debug\\stack_trace_win.cc:395)\n'
+        '\tcommand_line_fuzzer!base::debug::StackTrace::StackTrace [0x7ff67c03d19e+14e]'
+        ' (C:\\b\\s\\src\\base\\debug\\stack_trace.cc:276)\n'
+        '\tcommand_line_fuzzer!logging::LogMessage::Flush [0x7ff67c0c49a8+868]'
+        ' (C:\\b\\s\\src\\base\\logging.cc:714)\n'
+        '\tcommand_line_fuzzer!logging::`anonymous namespace\'::CheckLogMessage::~CheckLogMessage [0x7ff67c0fc6b4+d4]'
+        ' (C:\\b\\s\\src\\base\\check.cc:205)\n'
+        '\tcommand_line_fuzzer!base::CommandLine::RemoveSwitch [0x7ff67c33acdc+47c]'
+        ' (C:\\b\\s\\src\\base\\command_line.cc:450)\n'
+        '\tcommand_line_fuzzer!LLVMFuzzerTestOneInput [0x7ff67ba12416+10b6]'
+        ' (C:\\b\\s\\src\\base\\command_line_fuzzer.cc:42)\n'
+        '\tcommand_line_fuzzer!fuzzer::Fuzzer::ExecuteCallback [0x7ff67ba80e06+386]'
+        ' (C:\\b\\s\\src\\third_party\\libFuzzer\\src\\FuzzerLoop.cpp:622)\n'
+        '\tcommand_line_fuzzer!main [0x7ff67ba393ae+de]'
+        ' (C:\\b\\s\\src\\third_party\\libFuzzer\\src\\FuzzerMain.cpp:20)\n'
+        '\tclang_rt.asan_dynamic-x86_64!_asan_wrap_CreateThread [0x7ffee1b4e837+147]\n'
+        '\tKERNEL32!BaseThreadInitThunk [0x7ffc045bdd37+17]\n')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = ('!name.empty() in command_line.cc\n'
+                      'base::CommandLine::RemoveSwitch\n'
+                      'command_line_fuzzer.cc\n')
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, data, False)
+
+    parsed = StackParser().parse(data)
+    frames = parsed.frames[0]
+    self.assertEqual(frames[0].module_name, 'command_line_fuzzer')
+    self.assertEqual(frames[0].function_name, 'base::debug::CollectStackTrace')
+    self.assertEqual(frames[0].function_offset, 0x40)
+    self.assertEqual(frames[4].function_name, 'base::CommandLine::RemoveSwitch')
+    self.assertEqual(frames[4].function_offset, 0x47c)
+
+  def test_check_failure_chrome_win_ignores_prefixed_asan_and_fuzzer_frames(
+      self):
+    """Tests that module!-prefixed ASan and libFuzzer frames are ignored."""
+    data = (
+        '[1117/081932.001:FATAL:services.cc(373)] Check failed: initialized.\n'
+        '\thtml_fuzzer!(No symbol) [0x7ff6bd0daa90]\n'
+        '\tclang_rt.asan_dynamic-x86_64!_asan_wrap_CreateThread [0x7ffee1b4e837+147]\n'
+        '\thtml_fuzzer!fuzzer::Fuzzer::ExecuteCallback [0x7ff67ba80e06+386]'
+        ' (C:\\b\\s\\src\\third_party\\libFuzzer\\src\\FuzzerLoop.cpp:622)\n'
+        '\thtml_fuzzer!content::`anonymous namespace\'::RunOnDeviceModel [0x7ff726b907d0+1e0]'
+        ' (C:\\b\\s\\src\\content\\utility\\services.cc:373)\n'
+        '\thtml_fuzzer!mojo::ServiceFactory::RunService [0x7ff730bb3576+506]'
+        ' (C:\\b\\s\\src\\mojo\\public\\cpp\\bindings\\service_factory.cc:37)\n'
+    )
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = ('initialized in services.cc\n'
+                      'content::RunOnDeviceModel\n'
+                      'mojo::ServiceFactory::RunService\n')
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, data, False)
