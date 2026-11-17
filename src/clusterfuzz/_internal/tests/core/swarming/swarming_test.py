@@ -575,3 +575,34 @@ class SwarmingTest(unittest.TestCase):
                   env_by_key['DOCKER_ENV_VARS'])
     self.assertIn('"DEPLOYMENT_BUCKET": "mac-arm64-bucket"',
                   env_by_key['DOCKER_ENV_VARS'])
+
+  def test_get_spec_from_config_for_mac_arm64(self):
+    """Tests that create_new_task_request maps MAC_ARM64 to os:Mac, cpu:arm,
+    and preserves macos_arm64-3.zip over Linux scheduler defaults."""
+    os.environ['DEPLOYMENT_ZIP'] = 'linux-3.zip'
+    job = data_types.Job(
+        name='libfuzzer_chrome_asan_mac_arm64',
+        platform='MAC_ARM64',
+        environment_string='IS_SWARMING_JOB = True')
+    job.put()
+
+    spec = swarming.create_new_task_request('fuzz', job.name,
+                                            'https://download_url')
+    self.assertIsNotNone(spec)
+    self.assertEqual(spec.priority, 20)
+    self.assertEqual(spec.tags, ['spec_name:clusterfuzz.mac_arm64:fuzz'])
+
+    props = spec.task_slices[0].properties
+    self.assertCountEqual(
+        props.dimensions,
+        [
+            swarming_pb2.StringPair(key='os', value='Mac'),
+            swarming_pb2.StringPair(key='pool', value='pool-name'),
+            swarming_pb2.StringPair(key='gce', value='0'),
+            swarming_pb2.StringPair(key='cpu', value='arm'),
+        ],
+    )
+    env_by_key = {pair.key: pair.value for pair in props.env}
+    self.assertEqual(env_by_key['DEPLOYMENT_ZIP'], 'macos_arm64-3.zip')
+    self.assertEqual(env_by_key['DEPLOYMENT_BUCKET'],
+                     'mac-arm64-deployment-bucket')
