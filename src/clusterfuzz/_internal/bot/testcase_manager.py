@@ -1231,7 +1231,7 @@ def _check_and_stop_android_app() -> bool:
     return False
 
   try:
-    app_died = not android.adb.get_process_and_child_pids(package_name)
+    app_died = not android.util.is_package_running(package_name)
   finally:
     android.app.stop()
 

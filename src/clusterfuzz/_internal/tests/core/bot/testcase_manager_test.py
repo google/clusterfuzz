@@ -1262,7 +1262,7 @@ class CheckForBadBuildTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.bot.testcase_manager.get_command_line_for_application',
         'clusterfuzz._internal.platforms.android.app.get_package_name',
-        'clusterfuzz._internal.platforms.android.adb.get_process_and_child_pids',
+        'clusterfuzz._internal.platforms.android.util.is_package_running',
         'clusterfuzz._internal.platforms.android.app.stop',
         'clusterfuzz._internal.system.process_handler.run_process',
         'clusterfuzz._internal.system.process_handler.terminate_stale_application_instances',
@@ -1278,7 +1278,7 @@ class CheckForBadBuildTest(unittest.TestCase):
     self.mock.run_process.return_value = (
         0, 1.0, 'Starting: Intent ...\nProcess org.chromium.chrome has died')
     self.mock.get_package_name.return_value = 'org.chromium.chrome'
-    self.mock.get_process_and_child_pids.return_value = []
+    self.mock.is_package_running.return_value = False
 
     build_data = testcase_manager.check_for_bad_build(
         job_type='aluminium_asan_chrome_public', crash_revision=123)
@@ -1292,11 +1292,10 @@ class CheckForBadBuildTest(unittest.TestCase):
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
     self.mock.get_package_name.return_value = 'org.chromium.chrome'
-    self.mock.get_process_and_child_pids.return_value = [2155]
+    self.mock.is_package_running.return_value = True
     call_order = mock.Mock()
     call_order.attach_mock(self.mock.run_process, 'run_process')
-    call_order.attach_mock(self.mock.get_process_and_child_pids,
-                           'get_process_and_child_pids')
+    call_order.attach_mock(self.mock.is_package_running, 'is_package_running')
     call_order.attach_mock(self.mock.stop, 'stop')
 
     build_data = testcase_manager.check_for_bad_build(
@@ -1306,14 +1305,14 @@ class CheckForBadBuildTest(unittest.TestCase):
     self.assertEqual(build_data.revision, 123)
     self.assertTrue(
         self.mock.run_process.call_args.kwargs['dont_terminate_android_app'])
-    self.assertEqual(['run_process', 'get_process_and_child_pids', 'stop'],
+    self.assertEqual(['run_process', 'is_package_running', 'stop'],
                      [name for name, _, _ in call_order.mock_calls])
 
   def test_android_no_package_name_skips_process_check(self):
     """Test that Android fuzzing without an APK package (e.g. a native binary
     target) does not run the package process-liveness check at all. Expects
-    get_process_and_child_pids to never be called and, with a clean run, the
-    build not to be flagged as bad."""
+    is_package_running to never be called and, with a clean run, the build not
+    to be flagged as bad."""
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     self.mock.run_process.return_value = (0, 1.0, 'Running 1 inputs...')
     self.mock.get_package_name.return_value = None
@@ -1321,7 +1320,7 @@ class CheckForBadBuildTest(unittest.TestCase):
     build_data = testcase_manager.check_for_bad_build(
         job_type='android_libfuzzer_target', crash_revision=123)
 
-    self.mock.get_process_and_child_pids.assert_not_called()
+    self.mock.is_package_running.assert_not_called()
     self.mock.stop.assert_not_called()
     self.assertFalse(build_data.is_bad_build)
     self.assertEqual(build_data.revision, 123)
@@ -1339,7 +1338,7 @@ class CheckForBadBuildTest(unittest.TestCase):
     build_data = testcase_manager.check_for_bad_build(
         job_type='android_libfuzzer_target', crash_revision=123)
 
-    self.mock.get_process_and_child_pids.assert_not_called()
+    self.mock.is_package_running.assert_not_called()
     self.assertTrue(build_data.is_bad_build)
     self.assertEqual(build_data.revision, 123)
 
@@ -1352,7 +1351,7 @@ class CheckForBadBuildTest(unittest.TestCase):
         1, 1.0,
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000')
     self.mock.get_package_name.return_value = 'org.chromium.chrome'
-    self.mock.get_process_and_child_pids.return_value = [2155]
+    self.mock.is_package_running.return_value = True
 
     build_data = testcase_manager.check_for_bad_build(
         job_type='aluminium_asan_chrome_public', crash_revision=123)
@@ -1365,7 +1364,7 @@ class CheckForBadBuildTest(unittest.TestCase):
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
     self.mock.get_package_name.return_value = 'org.chromium.chrome'
-    self.mock.get_process_and_child_pids.side_effect = RuntimeError('adb error')
+    self.mock.is_package_running.side_effect = RuntimeError('adb error')
 
     with self.assertRaises(RuntimeError):
       testcase_manager.check_for_bad_build(

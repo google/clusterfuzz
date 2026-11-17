@@ -239,23 +239,33 @@ class RunProcessAndroidTest(unittest.TestCase):
         'clusterfuzz._internal.system.environment.platform',
         'clusterfuzz._internal.platforms.android.logger.clear_log',
         'clusterfuzz._internal.platforms.android.logger.log_output',
+        'clusterfuzz._internal.platforms.android.logger.log_output_before_last_reboot',
         'clusterfuzz._internal.platforms.android.adb.time_since_last_reboot',
         'clusterfuzz._internal.platforms.android.adb.run_command',
         'clusterfuzz._internal.platforms.android.adb.get_ps_output',
+        'clusterfuzz._internal.platforms.android.adb.get_kernel_log_content',
+        'clusterfuzz._internal.platforms.android.adb.run_as_root',
         'clusterfuzz._internal.platforms.android.app.get_package_name',
         'clusterfuzz._internal.platforms.android.app.stop',
+        'clusterfuzz._internal.platforms.android.settings.change_se_linux_to_permissive_mode',
         'clusterfuzz._internal.platforms.android.util.get_latest_pid_for_package',
         'clusterfuzz._internal.platforms.android.util.get_exit_info_for_pid',
         'clusterfuzz._internal.platforms.android.util.activity_crashed',
         'time.sleep',
     ])
 
+    # Exit the run loop immediately after launch instead of waiting for timeout.
+    os.environ['WATCH_FOR_PROCESS_EXIT'] = 'True'
     self.mock.platform.return_value = 'ANDROID'
     self.mock.get_package_name.return_value = 'com.example.app'
     self.mock.time_since_last_reboot.return_value = 100.0
     self.mock.log_output.return_value = ''
+    self.mock.log_output_before_last_reboot.return_value = ''
+    self.mock.get_kernel_log_content.return_value = ''
     self.mock.run_command.return_value = ''
     self.mock.get_ps_output.return_value = ''
+    self.mock.get_latest_pid_for_package.return_value = None
+    self.mock.get_exit_info_for_pid.return_value = None
 
   def test_run_process_android_activity_crashed(self):
     """Checks that run_process sets return_code from exit_info.reason and logs warning when an Android activity crash is detected."""
@@ -275,45 +285,91 @@ class RunProcessAndroidTest(unittest.TestCase):
     self.assertEqual(return_code, 5)
 
   def test_run_process_android_no_crash(self):
-    """Checks that run_process returns 0 return_code when Android activity has not crashed."""
+    """Verifies a live process with no exit info returns 0 and skips
+    activity_crashed."""
     self.mock.get_latest_pid_for_package.return_value = 1234
     self.mock.get_exit_info_for_pid.return_value = None
+
+    return_code, _, _ = process_handler.run_process(
+        'am start -n com.example.app/.MainActivity')
+
+    self.mock.activity_crashed.assert_not_called()
+    self.assertEqual(return_code, 0)
+    self.mock.stop.assert_called_once_with()
+
+  def test_run_process_android_non_crash_exit_returns_zero(self):
+    """Verifies a recorded non-crash exit (e.g. clean shutdown) keeps
+    return_code at 0."""
+    exit_info = util.ProcessExitInfo(
+        reason=constants.ExitReason.SIGNALED,
+        reason_name='SIGNALED',
+        subreason=0,
+        subreason_name='',
+        status=constants.ExitStatus.SIGQUIT)
+    self.mock.get_latest_pid_for_package.return_value = 1234
+    self.mock.get_exit_info_for_pid.return_value = exit_info
     self.mock.activity_crashed.return_value = False
 
     return_code, _, _ = process_handler.run_process(
         'am start -n com.example.app/.MainActivity')
+
+    self.mock.activity_crashed.assert_called_once_with(exit_info)
     self.assertEqual(return_code, 0)
-    self.mock.stop.assert_called_once_with()
 
   def test_run_process_android_no_package_name_skips_exit_info(self):
-    """Checks that, when no APK package name is resolvable (non-APK fuzzing,
-    e.g. a native binary pushed to the device), run_process skips the
-    package-scoped exit info lookups entirely, treats exit_info as None and
-    still returns a 0 return_code instead of failing."""
+    """Verifies non-APK runs (no package name) skip exit-info and crash checks
+    and return 0."""
     self.mock.get_package_name.return_value = None
-    self.mock.activity_crashed.return_value = False
 
     return_code, _, _ = process_handler.run_process('/data/local/tmp/fuzzer')
 
     self.mock.get_latest_pid_for_package.assert_not_called()
     self.mock.get_exit_info_for_pid.assert_not_called()
-    self.mock.activity_crashed.assert_called_once_with(None)
+    self.mock.activity_crashed.assert_not_called()
     self.assertEqual(return_code, 0)
 
   def test_run_process_android_no_pid_for_package(self):
-    """Checks the edge case where the package exists but has no recorded pid
-    (the app never started). Expects exit info to still be queried with a None
-    pid, no crash to be reported and a 0 return_code."""
+    """Verifies runs with no logged package PID query exit-info with None, skip
+    activity_crashed when empty, and return 0."""
     self.mock.get_latest_pid_for_package.return_value = None
     self.mock.get_exit_info_for_pid.return_value = None
-    self.mock.activity_crashed.return_value = False
 
     return_code, _, _ = process_handler.run_process(
         'am start -n com.example.app/.MainActivity')
 
     self.mock.get_exit_info_for_pid.assert_called_once_with(
         'com.example.app', None)
+    self.mock.activity_crashed.assert_not_called()
     self.assertEqual(return_code, 0)
+
+  def test_run_process_android_device_reboot_skips_stale_exit_info(self):
+    """Verifies that when the Android device reboots during the run, exit-info
+    crash checks are skipped so stale pre-reboot crash records cannot block
+    reboot recovery (return_code 1, SELinux permissive reset, and
+    pre-reboot/kernel logs)."""
+    self.mock.time_since_last_reboot.side_effect = [100.0, 5.0]
+    self.mock.get_latest_pid_for_package.return_value = 4321
+    self.mock.get_exit_info_for_pid.return_value = util.ProcessExitInfo(
+        reason=constants.ExitReason.CRASH_NATIVE,
+        reason_name='APP CRASH(NATIVE)',
+        subreason=0,
+        subreason_name='',
+        status=constants.ExitStatus.SIGSEGV)
+    self.mock.activity_crashed.return_value = True
+    self.mock.log_output_before_last_reboot.return_value = 'pre-reboot log'
+    self.mock.get_kernel_log_content.return_value = 'kernel log'
+
+    return_code, _, output = process_handler.run_process(
+        'am start -n com.example.app/.MainActivity')
+
+    self.mock.get_latest_pid_for_package.assert_not_called()
+    self.mock.get_exit_info_for_pid.assert_not_called()
+    self.mock.activity_crashed.assert_not_called()
+    self.mock.run_as_root.assert_called_once_with()
+    self.mock.change_se_linux_to_permissive_mode.assert_called_once_with()
+    self.assertIn('pre-reboot log', output)
+    self.assertIn('kernel log', output)
+    self.assertEqual(return_code, 1)
 
   def test_run_process_android_dont_terminate_android_app_true_keeps_app(self):
     """dont_terminate_android_app=True leaves the Android app running after the
