@@ -228,8 +228,6 @@ class SwarmingTest(unittest.TestCase):
                     execution_timeout_secs=86400,
                     env=[
                         swarming_pb2.StringPair(key='DOCKER_IMAGE', value=''),
-                        swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
-                        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
@@ -239,14 +237,16 @@ class SwarmingTest(unittest.TestCase):
                             key='DISABLE_MOUNTS', value='True'),
                         swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
+                        swarming_pb2.StringPair(key='ENV_VAR1', value='VALUE1'),
+                        swarming_pb2.StringPair(key='ENV_VAR2', value='VALUE2'),
                         swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
                             value=(
-                                '{"DOCKER_IMAGE": "", "ENV_VAR1": "VALUE1", '
-                                '"ENV_VAR2": "VALUE2", "UWORKER": "True", '
+                                '{"DOCKER_IMAGE": "", "UWORKER": "True", '
                                 '"SWARMING_BOT": "True", "LOG_TO_GCP": "True", '
                                 '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
-                                '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
+                                '"LOGGING_CLOUD_PROJECT_ID": "project_id", '
+                                '"ENV_VAR1": "VALUE1", "ENV_VAR2": "VALUE2"}')),
                     ],
                     env_prefixes=[
                         swarming_pb2.StringListPair(
@@ -380,8 +380,6 @@ class SwarmingTest(unittest.TestCase):
                             value=
                             'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
                         ),
-                        swarming_pb2.StringPair(
-                            key='OS_OVERRIDE', value='ANDROID_EMULATOR'),
                         swarming_pb2.StringPair(key='UWORKER', value='True'),
                         swarming_pb2.StringPair(
                             key='SWARMING_BOT', value='True'),
@@ -392,14 +390,16 @@ class SwarmingTest(unittest.TestCase):
                         swarming_pb2.StringPair(
                             key='LOGGING_CLOUD_PROJECT_ID', value='project_id'),
                         swarming_pb2.StringPair(
+                            key='OS_OVERRIDE', value='ANDROID_EMULATOR'),
+                        swarming_pb2.StringPair(
                             key='DOCKER_ENV_VARS',
-                            value=(
-                                '{"DOCKER_IMAGE": "gcr.io/clusterfuzz-images/'
-                                'base:a2f4dd6-202202070654", "OS_OVERRIDE": '
-                                '"ANDROID_EMULATOR", "UWORKER": "True", '
-                                '"SWARMING_BOT": "True", "LOG_TO_GCP": "True", '
-                                '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
-                                '"LOGGING_CLOUD_PROJECT_ID": "project_id"}')),
+                            value=
+                            ('{"DOCKER_IMAGE": "gcr.io/clusterfuzz-images/'
+                             'base:a2f4dd6-202202070654", "UWORKER": "True", '
+                             '"SWARMING_BOT": "True", "LOG_TO_GCP": "True", '
+                             '"IS_K8S_ENV": "True", "DISABLE_MOUNTS": "True", '
+                             '"LOGGING_CLOUD_PROJECT_ID": "project_id", '
+                             '"OS_OVERRIDE": "ANDROID_EMULATOR"}')),
                     ],
                     secret_bytes='https://download_url'.encode('utf-8')))
         ])
@@ -554,3 +554,44 @@ class SwarmingTest(unittest.TestCase):
                 '"DEPLOYMENT_BUCKET": "test-bucket-from-metadata"}')),
     ]
     self.assertEqual(env, expected_env)
+
+  def test_get_env_vars_platform_precedence_and_deduplication(self):
+    """Tests that platform-specific env vars override scheduler host/metadata
+    defaults without producing duplicate keys."""
+    os.environ['DEPLOYMENT_ZIP'] = 'linux-3.zip'
+
+    def metadata_get(path):
+      if path == 'project/attributes/deployment-bucket':
+        return 'default-linux-bucket'
+      return None
+
+    self.mock.get.side_effect = metadata_get
+    instance_spec = {
+        'env': [
+            {
+                'key': 'DEPLOYMENT_BUCKET',
+                'value': 'mac-arm64-bucket'
+            },
+            {
+                'key': 'DEPLOYMENT_ZIP',
+                'value': 'macos_arm64-3.zip'
+            },
+            {
+                'key': 'UWORKER',
+                'value': 'True'
+            },
+        ],
+    }
+
+    env = swarming._get_env_vars('project_id', instance_spec)  # pylint: disable=protected-access
+    keys = [pair.key for pair in env]
+    self.assertEqual(len(keys), len(set(keys)))
+
+    env_by_key = {pair.key: pair.value for pair in env}
+    self.assertEqual(env_by_key['DEPLOYMENT_BUCKET'], 'mac-arm64-bucket')
+    self.assertEqual(env_by_key['DEPLOYMENT_ZIP'], 'macos_arm64-3.zip')
+    self.assertEqual(env_by_key['UWORKER'], 'True')
+    self.assertIn('"DEPLOYMENT_ZIP": "macos_arm64-3.zip"',
+                  env_by_key['DOCKER_ENV_VARS'])
+    self.assertIn('"DEPLOYMENT_BUCKET": "mac-arm64-bucket"',
+                  env_by_key['DOCKER_ENV_VARS'])

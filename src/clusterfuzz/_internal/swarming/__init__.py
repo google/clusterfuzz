@@ -151,14 +151,12 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
   return task_dimensions
 
 
-def _append_metadata_env_var(
-    env_vars: list[swarming_pb2.StringPair],  # pylint: disable=no-member
-    env_var_name: str,
-    metadata_path: str) -> None:
-  """Attempts to get a variable from the environment or metadata and appends it.
+def _set_metadata_env_var(env_vars: dict[str, str], env_var_name: str,
+                          metadata_path: str) -> None:
+  """Attempts to get a variable from the environment or metadata and sets it.
 
   Args:
-    env_vars: The list of string pairs to append the retrieved value to.
+    env_vars: The dict of env vars to store the retrieved value in.
     env_var_name: The name of the environment variable to check and set.
     metadata_path: The path in the compute metadata to check if not set in env.
   """
@@ -170,9 +168,7 @@ def _append_metadata_env_var(
       pass
 
   if value:
-    env_vars.append(
-        swarming_pb2.StringPair(  # pylint: disable=no-member
-            key=env_var_name, value=str(value)))
+    env_vars[env_var_name] = str(value)
   else:
     logs.info(f'[Swarming] Metadata {env_var_name} cannot be fetched.')
 
@@ -180,52 +176,45 @@ def _append_metadata_env_var(
 def _get_env_vars(logs_project_id: str,
                   instance_spec: dict) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
   """Retrieve required environment variables from metadata and config."""
-  default_task_environment = [
-      swarming_pb2.StringPair(key='UWORKER', value='True'),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='SWARMING_BOT', value='True'),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='LOG_TO_GCP', value='True'),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='IS_K8S_ENV', value='True'),  # pylint: disable=no-member
-      swarming_pb2.StringPair(key='DISABLE_MOUNTS', value='True'),  # pylint: disable=no-member
-      swarming_pb2.StringPair(  # pylint: disable=no-member
-          key='LOGGING_CLOUD_PROJECT_ID',
-          value=logs_project_id or ''),
-  ]
+  default_task_environment = {
+      'UWORKER': 'True',
+      'SWARMING_BOT': 'True',
+      'LOG_TO_GCP': 'True',
+      'IS_K8S_ENV': 'True',
+      'DISABLE_MOUNTS': 'True',
+      'LOGGING_CLOUD_PROJECT_ID': logs_project_id or '',
+  }
 
-  _append_metadata_env_var(default_task_environment, 'DEPLOYMENT_BUCKET',
-                           'project/attributes/deployment-bucket')
-  _append_metadata_env_var(default_task_environment, 'HOST_JOB_SELECTION',
-                           'instance/attributes/host-job-selection')
-  _append_metadata_env_var(default_task_environment, 'DEPLOYMENT_ZIP',
-                           'project/attributes/deployment-zip')
+  _set_metadata_env_var(default_task_environment, 'DEPLOYMENT_BUCKET',
+                        'project/attributes/deployment-bucket')
+  _set_metadata_env_var(default_task_environment, 'HOST_JOB_SELECTION',
+                        'instance/attributes/host-job-selection')
+  _set_metadata_env_var(default_task_environment, 'DEPLOYMENT_ZIP',
+                        'project/attributes/deployment-zip')
 
-  swarming_bot_env = []
-  swarming_bot_env.append(
-      swarming_pb2.StringPair(  # pylint: disable=no-member
-          key='DOCKER_IMAGE',
-          value=instance_spec.get('docker_image', '')))
+  env_vars = {
+      'DOCKER_IMAGE': instance_spec.get('docker_image', ''),
+  }
 
+  for key, value in default_task_environment.items():
+    env_vars[key] = str(value)
+
+  # Platform-specific env vars in swarming.yaml take precedence over scheduler
+  # host/metadata defaults (e.g., DEPLOYMENT_ZIP=macos_arm64-3.zip over
+  # linux-3.zip on Linux utask-main-scheduler hosts).
   platform_specific_env = instance_spec.get('env', [])
   for var in platform_specific_env:
-    swarming_bot_env.append(
-        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
+    env_vars[var['key']] = str(var['value'])
 
-  swarming_bot_env.extend(default_task_environment)
-  swarming_bot_env.append(_env_vars_to_json(swarming_bot_env))
+  # Compress all env variables into a single JSON string, which is used to set
+  # up the env variables in Swarming bots that launch ClusterFuzz using a
+  # Docker container.
+  env_vars['DOCKER_ENV_VARS'] = json.dumps(env_vars)
 
-  return swarming_bot_env
-
-
-def _env_vars_to_json(
-    env_vars: list[swarming_pb2.StringPair]) -> swarming_pb2.StringPair:  # pylint: disable=no-member
-  """
-  Compresses all env variables into a single JSON string , which will be used
-  to set up the env variables in swarming bots that launch clusterfuzz 
-  using a docker container.
-  """
-  env_vars_dict = {pair.key: pair.value for pair in env_vars}
-  return swarming_pb2.StringPair(  # pylint: disable=no-member
-      key='DOCKER_ENV_VARS',
-      value=json.dumps(env_vars_dict))
+  return [
+      swarming_pb2.StringPair(key=key, value=value)  # pylint: disable=no-member
+      for key, value in env_vars.items()
+  ]
 
 
 def create_new_task_request(command: str, job_name: str, download_url: str
