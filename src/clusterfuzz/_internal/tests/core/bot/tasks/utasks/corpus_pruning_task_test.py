@@ -296,6 +296,41 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
     self.assertEqual(self.mock.unpack_seed_corpus_if_needed.call_count, 1)
 
+  def test_postprocess_ignores_untrusted_coverage_fields(self):
+    """Tests that postprocess derives project name and corpus URLs from trusted
+    uworker_input rather than untrusted coverage_info fields."""
+    data_types.FuzzTarget(
+        engine='libFuzzer', binary='other_fuzzer',
+        project='other-project').put()
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
+    output = corpus_pruning_task.utask_main(uworker_input)
+    output.uworker_input.CopyFrom(uworker_input)
+
+    cov_proto = output.corpus_pruning_task_output.coverage_info
+    cov_proto.project_name = 'other-project_other_fuzzer'
+    cov_proto.corpus_location = '"><img src=x onerror=alert(1)>'
+    cov_proto.corpus_backup_location = 'javascript:alert(1)'
+    cov_proto.quarantine_location = 'https://evil.example/quarantine'
+
+    corpus_pruning_task.utask_postprocess(output)
+
+    today = datetime.datetime.utcnow().date()
+    self.assertIsNone(
+        data_handler.get_coverage_information('other-project_other_fuzzer',
+                                              today))
+    coverage_info = data_handler.get_coverage_information('test_fuzzer', today)
+    self.assertIsNotNone(coverage_info)
+    self.assertEqual('gs://bucket/libFuzzer/test_fuzzer/',
+                     coverage_info.corpus_location)
+    self.assertEqual('gs://bucket-quarantine/libFuzzer/test_fuzzer/',
+                     coverage_info.quarantine_location)
+    self.assertEqual(
+        uworker_input.corpus_pruning_task_input.dated_backup_gcs_url,
+        coverage_info.corpus_backup_location)
+
   def test_get_libfuzzer_flags(self):
     """Test get_libfuzzer_flags logic."""
     fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')

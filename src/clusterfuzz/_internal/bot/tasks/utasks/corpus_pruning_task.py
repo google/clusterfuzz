@@ -991,31 +991,56 @@ def _get_cross_pollinate_fuzzers_from_protos(cross_pollinate_fuzzers_protos):
   ]
 
 
+TrustedCoverageLocations = collections.namedtuple('TrustedCoverageLocations', [
+    'project_name', 'corpus_location', 'quarantine_location',
+    'dated_backup_location'
+])
+
+
+def _get_trusted_coverage_locations(task_input):
+  """Recomputes target name and corpus GCS URLs from trusted task input."""
+  fuzz_target = uworker_io.entity_from_protobuf(task_input.fuzz_target,
+                                                data_types.FuzzTarget)
+  project_name = fuzz_target.project_qualified_name()
+  corpus = corpus_manager.ProtoFuzzTargetCorpus(fuzz_target.engine,
+                                                project_name, task_input.corpus)
+  quarantine_corpus = corpus_manager.ProtoFuzzTargetCorpus(
+      fuzz_target.engine, project_name, task_input.quarantine_corpus)
+  return TrustedCoverageLocations(
+      project_name=project_name,
+      corpus_location=corpus.get_gcs_url(),
+      quarantine_location=quarantine_corpus.get_gcs_url(),
+      dated_backup_location=task_input.dated_backup_gcs_url)
+
+
 def _save_coverage_information(output):
   """Saves coverage information in datastore using an atomic transaction."""
   if not output.corpus_pruning_task_output.HasField('coverage_info'):
     return
 
   cov_info = output.corpus_pruning_task_output.coverage_info
+  trusted_locations = _get_trusted_coverage_locations(
+      output.uworker_input.corpus_pruning_task_input)
+  has_backup = (
+      output.corpus_pruning_task_output.corpus_backup_uploaded or
+      bool(cov_info.corpus_backup_location))
 
-  # Use ndb.transaction with retries below to mitigate risk of a race condition.
   def _try_save_coverage_information():
-    """Implements save_coverage_information function."""
+    """Persists validated coverage metrics in Datastore."""
     coverage_info = data_handler.get_coverage_information(
-        cov_info.project_name,
+        trusted_locations.project_name,
         cov_info.timestamp.ToDatetime().date(),
         create_if_needed=True)
 
-    # Intentionally skip edge and function coverage values as those would come
-    # from fuzzer coverage cron task (see src/go/server/cron/coverage.go).
     coverage_info.corpus_size_units = cov_info.corpus_size_units
     coverage_info.corpus_size_bytes = cov_info.corpus_size_bytes
-    coverage_info.corpus_location = cov_info.corpus_location
-    if cov_info.corpus_backup_location:
-      coverage_info.corpus_backup_location = cov_info.corpus_backup_location
+    coverage_info.corpus_location = trusted_locations.corpus_location
+    if has_backup and trusted_locations.dated_backup_location:
+      coverage_info.corpus_backup_location = (
+          trusted_locations.dated_backup_location)
     coverage_info.quarantine_size_units = cov_info.quarantine_size_units
     coverage_info.quarantine_size_bytes = cov_info.quarantine_size_bytes
-    coverage_info.quarantine_location = cov_info.quarantine_location
+    coverage_info.quarantine_location = trusted_locations.quarantine_location
     coverage_info.put()
 
   try:
@@ -1023,8 +1048,6 @@ def _save_coverage_information(output):
         _try_save_coverage_information,
         retries=data_handler.DEFAULT_FAIL_RETRIES)
   except Exception as e:
-    # TODO(metzman): Don't catch every exception, it makes testing almost
-    # impossible.
     raise CorpusPruningError(
         'Failed to save corpus pruning result: %s.' % repr(e))
 

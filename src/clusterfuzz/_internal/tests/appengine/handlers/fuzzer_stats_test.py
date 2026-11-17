@@ -405,3 +405,27 @@ class TestGetDate(unittest.TestCase):
     """Test _get_date just returns a non-empty date."""
     date = '2018-5-1'
     self.assertEqual(fuzzer_stats._get_date(date, 1), date)
+
+
+class TestFormatBuiltinFieldValue(unittest.TestCase):
+  """Tests for HTML escaping and URL validation in _format_builtin_field_value."""
+
+  def test_rejects_disallowed_schemes_and_escapes_html(self):
+    """Tests that non-gs/http(s) links are stripped and HTML is escaped."""
+    disallowed = fuzzer_stats.fuzzer_stats.BuiltinFieldData(
+        '<script>alert(1)</script>',
+        sort_key=10,
+        link='"><img src=x onerror=alert(1)>')
+    self.assertEqual('&lt;script&gt;alert(1)&lt;/script&gt;',
+                     fuzzer_stats._format_builtin_field_value(disallowed))
+
+    js_scheme = fuzzer_stats.fuzzer_stats.BuiltinFieldData(
+        '40 (400 B)', sort_key=40, link='javascript:alert(1)')
+    self.assertEqual('40 (400 B)',
+                     fuzzer_stats._format_builtin_field_value(js_scheme))
+
+    quoted_https = fuzzer_stats.fuzzer_stats.BuiltinFieldData(
+        'Coverage', link='https://example.com/report?a="1"&b=2')
+    self.assertEqual(
+        '<a href="https://example.com/report?a=&quot;1&quot;&amp;b=2">'
+        'Coverage</a>', fuzzer_stats._format_builtin_field_value(quoted_https))
