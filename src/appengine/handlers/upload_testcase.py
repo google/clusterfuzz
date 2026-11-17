@@ -485,6 +485,11 @@ class UploadHandlerCommon:
         raise helpers.EarlyExitError(
             'You are not privileged to run arbitrary launch commands.', 400)
 
+      if additional_arguments:
+        raise helpers.EarlyExitError(
+            'You are not privileged to run arbitrary command-line arguments.',
+            400)
+
       if (testcase_metadata and
           not _allow_unprivileged_metadata(testcase_metadata)):
         raise helpers.EarlyExitError(

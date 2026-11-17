@@ -16,6 +16,7 @@
 import collections
 import os
 import re
+import shlex
 import signal
 import socket
 import subprocess
@@ -125,31 +126,39 @@ def execute_command(cmd: str,
   return output
 
 
+def _build_host_command_args(cmd: str, on_cuttlefish_host: bool) -> list[str]:
+  """Builds argv for host subprocess execution without a host shell."""
+  if on_cuttlefish_host and environment.is_android_cuttlefish():
+    return [
+        'ssh', '-o', 'StrictHostKeyChecking=no',
+        get_cuttlefish_ssh_target(), cmd
+    ]
+  if on_cuttlefish_host:
+    return ['/bin/bash', '-c', cmd]
+  return shlex.split(cmd)
+
+
 def execute_command_with_return_code(cmd: str,
                                      timeout: int | None = None,
                                      on_cuttlefish_host: bool = False
                                     ) -> tuple[int | None, str | None]:
-  """Spawns a subprocess to run the given shell command.
+  """Spawns a subprocess to run the given command without host shell expansion.
 
   Returns:
     A (return_code, output) tuple. Both values are None if the command timed
     out.
   """
-  if on_cuttlefish_host and environment.is_android_cuttlefish():
-    # Auto accept key fingerprint for ssh command.
-    cmd = ('ssh -o StrictHostKeyChecking=no '
-           f'{get_cuttlefish_ssh_target()} "{cmd}"')
+  argv = _build_host_command_args(cmd, on_cuttlefish_host)
 
   so = []
   # pylint: disable=consider-using-with
   output_dest = tempfile.TemporaryFile()
   # pylint: disable=subprocess-popen-preexec-fn,consider-using-with
   pipe = subprocess.Popen(
-      cmd,
-      executable='/bin/bash',
+      argv,
       stdout=output_dest,
       stderr=subprocess.STDOUT,
-      shell=True,
+      shell=False,
       preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL),
       bufsize=0)
 
@@ -782,12 +791,9 @@ def run_shell_command(cmd,
 
   if root:
     root_cmd_prefix = 'su root sh -c '
-
-    # The arguments to adb shell need to be quoted, so if we're using
-    # su root sh -c, quote the combined command
-    full_cmd = 'shell \'{}{}\''.format(root_cmd_prefix, cmd)
+    full_cmd = f'shell {shlex.quote(root_cmd_prefix + cmd)}'
   else:
-    full_cmd = 'shell {}'.format(cmd)
+    full_cmd = f'shell {cmd}'
 
   return run_command(
       full_cmd, log_output=log_output, timeout=timeout, recover=recover)
@@ -940,25 +946,21 @@ def write_data_to_file(contents, file_path, should_reboot=True):
         Only applies if `file_path` is under `/system`, since we need to
         remount that partition as read-write first.
   """
-  # If this is a file in /system, we need to remount /system as read-write and
-  # after file is written, revert it back to read-only.
   is_system_file = file_path.startswith('/system')
   if is_system_file:
     remount()
 
-  # Write file with desired contents.
-  run_shell_command("\"echo -n '%s' | su root dd of=%s\"" % (contents.replace(
-      '"', '\\"'), file_path))
-
-  # Make command line file is readable.
-  run_shell_command('chmod 0644 %s' % file_path, root=True)
+  quoted_contents = shlex.quote(contents)
+  quoted_path = shlex.quote(file_path)
+  run_shell_command(
+      f'printf %s {quoted_contents} | su root dd of={quoted_path}')
+  run_shell_command(f'chmod 0644 {quoted_path}', root=True)
 
   if is_system_file:
     if should_reboot:
       reboot()
       wait_until_fully_booted()
     else:
-      # Manually revert /system to read-only since we aren't rebooting.
       run_shell_command('mount -o ro,remount /system', root=True)
 
 

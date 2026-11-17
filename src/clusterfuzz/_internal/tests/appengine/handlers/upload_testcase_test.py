@@ -299,6 +299,34 @@ class UploadOAuthTest(unittest.TestCase):
     testcase = data_handler.get_testcase_by_id(response.json['id'])
     self.assertIsNone(testcase.get_metadata('skip_minimization'))
 
+  def test_unprivileged_additional_arguments_rejected(self):
+    """Tests that non-privileged users cannot supply custom args."""
+
+    def mock_has_access(need_privileged_access=False, **_):
+      return not need_privileged_access
+
+    self.mock.has_access.side_effect = mock_has_access
+    data_types.Job(
+        name='libfuzzer_proj',
+        environment_string='PROJECT_NAME = proj\nJOB_NAME = libfuzzer_proj',
+        platform='LINUX').put()
+
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj',
+              'target': 'target',
+              'revision': '1337',
+              'args': '--dangerous-flag',
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
+
+    self.assertEqual(400, response.status_code, response.data)
+    self.assertIn(
+        'You are not privileged to run arbitrary command-line arguments.',
+        response.json['message'])
+
   def test_external_upload_uaf(self):
     """Test external upload (uaf)."""
     stacktrace = self._read_test_data('uaf.txt')
