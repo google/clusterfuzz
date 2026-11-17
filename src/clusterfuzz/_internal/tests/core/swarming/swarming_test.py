@@ -534,3 +534,44 @@ class SwarmingTest(unittest.TestCase):
                 '"DEPLOYMENT_BUCKET": "test-bucket-from-metadata"}')),
     ]
     self.assertEqual(env, expected_env)
+
+  def test_get_env_vars_platform_precedence_and_deduplication(self):
+    """Tests that platform-specific env vars override scheduler host/metadata
+    defaults without producing duplicate keys."""
+    os.environ['DEPLOYMENT_ZIP'] = 'linux-3.zip'
+
+    def metadata_get(path):
+      if path == 'project/attributes/deployment-bucket':
+        return 'default-linux-bucket'
+      return None
+
+    self.mock.get.side_effect = metadata_get
+    instance_spec = {
+        'env': [
+            {
+                'key': 'DEPLOYMENT_BUCKET',
+                'value': 'mac-arm64-bucket'
+            },
+            {
+                'key': 'DEPLOYMENT_ZIP',
+                'value': 'macos_arm64-3.zip'
+            },
+            {
+                'key': 'UWORKER',
+                'value': 'True'
+            },
+        ],
+    }
+
+    env = swarming._get_env_vars('project_id', instance_spec)  # pylint: disable=protected-access
+    keys = [pair.key for pair in env]
+    self.assertEqual(len(keys), len(set(keys)))
+
+    env_by_key = {pair.key: pair.value for pair in env}
+    self.assertEqual(env_by_key['DEPLOYMENT_BUCKET'], 'mac-arm64-bucket')
+    self.assertEqual(env_by_key['DEPLOYMENT_ZIP'], 'macos_arm64-3.zip')
+    self.assertEqual(env_by_key['UWORKER'], 'True')
+    self.assertIn('"DEPLOYMENT_ZIP": "macos_arm64-3.zip"',
+                  env_by_key['DOCKER_ENV_VARS'])
+    self.assertIn('"DEPLOYMENT_BUCKET": "mac-arm64-bucket"',
+                  env_by_key['DOCKER_ENV_VARS'])
