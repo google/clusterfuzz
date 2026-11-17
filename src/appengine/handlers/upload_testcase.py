@@ -221,6 +221,16 @@ def _allow_unprivileged_metadata(testcase_metadata):
       testcase_metadata) == 2 and 'skip_minimization' in testcase_metadata
 
 
+def _allow_unprivileged_additional_arguments(job, platform_id, trusted):
+  """Returns whether a non-privileged user may supply custom CLI arguments."""
+  if utils.is_oss_fuzz() or trusted:
+    return False
+  target_platform = (platform_id or job.platform or '').strip()
+  if environment.base_platform(target_platform).upper() != 'LINUX':
+    return False
+  return access.has_access(need_privileged_access=False)
+
+
 class Handler(base_handler.Handler):
   """Handler for the testcase uploads page."""
 
@@ -485,7 +495,8 @@ class UploadHandlerCommon:
         raise helpers.EarlyExitError(
             'You are not privileged to run arbitrary launch commands.', 400)
 
-      if additional_arguments:
+      if (additional_arguments and not _allow_unprivileged_additional_arguments(
+          job, platform_id, trusted)):
         raise helpers.EarlyExitError(
             'You are not privileged to run arbitrary command-line arguments.',
             400)

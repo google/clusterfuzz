@@ -341,6 +341,54 @@ class CommandExecutionSafetyTest(unittest.TestCase):
         'rm -rf /tmp/cvd/*'
     ], argv)
 
+  def test_local_cuttlefish_host_uses_explicit_bash_c(self):
+    """Tests that on_cuttlefish_host=True outside remote CVD uses bash -c."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_android_cuttlefish',
+    ])
+    self.mock.is_android_cuttlefish.return_value = False
+    argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        'ulimit -n 1048576 && /cvd/bin/launch_cvd',
+        on_cuttlefish_host=True)
+    self.assertEqual(
+        ['/bin/bash', '-c', 'ulimit -n 1048576 && /cvd/bin/launch_cvd'], argv)
+
+  def test_execute_command_timeout_kills_process_and_returns_none(self):
+    """Tests that execute_command_with_return_code returns (None, None) on timeout."""
+    return_code, output = adb.execute_command_with_return_code(
+        '/bin/sleep 5', timeout=0.05)
+    self.assertIsNone(return_code)
+    self.assertIsNone(output)
+
+  def test_write_command_line_file_and_system_remount_quoting(self):
+    """Tests write_command_line_file and /system path remount quoting."""
+    os.environ['ADB'] = '/usr/bin/adb'
+    os.environ['ANDROID_SERIAL'] = 'emulator-5554'
+    os.environ['COMMAND_LINE_PATH'] = '/system/etc/chrome-command-line'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+        'clusterfuzz._internal.platforms.android.adb.remount',
+        'clusterfuzz._internal.platforms.android.adb.reboot',
+        'clusterfuzz._internal.platforms.android.adb.wait_until_fully_booted',
+    ])
+    self.mock.execute_command.return_value = ''
+
+    adb.write_data_to_file(
+        'chrome --js-flags="$(id)" `uname`',
+        '/system/etc/chrome-command-line',
+        should_reboot=False)
+    self.mock.remount.assert_called_once()
+    self.mock.reboot.assert_not_called()
+    self.assertEqual(3, self.mock.execute_command.call_count)
+    remount_ro_cmd = self.mock.execute_command.call_args_list[2][0][0]
+    remount_argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        remount_ro_cmd,
+        on_cuttlefish_host=False)
+    self.assertEqual([
+        '/usr/bin/adb', '-s', 'emulator-5554', 'shell',
+        'su root sh -c "mount -o ro,remount /system"'
+    ], remount_argv)
+
   def test_write_data_to_file_quotes_metacharacters(self):
     """Tests that write_data_to_file shell-quotes contents and file_path."""
     os.environ['ADB'] = '/usr/bin/adb'
