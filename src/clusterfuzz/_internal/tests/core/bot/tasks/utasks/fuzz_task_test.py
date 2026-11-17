@@ -1826,7 +1826,6 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     })
     self.assertEqual(1, parse_dist.count)
 
-
   def _create_blackbox_uworker_input(self, fuzzer):
     """Creates a uworker input for a blackbox fuzzing utask_main run."""
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
