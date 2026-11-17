@@ -16,6 +16,7 @@
 import unittest
 
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
+from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PubSubTaskQueue
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -65,3 +66,38 @@ class PubSubTaskQueueTest(unittest.TestCase):
         default_target_size=25,
         target_size_flag=FeatureFlags.SWARMING_MAX_PENDING_TASKS)
     self.assertEqual(queue.get_max_target_size(), 25)
+
+  def test_per_platform_swarming_queues_and_rollback_flag(self):
+    """Test platform-specific Swarming preprocess/utask_main lookup and
+    zero-size rollback via MAC_ARM64 feature flag."""
+    self.assertEqual(
+        pub_sub_task_queue.get_swarming_preprocess_queue('MAC_ARM64').name,
+        'preprocess-swarming-mac-arm64')
+    self.assertEqual(
+        pub_sub_task_queue.get_swarming_preprocess_queue('ANDROID_EMULATOR')
+        .name, 'preprocess-swarming')
+    self.assertEqual(
+        pub_sub_task_queue.get_swarming_utask_main_queue('MAC_ARM64').name,
+        'utask_main-swarming-mac-arm64')
+    self.assertEqual(
+        pub_sub_task_queue.get_swarming_utask_main_queue(None).name,
+        'utask_main-swarming')
+
+    self.assertEqual([
+        q.name for q in pub_sub_task_queue.get_all_swarming_preprocess_queues()
+    ], ['preprocess-swarming', 'preprocess-swarming-mac-arm64'])
+    self.assertEqual([
+        q.name for q in pub_sub_task_queue.get_all_swarming_utask_main_queues()
+    ], ['utask_main-swarming', 'utask_main-swarming-mac-arm64'])
+
+    data_types.FeatureFlag(
+        id='swarming_preprocess_queue_size_limit_mac_arm64',
+        enabled=True,
+        value=0.0).put()
+    self.assertEqual(
+        pub_sub_task_queue.get_swarming_preprocess_queue('MAC_ARM64')
+        .get_max_target_size(), 0)
+    self.assertEqual(
+        pub_sub_task_queue.get_swarming_preprocess_queue(
+            'ANDROID_EMULATOR').get_max_target_size(),
+        pub_sub_task_queue.SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT)

@@ -19,7 +19,7 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
 
 
-@dataclass
+@dataclass(frozen=True)
 class PubSubTaskQueue:
   """Data class that holds information about a pub/sub queue.
 
@@ -67,6 +67,17 @@ SWARMING_PREPROCESS_QUEUE = PubSubTaskQueue(
     target_size_flag=FeatureFlags.SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT,
 )
 
+SWARMING_PREPROCESS_QUEUE_MAC_ARM64 = PubSubTaskQueue(
+    name=tasks.SWARMING_PREPROCESS_QUEUE_MAC_ARM64,
+    default_target_size=SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT,
+    target_size_flag=FeatureFlags.
+    SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT_MAC_ARM64,
+)
+
+SWARMING_PREPROCESS_QUEUES_BY_PLATFORM = {
+    'MAC_ARM64': SWARMING_PREPROCESS_QUEUE_MAC_ARM64,
+}
+
 UTASK_MAIN_QUEUE = PubSubTaskQueue(
     name=tasks.UTASK_MAIN_QUEUE,
     default_target_size=UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
@@ -78,6 +89,45 @@ SWARMING_UTASK_MAIN_QUEUE = PubSubTaskQueue(
     default_target_size=SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
     target_size_flag=FeatureFlags.SWARMING_UTASK_MAIN_QUEUE_SIZE_LIMIT,
 )
+
+SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64 = PubSubTaskQueue(
+    name=tasks.SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64,
+    default_target_size=SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
+    target_size_flag=FeatureFlags.
+    SWARMING_UTASK_MAIN_QUEUE_SIZE_LIMIT_MAC_ARM64,
+)
+
+SWARMING_UTASK_MAIN_QUEUES_BY_PLATFORM = {
+    'MAC_ARM64': SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64,
+}
+
+
+def get_swarming_preprocess_queue(platform: str | None) -> PubSubTaskQueue:
+  """Returns the swarming preprocess queue for the given platform."""
+  return SWARMING_PREPROCESS_QUEUES_BY_PLATFORM.get(platform,
+                                                    SWARMING_PREPROCESS_QUEUE)
+
+
+def get_all_swarming_preprocess_queues() -> list[PubSubTaskQueue]:
+  """Returns all distinct swarming preprocess queues."""
+  queues = {SWARMING_PREPROCESS_QUEUE.name: SWARMING_PREPROCESS_QUEUE}
+  for queue in SWARMING_PREPROCESS_QUEUES_BY_PLATFORM.values():
+    queues[queue.name] = queue
+  return list(queues.values())
+
+
+def get_swarming_utask_main_queue(platform: str | None) -> PubSubTaskQueue:
+  """Returns the swarming utask_main queue for the given platform."""
+  return SWARMING_UTASK_MAIN_QUEUES_BY_PLATFORM.get(platform,
+                                                    SWARMING_UTASK_MAIN_QUEUE)
+
+
+def get_all_swarming_utask_main_queues() -> list[PubSubTaskQueue]:
+  """Returns all distinct swarming utask_main queues."""
+  queues = {SWARMING_UTASK_MAIN_QUEUE.name: SWARMING_UTASK_MAIN_QUEUE}
+  for queue in SWARMING_UTASK_MAIN_QUEUES_BY_PLATFORM.values():
+    queues[queue.name] = queue
+  return list(queues.values())
 
 
 def get_max_size_for_queue(default_size: int,

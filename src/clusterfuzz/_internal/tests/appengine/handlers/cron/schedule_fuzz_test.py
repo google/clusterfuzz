@@ -267,3 +267,84 @@ class GetQueueSizeTest(unittest.TestCase):
                   request['filter'])
     self.assertIn('resource.labels.subscription_id="preprocess-swarming"',
                   request['filter'])
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ScheduleChromeFuzzTasksSwarmingTest(unittest.TestCase):
+  """Tests for per-platform Swarming queue routing in schedule_fuzz."""
+
+  def setUp(self):
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
+    data_types.Job(
+        name='linux_batch_job', project='chromium', platform='LINUX').put()
+    data_types.Job(
+        name='mac_legacy_intel_job', project='chromium', platform='MAC').put()
+    data_types.Job(
+        name='android_emu_swarming_job',
+        project='chromium',
+        platform='ANDROID_EMULATOR',
+        environment_string='IS_SWARMING_JOB = True').put()
+    data_types.Job(
+        name='mac_arm64_swarming_job',
+        project='chromium',
+        platform='MAC_ARM64',
+        environment_string='IS_SWARMING_JOB = True').put()
+
+    for job_name, platform in [
+        ('linux_batch_job', 'LINUX'),
+        ('mac_legacy_intel_job', 'MAC'),
+        ('android_emu_swarming_job', 'ANDROID_EMULATOR'),
+        ('mac_arm64_swarming_job', 'MAC_ARM64'),
+    ]:
+      data_types.FuzzerJob(
+          job=job_name, platform=platform, fuzzer='libFuzzer',
+          weight=1.0).put()
+
+  @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
+  @mock.patch(
+      'clusterfuzz._internal.cron.schedule_fuzz.get_queue_size', return_value=0)
+  @mock.patch(
+      'clusterfuzz._internal.google_cloud_utils.credentials.get_default',
+      return_value=(mock.Mock(), 'test-project'))
+  def test_schedules_swarming_jobs_into_isolated_platform_queues(
+      self, unused_mock_creds, unused_mock_queue_size, mock_bulk_add):
+    """Tests that MAC_ARM64 fuzz tasks publish to preprocess-swarming-mac-arm64
+    while ANDROID_EMULATOR fuzz tasks publish to preprocess-swarming, and legacy
+    MAC jobs are untouched."""
+    schedule_fuzz.schedule_chrome_fuzz_tasks()
+
+    jobs_by_queue = {}
+    for call in mock_bulk_add.call_args_list:
+      scheduled_tasks = call.args[0]
+      queue_name = call.kwargs['queue']
+      jobs_by_queue[queue_name] = {task.job for task in scheduled_tasks}
+
+    self.assertEqual(jobs_by_queue['preprocess'], {'linux_batch_job'})
+    self.assertEqual(jobs_by_queue['preprocess-swarming'],
+                     {'android_emu_swarming_job'})
+    self.assertEqual(jobs_by_queue['preprocess-swarming-mac-arm64'],
+                     {'mac_arm64_swarming_job'})
+
+  @mock.patch('clusterfuzz._internal.base.tasks.bulk_add_tasks')
+  @mock.patch(
+      'clusterfuzz._internal.cron.schedule_fuzz.get_queue_size', return_value=0)
+  @mock.patch(
+      'clusterfuzz._internal.google_cloud_utils.credentials.get_default',
+      return_value=(mock.Mock(), 'test-project'))
+  def test_mac_arm64_zero_flag_halts_only_mac_arm64_scheduling(
+      self, unused_mock_creds, unused_mock_queue_size, mock_bulk_add):
+    """Tests that setting swarming_preprocess_queue_size_limit_mac_arm64=0
+    stops MAC_ARM64 fuzz scheduling without impacting preprocess-swarming."""
+    data_types.FeatureFlag(
+        id='swarming_preprocess_queue_size_limit_mac_arm64',
+        enabled=True,
+        value=0.0).put()
+
+    schedule_fuzz.schedule_chrome_fuzz_tasks()
+
+    scheduled_queues = {
+        call.kwargs['queue'] for call in mock_bulk_add.call_args_list
+    }
+    self.assertIn('preprocess', scheduled_queues)
+    self.assertIn('preprocess-swarming', scheduled_queues)
+    self.assertNotIn('preprocess-swarming-mac-arm64', scheduled_queues)

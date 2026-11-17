@@ -414,6 +414,34 @@ class TworkerNonFuzzGuardsCommandTest(unittest.TestCase):
         'minimize', 'https://example.com/uworker_in', 'android_emu_swarming',
         None, 'utask_main-swarming')
 
+  def test_tworker_preprocesses_mac_arm64_testcase_into_platform_queue(self):
+    """Tests that a Linux x86_64 tworker pulling from jobs-mac-arm64 routes
+    preprocessed MAC_ARM64 UTasks to utask_main-swarming-mac-arm64."""
+    os.environ['TWORKER'] = 'True'
+    data_types.Job(
+        name='mac_arm64_swarming',
+        platform='MAC_ARM64',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+    testcase = test_utils.create_generic_testcase()
+    testcase.job_type = 'mac_arm64_swarming'
+    testcase.platform = 'mac'
+    testcase.platform_id = 'mac'
+    testcase.put()
+
+    commands.process_command_impl(
+        task_name='minimize',
+        task_argument=str(testcase.key.id()),
+        job_name='mac_arm64_swarming',
+        high_end=False,
+        is_command_override=False,
+        queue='jobs-mac-arm64')
+
+    self.mock.add_task.assert_not_called()
+    self.mock.tworker_preprocess.assert_called_once()
+    self.mock.add_utask_main.assert_called_once_with(
+        'minimize', 'https://example.com/uworker_in', 'mac_arm64_swarming',
+        None, 'utask_main-swarming-mac-arm64')
+
   @mock.patch('clusterfuzz._internal.datastore.data_handler.update_task_status')
   @mock.patch('clusterfuzz._internal.bot.tasks.impact_task.execute_task')
   def test_tworker_trusted_task_is_dropped(self, mock_impact_execute,
