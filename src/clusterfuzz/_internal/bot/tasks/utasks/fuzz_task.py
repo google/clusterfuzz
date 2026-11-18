@@ -1535,8 +1535,9 @@ def run_engine_fuzzer(
   _add_issue_metadata_from_environment(fuzzer_metadata)
 
   # Cleanup fuzzer temporary artifacts (e.g. mutations dir, merge dirs. etc).
-  with steps_time_tracker.track('round_cleanup'):
-    fuzzer_utils.cleanup()
+  with steps_time_tracker.track('round_cleanup') as step:
+    if not fuzzer_utils.cleanup():
+      step.fail()
 
   return result, fuzzer_metadata, options.strategies
 

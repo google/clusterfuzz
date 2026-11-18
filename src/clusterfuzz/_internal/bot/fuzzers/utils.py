@@ -299,9 +299,9 @@ def get_file_from_untrusted_worker(worker_file_path):
   return local_file_path
 
 
-def cleanup():
+def cleanup() -> bool:
   """Clean up temporary metadata."""
-  shell.remove_directory(get_temp_dir())
+  return shell.remove_directory(get_temp_dir())
 
 
 def normalize_target_name(target_path):
