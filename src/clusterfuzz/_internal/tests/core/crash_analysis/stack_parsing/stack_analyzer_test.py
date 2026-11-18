@@ -781,6 +781,27 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_ignore_abort_frames_does_not_overmatch(self):
+    """Test that scoped, prefixed, and exact-only frames are not ignored."""
+    data = (
+        '==1==ERROR: AddressSanitizer: ABRT on unknown address 0x000000000001 '
+        '(pc 0x7fb31a28e418 bp 0x7ffc4aa89af0 sp 0x7ffc4aa898b8 T0)\n'
+        'SCARINESS: 10 (signal)\n'
+        '    #0 0x55a1b2c30001 in exit::Cleanup()\n'
+        '    #1 0x55a1b2c30002 in pthread_kill_wrapper /src/foo.cc:30:3\n'
+        '    #2 0x55a1b2c30003 in panic ./kernel/panic.c:10:1\n'
+        'SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35417)\n'
+    )
+    expected_type = 'Abrt'
+    expected_address = '0x000000000001'
+    expected_state = 'exit::Cleanup\npthread_kill_wrapper\npanic\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_ignore_honggfuzz(self):
     """Test that frames from honggfuzz wrappers are ignored."""
     data = self._read_test_data('ignore_honggfuzz.txt')

@@ -406,20 +406,28 @@ ANDROID_KERNEL_STATUS_TO_STRING = {
     0b1111: 'Permissions Fault, Page',
 }
 
+
+def _exact_func_regex_ignoring_suffix(func_name: str) -> str:
+  """Matches exact func_name with optional trailing args or source info.
+
+  Checks raw frames before _filter_stack_frame strips whitespace, '(', or '['.
+  """
+  return r'^%s($|[\s(\[])' % re.escape(func_name)
+
+
 # Ignore lists.
 STACK_FRAME_IGNORE_REGEXES = [
     # Function names (exact match).
+    # Don't ignore parameters/source locations for historical reasons (existing
+    # crash states retain pthread_create with suffixes). May want to revisit.
     r'^pthread_create$',
-
-    # Abort/exit/fortify helpers (exact function name, optionally followed by
-    # parameters or source info before _filter_stack_frame strips them).
-    r'^abort($|[\s(\[])',
-    r'^exit($|[\s(\[])',
-    r'^pthread_kill($|[\s(\[])',
-    r'^raise($|[\s(\[])',
-    r'^tgkill($|[\s(\[])',
-    r'^__chk_fail($|[\s(\[])',
-    r'^__fortify_fail($|[\s(\[])',
+    _exact_func_regex_ignoring_suffix('abort'),
+    _exact_func_regex_ignoring_suffix('exit'),
+    _exact_func_regex_ignoring_suffix('pthread_kill'),
+    _exact_func_regex_ignoring_suffix('raise'),
+    _exact_func_regex_ignoring_suffix('tgkill'),
+    _exact_func_regex_ignoring_suffix('__chk_fail'),
+    _exact_func_regex_ignoring_suffix('__fortify_fail'),
 
     # Function names (startswith).
     r'^(|__)aeabi_',
@@ -616,6 +624,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^linux-gate.so.*$',
 
     # Golang specific frames to ignore.
+    # Don't ignore parameters/source locations (Go frames already strip args
+    # via GOLANG_STACK_FRAME_FUNCTION_REGEX; widening would match C/kernel
+    # panic() frames with source paths). May want to revisit in the future.
     r'^panic$',
     r'^runtime\.',
 
