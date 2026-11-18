@@ -2267,7 +2267,12 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     """Test that cleanup is tracked once per round and accumulated."""
     mock_time = helpers.MockTime(start_time=100.0)
     mock_monitor_time.time.side_effect = mock_time.time
-    mock_cleanup.side_effect = lambda: mock_time.advance(1.25)
+
+    def _cleanup_side_effect():
+      mock_time.advance(1.25)
+      return True
+
+    mock_cleanup.side_effect = _cleanup_side_effect
     session = self._create_engine_fuzzing_session()
     engine_impl = self._create_engine_impl()
 
@@ -2286,16 +2291,13 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
   @mock.patch('clusterfuzz._internal.bot.fuzzers.utils.cleanup')
   def test_cleanup_exception(self, mock_cleanup):
     """Test that an exception in cleanup is tracked as a failure."""
-    mock_cleanup.side_effect = RuntimeError('cleanup failed')
+    mock_cleanup.side_effect = lambda: False
     session = self._create_engine_fuzzing_session()
     engine_impl = self._create_engine_impl()
-
-    with self.assertRaises(RuntimeError):
-      session.do_engine_fuzzing(engine_impl)
+    session.do_engine_fuzzing(engine_impl)
 
     self.assertIn('round_cleanup', session.steps_time_tracker.stats)
-    # The task stops at the first failing round.
-    self.assertEqual(1, self._get_cleanup_dist(success=False).count)
+    self.assertEqual(2, self._get_cleanup_dist(success=False).count)
     self.assertEqual(0, self._get_cleanup_dist(success=True).count)
 
   def test_basic(self):
