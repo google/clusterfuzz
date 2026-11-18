@@ -298,6 +298,37 @@ class MonitorTest(unittest.TestCase):
     gauge.set(5)
     self.assertIsInstance(gauge, monitor._MockMetric)
 
+  def test_iter_values_skips_unchanged_cumulative_metrics(self):
+    """Test that unchanged cumulative metrics are skipped while gauges emit."""
+    counter = monitor.CounterMetric('c', 'desc', field_spec=None)
+    dist = monitor.CumulativeDistributionMetric(
+        'd',
+        'desc',
+        bucketer=monitor.FixedWidthBucketer(width=1.0, num_finite_buckets=5),
+        field_spec=None)
+    gauge = monitor.GaugeMetric('g', 'desc', field_spec=None)
+
+    counter.increment()
+    dist.add(2.0)
+    gauge.set(1)
+
+    first_flush = list(monitor.metrics_store().iter_values())
+    self.assertEqual({'c', 'd', 'g'}, {v.metric.name for v in first_flush})
+    first_counter = next(v for v in first_flush if v.metric.name == 'c')
+    self.assertEqual(1, first_counter.value)
+
+    # Second flush with no updates should only emit the gauge.
+    second_flush = list(monitor.metrics_store().iter_values())
+    self.assertEqual(['g'], [v.metric.name for v in second_flush])
+
+    # Updating counter re-emits it with the same start_time and cumulative sum.
+    counter.increment_by(3)
+    fourth_flush = list(monitor.metrics_store().iter_values())
+    self.assertEqual({'c', 'g'}, {v.metric.name for v in fourth_flush})
+    updated_counter = next(v for v in fourth_flush if v.metric.name == 'c')
+    self.assertEqual(4, updated_counter.value)
+    self.assertEqual(first_counter.start_time, updated_counter.start_time)
+
 
 class TestMonitoringDaemon(unittest.TestCase):
   """Tests that the monitoring daemon correctly flushes, and terminates."""
