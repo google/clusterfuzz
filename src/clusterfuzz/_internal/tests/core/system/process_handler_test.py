@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for process_handler."""
 
+import os
 import unittest
 from unittest import mock
 
@@ -312,3 +313,38 @@ class RunProcessAndroidTest(unittest.TestCase):
     self.mock.get_exit_info_for_pid.assert_called_once_with(
         'com.example.app', None)
     self.assertEqual(return_code, 0)
+
+
+class RunProcessTrustedHostTest(unittest.TestCase):
+  """Tests run_process on a trusted host."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.bot.untrusted_runner.remote_process_host.run_process',
+    ])
+    os.environ['TRUSTED_HOST'] = 'True'
+    os.environ['WORKER_BOT_NAME'] = 'worker-bot'
+    self.mock.run_process.return_value = (0, 1.0, 'output')
+
+  def test_run_process_forwards_terminate_android_app_false(self):
+    """Checks that a trusted host forwards terminate_android_app=False to the
+    untrusted worker, so the Android app is not terminated remotely either, and
+    returns the remote result unchanged."""
+    result = process_handler.run_process(
+        'am start -n com.example.app/.MainActivity',
+        terminate_android_app=False)
+
+    self.assertEqual((0, 1.0, 'output'), result)
+    self.mock.run_process.assert_called_once()
+    self.assertFalse(
+        self.mock.run_process.call_args.kwargs['terminate_android_app'])
+
+  def test_run_process_forwards_terminate_android_app_default(self):
+    """Checks that a trusted host forwards the default terminate_android_app
+    (True), preserving the existing remote Android cleanup behavior."""
+    process_handler.run_process('am start -n com.example.app/.MainActivity')
+
+    self.mock.run_process.assert_called_once()
+    self.assertTrue(
+        self.mock.run_process.call_args.kwargs['terminate_android_app'])

@@ -198,6 +198,7 @@ class RunProcessRequest(google.protobuf.message.Message):
     ENV_COPY_FIELD_NUMBER: builtins.int
     TESTCASE_RUN_FIELD_NUMBER: builtins.int
     IGNORE_CHILDREN_FIELD_NUMBER: builtins.int
+    TERMINATE_ANDROID_APP_FIELD_NUMBER: builtins.int
     cmdline: builtins.str
     current_working_directory: builtins.str
     timeout: builtins.float
@@ -208,6 +209,10 @@ class RunProcessRequest(google.protobuf.message.Message):
     def env_copy(self) -> google.protobuf.internal.containers.ScalarMap[builtins.str, builtins.str]: ...
     testcase_run: builtins.bool
     ignore_children: builtins.bool
+    terminate_android_app: builtins.bool
+    """If unset, defaults to true (terminate the Android app at the end of the
+    run).
+    """
     def __init__(
         self,
         *,
@@ -219,9 +224,10 @@ class RunProcessRequest(google.protobuf.message.Message):
         env_copy: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
         testcase_run: builtins.bool | None = ...,
         ignore_children: builtins.bool | None = ...,
+        terminate_android_app: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["cmdline", b"cmdline", "current_working_directory", b"current_working_directory", "ignore_children", b"ignore_children", "need_shell", b"need_shell", "testcase_run", b"testcase_run", "timeout", b"timeout"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["cmdline", b"cmdline", "current_working_directory", b"current_working_directory", "env_copy", b"env_copy", "gestures", b"gestures", "ignore_children", b"ignore_children", "need_shell", b"need_shell", "testcase_run", b"testcase_run", "timeout", b"timeout"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["cmdline", b"cmdline", "current_working_directory", b"current_working_directory", "ignore_children", b"ignore_children", "need_shell", b"need_shell", "terminate_android_app", b"terminate_android_app", "testcase_run", b"testcase_run", "timeout", b"timeout"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["cmdline", b"cmdline", "current_working_directory", b"current_working_directory", "env_copy", b"env_copy", "gestures", b"gestures", "ignore_children", b"ignore_children", "need_shell", b"need_shell", "terminate_android_app", b"terminate_android_app", "testcase_run", b"testcase_run", "timeout", b"timeout"]) -> None: ...
 
 global___RunProcessRequest = RunProcessRequest
 

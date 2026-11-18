@@ -124,3 +124,32 @@ class RemoteProcessTest(unittest.TestCase):
         gestures=['gesture', 'gesture2'],
         testcase_run=True,
         timeout=20)
+
+  def test_run_process_forwards_terminate_android_app(self):
+    """Test that the worker passes an explicitly set terminate_android_app=False
+    from the host request to process_handler.run_process, so the host can ask
+    for the Android app to be left running after the run."""
+    request = untrusted_runner_pb2.RunProcessRequest()
+    request.cmdline = 'cmd arg'
+    request.terminate_android_app = False
+
+    self.mock.run_process.return_value = (0, 10.0, 'output')
+
+    remote_process.run_process(request, None)
+
+    self.mock.run_process.assert_called_with(
+        cmdline='cmd arg', terminate_android_app=False)
+
+  def test_run_process_unset_terminate_android_app(self):
+    """Test that a request from an older host that does not set
+    terminate_android_app omits the argument, so process_handler.run_process
+    falls back to its default and terminates the Android app as before."""
+    request = untrusted_runner_pb2.RunProcessRequest()
+    request.cmdline = 'cmd arg'
+
+    self.mock.run_process.return_value = (0, 10.0, 'output')
+
+    remote_process.run_process(request, None)
+
+    self.assertNotIn('terminate_android_app',
+                     self.mock.run_process.call_args.kwargs)

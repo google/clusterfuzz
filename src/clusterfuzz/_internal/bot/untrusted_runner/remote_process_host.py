@@ -41,7 +41,8 @@ def run_process(cmdline,
                 gestures=None,
                 env_copy=None,
                 testcase_run=True,
-                ignore_children=True):
+                ignore_children=True,
+                terminate_android_app=True):
   """Remote version of process_handler.run_process."""
   request = untrusted_runner_pb2.RunProcessRequest(
       cmdline=cmdline,
@@ -49,7 +50,8 @@ def run_process(cmdline,
       timeout=timeout,
       need_shell=need_shell,
       testcase_run=testcase_run,
-      ignore_children=ignore_children)
+      ignore_children=ignore_children,
+      terminate_android_app=terminate_android_app)
 
   if gestures:
     request.gestures.extend(gestures)
