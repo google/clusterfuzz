@@ -30,6 +30,10 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import swarming_pb2
 from clusterfuzz._internal.system import environment
 
+# Swarming priorities range from 1 (highest) to 255 (lowest).
+MAX_SWARMING_PRIORITY = 255
+FUZZ_PRIORITY_OFFSET = 10
+
 
 def has_swarming_env_vars(job_environment: dict) -> bool:
   """Returns True if the job environment contains swarming env vars."""
@@ -248,6 +252,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
   # forcibly terminated and the task results in TIMED_OUT.
   execution_timeout_secs = instance_spec['execution_timeout_secs']
   if command == 'fuzz':
+    priority = min(priority + FUZZ_PRIORITY_OFFSET, MAX_SWARMING_PRIORITY)
     execution_timeout_secs = swarming_config.get('fuzz_task_duration')
 
   # The cipd_input contains the cipd_packages that need to be installed

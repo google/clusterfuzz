@@ -268,7 +268,7 @@ class SwarmingTest(unittest.TestCase):
                                             'https://download_url')
     expected_spec = swarming_pb2.NewTaskRequest(
         name='task_name',
-        priority=1,
+        priority=11,
         realm='realm-name',
         service_account='test-clusterfuzz-service-account-email',
         tags=['spec_name:clusterfuzz.linux:fuzz'],
