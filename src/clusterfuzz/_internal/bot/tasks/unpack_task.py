@@ -98,7 +98,7 @@ def execute_task(metadata_id, job_type):
   # Retrieve multi-testcase archive.
   archive_path = os.path.join(testcases_directory, metadata.archive_filename)
   if not blobs.read_blob_to_disk(metadata.blobstore_key, archive_path):
-    logs.error('Could not retrieve archive for bundle %d.' % metadata_id)
+    logs.error(f'Could not retrieve archive for bundle {metadata_id}.')
     tasks.add_task('unpack', metadata_id, job_type)
     return
 
@@ -110,7 +110,7 @@ def execute_task(metadata_id, job_type):
             'be extracted. Only the extracted ones will be unpacked.')
       members = reader.list_members()
   except:
-    logs.error('Could not unpack archive for bundle %d.' % metadata_id)
+    logs.error(f'Could not unpack archive for bundle {metadata_id}.')
     tasks.add_task('unpack', metadata_id, job_type)
     return
 
