@@ -2342,6 +2342,18 @@ class PostprocessGetUniqueFilePrefixTest(unittest.TestCase):
     self.assertEqual(self.mock.error.call_count, 2)
     self.assertNotEqual(prefix1, prefix2)
 
+  def test_int_task_id(self):
+    os.environ['CF_TASK_ID'] = '123'
+    prefix = fuzz_task.postprocess_get_unique_file_prefix()
+    self.assertIn(prefix[0], '0123456789abcdef')
+    self.mock.error.assert_not_called()
+
+  def test_non_hex_task_id(self):
+    os.environ['CF_TASK_ID'] = 'task-id'
+    prefix = fuzz_task.postprocess_get_unique_file_prefix()
+    self.assertIn(prefix[0], '0123456789abcdef')
+    self.mock.error.assert_called()
+
 
 class UploadTestcaseRunJsons(unittest.TestCase):
   """Tests for upload_testcase_run_jsons."""

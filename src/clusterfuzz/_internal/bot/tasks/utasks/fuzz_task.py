@@ -838,7 +838,7 @@ def postprocess_get_unique_file_prefix() -> str:
   upload duplicated JobRun and TestcaseRun stats. It must also begin with a hex
   digit because load_bigquery_stats would silently skip it otherwise.
   """
-  task_id = environment.get_value('CF_TASK_ID')
+  task_id = os.environ.get('CF_TASK_ID')
   if not task_id:
     logs.error('Missing CF_TASK_ID environment variable, falling back to '
                'random UUID. JobRun or TestcaseRun stats might be duplicated.')
