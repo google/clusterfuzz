@@ -727,15 +727,21 @@ def remove_sub_strings(string, substrings):
 
 
 def restart_machine():
-  """Restart machine."""
+  """Restart machine. Blocks until shutdown; only returns if restart fails."""
   if environment.platform() == 'WINDOWS':
-    return_code = os.system('shutdown /f /r /t 0')
+    cmd = 'shutdown /f /r /t 0'
   else:
     # POSIX platforms.
-    return_code = os.system('sudo shutdown -r now')
+    cmd = 'sudo shutdown -r now'
 
+  return_code = os.system(cmd)
   if return_code:
     logs.error(f'Failed to restart machine (exit={return_code}).')
+    return
+
+  # OS shutdown is asynchronous; wait for it to terminate this process.
+  time.sleep(60)
+  logs.error('Machine did not restart within 60 seconds.')
 
 
 def search_bytes_in_file(search_bytes, file_handle) -> bool:

@@ -167,10 +167,8 @@ def _handle_unrecoverable_error_on_windows():
   # shutdown (shutdown /f /r /t 0 skips atexit) and throttle reboot loops.
   time.sleep(60)
   utils.restart_machine()
-  # Wait for OS shutdown to terminate this process.
-  time.sleep(60)
-  # Not expected to be reached: only runs if OS shutdown fails, preventing the
-  # failed task from being acked or a new task from being leased.
+  # Only reached if OS shutdown fails or times out; exit non-zero so the
+  # failed task is not acked and no new task is leased.
   sys.exit(1)
 
 

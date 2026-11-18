@@ -474,8 +474,7 @@ class RegularBuildUnpackTest(fake_filesystem_unittest.TestCase):
 
     self.assertEqual(cm.exception.code, 1)
     self.mock.restart_machine.assert_called_once_with()
-    self.assertEqual(self.mock.sleep.call_args_list,
-                     [mock.call(60), mock.call(60)])
+    self.mock.sleep.assert_called_once_with(60)
 
 
 class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
