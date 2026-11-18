@@ -255,6 +255,7 @@ class _MetricsStore:
 
   def __init__(self):
     self._store = {}
+    self._dirty = set()
     self._lock = threading.RLock()
 
   def _get_key(self, metric_name, labels):
@@ -268,7 +269,11 @@ class _MetricsStore:
 
   def iter_values(self):
     with self._lock:
-      yield from self._store.values()
+      for key, store_value in self._store.items():
+        if (key in self._dirty or store_value.metric.metric_kind ==
+            metric_pb2.MetricDescriptor.MetricKind.GAUGE):  # pylint: disable=no-member
+          yield store_value
+      self._dirty.clear()
 
   def get(self, metric, labels):
     """Get the stored value for the metric."""
@@ -286,6 +291,7 @@ class _MetricsStore:
         start_time = time.time()
 
       self._store[key] = _StoreValue(metric, labels, start_time, value)
+      self._dirty.add(key)
 
   def increment(self, metric, labels, delta):
     """Increment a value by |delta|."""
@@ -300,11 +306,13 @@ class _MetricsStore:
         value = metric.default_value + delta
 
       self._store[key] = _StoreValue(metric, labels, start_time, value)
+      self._dirty.add(key)
 
   def reset_for_testing(self):
     """Reset all data. Used for tests."""
     with self._lock:
       self._store.clear()
+      self._dirty.clear()
 
 
 class _Field:
