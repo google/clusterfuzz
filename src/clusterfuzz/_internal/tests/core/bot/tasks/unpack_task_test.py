@@ -19,6 +19,7 @@ import shutil
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 
 from clusterfuzz._internal.bot.tasks import unpack_task
@@ -30,7 +31,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 JOB_NAME = 'libfuzzer_asan_job'
 UPLOADER_EMAIL = 'uploader@example.com'
-SECRET_CONTENTS = b'outside of the testcases directory'
+OUTSIDE_CONTENTS = b'outside of the testcases directory'
 
 
 def _add_tar_file(tar_file, name, contents):
@@ -63,9 +64,9 @@ class UnpackTaskTestBase(unittest.TestCase):
     os.environ['BOT_NAME'] = 'bot'
 
     # A file on the bot that must never be uploaded.
-    self.secret_path = os.path.join(self.temp_dir, 'secret')
-    with open(self.secret_path, 'wb') as f:
-      f.write(SECRET_CONTENTS)
+    self.outside_path = os.path.join(self.temp_dir, 'outside')
+    with open(self.outside_path, 'wb') as f:
+      f.write(OUTSIDE_CONTENTS)
 
     self.job = data_types.Job(name=JOB_NAME, platform='LINUX')
     self.job.put()
@@ -141,15 +142,15 @@ class ExecuteTaskTest(UnpackTaskTestBase):
   def test_zip_skips_members_outside_testcases_directory(self):
     """Tests that absolute and '..' members of a zip archive are not read from
     the bot's filesystem."""
-    relative_secret_path = os.path.relpath(
-        self.secret_path, start=self.testcases_directory)
-    self.assertTrue(relative_secret_path.startswith('..'))
+    relative_outside_path = os.path.relpath(
+        self.outside_path, start=self.testcases_directory)
+    self.assertTrue(relative_outside_path.startswith('..'))
 
     with zipfile.ZipFile(self._archive_path('bundle.zip'), 'w') as zip_file:
       zip_file.writestr('testcase1', b'testcase 1')
       zip_file.writestr('dir/testcase2', b'testcase 2')
-      zip_file.writestr(self.secret_path, b'absolute')
-      zip_file.writestr(relative_secret_path, b'relative')
+      zip_file.writestr(self.outside_path, b'absolute')
+      zip_file.writestr(relative_outside_path, b'relative')
 
     self._execute('bundle.zip')
 
@@ -157,7 +158,7 @@ class ExecuteTaskTest(UnpackTaskTestBase):
         'testcase1': b'testcase 1',
         'testcase2': b'testcase 2',
     }, self._uploaded_testcases())
-    self.assertNotIn(SECRET_CONTENTS, self.uploaded.values())
+    self.assertNotIn(OUTSIDE_CONTENTS, self.uploaded.values())
     self.mock.add_task.assert_not_called()
 
   def test_tar_skips_links_outside_testcases_directory(self):
@@ -165,16 +166,37 @@ class ExecuteTaskTest(UnpackTaskTestBase):
     files outside of the testcases directory."""
     with tarfile.open(self._archive_path('bundle.tar'), 'w') as tar_file:
       _add_tar_file(tar_file, 'testcase1', b'testcase 1')
-      _add_tar_link(tar_file, 'symlink', tarfile.SYMTYPE, self.secret_path)
-      _add_tar_link(tar_file, 'hardlink', tarfile.LNKTYPE, self.secret_path)
+      _add_tar_link(tar_file, 'symlink', tarfile.SYMTYPE, self.outside_path)
+      _add_tar_link(tar_file, 'hardlink', tarfile.LNKTYPE, self.outside_path)
 
     self._execute('bundle.tar')
 
     self.assertEqual({
         'testcase1': b'testcase 1',
     }, self._uploaded_testcases())
-    self.assertNotIn(SECRET_CONTENTS, self.uploaded.values())
+    self.assertNotIn(OUTSIDE_CONTENTS, self.uploaded.values())
     self.mock.add_task.assert_not_called()
+
+  def test_retries_when_archive_cannot_be_retrieved(self):
+    """Tests that the task is retried when the archive can't be retrieved."""
+    self.mock.read_blob_to_disk.side_effect = None
+    self.mock.read_blob_to_disk.return_value = False
+    metadata_id = self._create_metadata('bundle.zip', 'archive_key')
+
+    unpack_task.execute_task(metadata_id, JOB_NAME)
+
+    self.mock.add_task.assert_called_once_with('unpack', metadata_id, JOB_NAME)
+    self.mock.create_user_uploaded_testcase.assert_not_called()
+
+  def test_retries_when_archive_cannot_be_unpacked(self):
+    """Tests that the task is retried when the archive is invalid."""
+    with open(self._archive_path('bundle.zip'), 'wb') as f:
+      f.write(b'not a zip file')
+
+    self._execute('bundle.zip')
+
+    self.mock.add_task.assert_called_once_with('unpack', mock.ANY, JOB_NAME)
+    self.mock.create_user_uploaded_testcase.assert_not_called()
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -269,13 +291,13 @@ class ExecuteTaskIntegrationTest(UnpackTaskTestBase):
   def test_zip_bundle_with_members_outside_testcases_directory(self):
     """Tests that only the regular testcases of a zip archive with absolute and
     '..' members are created."""
-    relative_secret_path = os.path.relpath(
-        self.secret_path, start=self.testcases_directory)
+    relative_outside_path = os.path.relpath(
+        self.outside_path, start=self.testcases_directory)
 
     with zipfile.ZipFile(self._archive_path('bundle.zip'), 'w') as zip_file:
       zip_file.writestr('testcase1', b'testcase 1')
-      zip_file.writestr(self.secret_path, b'absolute')
-      zip_file.writestr(relative_secret_path, b'relative')
+      zip_file.writestr(self.outside_path, b'absolute')
+      zip_file.writestr(relative_outside_path, b'relative')
 
     archive_key = self._execute('bundle.zip')
 
