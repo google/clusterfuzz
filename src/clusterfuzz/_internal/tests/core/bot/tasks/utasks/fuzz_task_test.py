@@ -1670,13 +1670,13 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         'job': 'asan_test',
         'platform': environment.platform(),
         'runtime': environment.get_runtime().value,
-        'step': 'cleanup',
+        'step': 'round_cleanup',
         'success': True,
     })
     self.assertEqual(3, cleanup_dist.count)
     self.assertEqual(3, self.mock.terminate_hung_threads.call_count)
     total_cleanup = actual.fuzz_task_output.steps_duration[
-        'cleanup'].ToTimedelta().total_seconds()
+        'round_cleanup'].ToTimedelta().total_seconds()
     self.assertGreater(total_cleanup, 0)
     self.assertAlmostEqual(cleanup_dist.sum, total_cleanup, places=5)
 
@@ -2256,7 +2256,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'job': 'libfuzzer_asan_test',
         'platform': environment.platform(),
         'runtime': environment.get_runtime().value,
-        'step': 'cleanup',
+        'step': 'round_cleanup',
         'success': success,
     })
 
@@ -2277,7 +2277,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(2, mock_cleanup.call_count)
     self.assertEqual(
         datetime.timedelta(seconds=2.5),
-        session.steps_time_tracker.stats['cleanup'])
+        session.steps_time_tracker.stats['round_cleanup'])
     dist = self._get_cleanup_dist(success=True)
     self.assertEqual(2, dist.count)
     self.assertAlmostEqual(2.5, dist.sum)
@@ -2293,7 +2293,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     with self.assertRaises(RuntimeError):
       session.do_engine_fuzzing(engine_impl)
 
-    self.assertIn('cleanup', session.steps_time_tracker.stats)
+    self.assertIn('round_cleanup', session.steps_time_tracker.stats)
     # The task stops at the first failing round.
     self.assertEqual(1, self._get_cleanup_dist(success=False).count)
     self.assertEqual(0, self._get_cleanup_dist(success=True).count)

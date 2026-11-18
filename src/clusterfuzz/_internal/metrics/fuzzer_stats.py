@@ -62,7 +62,7 @@ _STEPS_DURATION_FIELDS = [
         'mode': 'NULLABLE',
     },
     {
-        'name': 'cleanup',
+        'name': 'round_cleanup',
         'type': 'INTERVAL',
         'mode': 'NULLABLE',
     },

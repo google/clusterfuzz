@@ -1535,7 +1535,7 @@ def run_engine_fuzzer(
   _add_issue_metadata_from_environment(fuzzer_metadata)
 
   # Cleanup fuzzer temporary artifacts (e.g. mutations dir, merge dirs. etc).
-  with steps_time_tracker.track('cleanup'):
+  with steps_time_tracker.track('round_cleanup'):
     fuzzer_utils.cleanup()
 
   return result, fuzzer_metadata, options.strategies
@@ -2077,7 +2077,7 @@ class FuzzingSession:
                           job_type) as tracker:
         tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
 
-      with self.steps_time_tracker.track('cleanup'):
+      with self.steps_time_tracker.track('round_cleanup'):
         # Allow for some time to finish processing before terminating the
         # processes.
         process_handler.terminate_hung_threads(threads)
