@@ -242,6 +242,7 @@ class RunProcessAndroidTest(unittest.TestCase):
         'clusterfuzz._internal.platforms.android.adb.time_since_last_reboot',
         'clusterfuzz._internal.platforms.android.adb.run_command',
         'clusterfuzz._internal.platforms.android.adb.get_ps_output',
+        'clusterfuzz._internal.platforms.android.adb.kill_processes_and_children_matching_name',
         'clusterfuzz._internal.platforms.android.app.get_package_name',
         'clusterfuzz._internal.platforms.android.app.stop',
         'clusterfuzz._internal.platforms.android.util.get_latest_pid_for_package',
@@ -313,6 +314,62 @@ class RunProcessAndroidTest(unittest.TestCase):
     self.mock.get_exit_info_for_pid.assert_called_once_with(
         'com.example.app', None)
     self.assertEqual(return_code, 0)
+
+  def test_run_process_android_stops_app_by_default(self):
+    """Checks that, by default, the Android application is stopped at the end
+    of the run so that it does not leak into subsequent runs."""
+    self.mock.activity_crashed.return_value = False
+
+    process_handler.run_process('am start -n com.example.app/.MainActivity')
+
+    self.mock.stop.assert_called_once_with()
+    self.mock.kill_processes_and_children_matching_name.assert_not_called()
+
+  def test_run_process_android_fuzz_task_kills_matching_children_by_default(
+      self):
+    """Checks that, by default, fuzz tasks with a child process termination
+    pattern only kill the matching child processes (light cleanup) instead of
+    stopping the whole application."""
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['CHILD_PROCESS_TERMINATION_PATTERN'] = 'sandboxed_process'
+    self.mock.activity_crashed.return_value = False
+
+    process_handler.run_process('am start -n com.example.app/.MainActivity')
+
+    self.mock.kill_processes_and_children_matching_name.assert_called_once_with(
+        'sandboxed_process')
+    self.mock.stop.assert_not_called()
+
+  def test_run_process_android_terminate_android_app_false_keeps_app(self):
+    """Checks that terminate_android_app=False leaves the Android application
+    running at the end of the run (the caller, e.g. the bad build check, needs
+    to inspect it afterwards), while still returning the run result."""
+    self.mock.activity_crashed.return_value = False
+
+    return_code, _, _ = process_handler.run_process(
+        'am start -n com.example.app/.MainActivity',
+        terminate_android_app=False)
+
+    self.mock.stop.assert_not_called()
+    self.mock.kill_processes_and_children_matching_name.assert_not_called()
+    self.assertEqual(return_code, 0)
+
+  def test_run_process_android_terminate_android_app_false_keeps_fuzz_cleanup(
+      self):
+    """Checks that terminate_android_app=False does not disable the fuzz task
+    light cleanup: child processes matching CHILD_PROCESS_TERMINATION_PATTERN
+    are still killed, while the whole application is not stopped."""
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['CHILD_PROCESS_TERMINATION_PATTERN'] = 'sandboxed_process'
+    self.mock.activity_crashed.return_value = False
+
+    process_handler.run_process(
+        'am start -n com.example.app/.MainActivity',
+        terminate_android_app=False)
+
+    self.mock.kill_processes_and_children_matching_name.assert_called_once_with(
+        'sandboxed_process')
+    self.mock.stop.assert_not_called()
 
 
 class RunProcessTrustedHostTest(unittest.TestCase):
