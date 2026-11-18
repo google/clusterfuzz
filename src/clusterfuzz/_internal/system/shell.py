@@ -483,12 +483,22 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
             % (directory, func, path, error_message))
 
   # Try the os-specific deletion commands first. This helps to overcome issues
-  # with unicode filename handling.
+  # with unicode filename handling. Uses an argv list (not shell=True) so the
+  # directory path can never be interpreted as shell syntax, regardless of
+  # its contents.
   if os.path.exists(directory):
     if environment.platform() == 'WINDOWS':
-      os.system('rd /s /q "%s" > nul 2>&1' % directory)
+      subprocess.run(
+          ['cmd', '/c', 'rd', '/s', '/q', directory],
+          stdout=subprocess.DEVNULL,
+          stderr=subprocess.DEVNULL,
+          check=False)
     else:
-      os.system('rm -rf "%s" > /dev/null 2>&1' % directory)
+      subprocess.run(
+          ['rm', '-rf', directory],
+          stdout=subprocess.DEVNULL,
+          stderr=subprocess.DEVNULL,
+          check=False)
 
   if os.path.exists(directory):
     # If the directory still exists after using native OS delete commands, then
