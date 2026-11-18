@@ -300,9 +300,5 @@ def filter_binary_path(binary_path):
     if local_binary_path:
       return local_binary_path
 
-  # Unable to find library.
-  if environment.is_uworker():
-    logs.debug(f'Unable to find library {binary_path} for symbolization.')
-  else:
-    logs.error(f'Unable to find library {binary_path} for symbolization.')
+  logs.error(f'Unable to find library {binary_path} for symbolization.')
   return ''
