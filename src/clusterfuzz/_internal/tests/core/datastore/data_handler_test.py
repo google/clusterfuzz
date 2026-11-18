@@ -1228,6 +1228,40 @@ class TestTrustedVsUntrusted(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
+class GetTrustedJobNamesTest(unittest.TestCase):
+  """Tests for get_trusted_job_names."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.'
+        'is_remotely_executing_utasks',
+    ])
+    for name, platform in [
+        ('linux_job', 'LINUX'),
+        ('mac_job', 'MAC'),
+        ('windows_job', 'WINDOWS'),
+        ('android_job', 'ANDROID:PIXEL7'),
+    ]:
+      data_types.Job(name=name, platform=platform).put()
+
+  def test_get_trusted_job_names(self):
+    """Tests that only non-Linux jobs are trusted, and only on Chrome with
+    remote utasks."""
+    cases = [
+        ('chrome', True, True, ['android_job', 'mac_job', 'windows_job']),
+        ('not_chrome', False, True, []),
+        ('no_remote_utasks', True, False, []),
+    ]
+    for name, is_chromium, remote_utasks, expected in cases:
+      with self.subTest(name):
+        self.mock.is_chromium.return_value = is_chromium
+        self.mock.is_remotely_executing_utasks.return_value = remote_utasks
+
+        self.assertEqual(expected, data_handler.get_trusted_job_names())
+
+
+@test_utils.with_cloud_emulators('datastore')
 class GetEntitiesTest(unittest.TestCase):
   """Test retrieving entities from datastore."""
 

@@ -72,6 +72,14 @@ def _is_trusted_uploader_allowed(email):
       need_privileged_access=True) and _is_uploader_allowed(email)
 
 
+def _get_blocked_trusted_jobs():
+  """Returns the trusted jobs the current user can't upload to."""
+  if access.has_access(need_privileged_access=True):
+    return []
+
+  return data_handler.get_trusted_job_names()
+
+
 def attach_testcases(rows):
   """Attach testcase to each crash."""
   testcases = {}
@@ -269,6 +277,8 @@ class Handler(base_handler.Handler):
                 'isExternalUser': not is_privileged_or_domain_user,
                 'uploadInfo': gcs.prepare_blob_upload()._asdict(),
                 'hasIssueTracker': has_issue_tracker,
+                'blockedTrustedJobs': _get_blocked_trusted_jobs(),
+                'trustedJobPrivilegeMessage': TRUSTED_JOB_PRIVILEGE_MESSAGE,
             },
             'params': params,
             'result': result
