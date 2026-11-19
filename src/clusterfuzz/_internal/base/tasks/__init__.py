@@ -862,7 +862,7 @@ class _PubSubLeaserThread(threading.Thread):
     """Run the leaser thread."""
     latest_end_time = time.time() + self._max_lease_seconds
 
-    while not self._done_event.is_set():
+    while True:
       try:
         time_left = latest_end_time - time.time()
         if time_left <= 0:
