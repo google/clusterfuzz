@@ -734,7 +734,7 @@ def run_as_root():
 def run_command(cmd, log_output=False, timeout=None, recover=True):
   """Run a command in adb shell."""
   if isinstance(cmd, list):
-    cmd = ' '.join([str(i) for i in cmd])
+    cmd = shlex.join(str(i) for i in cmd)
   if log_output:
     logs.info(f'[ADB] Running: {cmd}')
   else:
@@ -812,7 +812,7 @@ def run_fastboot_command(cmd, log_output=True, timeout=None):
     return None
 
   if isinstance(cmd, list):
-    cmd = ' '.join([str(i) for i in cmd])
+    cmd = shlex.join(str(i) for i in cmd)
   if log_output:
     logs.info('Running: fastboot %s' % cmd)
   if not timeout:

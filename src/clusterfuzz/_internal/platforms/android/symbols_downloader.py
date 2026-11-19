@@ -14,6 +14,7 @@
 """Used to download Android symbols."""
 
 import os
+import re
 import zipfile
 
 from clusterfuzz._internal.base import utils
@@ -223,10 +224,33 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
         symbols_zipfile.extract(filepath, symbols_directory)
 
 
+_VALID_DEVICE_BINARY_PATH_REGEX = re.compile(r'^/[A-Za-z0-9._+@~=/!-]+$')
+
+
+def _is_valid_device_binary_path(binary_path):
+  """Returns True if |binary_path| is a safe absolute device file path."""
+  if not binary_path or '(deleted)' in binary_path:
+    return False
+  if binary_path.endswith(
+      '/') or not _VALID_DEVICE_BINARY_PATH_REGEX.match(binary_path):
+    return False
+  parts = binary_path.split('/')
+  if any(part in ('.', '..') for part in parts[1:]):
+    return False
+  basename = os.path.basename(binary_path)
+  return bool(basename) and not basename.startswith('-')
+
+
 def _get_binary_from_build_or_device(binary_path):
   """Look for binary on build server or on device."""
+  if not _is_valid_device_binary_path(binary_path):
+    logs.warning('Skipping invalid Android binary path: %s.' % binary_path)
+    return None
+
   # Initialize some helper variables.
   symbols_directory = environment.get_value('SYMBOLS_DIR')
+  if not symbols_directory:
+    return None
   binary_filename = os.path.basename(binary_path)
 
   # We didn't find the library locally in the build directory.
@@ -239,8 +263,8 @@ def _get_binary_from_build_or_device(binary_path):
   # Try pulling in the binary directly from the device into the
   # system library cache directory.
   local_binary_path = os.path.join(symbols_directory, binary_filename)
-  adb.run_command('pull %s %s' % (binary_path, local_binary_path))
-  if os.path.exists(local_binary_path):
+  adb.run_command(['pull', '--', binary_path, local_binary_path])
+  if os.path.isfile(local_binary_path):
     return local_binary_path
 
   return None
@@ -250,8 +274,9 @@ def filter_binary_path(binary_path):
   """Filter binary path to provide local copy."""
   # LKL fuzzer name is not full path.
   if environment.is_android():
-    # Skip symbolization when running it on bad entries like [stack:XYZ].
-    if not binary_path.startswith('/') or '(deleted)' in binary_path:
+    # Skip symbolization when running it on bad entries like [stack:XYZ] or
+    # malformed/untrusted paths.
+    if not _is_valid_device_binary_path(binary_path):
       return ''
 
   # Initialize some helper variables.
