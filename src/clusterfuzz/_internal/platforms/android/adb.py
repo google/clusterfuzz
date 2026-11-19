@@ -85,25 +85,26 @@ def copy_local_directory_to_remote(local_directory, remote_directory):
   """Copies local directory contents to a device directory."""
   create_directory_if_needed(remote_directory)
   if os.listdir(local_directory):
-    run_command(['push', '%s/.' % local_directory, remote_directory], True)
+    run_command(
+        ['push', '--', '%s/.' % local_directory, remote_directory], True)
 
 
 def copy_local_file_to_remote(local_file_path, remote_file_path):
   """Copies local file to a device file."""
   create_directory_if_needed(os.path.dirname(remote_file_path))
-  run_command(['push', local_file_path, remote_file_path], True)
+  run_command(['push', '--', local_file_path, remote_file_path], True)
 
 
 def copy_remote_directory_to_local(remote_directory, local_directory):
   """Copies local directory contents to a device directory."""
-  run_command(['pull', '%s/.' % remote_directory, local_directory])
+  run_command(['pull', '--', '%s/.' % remote_directory, local_directory])
 
 
 def copy_remote_file_to_local(remote_file_path, local_file_path):
   """Copies device file to a local file."""
   shell.create_directory(
       os.path.dirname(local_file_path), create_intermediates=True)
-  run_command(['pull', remote_file_path, local_file_path])
+  run_command(['pull', '--', remote_file_path, local_file_path])
 
 
 def create_directory_if_needed(device_directory):
@@ -734,7 +735,7 @@ def run_as_root():
 def run_command(cmd, log_output=False, timeout=None, recover=True):
   """Run a command in adb shell."""
   if isinstance(cmd, list):
-    cmd = ' '.join([str(i) for i in cmd])
+    cmd = shlex.join(str(i) for i in cmd)
   if log_output:
     logs.info(f'[ADB] Running: {cmd}')
   else:
@@ -812,7 +813,7 @@ def run_fastboot_command(cmd, log_output=True, timeout=None):
     return None
 
   if isinstance(cmd, list):
-    cmd = ' '.join([str(i) for i in cmd])
+    cmd = shlex.join(str(i) for i in cmd)
   if log_output:
     logs.info('Running: fastboot %s' % cmd)
   if not timeout:
