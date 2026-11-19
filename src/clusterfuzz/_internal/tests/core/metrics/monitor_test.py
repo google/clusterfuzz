@@ -492,11 +492,15 @@ class TimeStatTrackerTest(unittest.TestCase):
       self.mock_time.advance(4.5)
     with tracker.track('step_1'):
       self.mock_time.advance(3.2)
+    tracker.measure('step_1', 2.3, True)
 
-    self.assertEqual({'step_1': datetime.timedelta(seconds=7.7)}, tracker.stats)
+    self.assertEqual(
+        {
+            'step_1': datetime.timedelta(seconds=10.0)
+        }, tracker.stats)
     dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': True})
-    self.assertEqual(2, dist.count)
-    self.assertAlmostEqual(7.7, dist.sum)
+    self.assertEqual(3, dist.count)
+    self.assertAlmostEqual(10.0, dist.sum)
 
   def test_sequential_steps_no_error(self):
     """Test that sequential (non-nested) steps do not log errors."""
@@ -553,3 +557,129 @@ class TimeStatTrackerTest(unittest.TestCase):
     with tracker.track('step_2'):
       pass
     self.mock.error.assert_not_called()
+
+  def test_track_nested_expected_parent(self):
+    """Test that explicitly specifying expected_parent_step logs no error."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('outer'):
+      self.mock_time.advance(1.0)
+      with tracker.track('inner', expected_parent_step='outer'):
+        self.assertEqual('inner', tracker.current_step)
+        self.mock_time.advance(2.0)
+      self.assertEqual('outer', tracker.current_step)
+
+    self.mock.error.assert_not_called()
+    self.assertEqual(
+        {
+            'outer': datetime.timedelta(seconds=3.0),
+            'inner': datetime.timedelta(seconds=2.0),
+        },
+        tracker.stats)
+    outer_dist = self.metric.get({
+        'tag': 'val',
+        'step': 'outer',
+        'success': True
+    })
+    self.assertEqual(1, outer_dist.count)
+    self.assertAlmostEqual(3.0, outer_dist.sum)
+    inner_dist = self.metric.get({
+        'tag': 'val',
+        'step': 'inner',
+        'success': True
+    })
+    self.assertEqual(1, inner_dist.count)
+    self.assertAlmostEqual(2.0, inner_dist.sum)
+    self.assertIsNone(tracker.current_step)
+
+  def test_track_expected_parent_mismatch(self):
+    """Test that track logs an error when expected_parent_step does not match."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('outer'):
+      with tracker.track('inner', expected_parent_step='other'):
+        self.mock_time.advance(2.0)
+
+    self.mock.error.assert_called_once_with(
+        'Step "inner" expected to be nested inside step "other", '
+        'but is nested inside step "outer".')
+    self.assertEqual(
+        {
+            'outer': datetime.timedelta(seconds=2.0),
+            'inner': datetime.timedelta(seconds=2.0),
+        },
+        tracker.stats)
+    self.assertIsNone(tracker.current_step)
+
+  def test_track_expected_parent_without_active_step(self):
+    """Test that track logs an error when expected_parent_step is set at top level."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('inner', expected_parent_step='outer'):
+      self.mock_time.advance(1.5)
+
+    self.mock.error.assert_called_once_with(
+        'Step "inner" expected to be nested inside step "outer", '
+        'but no step is active.')
+    self.assertEqual({'inner': datetime.timedelta(seconds=1.5)}, tracker.stats)
+    self.assertIsNone(tracker.current_step)
+
+  def test_measure_success(self):
+    """Test recording a manual measurement on success."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    tracker.measure('step_1', 4.5, True)
+
+    self.mock.error.assert_not_called()
+    self.assertEqual({'step_1': datetime.timedelta(seconds=4.5)}, tracker.stats)
+    dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': True})
+    self.assertEqual(1, dist.count)
+    self.assertAlmostEqual(4.5, dist.sum)
+
+  def test_measure_failure(self):
+    """Test recording a manual measurement on failure."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    tracker.measure('step_1', 3.2, False)
+
+    self.mock.error.assert_not_called()
+    self.assertEqual({'step_1': datetime.timedelta(seconds=3.2)}, tracker.stats)
+    dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': False})
+    self.assertEqual(1, dist.count)
+    self.assertAlmostEqual(3.2, dist.sum)
+
+  def test_measure_nested_expected_parent(self):
+    """Test manual measurement nested inside an expected parent step."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('outer'):
+      self.mock_time.advance(1.0)
+      tracker.measure('inner', 2.5, True, expected_parent_step='outer')
+      self.assertEqual('outer', tracker.current_step)
+      self.mock_time.advance(2.0)
+
+    self.mock.error.assert_not_called()
+    self.assertEqual(
+        {
+            'outer': datetime.timedelta(seconds=3.0),
+            'inner': datetime.timedelta(seconds=2.5),
+        },
+        tracker.stats)
+    inner_dist = self.metric.get({
+        'tag': 'val',
+        'step': 'inner',
+        'success': True
+    })
+    self.assertEqual(1, inner_dist.count)
+    self.assertAlmostEqual(2.5, inner_dist.sum)
+    self.assertIsNone(tracker.current_step)
+
+  def test_measure_nested_unexpected_parent(self):
+    """Test manual measurement logs an error when nested without expected parent."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('outer'):
+      tracker.measure('inner', 2.0, True)
+
+    self.mock.error.assert_called_once_with(
+        'Step "inner" is nested inside step "outer".')
+    self.assertEqual(
+        {
+            'outer': datetime.timedelta(seconds=0.0),
+            'inner': datetime.timedelta(seconds=2.0),
+        },
+        tracker.stats)
+    self.assertIsNone(tracker.current_step)
