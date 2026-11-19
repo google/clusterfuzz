@@ -210,9 +210,6 @@ class RunProcessRequest(google.protobuf.message.Message):
     testcase_run: builtins.bool
     ignore_children: builtins.bool
     terminate_android_app: builtins.bool
-    """If unset, defaults to true (terminate the Android app at the end of the
-    run).
-    """
     def __init__(
         self,
         *,
