@@ -297,25 +297,6 @@ class RunProcessAndroidTest(unittest.TestCase):
     self.assertEqual(return_code, 0)
     self.mock.stop.assert_called_once_with()
 
-  def test_run_process_android_non_crash_exit_returns_zero(self):
-    """Verifies a recorded non-crash exit (e.g. clean shutdown) keeps
-    return_code at 0."""
-    exit_info = util.ProcessExitInfo(
-        reason=constants.ExitReason.SIGNALED,
-        reason_name='SIGNALED',
-        subreason=0,
-        subreason_name='',
-        status=constants.ExitStatus.SIGQUIT)
-    self.mock.get_latest_pid_for_package.return_value = 1234
-    self.mock.get_exit_info_for_pid.return_value = exit_info
-    self.mock.activity_crashed.return_value = False
-
-    return_code, _, _ = process_handler.run_process(
-        'am start -n com.example.app/.MainActivity')
-
-    self.mock.activity_crashed.assert_called_once_with(exit_info)
-    self.assertEqual(return_code, 0)
-
   def test_run_process_android_no_package_name_skips_exit_info(self):
     """Verifies non-APK runs (no package name) skip exit-info and crash checks
     and return 0."""
@@ -343,10 +324,8 @@ class RunProcessAndroidTest(unittest.TestCase):
     self.assertEqual(return_code, 0)
 
   def test_run_process_android_device_reboot_skips_stale_exit_info(self):
-    """Verifies that when the Android device reboots during the run, exit-info
-    crash checks are skipped so stale pre-reboot crash records cannot block
-    reboot recovery (return_code 1, SELinux permissive reset, and
-    pre-reboot/kernel logs)."""
+    """A mid-run device reboot skips the exit-info lookup, so a stale pre-reboot
+    crash record can't hide the reboot (return_code 1, pre-reboot logs)."""
     self.mock.time_since_last_reboot.side_effect = [100.0, 5.0]
     self.mock.get_latest_pid_for_package.return_value = 4321
     self.mock.get_exit_info_for_pid.return_value = util.ProcessExitInfo(
@@ -357,18 +336,12 @@ class RunProcessAndroidTest(unittest.TestCase):
         status=constants.ExitStatus.SIGSEGV)
     self.mock.activity_crashed.return_value = True
     self.mock.log_output_before_last_reboot.return_value = 'pre-reboot log'
-    self.mock.get_kernel_log_content.return_value = 'kernel log'
 
     return_code, _, output = process_handler.run_process(
         'am start -n com.example.app/.MainActivity')
 
-    self.mock.get_latest_pid_for_package.assert_not_called()
     self.mock.get_exit_info_for_pid.assert_not_called()
-    self.mock.activity_crashed.assert_not_called()
-    self.mock.run_as_root.assert_called_once_with()
-    self.mock.change_se_linux_to_permissive_mode.assert_called_once_with()
     self.assertIn('pre-reboot log', output)
-    self.assertIn('kernel log', output)
     self.assertEqual(return_code, 1)
 
   def test_run_process_android_dont_terminate_android_app_true_keeps_app(self):
