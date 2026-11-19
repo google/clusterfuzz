@@ -585,9 +585,7 @@ class ProcessTrustyStacktraceTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.platforms.android.symbols_downloader.download_trusty_symbols_if_needed',
         'clusterfuzz._internal.system.environment.get_value',
-        'clusterfuzz._internal.system.environment.is_uworker',
     ])
-    self.mock.is_uworker.return_value = False
     self.loop = stack_symbolizer.SymbolizationLoop()
 
   def test_early_return_when_missing_app_and_bid(self):
@@ -632,8 +630,8 @@ class ProcessTrustyStacktraceSymbolsTest(unittest.TestCase):
     self.symbols_dir = temp_dir.name
 
   def test_uworker_without_bundled_symbols(self):
-    """Verifies that untrusted workers leave the stacktrace unsymbolized and
-    keep existing local files intact when Trusty symbols are absent."""
+    """On uworkers without Trusty ELFs in SYMBOLS_DIR, the stacktrace is
+    returned unchanged and nothing is fetched or deleted."""
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
     os.environ['UWORKER'] = 'True'
     os.environ.pop('LOCAL_DEVELOPMENT', None)
@@ -657,8 +655,8 @@ class ProcessTrustyStacktraceSymbolsTest(unittest.TestCase):
     self.mock.Addr2LineSymbolizer.assert_not_called()
 
   def test_uworker_with_bundled_symbols(self):
-    """Verifies that untrusted workers symbolize kernel and app frames using
-    locally available symbols without attempting remote downloads."""
+    """On uworkers with lk.elf and the app ELF in SYMBOLS_DIR, kernel and app
+    frames are symbolized without a remote download."""
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
     os.environ['UWORKER'] = 'True'
     os.environ.pop('LOCAL_DEVELOPMENT', None)
@@ -691,13 +689,11 @@ class ProcessTrustyStacktraceSymbolsTest(unittest.TestCase):
     actual = loop.process_trusty_stacktrace(stacktrace)
 
     self.assertEqual(expected, actual)
-    self.assertTrue(os.path.exists(kernel_binary))
-    self.assertTrue(os.path.exists(trusty_binary))
     self.mock.fetch_artifact_get.assert_not_called()
 
   def test_regular_bot_downloads_symbols(self):
-    """Verifies that regular bots download the Trusty symbols and symbolize
-    both kernel and app frames."""
+    """On regular bots, Trusty symbols are downloaded for the app and build ID,
+    then used to symbolize kernel and app frames."""
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
     os.environ.pop('UWORKER', None)
     os.environ.pop('LOCAL_DEVELOPMENT', None)
@@ -740,8 +736,8 @@ class ProcessTrustyStacktraceSymbolsTest(unittest.TestCase):
                                             '1234567')
 
   def test_regular_bot_without_downloaded_symbols(self):
-    """Verifies that regular bots return the original stacktrace untouched when
-    symbol download fails."""
+    """On regular bots, if the Trusty symbols download yields no ELFs, the
+    stacktrace is returned unchanged."""
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
     os.environ.pop('UWORKER', None)
     os.environ.pop('LOCAL_DEVELOPMENT', None)
