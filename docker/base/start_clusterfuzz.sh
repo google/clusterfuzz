@@ -19,6 +19,8 @@ export LC_ALL=en_US.UTF-8
 export PATH="$EXTRA_PATH:$PATH"
 export TZ='America/Los_Angeles'
 
+DEFAULT_OPEN_FILES_LIMIT=65535
+
 # PATH, PYTHONPATH and LD_* are removed by sudo even with -E,
 # so we pass them explicitly.
-sudo -E -H -u $USER bash -c "PATH='$PATH' PYTHONPATH='$PYTHONPATH' LD_LIBRARY_PATH='$LD_LIBRARY_PATH' $RUN_CMD"
+sudo -E -H -u $USER bash -c "ulimit -Sn $DEFAULT_OPEN_FILES_LIMIT || true; PATH='$PATH' PYTHONPATH='$PYTHONPATH' LD_LIBRARY_PATH='$LD_LIBRARY_PATH' $RUN_CMD"

@@ -843,6 +843,7 @@ class _PubSubLeaserThread(threading.Thread):
   """Thread that continuously renews the lease for a message."""
 
   EXTENSION_TIME_SECONDS = 10 * 60  # 10 minutes.
+  FAILURE_WAIT_SECONDS = 5
 
   def __init__(self,
                message,
@@ -888,6 +889,8 @@ class _PubSubLeaserThread(threading.Thread):
           break
       except Exception:
         logs.error('Leaser thread failed.')
+        if self._done_event.wait(self.FAILURE_WAIT_SECONDS):
+          break
 
 
 def add_utask_main(command: str, input_url: str, job_type: str,
