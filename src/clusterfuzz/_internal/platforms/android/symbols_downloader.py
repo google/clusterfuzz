@@ -14,6 +14,7 @@
 """Used to download Android symbols."""
 
 import os
+import shlex
 import zipfile
 
 from clusterfuzz._internal.base import utils
@@ -240,6 +241,13 @@ def _get_binary_from_build_or_device(binary_path):
   """Look for binary on build server or on device."""
   symbols_directory = environment.get_value('SYMBOLS_DIR')
 
+  # Treat paths that could escape the symbols directory as not found.
+  if '\x00' in binary_path or '..' in binary_path.split('/'):
+    logs.warning(
+        f'Path {binary_path} is not allowed. It either contains a null '
+        'byte or looks like a path traversal attack. Skipping.')
+    return None
+
   # We didn't find the library locally in the build directory.
   # Try finding the library in the local system library cache.
   if ensure_system_symbols(symbols_directory):
@@ -252,7 +260,8 @@ def _get_binary_from_build_or_device(binary_path):
   if not os.path.exists(local_binary_path):
     shell.create_directory(
         os.path.dirname(local_binary_path), create_intermediates=True)
-    adb.run_command('pull %s %s' % (binary_path, local_binary_path))
+    adb.run_command(f'pull -- {shlex.quote(binary_path)} '
+                    f'{shlex.quote(local_binary_path)}')
   if os.path.exists(local_binary_path):
     return local_binary_path
 

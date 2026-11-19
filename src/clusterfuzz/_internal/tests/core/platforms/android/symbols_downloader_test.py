@@ -14,6 +14,7 @@
 """Tests local library resolution and mirrored device pull paths."""
 
 import os
+import shlex
 import tempfile
 import unittest
 from unittest import mock
@@ -35,8 +36,9 @@ class FilterBinaryPathTest(unittest.TestCase):
     ])
     temp_dir = tempfile.TemporaryDirectory()
     self.addCleanup(temp_dir.cleanup)
-    self.build_dir = os.path.join(temp_dir.name, 'build')
-    self.symbols_dir = os.path.join(temp_dir.name, 'symbols')
+    self.temp_dir = os.path.realpath(temp_dir.name)
+    self.build_dir = os.path.join(self.temp_dir, 'build')
+    self.symbols_dir = os.path.join(self.temp_dir, 'symbols')
 
   def test_build_dir_library(self):
     """Verifies that libraries bundled with the build are resolved directly
@@ -90,7 +92,7 @@ class FilterBinaryPathTest(unittest.TestCase):
     self.mock.is_google_device.return_value = True
 
     def create_pulled_file(cmd):
-      local_path = cmd.split()[-1]
+      local_path = shlex.split(cmd)[-1]
       with open(local_path, 'wb'):
         pass
 
@@ -105,8 +107,9 @@ class FilterBinaryPathTest(unittest.TestCase):
         expected_lib64,
         symbols_downloader.filter_binary_path('/system/lib64/libc.so'))
     self.assertEqual([
-        mock.call('pull /system/lib/libc.so %s' % expected_lib32),
-        mock.call('pull /system/lib64/libc.so %s' % expected_lib64),
+        mock.call(f'pull -- /system/lib/libc.so {shlex.quote(expected_lib32)}'),
+        mock.call(
+            f'pull -- /system/lib64/libc.so {shlex.quote(expected_lib64)}'),
     ], self.mock.run_command.call_args_list)
 
     # Subsequent frames reuse the pulled files without running adb pull again.
@@ -119,3 +122,66 @@ class FilterBinaryPathTest(unittest.TestCase):
         symbols_downloader.filter_binary_path('/system/lib64/libc.so'))
     self.mock.run_command.assert_not_called()
     self.mock.fetch_artifact_get.assert_not_called()
+
+  def test_unsafe_paths_are_not_pulled(self):
+    """Verifies that paths with parent-directory segments or null bytes are
+    reported as not found without touching the device or the host."""
+    os.environ['OS_OVERRIDE'] = 'ANDROID'
+    os.environ['BUILD_DIR'] = self.build_dir
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ['LOCAL_DEVELOPMENT'] = 'True'
+
+    unsafe_paths = [
+        '/../../escape.so',
+        '/system/../../../escape.so',
+        '/system/lib64/..',
+        '/system/lib64/bad\x00.so',
+    ]
+    for path in unsafe_paths:
+      self.assertEqual('', symbols_downloader.filter_binary_path(path))
+
+    self.mock.run_command.assert_not_called()
+    self.assertFalse(os.path.exists(self.symbols_dir))
+    self.assertFalse(os.path.exists(os.path.join(self.temp_dir, 'escape.so')))
+
+  def test_dots_inside_file_name_are_pulled(self):
+    """Verifies that '..' inside a file name is not treated as a
+    parent-directory segment."""
+    os.environ['OS_OVERRIDE'] = 'ANDROID'
+    os.environ['BUILD_DIR'] = self.build_dir
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ['LOCAL_DEVELOPMENT'] = 'True'
+
+    def create_pulled_file(cmd):
+      with open(shlex.split(cmd)[-1], 'wb'):
+        pass
+
+    self.mock.run_command.side_effect = create_pulled_file
+    expected_path = os.path.join(self.symbols_dir, 'system/lib64/libfoo..so')
+
+    self.assertEqual(
+        expected_path,
+        symbols_downloader.filter_binary_path('/system/lib64/libfoo..so'))
+    self.mock.run_command.assert_called_once()
+
+  def test_quotes_adb_pull_arguments(self):
+    """Verifies that spaces and shell metacharacters are safely quoted."""
+    os.environ['OS_OVERRIDE'] = 'ANDROID'
+    os.environ['BUILD_DIR'] = self.build_dir
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ['LOCAL_DEVELOPMENT'] = 'True'
+
+    crafted_path = "/system/lib64/my lib;id$(uname)'q.so"
+    expected_local_path = os.path.join(self.symbols_dir,
+                                       crafted_path.lstrip('/'))
+
+    def create_pulled_file(cmd):
+      args = shlex.split(cmd)
+      self.assertEqual(['pull', '--', crafted_path, expected_local_path], args)
+      with open(args[-1], 'wb'):
+        pass
+
+    self.mock.run_command.side_effect = create_pulled_file
+    self.assertEqual(expected_local_path,
+                     symbols_downloader.filter_binary_path(crafted_path))
+    self.mock.run_command.assert_called_once()
