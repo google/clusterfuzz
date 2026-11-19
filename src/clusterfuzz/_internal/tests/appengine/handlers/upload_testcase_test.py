@@ -336,14 +336,21 @@ class UploadOAuthTest(unittest.TestCase):
          'libfuzzer_proj_linux', None, False),
         ('google3_android_domain_user', domain_user_access, False, False,
          'libfuzzer_proj_android', None, False),
+        ('google3_android_job_with_forged_linux_platform', domain_user_access,
+         False, False, 'libfuzzer_proj_android', 'Linux', False),
         ('google3_cuttlefish_domain_user', domain_user_access, False, False,
          'libfuzzer_proj_android_x86', None, False),
+        ('google3_cuttlefish_job_with_forged_linux_platform',
+         domain_user_access, False, False, 'libfuzzer_proj_android_x86',
+         'linux:ubuntu', False),
         ('chrome_quick_upload_mixed_case_android_override', domain_user_access,
          False, False, 'libfuzzer_proj_linux', 'Android', False),
         ('chrome_android_subplatform_override', domain_user_access, False,
          False, 'libfuzzer_proj_linux', 'android:pixel_8', False),
         ('chrome_mac_trusted_agreement_domain_user', domain_user_access, False,
          True, 'libfuzzer_proj_mac', None, True),
+        ('chrome_mac_job_with_forged_linux_platform', domain_user_access, False,
+         True, 'libfuzzer_proj_mac', 'Linux', True),
         ('external_job_scoped_user_on_linux', job_scoped_external_access, False,
          True, 'libfuzzer_proj_linux', None, False),
     ]
@@ -434,6 +441,15 @@ class UploadOAuthTest(unittest.TestCase):
     self.mock.has_access.side_effect = None
     self.mock.has_access.return_value = True
     with self.app.test_client() as client:
+      priv_blank_resp = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj_android',
+              'target': 'target',
+              'revision': '1337',
+              'args': '   \t  ',
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
       priv_resp = client.post(
           '/',
           data={
@@ -443,6 +459,9 @@ class UploadOAuthTest(unittest.TestCase):
               'args': '--enable-features=TestFeature',
               'file': (io.BytesIO(b'contents'), 'file'),
           })
+    self.assertEqual(200, priv_blank_resp.status_code, priv_blank_resp.data)
+    priv_blank_tc = data_handler.get_testcase_by_id(priv_blank_resp.json['id'])
+    self.assertIsNone(priv_blank_tc.get_metadata('uploaded_additional_args'))
     self.assertEqual(200, priv_resp.status_code, priv_resp.data)
     priv_tc = data_handler.get_testcase_by_id(priv_resp.json['id'])
     self.assertEqual('--enable-features=TestFeature',

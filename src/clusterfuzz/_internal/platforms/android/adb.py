@@ -54,6 +54,7 @@ GET_DEVICE_STATE_TIMEOUT = 20
 STOP_CVD_WAIT = 20
 LAUNCH_CVD_TIMEOUT = 2700
 CMD_KILL_CROSVM = 'pkill crosvm'
+MALFORMED_COMMAND_RETURN_CODE = 2
 
 # Output patterns to parse "lsusb" output.
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
@@ -124,9 +125,6 @@ def execute_command(cmd: str,
   _, output = execute_command_with_return_code(
       cmd, timeout=timeout, on_cuttlefish_host=on_cuttlefish_host)
   return output
-
-
-MALFORMED_COMMAND_RETURN_CODE = 2
 
 
 def _build_host_command_args(cmd: str, on_cuttlefish_host: bool) -> list[str]:
