@@ -231,6 +231,7 @@ def main():
   environment.set_bot_environment()
   persistent_cache.initialize()
   logs.configure('run')
+  environment.ensure_open_file_limit()
 
   # Python buffering can otherwise cause exception logs in the child run_*.py
   # processes to be lost.

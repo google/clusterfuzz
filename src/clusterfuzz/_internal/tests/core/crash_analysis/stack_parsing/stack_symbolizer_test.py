@@ -434,6 +434,45 @@ class LLVMSymbolizerTest(unittest.TestCase):
         mock_popen=mock_popen,
         mock_log_error=mock_log_error)
 
+  @mock.patch('os.path.isfile')
+  @mock.patch('os.path.exists', return_value=True)
+  @mock.patch(
+      'clusterfuzz._internal.system.environment.get_llvm_symbolizer_path',
+      return_value='/revisions/llvm-symbolizer')
+  @mock.patch('subprocess.Popen')
+  @mock.patch('sys.platform', 'linux')
+  def test_bundled_glibc_not_injected_into_symbolizer_ld_library_path(
+      self, mock_popen, unused_sym_path, unused_exists, mock_isfile):
+    """Test LLVMSymbolizer omits revisions/ from LD_LIBRARY_PATH when libc.so.6 exists."""
+    del unused_sym_path, unused_exists
+    mock_isfile.side_effect = lambda p: p == '/revisions/libc.so.6'
+    mock_popen.return_value = self._mock_successful_llvm_process()
+
+    actual_output = stack_symbolizer.symbolize_stacktrace(TEST_STACK_TRACE)
+    self.assertEqual(EXPECTED_LLVM_OUTPUT, actual_output)
+    _, popen_kwargs = mock_popen.call_args
+    self.assertNotEqual('/revisions',
+                        popen_kwargs['env'].get('LD_LIBRARY_PATH'))
+
+  @mock.patch('os.path.isfile', return_value=False)
+  @mock.patch('os.path.exists', return_value=True)
+  @mock.patch(
+      'clusterfuzz._internal.system.environment.get_llvm_symbolizer_path',
+      return_value='/resources/platform/linux/llvm-symbolizer')
+  @mock.patch('subprocess.Popen')
+  @mock.patch('sys.platform', 'linux')
+  def test_toolchain_dir_set_in_symbolizer_ld_library_path(
+      self, mock_popen, unused_sym_path, unused_exists, unused_isfile):
+    """Test LLVMSymbolizer sets LD_LIBRARY_PATH when directory has no libc.so.6."""
+    del unused_sym_path, unused_exists, unused_isfile
+    mock_popen.return_value = self._mock_successful_llvm_process()
+
+    actual_output = stack_symbolizer.symbolize_stacktrace(TEST_STACK_TRACE)
+    self.assertEqual(EXPECTED_LLVM_OUTPUT, actual_output)
+    _, popen_kwargs = mock_popen.call_args
+    self.assertEqual('/resources/platform/linux',
+                     popen_kwargs['env'].get('LD_LIBRARY_PATH'))
+
 
 def _data_path(name):
   """Returns the path of a file in the test data directory. See the README.md
