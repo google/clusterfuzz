@@ -271,5 +271,38 @@ class GetArgumentsTest(unittest.TestCase):
     self.assertEqual(fuzzer.get_rss_limit_mb(target_options), 0)
 
 
+class FixTimeoutArgumentForReproductionTest(unittest.TestCase):
+  """Tests for fix_timeout_argument_for_reproduction."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+
+  def test_custom_report_processing_time(self):
+    """Uses REPORT_PROCESSING_TIME from environment when set."""
+    environment.set_value('TEST_TIMEOUT', 85)
+    environment.set_value('REPORT_PROCESSING_TIME', 25)
+    args = libfuzzer.fix_timeout_argument_for_reproduction(
+        ['-arg=1', '-timeout=123'])
+    self.assertCountEqual(['-arg=1', '-timeout=60'], args)
+
+  def test_invalid_report_processing_time_falls_back_to_default(self):
+    """Falls back to default 5s buffer on empty, non-int, or negative values."""
+    environment.set_value('TEST_TIMEOUT', 85)
+    for bad_value in ('', 'None', '25s', '-1', '25.5', 'True'):
+      with self.subTest(bad_value=bad_value):
+        os.environ['REPORT_PROCESSING_TIME'] = bad_value
+        args = libfuzzer.fix_timeout_argument_for_reproduction(['-arg=1'])
+        self.assertCountEqual(['-arg=1', '-timeout=80'], args)
+
+  def test_report_processing_time_clamps_to_one(self):
+    """Clamps -timeout to 1 and warns when buffer >= TEST_TIMEOUT."""
+    environment.set_value('TEST_TIMEOUT', 20)
+    environment.set_value('REPORT_PROCESSING_TIME', 25)
+    with mock.patch.object(libfuzzer.logs, 'warning') as mock_warn:
+      args = libfuzzer.fix_timeout_argument_for_reproduction(['-arg=1'])
+    self.assertCountEqual(['-arg=1', '-timeout=1'], args)
+    mock_warn.assert_called_once()
+
+
 if __name__ == '__main__':
   unittest.main()
