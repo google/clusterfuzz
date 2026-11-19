@@ -1003,21 +1003,16 @@ def _get_trusted_coverage_locations(task_input):
   """Recomputes target name and corpus GCS URLs from trusted task input."""
   fuzz_target = uworker_io.entity_from_protobuf(task_input.fuzz_target,
                                                 data_types.FuzzTarget)
-  project_name = fuzz_target.project_qualified_name()
-  corpus = corpus_manager.ProtoFuzzTargetCorpus(fuzz_target.engine,
-                                                project_name, task_input.corpus)
-  quarantine_corpus = corpus_manager.ProtoFuzzTargetCorpus(
-      fuzz_target.engine, project_name, task_input.quarantine_corpus)
   return TrustedCoverageLocations(
-      project_name=project_name,
-      corpus_location=corpus.get_gcs_url(),
-      quarantine_location=quarantine_corpus.get_gcs_url(),
+      project_name=fuzz_target.project_qualified_name(),
+      corpus_location=task_input.corpus.corpus.gcs_url,
+      quarantine_location=task_input.quarantine_corpus.corpus.gcs_url,
       dated_backup_location=task_input.dated_backup_gcs_url)
 
 
 def _resolve_coverage_date(cov_info):
   """Returns a validated CoverageInformation date within 1 day of UTC today."""
-  today = datetime.datetime.utcnow().date()
+  today = utils.utcnow().date()
   if not cov_info.HasField('timestamp'):
     return today
   reported_date = cov_info.timestamp.ToDatetime().date()
@@ -1044,6 +1039,8 @@ def _save_coverage_information(output):
     coverage_info = data_handler.get_coverage_information(
         trusted_locations.project_name, coverage_date, create_if_needed=True)
 
+    # Intentionally skip edge and function coverage values as those would come
+    # from fuzzer coverage cron task (see src/go/server/cron/coverage.go).
     coverage_info.corpus_size_units = cov_info.corpus_size_units
     coverage_info.corpus_size_bytes = cov_info.corpus_size_bytes
     coverage_info.corpus_location = trusted_locations.corpus_location
