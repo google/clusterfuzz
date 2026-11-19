@@ -221,6 +221,24 @@ def _allow_unprivileged_metadata(testcase_metadata):
       testcase_metadata) == 2 and 'skip_minimization' in testcase_metadata
 
 
+def _is_linux_platform(platform_name):
+  """Returns whether a job or override platform name resolves to LINUX."""
+  if not platform_name:
+    return False
+  return environment.base_platform(platform_name.strip()).upper() == 'LINUX'
+
+
+def _allow_unprivileged_additional_arguments(job, platform_id, trusted):
+  """Returns whether a non-privileged user may supply custom CLI arguments."""
+  if utils.is_oss_fuzz() or trusted:
+    return False
+  if not _is_linux_platform(job.platform):
+    return False
+  if platform_id and not _is_linux_platform(platform_id):
+    return False
+  return access.has_access(need_privileged_access=False)
+
+
 class Handler(base_handler.Handler):
   """Handler for the testcase uploads page."""
 
@@ -466,6 +484,9 @@ class UploadHandlerCommon:
     bundled = False
     file_path_input = ''
 
+    if additional_arguments and not additional_arguments.strip():
+      additional_arguments = ''
+
     # Certain modifications such as app launch command, issue updates are only
     # allowed for privileged users.
     privileged_user = access.has_access(need_privileged_access=True)
@@ -484,6 +505,12 @@ class UploadHandlerCommon:
       if app_launch_command:
         raise helpers.EarlyExitError(
             'You are not privileged to run arbitrary launch commands.', 400)
+
+      if (additional_arguments and not _allow_unprivileged_additional_arguments(
+          job, platform_id, trusted)):
+        raise helpers.EarlyExitError(
+            'You are not privileged to run arbitrary command-line arguments.',
+            400)
 
       if (testcase_metadata and
           not _allow_unprivileged_metadata(testcase_metadata)):
