@@ -829,3 +829,96 @@ class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
       progression_task._set_regression_testcase_upload_url(  # pylint: disable=protected-access
           progression_task_input, self.testcase)
     self.assertFalse(bool(progression_task_input.regression_testcase_url))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ProgressionRescheduleGuardTest(unittest.TestCase):
+  """Tests progression reschedule guards for closed testcases and deleted jobs."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.task_creation.mark_unreproducible_if_flaky',
+        'clusterfuzz._internal.google_cloud_utils.blobs.delete_blob',
+    ])
+    os.environ['FAIL_WAIT'] = '60'
+    self.testcase = test_utils.create_generic_testcase()
+    self.testcase.set_metadata('progression_pending', True)
+    self.progression_task_input = uworker_msg_pb2.ProgressionTaskInput(
+        blob_name='blob_name',
+        stacktrace_upload_url='https://signed_upload_url')
+
+  def _make_output(self, job_type, error_type, crash_revision=1):
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(self.testcase.key.id()),
+        job_type=job_type,
+        progression_task_input=self.progression_task_input)
+    progression_output = uworker_msg_pb2.ProgressionTaskOutput(
+        crash_revision=crash_revision)
+    return uworker_msg_pb2.Output(
+        uworker_input=uworker_input,
+        progression_task_output=progression_output,
+        error_type=error_type,
+        error_message='task error')
+
+  def test_build_setup_error_with_deleted_job_clears_pending_without_raising(
+      self):
+    """Test deleted jobs do not raise in postprocess on build setup error."""
+    output = self._make_output(
+        'deleted_job_type',
+        uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
+
+    progression_task.utask_postprocess(output)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertFalse(updated.get_metadata('progression_pending'))
+
+  def test_build_setup_error_skips_closed_testcase(self):
+    """Test closed testcases are not rescheduled on build setup error."""
+    self.testcase.open = False
+    self.testcase.put()
+    output = self._make_output(
+        'deleted_job_type',
+        uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
+
+    with mock.patch('clusterfuzz._internal.base.tasks.add_task') as mock_add:
+      progression_task.handle_progression_build_setup_error(output)
+      mock_add.assert_not_called()
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertFalse(updated.get_metadata('progression_pending'))
+
+  def test_no_crash_skips_closed_testcase_without_marking_flaky(self):
+    """Test closed testcases are ignored on PROGRESSION_NO_CRASH."""
+    self.testcase.open = False
+    self.testcase.put()
+    output = self._make_output('deleted_job_type',
+                               uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)
+
+    with mock.patch('clusterfuzz._internal.base.tasks.add_task') as mock_add:
+      progression_task.handle_progression_no_crash(output)
+      mock_add.assert_not_called()
+
+    self.mock.mark_unreproducible_if_flaky.assert_not_called()
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertFalse(updated.get_metadata('progression_pending'))
+
+  def test_no_crash_first_attempt_with_deleted_job_clears_pending(self):
+    """Test first-attempt PROGRESSION_NO_CRASH with deleted job does not raise."""
+    output = self._make_output('deleted_job_type',
+                               uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)
+
+    progression_task.handle_progression_no_crash(output)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertFalse(updated.get_metadata('progression_pending'))
+
+  def test_timeout_with_deleted_job_clears_pending_without_raising(self):
+    """Test PROGRESSION_TIMEOUT with deleted job does not raise."""
+    output = self._make_output('deleted_job_type',
+                               uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)
+
+    progression_task.handle_progression_timeout(output)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertFalse(updated.get_metadata('progression_pending'))

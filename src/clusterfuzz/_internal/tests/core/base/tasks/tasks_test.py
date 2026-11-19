@@ -698,6 +698,76 @@ class GetTaskFuzzingFeatureFlagTest(unittest.TestCase):
       self.mock.get_fuzz_task.assert_not_called()
 
 
+class PubSubLeaserThreadTest(unittest.TestCase):
+  """Tests for _PubSubLeaserThread error handling and shutdown."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.metrics.logs.info',
+    ])
+
+  def test_stops_promptly_when_modify_ack_deadline_raises(self):
+    """Test leaser thread exits on done_event instead of spinning forever."""
+    import threading
+
+    done_event = threading.Event()
+    attempted = threading.Event()
+
+    def fail_deadline(unused_seconds):
+      del unused_seconds
+      attempted.set()
+      raise OSError(24, 'Too many open files')
+
+    message = mock.Mock()
+    message.modify_ack_deadline.side_effect = fail_deadline
+
+    leaser = tasks._PubSubLeaserThread(  # pylint: disable=protected-access
+        message,
+        done_event,
+        max_lease_seconds=600)
+    leaser.FAILURE_WAIT_SECONDS = 10
+    leaser.start()
+
+    self.assertTrue(attempted.wait(timeout=2.0))
+    done_event.set()
+    leaser.join(timeout=2.0)
+
+    self.assertFalse(leaser.is_alive())
+    self.mock.error.assert_called_with('Leaser thread failed.')
+
+  def test_retries_after_transient_error_until_done(self):
+    """Test leaser thread backs off and succeeds on subsequent renewal."""
+    import threading
+
+    done_event = threading.Event()
+    renewed = threading.Event()
+    calls = []
+
+    def flaky_deadline(seconds):
+      calls.append(seconds)
+      if len(calls) == 1:
+        raise OSError(24, 'Too many open files')
+      renewed.set()
+
+    message = mock.Mock()
+    message.modify_ack_deadline.side_effect = flaky_deadline
+
+    leaser = tasks._PubSubLeaserThread(  # pylint: disable=protected-access
+        message,
+        done_event,
+        max_lease_seconds=600)
+    leaser.FAILURE_WAIT_SECONDS = 0.05
+    leaser.start()
+
+    self.assertTrue(renewed.wait(timeout=2.0))
+    done_event.set()
+    leaser.join(timeout=2.0)
+
+    self.assertFalse(leaser.is_alive())
+    self.assertGreaterEqual(len(calls), 2)
+
+
 @test_utils.with_cloud_emulators('datastore')
 class SwarmingNonFuzzTaskRoutingTest(unittest.TestCase):
   """Tests for routing non-fuzz tasks of Swarming jobs to platform queues."""

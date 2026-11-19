@@ -842,7 +842,8 @@ class PostprocessPubSubTask(PubSubTask):
 class _PubSubLeaserThread(threading.Thread):
   """Thread that continuously renews the lease for a message."""
 
-  EXTENSION_TIME_SECONDS = 10 * 60  # 10 minutes.
+  EXTENSION_TIME_SECONDS = 10 * 60
+  FAILURE_WAIT_SECONDS = 5
 
   def __init__(self,
                message,
@@ -861,7 +862,7 @@ class _PubSubLeaserThread(threading.Thread):
     """Run the leaser thread."""
     latest_end_time = time.time() + self._max_lease_seconds
 
-    while True:
+    while not self._done_event.is_set():
       try:
         time_left = latest_end_time - time.time()
         if time_left <= 0:
@@ -878,16 +879,15 @@ class _PubSubLeaserThread(threading.Thread):
             'Renewing lease for task by {} seconds.'.format(extension_seconds))
         self._message.modify_ack_deadline(extension_seconds)
 
-        # Schedule renewals earlier than the extension to avoid race conditions
-        # and performing the next extension too late.
         wait_seconds = min(time_left, self.EXTENSION_TIME_SECONDS // 2)
 
-        # Wait until the next scheduled renewal, or if the task is complete.
         if self._done_event.wait(wait_seconds):
           logs.info('Task complete, stopping renewal.')
           break
       except Exception:
         logs.error('Leaser thread failed.')
+        if self._done_event.wait(self.FAILURE_WAIT_SECONDS):
+          break
 
 
 def add_utask_main(command: str, input_url: str, job_type: str,

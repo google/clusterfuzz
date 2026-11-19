@@ -376,3 +376,25 @@ class TworkerGetTaskTest(unittest.TestCase):
 
     self.assertEqual(result, mock_task)
     self.mock.get_postprocess_task.assert_called_once()
+
+
+class MainOpenFileLimitTest(unittest.TestCase):
+  """Tests open-file limit initialization during run_bot.main."""
+
+  def test_main_ensures_open_file_limit(self):
+    """Test run_bot.main raises RLIMIT_NOFILE before starting tasks."""
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.configure',
+        'clusterfuzz._internal.system.environment.get_value',
+        'clusterfuzz._internal.base.dates.initialize_timezone_from_environment',
+        'clusterfuzz._internal.system.environment.set_bot_environment',
+        'clusterfuzz._internal.system.environment.ensure_open_file_limit',
+        'clusterfuzz._internal.metrics.profiler.start_if_needed',
+    ])
+    self.mock.get_value.return_value = '/bot'
+    self.mock.start_if_needed.return_value = False
+
+    with self.assertRaises(SystemExit):
+      run_bot.main()
+
+    self.mock.ensure_open_file_limit.assert_called_once_with()

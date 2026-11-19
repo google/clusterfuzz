@@ -83,3 +83,32 @@ class RunLoopTest(unittest.TestCase):
     self.mock.bot_run_timed_out.assert_has_calls(
         [mock.call(), mock.call(), mock.call()])
     self.mock.sleep.assert_has_calls([mock.call(3), mock.call(3)])
+
+
+class MainStartupLimitTest(unittest.TestCase):
+  """Tests open-file limit initialization during run.main."""
+
+  def test_main_ensures_open_file_limit(self):
+    """Test run.main calls ensure_open_file_limit after configuring logs."""
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.get_value',
+        'clusterfuzz._internal.system.environment.set_bot_environment',
+        'clusterfuzz._internal.system.environment.ensure_open_file_limit',
+        'clusterfuzz._internal.system.environment.set_value',
+        'clusterfuzz._internal.system.environment.get_startup_scripts_directory',
+        'clusterfuzz._internal.base.persistent_cache.initialize',
+        'clusterfuzz._internal.metrics.logs.configure',
+        'clusterfuzz._internal.system.shell.get_interpreter',
+        'python.bot.startup.run.set_start_time',
+        'python.bot.startup.run.run_loop',
+    ])
+    self.mock.get_value.side_effect = lambda k, default=None: {
+        'ROOT_DIR': '/bot',
+        'LOG_DIR': '/bot/logs',}.get(k, default)
+    self.mock.get_startup_scripts_directory.return_value = '/bot/startup'
+    self.mock.get_interpreter.return_value = 'python3'
+
+    run.main()
+
+    self.mock.ensure_open_file_limit.assert_called_once_with()

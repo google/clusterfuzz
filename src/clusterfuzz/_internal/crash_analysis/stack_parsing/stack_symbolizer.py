@@ -318,16 +318,8 @@ class LLVMSymbolizer(Symbolizer):
       for hint in self.dsym_hints:
         cmd.append('--dsym-hint=%s' % hint)
 
-    # Set LD_LIBRARY_PATH to use the right libstdc++.
-    env_copy = environment.copy()
-    env_copy['LD_LIBRARY_PATH'] = os.path.dirname(self.symbolizer_path)
+    env_copy = environment.get_llvm_symbolizer_env(self.symbolizer_path)
 
-    # FIXME: Since we are not using process_handler.run_process here, we can run
-    # into issues with unicode environment variable and values. Add this
-    # explicit hack to convert these into strings.
-    env_copy = {str(key): str(value) for key, value in env_copy.items()}
-
-    # Run the symbolizer.
     pipe = subprocess.Popen(
         cmd,
         env=env_copy,

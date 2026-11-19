@@ -28,6 +28,11 @@ import yaml
 
 from clusterfuzz._internal import fuzzing
 
+try:
+  import resource
+except ImportError:
+  resource = None
+
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
@@ -62,6 +67,9 @@ _UNSUFFIXED_ARCHS = {
     'x86_64',
     'x86',
 }
+
+TARGET_OPEN_FILE_LIMIT = 65535
+BUNDLED_GLIBC_SONAME = 'libc.so.6'
 
 
 class UtaskMainRuntime(enum.Enum):
@@ -373,33 +381,105 @@ def get_sanitizer_options_for_display():
   return result
 
 
+def ensure_open_file_limit(target_limit=TARGET_OPEN_FILE_LIMIT):
+  """Raises soft RLIMIT_NOFILE up to target_limit when allowed."""
+  from clusterfuzz._internal.metrics import logs
+
+  if resource is None:
+    return
+
+  try:
+    soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+  except (OSError, ValueError) as error:
+    logs.warning(f'Failed to query RLIMIT_NOFILE: {error}')
+    return
+
+  desired_soft = _compute_target_soft_nofile_limit(
+      soft_limit, hard_limit, target_limit, resource.RLIM_INFINITY)
+  if desired_soft <= soft_limit:
+    return
+
+  try:
+    resource.setrlimit(resource.RLIMIT_NOFILE, (desired_soft, hard_limit))
+  except (OSError, ValueError) as error:
+    logs.warning(
+        f'Failed to raise RLIMIT_NOFILE from {soft_limit} to {desired_soft}: '
+        f'{error}')
+
+
+def _compute_target_soft_nofile_limit(soft_limit, hard_limit, target_limit,
+                                      infinity_limit):
+  """Computes the target soft RLIMIT_NOFILE bounded by hard_limit."""
+  if soft_limit >= target_limit:
+    return soft_limit
+  if hard_limit == infinity_limit or hard_limit <= 0:
+    return target_limit
+  return min(target_limit, hard_limit)
+
+
+def get_llvm_symbolizer_env(symbolizer_path, base_env=None):
+  """Returns a stringified environment safe for launching llvm-symbolizer."""
+  raw_env = copy() if base_env is None else dict(base_env)
+  symbolizer_env = {str(key): str(value) for key, value in raw_env.items()}
+  if platform() == 'WINDOWS':
+    return symbolizer_env
+
+  symbolizer_dir = os.path.dirname(symbolizer_path)
+  if not symbolizer_dir:
+    return symbolizer_env
+
+  if _directory_contains_bundled_glibc(symbolizer_dir):
+    _strip_directory_from_ld_library_path(symbolizer_env, symbolizer_dir)
+    return symbolizer_env
+
+  symbolizer_env['LD_LIBRARY_PATH'] = symbolizer_dir
+  return symbolizer_env
+
+
+def _directory_contains_bundled_glibc(directory):
+  """Returns True when directory bundles its own libc.so.6."""
+  return os.path.isfile(os.path.join(directory, BUNDLED_GLIBC_SONAME))
+
+
+def _strip_directory_from_ld_library_path(env_map, directory_to_remove):
+  """Removes directory_to_remove from LD_LIBRARY_PATH if present."""
+  current_path = env_map.get('LD_LIBRARY_PATH')
+  if not current_path:
+    return
+  target_norm = os.path.normpath(directory_to_remove)
+  kept_entries = [
+      entry for entry in current_path.split(os.pathsep)
+      if entry and os.path.normpath(entry) != target_norm
+  ]
+  if kept_entries:
+    env_map['LD_LIBRARY_PATH'] = os.pathsep.join(kept_entries)
+    return
+  env_map.pop('LD_LIBRARY_PATH', None)
+
+
 def get_llvm_symbolizer_path():
   """Get the path of the llvm-symbolizer binary."""
-  # Imported here to avoid a circular import (logs imports environment).
-  # TODO(crbug.com/570547357): Find a cleaner solution to handle logs in this
-  # function/module.
   from clusterfuzz._internal.metrics import logs
 
   llvm_symbolizer_path = get_value('LLVM_SYMBOLIZER_PATH')
 
   if llvm_symbolizer_path and os.path.exists(llvm_symbolizer_path):
-    # Make sure that llvm symbolizer binary is executable.
     os.chmod(llvm_symbolizer_path, 0o750)
+    symbolizer_env = get_llvm_symbolizer_env(llvm_symbolizer_path)
 
     try:
       return_code = subprocess.call(
           [llvm_symbolizer_path, '--help'],
           stdout=subprocess.DEVNULL,
-          stderr=subprocess.DEVNULL)
+          stderr=subprocess.DEVNULL,
+          env=symbolizer_env)
     except OSError as e:
-      # E.g. the binary was built for the wrong architecture.
       logs.warning(f'Failed to execute build llvm-symbolizer at '
                    f'{llvm_symbolizer_path}, falling back to the default '
                    f'one. Exception: {e}')
       return_code = None
 
     if return_code == 0:
-      # llvm-symbolize works, return it.
       return llvm_symbolizer_path
 
     if return_code is not None:
@@ -407,18 +487,10 @@ def get_llvm_symbolizer_path():
                    f'{llvm_symbolizer_path}, falling back to the default '
                    f'one. Return code: {return_code}')
 
-  # Either
-  # 1. llvm-symbolizer was not found in build archive. OR
-  # 2. llvm-symbolizer fails due to dependency issue, clang regression, wrong
-  #    architecture, etc.
-  # So, use our own version of llvm-symbolizer.
   llvm_symbolizer_path = get_default_tool_path('llvm-symbolizer')
-
-  # Make sure that we have a default llvm-symbolizer for this platform.
   if not os.path.exists(llvm_symbolizer_path):
     return None
 
-  # Make sure that llvm symbolizer binary is executable.
   os.chmod(llvm_symbolizer_path, 0o750)
   return llvm_symbolizer_path
 

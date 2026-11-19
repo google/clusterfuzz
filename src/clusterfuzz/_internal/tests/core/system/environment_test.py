@@ -689,3 +689,109 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
     self.assertEqual('/default/llvm-symbolizer',
                      environment.get_llvm_symbolizer_path())
     self.mock.warning.assert_called_once()
+
+  def test_passes_symbolizer_env_to_probe(self):
+    """Test that probing llvm-symbolizer uses its runtime environment."""
+    self.mock.call.return_value = 0
+    expected_env = environment.get_llvm_symbolizer_env('/build/llvm-symbolizer')
+    self.assertEqual('/build/llvm-symbolizer',
+                     environment.get_llvm_symbolizer_path())
+    _, kwargs = self.mock.call.call_args
+    self.assertEqual(expected_env, kwargs['env'])
+
+
+class GetLlvmSymbolizerEnvTest(unittest.TestCase):
+  """Tests for get_llvm_symbolizer_env."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.platform',
+        'os.path.isfile',
+    ])
+    self.mock.platform.return_value = 'LINUX'
+
+  def test_sets_ld_library_path_without_bundled_glibc(self):
+    """Test LD_LIBRARY_PATH points to symbolizer dir when libc.so.6 is absent."""
+    self.mock.isfile.return_value = False
+    result_env = environment.get_llvm_symbolizer_env(
+        '/resources/platform/linux/llvm-symbolizer', base_env={'FOO': 1})
+    self.assertEqual('/resources/platform/linux',
+                     result_env.get('LD_LIBRARY_PATH'))
+    self.assertEqual('1', result_env.get('FOO'))
+
+  def test_omits_and_strips_ld_library_path_with_bundled_glibc(self):
+    """Test bundled libc.so.6 dir is excluded from LD_LIBRARY_PATH."""
+    self.mock.isfile.side_effect = lambda p: p == '/revisions/libc.so.6'
+    result_env = environment.get_llvm_symbolizer_env(
+        '/revisions/llvm-symbolizer',
+        base_env={'LD_LIBRARY_PATH': '/revisions:/usr/local/lib'})
+    self.assertEqual('/usr/local/lib', result_env.get('LD_LIBRARY_PATH'))
+
+    only_revisions_env = environment.get_llvm_symbolizer_env(
+        '/revisions/llvm-symbolizer',
+        base_env={'LD_LIBRARY_PATH': '/revisions'})
+    self.assertNotIn('LD_LIBRARY_PATH', only_revisions_env)
+
+  def test_windows_skips_ld_library_path(self):
+    """Test Windows does not set LD_LIBRARY_PATH."""
+    self.mock.platform.return_value = 'WINDOWS'
+    self.mock.isfile.return_value = False
+    result_env = environment.get_llvm_symbolizer_env(
+        r'c:\bot\llvm-symbolizer.exe', base_env={})
+    self.assertNotIn('LD_LIBRARY_PATH', result_env)
+
+
+class EnsureOpenFileLimitTest(unittest.TestCase):
+  """Tests for ensure_open_file_limit."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.warning',
+    ])
+
+  def test_raises_low_soft_limit_to_target(self):
+    """Test raising a lowered soft RLIMIT_NOFILE up to target."""
+    mock_resource = unittest.mock.Mock(RLIMIT_NOFILE=7, RLIM_INFINITY=-1)
+    mock_resource.getrlimit.return_value = (1024, 65535)
+    with unittest.mock.patch.object(environment, 'resource', mock_resource):
+      environment.ensure_open_file_limit()
+    mock_resource.setrlimit.assert_called_once_with(7, (65535, 65535))
+
+  def test_caps_at_lower_hard_limit(self):
+    """Test capping soft RLIMIT_NOFILE at hard_limit when hard_limit < target."""
+    mock_resource = unittest.mock.Mock(RLIMIT_NOFILE=7, RLIM_INFINITY=-1)
+    mock_resource.getrlimit.return_value = (1024, 4096)
+    with unittest.mock.patch.object(environment, 'resource', mock_resource):
+      environment.ensure_open_file_limit()
+    mock_resource.setrlimit.assert_called_once_with(7, (4096, 4096))
+
+  def test_handles_infinite_hard_limit(self):
+    """Test raising soft RLIMIT_NOFILE to target when hard_limit is infinite."""
+    mock_resource = unittest.mock.Mock(RLIMIT_NOFILE=7, RLIM_INFINITY=-1)
+    mock_resource.getrlimit.return_value = (256, -1)
+    with unittest.mock.patch.object(environment, 'resource', mock_resource):
+      environment.ensure_open_file_limit()
+    mock_resource.setrlimit.assert_called_once_with(7, (65535, -1))
+
+  def test_preserves_higher_soft_limit(self):
+    """Test no-op when soft RLIMIT_NOFILE already meets or exceeds target."""
+    mock_resource = unittest.mock.Mock(RLIMIT_NOFILE=7, RLIM_INFINITY=-1)
+    mock_resource.getrlimit.return_value = (131072, 131072)
+    with unittest.mock.patch.object(environment, 'resource', mock_resource):
+      environment.ensure_open_file_limit()
+    mock_resource.setrlimit.assert_not_called()
+
+  def test_noop_without_resource_module(self):
+    """Test graceful no-op on platforms without resource module."""
+    with unittest.mock.patch.object(environment, 'resource', None):
+      environment.ensure_open_file_limit()
+
+  def test_logs_warning_on_setrlimit_error(self):
+    """Test logging a warning instead of raising when setrlimit fails."""
+    mock_resource = unittest.mock.Mock(RLIMIT_NOFILE=7, RLIM_INFINITY=-1)
+    mock_resource.getrlimit.return_value = (1024, 65535)
+    mock_resource.setrlimit.side_effect = OSError('operation not permitted')
+    with unittest.mock.patch.object(environment, 'resource', mock_resource):
+      environment.ensure_open_file_limit()
+    self.mock.warning.assert_called_once()
