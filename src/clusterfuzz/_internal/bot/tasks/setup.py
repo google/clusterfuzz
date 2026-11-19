@@ -182,36 +182,21 @@ def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):  # pyli
   # partially migrated tasks.
   # TODO(metzman): Experiment with making this unnecessary.
   # First update comment.
-  testcase_id = uworker_output.uworker_input.testcase_id
-  testcase = data_handler.get_testcase_by_id(testcase_id)
-  command = task_utils.get_command_from_module(
-      uworker_output.uworker_input.module_name)
-  if command == 'progression' and not testcase.open:
-    if testcase.get_metadata('progression_pending'):
-      data_handler.clear_progression_pending(testcase)
-      testcase.put()
-    logs.info(f'Skipping progression reschedule after setup error for closed '
-              f'testcase {testcase_id}.')
-    return
-
+  testcase = data_handler.get_testcase_by_id(
+      uworker_output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
 
   # Then reschedule the task.
+  command = task_utils.get_command_from_module(
+      uworker_output.uworker_input.module_name)
+
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
-  try:
-    tasks.add_task(
-        command,
-        testcase_id,
-        uworker_output.uworker_input.job_type,
-        wait_time=testcase_fail_wait)
-  except tasks.Error as error:
-    if command == 'progression' and testcase.get_metadata(
-        'progression_pending'):
-      data_handler.clear_progression_pending(testcase)
-      testcase.put()
-    logs.warning(
-        f'Cannot reschedule {command} task for testcase {testcase_id}: {error}')
+  tasks.add_task(
+      command,
+      uworker_output.uworker_input.testcase_id,
+      uworker_output.uworker_input.job_type,
+      wait_time=testcase_fail_wait)
 
 
 ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({

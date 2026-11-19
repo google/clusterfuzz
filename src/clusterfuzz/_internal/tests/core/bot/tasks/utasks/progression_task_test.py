@@ -934,6 +934,7 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
 
     updated = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertFalse(updated.get_metadata('progression_pending'))
+    self.assertIn('task error', updated.comments)
 
   def test_testcase_setup_error_skips_closed_testcase(self):
     """Test TESTCASE_SETUP error does not reschedule closed progression testcase."""
@@ -948,3 +949,20 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
 
     updated = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertFalse(updated.get_metadata('progression_pending'))
+
+  def test_testcase_setup_error_reschedules_open_testcase_with_active_job(self):
+    """Test TESTCASE_SETUP error delegates to setup handler when job exists."""
+    data_types.Job(name='active_job_type', platform='LINUX').put()
+    output = self._make_output('active_job_type',
+                               uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
+
+    with mock.patch('clusterfuzz._internal.base.tasks.add_task') as mock_add:
+      progression_task.utask_postprocess(output)
+      mock_add.assert_called_once_with(
+          'progression',
+          str(self.testcase.key.id()),
+          'active_job_type',
+          wait_time=60)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertIn('task error', updated.comments)

@@ -155,6 +155,27 @@ def handle_progression_revision_list_error(
                                          'Failed to fetch revision list')
 
 
+def handle_progression_testcase_setup_error(
+    uworker_output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+  """Handles testcase setup errors for progression tasks."""
+  testcase_id = uworker_output.uworker_input.testcase_id
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase.open:
+    _clear_pending_and_persist(testcase)
+    logs.info(
+        f'Skipping progression reschedule for closed testcase {testcase_id}.')
+    return
+
+  try:
+    setup.handle_setup_testcase_error(uworker_output)
+  except tasks.Error as error:
+    refreshed_testcase = data_handler.get_testcase_by_id(testcase_id)
+    _clear_pending_and_persist(refreshed_testcase)
+    logs.warning(
+        f'Cannot reschedule progression task for testcase {testcase_id}: '
+        f'{error}')
+
+
 def _cleanup_stacktrace_blob_from_storage(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Cleanup the blob created in preprocess if it wasn't used to store the
   filterd stacktrace."""
@@ -824,10 +845,9 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_progression_revision_list_error,
     uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT:  # pylint: disable=no-member
         handle_progression_timeout,
-}).compose_with(
-    setup.ERROR_HANDLER,
-    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
-)
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP:  # pylint: disable=no-member
+        handle_progression_testcase_setup_error,
+}).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER,)
 
 
 def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-member

@@ -711,6 +711,8 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
                      environment.get_llvm_symbolizer_path())
     self.assertEqual(1, self.mock.call.call_count)
     self.mock.warning.assert_called_once()
+    self.assertIn('without build dir in LD_LIBRARY_PATH',
+                  self.mock.warning.call_args.args[0])
 
   def test_falls_back_when_symbolizer_env_probe_fails(self):
     """Test fallback when build dir shared libs break llvm-symbolizer."""
@@ -720,6 +722,8 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
                      environment.get_llvm_symbolizer_path())
     self.assertEqual(2, self.mock.call.call_count)
     self.mock.warning.assert_called_once()
+    self.assertIn('with build dir in LD_LIBRARY_PATH',
+                  self.mock.warning.call_args.args[0])
 
 
 class GetLlvmSymbolizerEnvTest(unittest.TestCase):
