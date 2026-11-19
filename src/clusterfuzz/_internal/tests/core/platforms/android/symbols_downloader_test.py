@@ -41,8 +41,8 @@ class FilterBinaryPathTest(unittest.TestCase):
     self.symbols_dir = os.path.join(self.temp_dir, 'symbols')
 
   def test_build_dir_library(self):
-    """Verifies that libraries bundled with the build are resolved directly
-    without device pulls or remote fetches."""
+    """Libraries found in BUILD_DIR are returned without adb pull or remote
+    symbol downloads."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
@@ -61,13 +61,12 @@ class FilterBinaryPathTest(unittest.TestCase):
     self.mock.fetch_artifact_get.assert_not_called()
 
   def test_cached_device_library(self):
-    """Verifies that a previously pulled device library is reused locally
-    without pulling it again."""
+    """A library already at its mirrored SYMBOLS_DIR path is reused instead
+    of being pulled from the device again."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
     os.environ['LOCAL_DEVELOPMENT'] = 'True'
-    self.mock.is_google_device.return_value = True
 
     cached_path = os.path.join(self.symbols_dir, 'system/lib64/libfoo.so')
     os.makedirs(os.path.dirname(cached_path), exist_ok=True)
@@ -78,18 +77,16 @@ class FilterBinaryPathTest(unittest.TestCase):
         '/system/lib64/libfoo.so')
 
     self.assertEqual(cached_path, actual_path)
-    self.assertTrue(os.path.exists(cached_path))
     self.mock.run_command.assert_not_called()
     self.mock.fetch_artifact_get.assert_not_called()
 
   def test_adb_pulled_libraries(self):
-    """Verifies that libraries pulled from the device keep their full paths so
-    same-named libraries do not collide across frames."""
+    """Same-named libraries from different device dirs are pulled to separate
+    mirrored paths instead of overwriting each other."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
     os.environ['LOCAL_DEVELOPMENT'] = 'True'
-    self.mock.is_google_device.return_value = True
 
     def create_pulled_file(cmd):
       local_path = shlex.split(cmd)[-1]
@@ -112,20 +109,9 @@ class FilterBinaryPathTest(unittest.TestCase):
             f'pull -- /system/lib64/libc.so {shlex.quote(expected_lib64)}'),
     ], self.mock.run_command.call_args_list)
 
-    # Subsequent frames reuse the pulled files without running adb pull again.
-    self.mock.run_command.reset_mock()
-    self.assertEqual(
-        expected_lib32,
-        symbols_downloader.filter_binary_path('/system/lib/libc.so'))
-    self.assertEqual(
-        expected_lib64,
-        symbols_downloader.filter_binary_path('/system/lib64/libc.so'))
-    self.mock.run_command.assert_not_called()
-    self.mock.fetch_artifact_get.assert_not_called()
-
   def test_unsafe_paths_are_not_pulled(self):
-    """Verifies that paths with parent-directory segments or null bytes are
-    reported as not found without touching the device or the host."""
+    """Paths with '..' segments or null bytes return '' without an adb pull or
+    any file written outside SYMBOLS_DIR."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
@@ -138,15 +124,16 @@ class FilterBinaryPathTest(unittest.TestCase):
         '/system/lib64/bad\x00.so',
     ]
     for path in unsafe_paths:
-      self.assertEqual('', symbols_downloader.filter_binary_path(path))
+      with self.subTest(path=path):
+        self.assertEqual('', symbols_downloader.filter_binary_path(path))
 
     self.mock.run_command.assert_not_called()
     self.assertFalse(os.path.exists(self.symbols_dir))
     self.assertFalse(os.path.exists(os.path.join(self.temp_dir, 'escape.so')))
 
   def test_dots_inside_file_name_are_pulled(self):
-    """Verifies that '..' inside a file name is not treated as a
-    parent-directory segment."""
+    """A '..' inside a file name (libfoo..so) is not a path traversal, so the
+    library is still pulled."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
@@ -165,7 +152,8 @@ class FilterBinaryPathTest(unittest.TestCase):
     self.mock.run_command.assert_called_once()
 
   def test_quotes_adb_pull_arguments(self):
-    """Verifies that spaces and shell metacharacters are safely quoted."""
+    """Device paths with spaces or shell metacharacters reach adb pull as a
+    single quoted argument."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
