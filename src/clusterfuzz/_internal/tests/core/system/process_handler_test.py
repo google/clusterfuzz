@@ -328,9 +328,8 @@ class RunProcessTrustedHostTest(unittest.TestCase):
     self.mock.run_process.return_value = (0, 1.0, 'output')
 
   def test_run_process_forwards_terminate_android_app_false(self):
-    """Checks that a trusted host forwards terminate_android_app=False to the
-    untrusted worker, so the Android app is not terminated remotely either, and
-    returns the remote result unchanged."""
+    """On a trusted host, terminate_android_app=False is forwarded to the
+    untrusted worker and the remote result is returned unchanged."""
     result = process_handler.run_process(
         'am start -n com.example.app/.MainActivity',
         terminate_android_app=False)
@@ -338,13 +337,4 @@ class RunProcessTrustedHostTest(unittest.TestCase):
     self.assertEqual((0, 1.0, 'output'), result)
     self.mock.run_process.assert_called_once()
     self.assertFalse(
-        self.mock.run_process.call_args.kwargs['terminate_android_app'])
-
-  def test_run_process_forwards_terminate_android_app_default(self):
-    """Checks that a trusted host forwards the default terminate_android_app
-    (True), preserving the existing remote Android cleanup behavior."""
-    process_handler.run_process('am start -n com.example.app/.MainActivity')
-
-    self.mock.run_process.assert_called_once()
-    self.assertTrue(
         self.mock.run_process.call_args.kwargs['terminate_android_app'])

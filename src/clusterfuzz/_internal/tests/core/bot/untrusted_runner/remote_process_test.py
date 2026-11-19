@@ -126,9 +126,8 @@ class RemoteProcessTest(unittest.TestCase):
         timeout=20)
 
   def test_run_process_forwards_terminate_android_app(self):
-    """Test that the worker passes an explicitly set terminate_android_app=False
-    from the host request to process_handler.run_process, so the host can ask
-    for the Android app to be left running after the run."""
+    """terminate_android_app=False from the host request reaches
+    process_handler.run_process on the worker."""
     request = untrusted_runner_pb2.RunProcessRequest()
     request.cmdline = 'cmd arg'
     request.terminate_android_app = False
@@ -141,9 +140,8 @@ class RemoteProcessTest(unittest.TestCase):
         cmdline='cmd arg', terminate_android_app=False)
 
   def test_run_process_unset_terminate_android_app(self):
-    """Test that a request from an older host that does not set
-    terminate_android_app omits the argument, so process_handler.run_process
-    falls back to its default and terminates the Android app as before."""
+    """Requests from older hosts without terminate_android_app omit the
+    argument, so run_process keeps its default (terminate the app)."""
     request = untrusted_runner_pb2.RunProcessRequest()
     request.cmdline = 'cmd arg'
 
