@@ -55,6 +55,10 @@ UPLOAD_URL = '/upload-testcase/upload-oauth'
 MEMCACHE_TTL_IN_SECONDS = 60 * 60  # 1 hour.
 
 TRUSTED_AGREEMENT_TEXT = 'This testcase is safe to run'
+TRUSTED_JOB_PRIVILEGE_MESSAGE = (
+    'Uploading to privileged bots requires ClusterFuzz privileged access. If '
+    'your @google.com account is privileged, sign in with it. Otherwise '
+    'contact chrome-fuzzing-core@google.com.')
 
 
 def _is_uploader_allowed(email):
@@ -409,16 +413,26 @@ class UploadHandlerCommon:
       helpers.log(f'User {email} does not have access', helpers.VIEW_OPERATION)
       raise helpers.AccessDeniedError()
 
-    # Only jobs that can't run untrusted workloads (no uworkers, e.g.
-    # Mac/Windows) get trusted testcases, and they require the trusted
-    # agreement. Everything else stays untrusted and runs on uworkers, even if
-    # the agreement was signed.
+    privileged_user = access.has_access(need_privileged_access=True)
+
+    # Jobs that can't run untrusted workloads (on Chrome, every non-Linux job)
+    # run testcases on privileged bots, so their testcases are trusted and need
+    # the agreement. Testcases on other jobs run on uworkers as untrusted, even
+    # if the agreement was signed.
     try:
       data_handler.check_job_supports_untrusted_workloads(job_type, platform_id)
       trusted = False
     except ValueError as e:
+      # These testcases run on privileged bots, so only privileged users can
+      # approve them.
+      if not privileged_user:
+        helpers.log(f'User {email} is not privileged to upload to {job_type}',
+                    helpers.VIEW_OPERATION)
+        raise helpers.AccessDeniedError(TRUSTED_JOB_PRIVILEGE_MESSAGE) from e
+
       if not trusted_agreement_signed:
         raise helpers.EarlyExitError(str(e), 400)
+
       trusted = True
 
     crash_data = None
@@ -468,7 +482,6 @@ class UploadHandlerCommon:
 
     # Certain modifications such as app launch command, issue updates are only
     # allowed for privileged users.
-    privileged_user = access.has_access(need_privileged_access=True)
     if not privileged_user:
       if bug_information or bug_summary_update_flag:
         raise helpers.EarlyExitError(
