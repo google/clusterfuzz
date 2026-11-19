@@ -276,11 +276,7 @@ def _get_binary_from_build_or_device(binary_path):
   if not os.path.exists(local_binary_path):
     shell.create_directory(
         os.path.dirname(local_binary_path), create_intermediates=True)
-    adb.run_command(f'pull -- {shlex.quote(binary_path)} '
-                    f'{shlex.quote(local_binary_path)}')
-  if os.path.exists(local_binary_path):
-    return None
-  adb.run_command(['pull', binary_path, local_binary_path])
+    adb.run_command(['pull', binary_path, local_binary_path])
   if os.path.isfile(local_binary_path):
     return local_binary_path
 
