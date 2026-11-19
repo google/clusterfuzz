@@ -405,3 +405,74 @@ class TestGetDate(unittest.TestCase):
     """Test _get_date just returns a non-empty date."""
     date = '2018-5-1'
     self.assertEqual(fuzzer_stats._get_date(date, 1), date)
+
+
+class TestFormatBuiltinFieldValue(unittest.TestCase):
+  """Tests for HTML escaping and URL validation in _format_builtin_field_value."""
+
+  def test_rejects_disallowed_schemes_and_escapes_html(self):
+    """Tests that non-gs/http(s) links are stripped and HTML is escaped."""
+    cases = [
+        ('attr_breakout', '<script>alert(1)</script>', 10,
+         '"><img src=x onerror=alert(1)>',
+         '&lt;script&gt;alert(1)&lt;/script&gt;'),
+        ('javascript_scheme', '40 (400 B)', 40, 'javascript:alert(1)',
+         '40 (400 B)'),
+        ('data_scheme', 'Download', None,
+         'data:text/html,<script>alert(1)</script>', 'Download'),
+        ('vbscript_scheme', 'Logs', None, 'vbscript:msgbox(1)', 'Logs'),
+        ('relative_path', 'Coverage', None, '/admin/delete', 'Coverage'),
+        ('no_link_plain_coverage', '45.2% (100/221)', 45.2, None,
+         '45.2% (100/221)'),
+        ('gcs_corpus_link', '42 (4.1 KB)', 42,
+         'gs://clusterfuzz-corpus/libFuzzer/proj_target/',
+         '<a href="/gcs-redirect?path=gs%3A%2F%2Fclusterfuzz-corpus%2F'
+         'libFuzzer%2Fproj_target%2F">42 (4.1 KB)</a>'),
+        ('gcs_link_with_html_in_value', '<b>Logs</b>', None,
+         'gs://logs-bucket/fuzzer/job/2026-11-17',
+         '<a href="/gcs-redirect?path=gs%3A%2F%2Flogs-bucket%2Ffuzzer%2Fjob%2F'
+         '2026-11-17">&lt;b&gt;Logs&lt;/b&gt;</a>'),
+        ('https_coverage_report_with_quotes', 'Coverage', None,
+         'https://example.com/report?a="1"&b=2',
+         '<a href="https://example.com/report?a=&quot;1&quot;&amp;b=2">'
+         'Coverage</a>'),
+        ('http_legacy_report_link', 'Coverage', None,
+         'http://coverage.internal/proj/index.html',
+         '<a href="http://coverage.internal/proj/index.html">Coverage</a>'),
+    ]
+    for case_name, val, sort_key, link, expected in cases:
+      with self.subTest(case=case_name):
+        data = fuzzer_stats.fuzzer_stats.BuiltinFieldData(
+            val, sort_key=sort_key, link=link)
+        self.assertEqual(expected,
+                         fuzzer_stats._format_builtin_field_value(data))
+
+  def test_build_rows_escapes_builtin_fields_and_preserves_sort_keys(self):
+    """Tests _build_rows end-to-end with BuiltinField cells."""
+    spec = fuzzer_stats.fuzzer_stats.BuiltinFieldSpecifier('_CORPUS_SIZE')
+    fake_field = unittest.mock.MagicMock()
+    fake_field.VALUE_TYPE = str
+    fake_field.get.return_value = fuzzer_stats.fuzzer_stats.BuiltinFieldData(
+        '15 (1.5 KB)',
+        sort_key=15,
+        link='gs://corpus-bucket/libFuzzer/my_target/')
+    columns = [
+        fuzzer_stats.QueryField(
+            fuzzer_stats.fuzzer_stats.QueryField('j', 'fuzzer', None), 0,
+            'string', 'STRING'),
+        fuzzer_stats.BuiltinField(spec, fake_field),
+    ]
+    result = {'rows': []}
+    rows = [{'f': [{'v': 'libFuzzer_my_target'}]}]
+    fuzzer_stats._build_rows(
+        result, columns, rows,
+        fuzzer_stats.fuzzer_stats.QueryGroupBy.GROUP_BY_FUZZER)
+    self.assertEqual(1, len(result['rows']))
+    cells = result['rows'][0]['c']
+    self.assertEqual({'v': 'libFuzzer_my_target'}, cells[0])
+    self.assertEqual({
+        'v': 15,
+        'f':
+            '<a href="/gcs-redirect?path=gs%3A%2F%2Fcorpus-bucket%2FlibFuzzer%2F'
+            'my_target%2F">15 (1.5 KB)</a>',
+    }, cells[1])
