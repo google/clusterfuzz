@@ -690,14 +690,36 @@ class GetLlvmSymbolizerPathTest(unittest.TestCase):
                      environment.get_llvm_symbolizer_path())
     self.mock.warning.assert_called_once()
 
-  def test_passes_symbolizer_env_to_probe(self):
-    """Test that probing llvm-symbolizer uses its runtime environment."""
+  def test_probes_both_standalone_and_symbolizer_env(self):
+    """Test probing checks both standalone and LLVMSymbolizer environments."""
+    os.environ['PLATFORM_OVERRIDE'] = 'LINUX'
     self.mock.call.return_value = 0
-    expected_env = environment.get_llvm_symbolizer_env('/build/llvm-symbolizer')
+    standalone_env = environment._get_standalone_llvm_symbolizer_env(  # pylint: disable=protected-access
+        '/build/llvm-symbolizer')
+    symbolizer_env = environment.get_llvm_symbolizer_env(
+        '/build/llvm-symbolizer')
     self.assertEqual('/build/llvm-symbolizer',
                      environment.get_llvm_symbolizer_path())
-    _, kwargs = self.mock.call.call_args
-    self.assertEqual(expected_env, kwargs['env'])
+    probed_envs = [call.kwargs['env'] for call in self.mock.call.call_args_list]
+    self.assertEqual([standalone_env, symbolizer_env], probed_envs)
+
+  def test_falls_back_when_standalone_probe_fails(self):
+    """Test fallback when build symbolizer requires LD_LIBRARY_PATH to start."""
+    os.environ['PLATFORM_OVERRIDE'] = 'LINUX'
+    self.mock.call.side_effect = [127]
+    self.assertEqual('/default/llvm-symbolizer',
+                     environment.get_llvm_symbolizer_path())
+    self.assertEqual(1, self.mock.call.call_count)
+    self.mock.warning.assert_called_once()
+
+  def test_falls_back_when_symbolizer_env_probe_fails(self):
+    """Test fallback when build dir shared libs break llvm-symbolizer."""
+    os.environ['PLATFORM_OVERRIDE'] = 'LINUX'
+    self.mock.call.side_effect = [0, 1]
+    self.assertEqual('/default/llvm-symbolizer',
+                     environment.get_llvm_symbolizer_path())
+    self.assertEqual(2, self.mock.call.call_count)
+    self.mock.warning.assert_called_once()
 
 
 class GetLlvmSymbolizerEnvTest(unittest.TestCase):
@@ -732,6 +754,15 @@ class GetLlvmSymbolizerEnvTest(unittest.TestCase):
         '/revisions/llvm-symbolizer',
         base_env={'LD_LIBRARY_PATH': '/revisions'})
     self.assertNotIn('LD_LIBRARY_PATH', only_revisions_env)
+
+  def test_omits_ld_library_path_with_bundled_libm_or_libpthread(self):
+    """Test bundled libm.so.6 or libpthread.so.0 also excludes symbolizer dir."""
+    for dso_name in ('libm.so.6', 'libpthread.so.0', 'libdl.so.2'):
+      self.mock.isfile.side_effect = (
+          lambda p, expected=f'/revisions/{dso_name}': p == expected)
+      result_env = environment.get_llvm_symbolizer_env(
+          '/revisions/llvm-symbolizer', base_env={})
+      self.assertNotIn('LD_LIBRARY_PATH', result_env)
 
   def test_windows_skips_ld_library_path(self):
     """Test Windows does not set LD_LIBRARY_PATH."""

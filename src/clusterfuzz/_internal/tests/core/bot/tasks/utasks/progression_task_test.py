@@ -850,6 +850,7 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
 
   def _make_output(self, job_type, error_type, crash_revision=1):
     uworker_input = uworker_msg_pb2.Input(
+        module_name=progression_task.__name__,
         testcase_id=str(self.testcase.key.id()),
         job_type=job_type,
         progression_task_input=self.progression_task_input)
@@ -919,6 +920,31 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
                                uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)
 
     progression_task.handle_progression_timeout(output)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertFalse(updated.get_metadata('progression_pending'))
+
+  def test_testcase_setup_error_with_deleted_job_clears_pending_without_raising(
+      self):
+    """Test TESTCASE_SETUP error with deleted job clears pending without raising."""
+    output = self._make_output('deleted_job_type',
+                               uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
+
+    progression_task.utask_postprocess(output)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertFalse(updated.get_metadata('progression_pending'))
+
+  def test_testcase_setup_error_skips_closed_testcase(self):
+    """Test TESTCASE_SETUP error does not reschedule closed progression testcase."""
+    self.testcase.open = False
+    self.testcase.put()
+    output = self._make_output('deleted_job_type',
+                               uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
+
+    with mock.patch('clusterfuzz._internal.base.tasks.add_task') as mock_add:
+      progression_task.utask_postprocess(output)
+      mock_add.assert_not_called()
 
     updated = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertFalse(updated.get_metadata('progression_pending'))

@@ -82,20 +82,20 @@ def _save_current_fixed_range_indices(testcase, uworker_output):
       'last_progression_max', last_progression_max, update_testcase=False)
 
 
-def _clear_pending_and_persist(testcase: data_types.Testcase | None) -> None:
+def _clear_pending_and_persist(testcase: data_types.Testcase) -> None:
   """Clears progression_pending metadata and persists the testcase."""
-  if not testcase or not testcase.get_metadata('progression_pending'):
+  if not testcase.get_metadata('progression_pending'):
     return
   data_handler.clear_progression_pending(testcase)
   testcase.put()
 
 
-def _reschedule_progression_task(testcase: data_types.Testcase | None,
+def _reschedule_progression_task(testcase: data_types.Testcase,
                                  testcase_id: str,
                                  job_type: str,
                                  wait_time=None) -> bool:
   """Schedules a progression task if testcase is open and job exists."""
-  if not testcase or not testcase.open:
+  if not testcase.open:
     _clear_pending_and_persist(testcase)
     logs.info(
         f'Skipping progression reschedule for closed testcase {testcase_id}.')
@@ -119,7 +119,7 @@ def handle_progression_timeout(uworker_output: uworker_msg_pb2.Output):  # pylin
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase or not testcase.open:
+  if not testcase.open:
     _clear_pending_and_persist(testcase)
     return
 
@@ -225,10 +225,11 @@ def handle_progression_no_crash(uworker_output: uworker_msg_pb2.Output):  # pyli
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase or not testcase.open:
+  if not testcase.open:
     _clear_pending_and_persist(testcase)
     return
 
+  # Retry once on another bot to confirm our result.
   if data_handler.is_first_attempt_for_task(
       'progression', testcase, reset_after_retry=True):
     if not _reschedule_progression_task(testcase, testcase_id, job_type):
@@ -252,10 +253,12 @@ def handle_progression_no_crash(uworker_output: uworker_msg_pb2.Output):  # pyli
 def handle_progression_build_setup_error(
     uworker_output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Handles errors for scenarios where build setup fails."""
+  # If we failed to setup a build, it is likely a bot error. We can retry
+  # the task in this case.
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase or not testcase.open:
+  if not testcase.open:
     _clear_pending_and_persist(testcase)
     return
 
