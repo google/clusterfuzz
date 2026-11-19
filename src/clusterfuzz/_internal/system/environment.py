@@ -491,19 +491,19 @@ def _probe_llvm_symbolizer(llvm_symbolizer_path):
   """Probes llvm-symbolizer in standalone and LLVMSymbolizer environments."""
   standalone_env = _get_standalone_llvm_symbolizer_env(llvm_symbolizer_path)
   symbolizer_env = get_llvm_symbolizer_env(llvm_symbolizer_path)
-  probe_envs = [standalone_env]
+  probes = [('without build dir in LD_LIBRARY_PATH', standalone_env)]
   if symbolizer_env != standalone_env:
-    probe_envs.append(symbolizer_env)
+    probes.append(('with build dir in LD_LIBRARY_PATH', symbolizer_env))
 
-  for env in probe_envs:
+  for probe_label, env in probes:
     return_code = subprocess.call(
         [llvm_symbolizer_path, '--help'],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         env=env)
     if return_code != 0:
-      return return_code
-  return 0
+      return return_code, probe_label
+  return 0, ''
 
 
 def get_llvm_symbolizer_path():
@@ -520,13 +520,14 @@ def get_llvm_symbolizer_path():
     os.chmod(llvm_symbolizer_path, 0o750)
 
     try:
-      return_code = _probe_llvm_symbolizer(llvm_symbolizer_path)
+      return_code, failed_probe = _probe_llvm_symbolizer(llvm_symbolizer_path)
     except OSError as e:
       # E.g. the binary was built for the wrong architecture.
       logs.warning(f'Failed to execute build llvm-symbolizer at '
                    f'{llvm_symbolizer_path}, falling back to the default '
                    f'one. Exception: {e}')
       return_code = None
+      failed_probe = ''
 
     if return_code == 0:
       # llvm-symbolize works, return it.
@@ -534,8 +535,8 @@ def get_llvm_symbolizer_path():
 
     if return_code is not None:
       logs.warning(f'Failed to execute build llvm-symbolizer at '
-                   f'{llvm_symbolizer_path}, falling back to the default '
-                   f'one. Return code: {return_code}')
+                   f'{llvm_symbolizer_path} ({failed_probe}), falling back '
+                   f'to the default one. Return code: {return_code}')
 
   # Either
   # 1. llvm-symbolizer was not found in build archive. OR
