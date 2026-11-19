@@ -14,6 +14,7 @@
 """Tests for Android symbols_downloader."""
 
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -52,7 +53,7 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
     self.mock.execute_command.return_value = ''
 
   def test_rejects_malicious_and_malformed_binary_paths(self):
-    """Tests that shell metacharacters, whitespace, and traversals are rejected."""
+    """Tests that metacharacters, traversals, dotfiles, and // are rejected."""
     invalid_paths = [
         '',
         'relative/libfoo.so',
@@ -63,6 +64,10 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
         '/a `id`',
         '/system/lib64/lib foo.so',
         '/system/lib64/-z',
+        '/data/local/tmp/.cached_build_params',
+        '/system/lib64/.hidden.so',
+        '//system/lib64/libc.so',
+        '/system//lib64/libc.so',
         '/',
         '/system/lib64/',
         '/system/../data/misc/adb/adb_keys',
@@ -79,10 +84,37 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
 
     self.mock.execute_command.assert_not_called()
 
-  def test_pulls_valid_android_binary_with_argument_list(self):
-    """Tests that valid Android device paths use an explicit adb pull list."""
+  def test_does_not_escape_to_host_filesystem_paths(self):
+    """Tests that /dev/zero, /tmp, or host binaries do not match outside dirs."""
+    for host_path in ('/dev/zero', '/tmp', '/bin/sh'):
+      with self.subTest(host_path=host_path):
+        self.mock.execute_command.reset_mock()
+        result = symbols_downloader.filter_binary_path(host_path)
+        self.assertEqual('', result)
+        self.mock.execute_command.assert_called_once()
+
+  def test_resolves_cached_symbols_inside_build_or_symbols_dir(self):
+    """Tests that cached symbols in BUILD_DIR and SYMBOLS_DIR are found."""
+    cached_symbol = os.path.join(self.symbols_dir, 'system', 'lib64', 'libc.so')
+    os.makedirs(os.path.dirname(cached_symbol))
+    with open(cached_symbol, 'wb') as handle:
+      handle.write(b'\x7fELF')
+
+    self.assertEqual(
+        cached_symbol,
+        symbols_downloader.filter_binary_path('/system/lib64/libc.so'))
+    self.mock.execute_command.assert_not_called()
+
+  def test_pulls_valid_android_binary_into_device_subdir_with_argv_list(self):
+    """Tests that valid Android device paths pull into SYMBOLS_DIR/device/."""
+    # Pre-create <symbols_dir>/system directory to ensure pulling a binary named
+    # 'system' (e.g. /data/local/tmp/system) does not collide with it.
+    os.makedirs(os.path.join(self.symbols_dir, 'system'), exist_ok=True)
+
     device_paths = [
         '/system/lib64/libc++.so',
+        '/system/lib/libc++.so',
+        '/data/local/tmp/system',
         '/apex/com.android.runtime/lib64/bionic/libc.so',
         '/data/app/~~abc_123==-XYZ==/org.chromium.chrome-1/lib/arm64/libcr.so',
         '/vendor/lib64/hw/android.hardware.graphics.mapper@4.0-impl.so',
@@ -90,8 +122,8 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
     for device_path in device_paths:
       with self.subTest(device_path=device_path):
         self.mock.execute_command.reset_mock()
-        expected_local = os.path.join(self.symbols_dir,
-                                      os.path.basename(device_path))
+        expected_local = os.path.join(self.symbols_dir, 'device',
+                                      device_path.lstrip('/'))
 
         def create_pulled_file(cmd, timeout=None, local_path=expected_local):
           del cmd, timeout
@@ -111,12 +143,15 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
             '/usr/bin/adb', '-s', 'emulator-5554', 'pull', '--', device_path,
             expected_local
         ], argv)
-        os.remove(expected_local)
+        shutil.rmtree(os.path.join(self.symbols_dir, 'device'))
 
   def test_ignores_pulled_directory_target(self):
-    """Tests that _get_binary_from_build_or_device only returns regular files."""
-    subdir = os.path.join(self.symbols_dir, 'dir_target')
-    os.makedirs(subdir)
+    """Tests that directory entries in SYMBOLS_DIR or device/ are rejected."""
+    os.makedirs(
+        os.path.join(self.symbols_dir, 'device', 'data', 'local', 'tmp',
+                     'dir_target'))
+    os.makedirs(
+        os.path.join(self.build_dir, 'data', 'local', 'tmp', 'dir_target'))
 
     result = symbols_downloader.filter_binary_path('/data/local/tmp/dir_target')
     self.assertEqual('', result)

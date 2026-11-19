@@ -441,13 +441,16 @@ class CommandExecutionSafetyTest(unittest.TestCase):
     self.assertEqual('', empty_out)
 
   def test_run_command_list_preserves_argument_boundaries(self):
-    """Tests that list commands passed to run_command are shell-quoted."""
+    """Tests that list commands passed to adb and fastboot are shell-quoted."""
     os.environ['ADB'] = '/usr/bin/adb'
+    os.environ['FASTBOOT'] = '/usr/bin/fastboot'
     os.environ['ANDROID_SERIAL'] = 'emulator-5554'
     test_helpers.patch(self, [
         'clusterfuzz._internal.platforms.android.adb.execute_command',
+        'clusterfuzz._internal.system.environment.is_android_cuttlefish',
     ])
     self.mock.execute_command.return_value = ''
+    self.mock.is_android_cuttlefish.return_value = False
 
     adb.run_command(['pull', '--', '/sdcard/a; id; b', '/tmp/local dir/out'])
     pull_argv = adb._build_host_command_args(  # pylint: disable=protected-access
@@ -457,3 +460,11 @@ class CommandExecutionSafetyTest(unittest.TestCase):
         '/usr/bin/adb', '-s', 'emulator-5554', 'pull', '--', '/sdcard/a; id; b',
         '/tmp/local dir/out'
     ], pull_argv)
+
+    adb.run_fastboot_command(['flash', 'boot', '/tmp/boot img.img'])
+    fastboot_argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        self.mock.execute_command.call_args[0][0],
+        on_cuttlefish_host=False)
+    self.assertEqual(
+        ['/usr/bin/fastboot', 'flash', 'boot', '/tmp/boot img.img'],
+        fastboot_argv)

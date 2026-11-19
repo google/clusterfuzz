@@ -235,10 +235,10 @@ def _is_valid_device_binary_path(binary_path):
       '/') or not _VALID_DEVICE_BINARY_PATH_REGEX.match(binary_path):
     return False
   parts = binary_path.split('/')
-  if any(part in ('.', '..') for part in parts[1:]):
+  if any(part in ('', '.', '..') for part in parts[1:]):
     return False
   basename = os.path.basename(binary_path)
-  return bool(basename) and not basename.startswith('-')
+  return bool(basename) and not basename.startswith(('-', '.'))
 
 
 def _get_binary_from_build_or_device(binary_path):
@@ -251,19 +251,21 @@ def _get_binary_from_build_or_device(binary_path):
   symbols_directory = environment.get_value('SYMBOLS_DIR')
   if not symbols_directory:
     return None
-  binary_filename = os.path.basename(binary_path)
+  relative_binary_path = binary_path.lstrip('/')
 
   # We didn't find the library locally in the build directory.
   # Try finding the library in the local system library cache.
   download_system_symbols_if_needed(symbols_directory)
-  local_binary_path = utils.find_binary_path(symbols_directory, binary_path)
-  if local_binary_path:
+  local_binary_path = utils.find_binary_path(symbols_directory,
+                                             relative_binary_path)
+  if local_binary_path and os.path.isfile(local_binary_path):
     return local_binary_path
 
-  # Try pulling in the binary directly from the device into the
-  # system library cache directory.
-  local_binary_path = os.path.join(symbols_directory, binary_filename)
-  adb.run_command(['pull', '--', binary_path, local_binary_path])
+  # Try pulling in the binary directly from the device into a dedicated
+  # subdirectory of the system library cache directory.
+  local_binary_path = os.path.join(symbols_directory, 'device',
+                                   relative_binary_path)
+  adb.copy_remote_file_to_local(binary_path, local_binary_path)
   if os.path.isfile(local_binary_path):
     return local_binary_path
 
@@ -273,7 +275,8 @@ def _get_binary_from_build_or_device(binary_path):
 def filter_binary_path(binary_path):
   """Filter binary path to provide local copy."""
   # LKL fuzzer name is not full path.
-  if environment.is_android():
+  is_android = environment.is_android()
+  if is_android:
     # Skip symbolization when running it on bad entries like [stack:XYZ] or
     # malformed/untrusted paths.
     if not _is_valid_device_binary_path(binary_path):
@@ -283,12 +286,14 @@ def filter_binary_path(binary_path):
   build_directory = environment.get_value('BUILD_DIR')
 
   # Try to find the library in the build directory first.
-  local_binary_path = utils.find_binary_path(build_directory, binary_path)
-  if local_binary_path:
-    return local_binary_path
+  lookup_subpath = binary_path.lstrip('/') if is_android else binary_path
+  if build_directory:
+    local_binary_path = utils.find_binary_path(build_directory, lookup_subpath)
+    if local_binary_path and os.path.isfile(local_binary_path):
+      return local_binary_path
 
   # We should only download from the build server if we are Android.
-  if environment.is_android():
+  if is_android:
     local_binary_path = _get_binary_from_build_or_device(binary_path)
     if local_binary_path:
       return local_binary_path
