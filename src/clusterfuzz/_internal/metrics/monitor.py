@@ -674,7 +674,6 @@ class TimeStatTracker:
     if 'step' in self.common_labels or 'success' in self.common_labels:
       logs.warning('Labels "step" or "success" are in common_labels '
                    'and will be overwritten.')
-    self.current_step = None
 
   @contextlib.contextmanager
   def track(self, name: str):
@@ -684,10 +683,6 @@ class TimeStatTracker:
     failed without interrupting the block. Any raised exception is also treated
     as a failure and re-raised.
     """
-    parent_step = self.current_step
-    if parent_step:
-      logs.error(f'Step "{name}" is nested inside step "{parent_step}".')
-    self.current_step = name
     start = time.time()
     step = _StepTracker()
 
@@ -710,7 +705,6 @@ class TimeStatTracker:
                 **self.common_labels, 'step': name,
                 'success': step.success
             })
-      self.current_step = parent_step
 
 
 # Global state.
