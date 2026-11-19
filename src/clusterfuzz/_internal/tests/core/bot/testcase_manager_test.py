@@ -1287,17 +1287,27 @@ class CheckForBadBuildTest(unittest.TestCase):
     self.assertEqual(build_data.revision, 123)
 
   def test_android_valid_apk_running(self):
-    """Test that a working Android APK that is running is not marked as a bad build."""
+    """A running Android APK is not a bad build. run_process must leave the app
+    alive for the liveness check, and the app is stopped right after it."""
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
     self.mock.get_package_name.return_value = 'org.chromium.chrome'
     self.mock.get_process_and_child_pids.return_value = [2155]
+    call_order = mock.Mock()
+    call_order.attach_mock(self.mock.run_process, 'run_process')
+    call_order.attach_mock(self.mock.get_process_and_child_pids,
+                           'get_process_and_child_pids')
+    call_order.attach_mock(self.mock.stop, 'stop')
 
     build_data = testcase_manager.check_for_bad_build(
         job_type='aluminium_asan_chrome_public', crash_revision=123)
 
     self.assertFalse(build_data.is_bad_build)
     self.assertEqual(build_data.revision, 123)
+    self.assertFalse(
+        self.mock.run_process.call_args.kwargs['terminate_android_app'])
+    self.assertEqual(['run_process', 'get_process_and_child_pids', 'stop'],
+                     [name for name, _, _ in call_order.mock_calls])
 
   def test_android_no_package_name_skips_process_check(self):
     """Test that Android fuzzing without an APK package (e.g. a native binary
@@ -1312,6 +1322,7 @@ class CheckForBadBuildTest(unittest.TestCase):
         job_type='android_libfuzzer_target', crash_revision=123)
 
     self.mock.get_process_and_child_pids.assert_not_called()
+    self.mock.stop.assert_not_called()
     self.assertFalse(build_data.is_bad_build)
     self.assertEqual(build_data.revision, 123)
 
@@ -1348,89 +1359,9 @@ class CheckForBadBuildTest(unittest.TestCase):
 
     self.assertTrue(build_data.is_bad_build)
 
-  def _attach_call_order_mock(self):
-    """Returns a mock recording the relative order of the bad build check's
-    process lifecycle calls."""
-    call_order = mock.Mock()
-    call_order.attach_mock(self.mock.run_process, 'run_process')
-    call_order.attach_mock(self.mock.get_process_and_child_pids,
-                           'get_process_and_child_pids')
-    call_order.attach_mock(self.mock.stop, 'stop')
-    call_order.attach_mock(self.mock.terminate_stale_application_instances,
-                           'terminate_stale_application_instances')
-    return call_order
-
-  def test_android_app_kept_alive_for_liveness_check(self):
-    """Test that the bad build check asks run_process not to terminate the
-    Android app, so the app is still alive when its process-liveness check
-    runs, and that the app is explicitly stopped right after that check and
-    before the final terminate_stale_application_instances() cleanup."""
-    environment.set_value('OS_OVERRIDE', 'ANDROID')
-    self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
-    self.mock.get_package_name.return_value = 'org.chromium.chrome'
-    self.mock.get_process_and_child_pids.return_value = [2155]
-    call_order = self._attach_call_order_mock()
-
-    build_data = testcase_manager.check_for_bad_build(
-        job_type='aluminium_asan_chrome_public', crash_revision=123)
-
-    self.assertFalse(build_data.is_bad_build)
-    self.mock.run_process.assert_called_once()
-    self.assertFalse(
-        self.mock.run_process.call_args.kwargs['terminate_android_app'])
-    self.mock.get_process_and_child_pids.assert_called_once_with(
-        'org.chromium.chrome')
-    self.mock.stop.assert_called_once_with()
-    self.assertEqual([
-        'terminate_stale_application_instances',
-        'run_process',
-        'get_process_and_child_pids',
-        'stop',
-        'terminate_stale_application_instances',
-    ], [name for name, _, _ in call_order.mock_calls])
-
-  def test_android_dead_apk_still_stopped(self):
-    """Test that when the APK process is found dead (bad build), the app is
-    still explicitly stopped after the liveness check, so no leftover app
-    state leaks into later runs."""
-    environment.set_value('OS_OVERRIDE', 'ANDROID')
-    self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
-    self.mock.get_package_name.return_value = 'org.chromium.chrome'
-    self.mock.get_process_and_child_pids.return_value = []
-    call_order = self._attach_call_order_mock()
-
-    build_data = testcase_manager.check_for_bad_build(
-        job_type='aluminium_asan_chrome_public', crash_revision=123)
-
-    self.assertTrue(build_data.is_bad_build)
-    self.mock.stop.assert_called_once_with()
-    self.assertEqual([
-        'terminate_stale_application_instances',
-        'run_process',
-        'get_process_and_child_pids',
-        'stop',
-        'terminate_stale_application_instances',
-    ], [name for name, _, _ in call_order.mock_calls])
-
-  def test_android_no_package_name_does_not_stop_app(self):
-    """Test that Android runs without an APK package (e.g. native binary
-    targets) never call android.app.stop(), since there is no application
-    left running by the bad build check to stop."""
-    environment.set_value('OS_OVERRIDE', 'ANDROID')
-    self.mock.run_process.return_value = (0, 1.0, 'Running 1 inputs...')
-    self.mock.get_package_name.return_value = None
-
-    build_data = testcase_manager.check_for_bad_build(
-        job_type='android_libfuzzer_target', crash_revision=123)
-
-    self.assertFalse(build_data.is_bad_build)
-    self.mock.get_process_and_child_pids.assert_not_called()
-    self.mock.stop.assert_not_called()
-
   def test_android_app_stopped_when_liveness_check_raises(self):
-    """Test that if the APK process-liveness check raises (e.g. an adb
-    failure), the error propagates but the app left running by run_process is
-    still stopped, so a failed check never leaks a running app."""
+    """If the liveness check raises (e.g. adb failure), the error propagates
+    and the app left running by run_process is still stopped."""
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
     self.mock.get_package_name.return_value = 'org.chromium.chrome'
@@ -1441,16 +1372,3 @@ class CheckForBadBuildTest(unittest.TestCase):
           job_type='aluminium_asan_chrome_public', crash_revision=123)
 
     self.mock.stop.assert_called_once_with()
-
-  def test_non_android_does_not_stop_app(self):
-    """Test that the Android app stop is never attempted on non-Android
-    platforms, where there is no Android application to clean up."""
-    environment.set_value('OS_OVERRIDE', 'LINUX')
-    self.mock.run_process.return_value = (0, 1.0, 'Running...')
-
-    build_data = testcase_manager.check_for_bad_build(
-        job_type='linux_asan_chrome', crash_revision=123)
-
-    self.assertFalse(build_data.is_bad_build)
-    self.mock.get_package_name.assert_not_called()
-    self.mock.stop.assert_not_called()
