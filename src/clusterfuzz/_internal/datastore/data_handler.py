@@ -1235,6 +1235,29 @@ def bot_run_timed_out():
 # ------------------------------------------------------------------------------
 
 
+def _restrict_untrusted_workloads() -> bool:
+  """Chrome Specific: returns whether untrusted workloads are Linux only.
+
+  Mac, Windows and Android jobs run on privileged bots, so untrusted workloads
+  have to stay on Linux uworkers. In practice this is an is_chromium() check;
+  the remote utasks check guards against code that still runs utasks locally.
+  """
+  return utils.is_chromium() and task_utils.is_remotely_executing_utasks()
+
+
+def get_trusted_job_names() -> list[str]:
+  """Returns the names of jobs that can only run trusted testcases.
+
+  Empty when untrusted workloads aren't restricted, e.g. outside Chrome.
+  """
+  if not _restrict_untrusted_workloads():
+    return []
+
+  return sorted(job.name
+                for job in data_types.Job.query()
+                if (job.platform or '').lower() != 'linux')
+
+
 def check_job_supports_untrusted_workloads(job_name: str,
                                            platform_id: str = None) -> None:
   """Checks that the named job can run untrusted testcases or fuzzers.
@@ -1247,19 +1270,12 @@ def check_job_supports_untrusted_workloads(job_name: str,
   if not job:
     raise ValueError(f'Job "{job_name}" not found.')
 
-  # 1. This restriction is currently specific to Chromium deployments.
-  if not utils.is_chromium():
+  if not _restrict_untrusted_workloads():
     return
 
-  # 2. It only applies when running with Remote Utasks (e.g., GCP Batch),
-  # where privilege separation (tworkers vs uworkers) is enforced.
-  if not task_utils.is_remotely_executing_utasks():
-    return
-
-  # 3. In remote mode, unprivileged uworkers (where untrusted code must run)
-  # are implemented as Linux containers. Thus, non-Linux jobs cannot support
+  # In remote mode, unprivileged uworkers (where untrusted code must run) are
+  # implemented as Linux containers. Thus, non-Linux jobs cannot support
   # untrusted workloads in this setup.
-
   if (platform_id or job.platform).lower() != 'linux':
     raise ValueError(
         f'Job "{job_name}" does not support running untrusted workloads. '

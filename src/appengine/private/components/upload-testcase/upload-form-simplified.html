@@ -166,9 +166,15 @@
               selected="{{uploadParams.platform}}"
               attr-for-selected="val">
             <paper-item val="Linux">Linux</paper-item>
-            <paper-item val="Windows">Windows</paper-item>
-            <paper-item val="Mac">Mac</paper-item>
-            <paper-item val="Android">Android</paper-item>
+            <paper-item val="Windows"
+                disabled="[[hasBlockedTrustedJobs(fieldValues.blockedTrustedJobs)]]"
+                title$="[[getTrustedPlatformTooltip(fieldValues.blockedTrustedJobs)]]">Windows</paper-item>
+            <paper-item val="Mac"
+                disabled="[[hasBlockedTrustedJobs(fieldValues.blockedTrustedJobs)]]"
+                title$="[[getTrustedPlatformTooltip(fieldValues.blockedTrustedJobs)]]">Mac</paper-item>
+            <paper-item val="Android"
+                disabled="[[hasBlockedTrustedJobs(fieldValues.blockedTrustedJobs)]]"
+                title$="[[getTrustedPlatformTooltip(fieldValues.blockedTrustedJobs)]]">Android</paper-item>
           </paper-listbox>
         </paper-dropdown-menu>
       </div>
@@ -371,6 +377,17 @@
 
       isAndroid(job) {
         return job && job.startsWith('android_');
+      }
+
+      // The server treats every platform other than Linux as trusted, even
+      // when it maps to a Linux job (e.g. Android with a PDF).
+      hasBlockedTrustedJobs(blockedJobs) {
+        return !!blockedJobs && blockedJobs.length > 0;
+      }
+
+      getTrustedPlatformTooltip(blockedJobs) {
+        return this.hasBlockedTrustedJobs(blockedJobs) ?
+            this.fieldValues.trustedJobPrivilegeMessage : '';
       }
 
       generatePermalink() {
