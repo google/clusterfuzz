@@ -31,7 +31,7 @@ class CanFetchBuildSymbolsTest(unittest.TestCase):
     helpers.patch_environ(self)
 
   def test_regular_bot(self):
-    """Verifies that regular production bots are allowed to fetch remote build
+    """Regular bots (not uworker, not local development) may fetch build
     symbols."""
     os.environ.pop('UWORKER', None)
     os.environ.pop('LOCAL_DEVELOPMENT', None)
@@ -39,16 +39,14 @@ class CanFetchBuildSymbolsTest(unittest.TestCase):
     self.assertTrue(symbols_downloader.can_fetch_build_symbols())
 
   def test_uworker(self):
-    """Verifies that untrusted workers are blocked from fetching remote build
-    symbols."""
+    """Uworkers are blocked from fetching build symbols."""
     os.environ['UWORKER'] = 'True'
     os.environ.pop('LOCAL_DEVELOPMENT', None)
 
     self.assertFalse(symbols_downloader.can_fetch_build_symbols())
 
   def test_local_development(self):
-    """Verifies that local development runs are blocked from fetching remote
-    build symbols."""
+    """Local development runs are blocked from fetching build symbols."""
     os.environ.pop('UWORKER', None)
     os.environ['LOCAL_DEVELOPMENT'] = 'True'
 
@@ -65,8 +63,7 @@ class ShouldDownloadSymbolsTest(unittest.TestCase):
     ])
 
   def test_uworker_on_google_device(self):
-    """Verifies that untrusted workers skip system symbol downloads even for
-    Google devices."""
+    """Uworkers skip system symbol downloads even on Google devices."""
     self.mock.is_google_device.return_value = True
     os.environ['UWORKER'] = 'True'
     os.environ.pop('LOCAL_DEVELOPMENT', None)
@@ -74,8 +71,7 @@ class ShouldDownloadSymbolsTest(unittest.TestCase):
     self.assertFalse(symbols_downloader.should_download_symbols())
 
   def test_regular_bot_on_google_device(self):
-    """Verifies that regular bots download system symbols when running against
-    Google devices."""
+    """Regular bots download system symbols on Google devices."""
     self.mock.is_google_device.return_value = True
     os.environ.pop('UWORKER', None)
     os.environ.pop('LOCAL_DEVELOPMENT', None)
@@ -97,8 +93,8 @@ class DownloadRepoPropIfNeededTest(unittest.TestCase):
     self.symbols_dir = temp_dir.name
 
   def test_uworker(self):
-    """Verifies that untrusted workers skip repo.prop downloads without wiping
-    existing local files."""
+    """On uworkers, repo.prop is not fetched and an existing local copy is
+    kept."""
     os.environ['UWORKER'] = 'True'
     os.environ.pop('LOCAL_DEVELOPMENT', None)
     repo_prop_path = os.path.join(self.symbols_dir, 'target-1234567-repo.prop')
@@ -112,8 +108,7 @@ class DownloadRepoPropIfNeededTest(unittest.TestCase):
     self.mock.fetch_artifact_get.assert_not_called()
 
   def test_regular_bot(self):
-    """Verifies that regular bots trigger a remote repo.prop download when not
-    cached locally."""
+    """On regular bots, a repo.prop missing locally is fetched."""
     os.environ.pop('UWORKER', None)
     os.environ.pop('LOCAL_DEVELOPMENT', None)
 
@@ -139,8 +134,8 @@ class DownloadTrustySymbolsIfNeededTest(unittest.TestCase):
     self.symbols_dir = temp_dir.name
 
   def test_uworker(self):
-    """Verifies that untrusted workers skip Trusty symbol downloads without
-    wiping existing local files."""
+    """On uworkers, Trusty symbols are not fetched and existing ELF files are
+    kept."""
     os.environ['UWORKER'] = 'True'
     os.environ.pop('LOCAL_DEVELOPMENT', None)
     kernel_elf = os.path.join(self.symbols_dir, 'lk.elf')
@@ -160,8 +155,8 @@ class DownloadTrustySymbolsIfNeededTest(unittest.TestCase):
     self.mock.fetch_artifact_get.assert_not_called()
 
   def test_regular_bot(self):
-    """Verifies that regular bots download the Trusted App symbol archive for
-    the target device."""
+    """On regular bots, the Trusty symbols archive for the device is
+    fetched."""
     os.environ.pop('UWORKER', None)
     os.environ.pop('LOCAL_DEVELOPMENT', None)
     self.mock.get_build_parameters.return_value = {'target': 'cheetah'}
@@ -191,8 +186,8 @@ class FilterBinaryPathTest(unittest.TestCase):
     self.symbols_dir = os.path.join(self.temp_dir, 'symbols')
 
   def test_build_dir_library_on_uworker(self):
-    """Verifies that libraries bundled with the build are resolved directly
-    without device pulls or remote fetches."""
+    """On uworkers, libraries found in BUILD_DIR are returned without adb pull
+    or remote symbol downloads."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
@@ -212,14 +207,13 @@ class FilterBinaryPathTest(unittest.TestCase):
     self.mock.fetch_artifact_get.assert_not_called()
 
   def test_cached_device_library_on_uworker(self):
-    """Verifies that a previously pulled device library is reused locally
-    without pulling it again."""
+    """On uworkers, a library already at its mirrored SYMBOLS_DIR path is
+    reused instead of being pulled from the device again."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
     os.environ['UWORKER'] = 'True'
     os.environ.pop('LOCAL_DEVELOPMENT', None)
-    self.mock.is_google_device.return_value = True
 
     cached_path = os.path.join(self.symbols_dir, 'system/lib64/libfoo.so')
     os.makedirs(os.path.dirname(cached_path), exist_ok=True)
@@ -234,14 +228,13 @@ class FilterBinaryPathTest(unittest.TestCase):
     self.mock.fetch_artifact_get.assert_not_called()
 
   def test_adb_pulled_libraries_on_uworker(self):
-    """Verifies that libraries pulled from the device keep their full paths so
-    same-named libraries do not collide across frames."""
+    """On uworkers, same-named libraries from different device dirs are pulled
+    to separate mirrored paths instead of overwriting each other."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
     os.environ['UWORKER'] = 'True'
     os.environ.pop('LOCAL_DEVELOPMENT', None)
-    self.mock.is_google_device.return_value = True
 
     def create_pulled_file(cmd):
       local_path = shlex.split(cmd)[-1]
@@ -330,14 +323,13 @@ class FilterBinaryPathTest(unittest.TestCase):
     self.mock.run_command.assert_called_once()
 
   def test_missing_library_on_uworker(self):
-    """Verifies that unresolvable libraries on untrusted workers return empty
-    without attempting remote symbol fetches."""
+    """On uworkers, a library missing locally returns '' after only an adb
+    pull attempt, with no remote symbol download."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
     os.environ['UWORKER'] = 'True'
     os.environ.pop('LOCAL_DEVELOPMENT', None)
-    self.mock.is_google_device.return_value = True
 
     actual_path = symbols_downloader.filter_binary_path(
         '/system/lib64/libfoo.so')
@@ -347,8 +339,8 @@ class FilterBinaryPathTest(unittest.TestCase):
     self.mock.fetch_artifact_get.assert_not_called()
 
   def test_missing_library_on_regular_bot(self):
-    """Verifies that unresolvable libraries on regular bots return empty after
-    attempting both remote symbol fetch and device pull."""
+    """On regular bots, a library missing locally returns '' after both a
+    remote symbol download and an adb pull attempt."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
