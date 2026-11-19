@@ -320,6 +320,7 @@ class LLVMSymbolizer(Symbolizer):
 
     env_copy = environment.get_llvm_symbolizer_env(self.symbolizer_path)
 
+    # Run the symbolizer.
     pipe = subprocess.Popen(
         cmd,
         env=env_copy,

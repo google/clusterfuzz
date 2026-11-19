@@ -69,7 +69,14 @@ _UNSUFFIXED_ARCHS = {
 }
 
 TARGET_OPEN_FILE_LIMIT = 65535
-BUNDLED_GLIBC_SONAME = 'libc.so.6'
+BUNDLED_GLIBC_SONAMES = (
+    'libc.so.6',
+    'libm.so.6',
+    'libpthread.so.0',
+    'librt.so.1',
+    'libdl.so.2',
+    'libresolv.so.2',
+)
 
 
 class UtaskMainRuntime(enum.Enum):
@@ -417,10 +424,30 @@ def _compute_target_soft_nofile_limit(soft_limit, hard_limit, target_limit,
   return min(target_limit, hard_limit)
 
 
+def _stringify_env(base_env=None):
+  """Returns a stringified environment dict for direct subprocess calls."""
+  raw_env = copy() if base_env is None else dict(base_env)
+  # FIXME: Since we are not using process_handler.run_process here, we can run
+  # into issues with unicode environment variable and values. Add this
+  # explicit hack to convert these into strings.
+  return {str(key): str(value) for key, value in raw_env.items()}
+
+
+def _get_standalone_llvm_symbolizer_env(symbolizer_path, base_env=None):
+  """Returns env for llvm-symbolizer without its dir in LD_LIBRARY_PATH."""
+  standalone_env = _stringify_env(base_env)
+  if platform() == 'WINDOWS':
+    return standalone_env
+
+  symbolizer_dir = os.path.dirname(symbolizer_path)
+  if symbolizer_dir:
+    _strip_directory_from_ld_library_path(standalone_env, symbolizer_dir)
+  return standalone_env
+
+
 def get_llvm_symbolizer_env(symbolizer_path, base_env=None):
   """Returns a stringified environment safe for launching llvm-symbolizer."""
-  raw_env = copy() if base_env is None else dict(base_env)
-  symbolizer_env = {str(key): str(value) for key, value in raw_env.items()}
+  symbolizer_env = _stringify_env(base_env)
   if platform() == 'WINDOWS':
     return symbolizer_env
 
@@ -432,13 +459,16 @@ def get_llvm_symbolizer_env(symbolizer_path, base_env=None):
     _strip_directory_from_ld_library_path(symbolizer_env, symbolizer_dir)
     return symbolizer_env
 
+  # Set LD_LIBRARY_PATH to use the right libstdc++.
   symbolizer_env['LD_LIBRARY_PATH'] = symbolizer_dir
   return symbolizer_env
 
 
 def _directory_contains_bundled_glibc(directory):
-  """Returns True when directory bundles its own libc.so.6."""
-  return os.path.isfile(os.path.join(directory, BUNDLED_GLIBC_SONAME))
+  """Returns True when directory bundles core glibc shared libraries."""
+  return any(
+      os.path.isfile(os.path.join(directory, soname))
+      for soname in BUNDLED_GLIBC_SONAMES)
 
 
 def _strip_directory_from_ld_library_path(env_map, directory_to_remove):
@@ -457,29 +487,49 @@ def _strip_directory_from_ld_library_path(env_map, directory_to_remove):
   env_map.pop('LD_LIBRARY_PATH', None)
 
 
+def _probe_llvm_symbolizer(llvm_symbolizer_path):
+  """Probes llvm-symbolizer in standalone and LLVMSymbolizer environments."""
+  standalone_env = _get_standalone_llvm_symbolizer_env(llvm_symbolizer_path)
+  symbolizer_env = get_llvm_symbolizer_env(llvm_symbolizer_path)
+  probe_envs = [standalone_env]
+  if symbolizer_env != standalone_env:
+    probe_envs.append(symbolizer_env)
+
+  for env in probe_envs:
+    return_code = subprocess.call(
+        [llvm_symbolizer_path, '--help'],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        env=env)
+    if return_code != 0:
+      return return_code
+  return 0
+
+
 def get_llvm_symbolizer_path():
   """Get the path of the llvm-symbolizer binary."""
+  # Imported here to avoid a circular import (logs imports environment).
+  # TODO(crbug.com/570547357): Find a cleaner solution to handle logs in this
+  # function/module.
   from clusterfuzz._internal.metrics import logs
 
   llvm_symbolizer_path = get_value('LLVM_SYMBOLIZER_PATH')
 
   if llvm_symbolizer_path and os.path.exists(llvm_symbolizer_path):
+    # Make sure that llvm symbolizer binary is executable.
     os.chmod(llvm_symbolizer_path, 0o750)
-    symbolizer_env = get_llvm_symbolizer_env(llvm_symbolizer_path)
 
     try:
-      return_code = subprocess.call(
-          [llvm_symbolizer_path, '--help'],
-          stdout=subprocess.DEVNULL,
-          stderr=subprocess.DEVNULL,
-          env=symbolizer_env)
+      return_code = _probe_llvm_symbolizer(llvm_symbolizer_path)
     except OSError as e:
+      # E.g. the binary was built for the wrong architecture.
       logs.warning(f'Failed to execute build llvm-symbolizer at '
                    f'{llvm_symbolizer_path}, falling back to the default '
                    f'one. Exception: {e}')
       return_code = None
 
     if return_code == 0:
+      # llvm-symbolize works, return it.
       return llvm_symbolizer_path
 
     if return_code is not None:
@@ -487,10 +537,18 @@ def get_llvm_symbolizer_path():
                    f'{llvm_symbolizer_path}, falling back to the default '
                    f'one. Return code: {return_code}')
 
+  # Either
+  # 1. llvm-symbolizer was not found in build archive. OR
+  # 2. llvm-symbolizer fails due to dependency issue, clang regression, wrong
+  #    architecture, etc.
+  # So, use our own version of llvm-symbolizer.
   llvm_symbolizer_path = get_default_tool_path('llvm-symbolizer')
+
+  # Make sure that we have a default llvm-symbolizer for this platform.
   if not os.path.exists(llvm_symbolizer_path):
     return None
 
+  # Make sure that llvm symbolizer binary is executable.
   os.chmod(llvm_symbolizer_path, 0o750)
   return llvm_symbolizer_path
 
