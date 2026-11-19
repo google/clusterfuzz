@@ -344,6 +344,24 @@ class RunProcessAndroidTest(unittest.TestCase):
     self.assertIn('pre-reboot log', output)
     self.assertEqual(return_code, 1)
 
+  def test_run_process_android_unreadable_uptime_is_not_a_reboot(self):
+    """A failed uptime read (infinity) on either side is not treated as a
+    reboot: exit-info is still queried and the run returns 0."""
+    infinity = float('inf')
+    for uptimes in ([infinity, 100.0], [100.0, infinity], [infinity, infinity]):
+      with self.subTest(uptimes=uptimes):
+        self.mock.time_since_last_reboot.side_effect = uptimes
+        self.mock.get_exit_info_for_pid.reset_mock()
+        self.mock.log_output_before_last_reboot.reset_mock()
+
+        return_code, _, _ = process_handler.run_process(
+            'am start -n com.example.app/.MainActivity')
+
+        self.mock.get_exit_info_for_pid.assert_called_once_with(
+            'com.example.app', None)
+        self.mock.log_output_before_last_reboot.assert_not_called()
+        self.assertEqual(return_code, 0)
+
   def test_run_process_android_dont_terminate_android_app_true_keeps_app(self):
     """dont_terminate_android_app=True leaves the Android app running after the
     run, so the bad build check can inspect it, and still returns the result."""

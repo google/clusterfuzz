@@ -15,6 +15,7 @@
 
 import copy
 import datetime
+import math
 import os
 import queue
 import re
@@ -278,7 +279,9 @@ def run_process(cmdline,
     current_uptime = android.adb.time_since_last_reboot()
     # Exit info persists across reboots, so skip it if the device rebooted
     # mid-run, as a stale record would otherwise hide the reboot below.
-    device_rebooted = current_uptime < initial_uptime
+    device_rebooted = (
+        math.isfinite(initial_uptime) and math.isfinite(current_uptime) and
+        current_uptime < initial_uptime)
     if app_package and not device_rebooted:
       process_pid = android.util.get_latest_pid_for_package(app_package)
       exit_info = android.util.get_exit_info_for_pid(app_package, process_pid)
