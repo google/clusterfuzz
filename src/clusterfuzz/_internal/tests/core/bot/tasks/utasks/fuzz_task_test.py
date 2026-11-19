@@ -2349,7 +2349,7 @@ class PostprocessGetUniqueFilePrefixTest(unittest.TestCase):
     self.mock.error.assert_not_called()
 
   def test_non_hex_task_id(self):
-    os.environ['CF_TASK_ID'] = 'task-id'
+    os.environ['CF_TASK_ID'] = 'ABC'
     prefix = fuzz_task.postprocess_get_unique_file_prefix()
     self.assertIn(prefix[0], '0123456789abcdef')
     self.mock.error.assert_called()
