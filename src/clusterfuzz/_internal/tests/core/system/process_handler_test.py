@@ -283,6 +283,7 @@ class RunProcessAndroidTest(unittest.TestCase):
     return_code, _, _ = process_handler.run_process(
         'am start -n com.example.app/.MainActivity')
     self.assertEqual(return_code, 0)
+    self.mock.stop.assert_called_once_with()
 
   def test_run_process_android_no_package_name_skips_exit_info(self):
     """Checks that, when no APK package name is resolvable (non-APK fuzzing,
@@ -312,6 +313,18 @@ class RunProcessAndroidTest(unittest.TestCase):
 
     self.mock.get_exit_info_for_pid.assert_called_once_with(
         'com.example.app', None)
+    self.assertEqual(return_code, 0)
+
+  def test_run_process_android_terminate_android_app_false_keeps_app(self):
+    """terminate_android_app=False leaves the Android app running after the run,
+    so the bad build check can inspect it, and still returns the result."""
+    self.mock.activity_crashed.return_value = False
+
+    return_code, _, _ = process_handler.run_process(
+        'am start -n com.example.app/.MainActivity',
+        terminate_android_app=False)
+
+    self.mock.stop.assert_not_called()
     self.assertEqual(return_code, 0)
 
 

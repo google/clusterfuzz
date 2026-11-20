@@ -125,7 +125,11 @@ def run_process(cmdline,
                 testcase_run=True,
                 ignore_children=True,
                 terminate_android_app=True):
-  """Executes a process with a given command line and other parameters."""
+  """Executes a process with a given command line and other parameters.
+
+  On Android devices, stops the app after the run unless
+  |terminate_android_app| is False (in which case the caller must stop it).
+  """
   if environment.is_trusted_host() and testcase_run:
     from clusterfuzz._internal.bot.untrusted_runner import remote_process_host
     return remote_process_host.run_process(
@@ -318,7 +322,7 @@ def run_process(cmdline,
       # matching a particular pattern for light cleanup in this case.
       android.adb.kill_processes_and_children_matching_name(
           child_process_termination_pattern)
-    else:
+    elif terminate_android_app:
       # There is no special termination behavior. Simply stop the application.
       android.app.stop()
 
