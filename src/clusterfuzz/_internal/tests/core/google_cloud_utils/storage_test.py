@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Storage tests."""
+from concurrent import futures
 import datetime
 import os
 import threading
@@ -708,24 +709,45 @@ class SignedUrlSessionTest(unittest.TestCase):
       provider.upload_signed_url(b'data', 'https://signed/c')
       provider.delete_signed_url('https://signed/d')
 
-    mocks['Session'].assert_called_once_with()
+    mocks['Session'].assert_called_once()
     self.assertEqual(session.get.call_count, 2)
     session.put.assert_called_once()
     session.delete.assert_called_once()
 
   def test_new_session_per_thread(self):
-    """Each thread gets its own session."""
-    other_thread_sessions = []
+    """Concurrent calls across threads use distinct sessions."""
+    barrier = threading.Barrier(2, timeout=5)
+    sessions = []
 
-    def record_session():
-      other_thread_sessions.append(self._session())
+    def fake_get(url, **kwargs):
+      del kwargs
+      barrier.wait()
+      return mock.MagicMock(ok=True, content=url.encode())
 
-    thread = threading.Thread(target=record_session)
-    thread.start()
-    thread.join()
+    session_class = storage.requests.Session
 
-    self.assertEqual(len(other_thread_sessions), 1)
-    self.assertIsNot(other_thread_sessions[0], self._session())
+    def make_session():
+      session = mock.create_autospec(session_class, instance=True)
+      session.get.side_effect = fake_get
+      sessions.append(session)
+      return session
+
+    provider = storage.GcsProvider()
+    with mock.patch.multiple(
+        storage.requests, Session=make_session, get=mock.DEFAULT) as mocks:
+      with futures.ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(
+            executor.map(provider.download_signed_url,
+                         ['https://signed/a', 'https://signed/b']))
+
+    self.assertEqual(results, [b'https://signed/a', b'https://signed/b'])
+    self.assertEqual(len(sessions), 2)
+    self.assertIsNot(sessions[0], sessions[1])
+    sessions[0].get.assert_called_once()
+    sessions[1].get.assert_called_once()
+    self.assertEqual({s.get.call_args[0][0] for s in sessions},
+                     {'https://signed/a', 'https://signed/b'})
+    mocks['get'].assert_not_called()
 
   def test_new_session_after_fork(self):
     """A process that inherited its parent's session creates its own."""
