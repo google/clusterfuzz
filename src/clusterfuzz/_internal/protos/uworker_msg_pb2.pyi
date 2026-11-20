@@ -173,14 +173,25 @@ class AnalyzeTaskInput(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     BAD_REVISIONS_FIELD_NUMBER: builtins.int
+    STACKTRACE_BLOB_NAME_FIELD_NUMBER: builtins.int
+    STACKTRACE_UPLOAD_URL_FIELD_NUMBER: builtins.int
     @property
     def bad_revisions(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.int]: ...
+    stacktrace_blob_name: builtins.str
+    stacktrace_upload_url: builtins.str
     def __init__(
         self,
         *,
         bad_revisions: collections.abc.Iterable[builtins.int] | None = ...,
+        stacktrace_blob_name: builtins.str | None = ...,
+        stacktrace_upload_url: builtins.str | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["bad_revisions", b"bad_revisions"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_stacktrace_blob_name", b"_stacktrace_blob_name", "_stacktrace_upload_url", b"_stacktrace_upload_url", "stacktrace_blob_name", b"stacktrace_blob_name", "stacktrace_upload_url", b"stacktrace_upload_url"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_stacktrace_blob_name", b"_stacktrace_blob_name", "_stacktrace_upload_url", b"_stacktrace_upload_url", "bad_revisions", b"bad_revisions", "stacktrace_blob_name", b"stacktrace_blob_name", "stacktrace_upload_url", b"stacktrace_upload_url"]) -> None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_stacktrace_blob_name", b"_stacktrace_blob_name"]) -> typing_extensions.Literal["stacktrace_blob_name"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_stacktrace_upload_url", b"_stacktrace_upload_url"]) -> typing_extensions.Literal["stacktrace_upload_url"] | None: ...
 
 global___AnalyzeTaskInput = AnalyzeTaskInput
 
