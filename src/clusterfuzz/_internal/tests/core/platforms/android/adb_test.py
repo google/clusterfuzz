@@ -497,6 +497,39 @@ class CommandExecutionSafetyTest(unittest.TestCase):
     self.assertEqual('/dev/bus/usb/001/004', adb.get_device_path())
     self.mock.execute_command.assert_called_once()
 
+  def test_unset_os_override_with_physical_usb_serial_preserves_usb_lookup(
+      self):
+    """Tests that physical USB serials still resolve when OS_OVERRIDE is unset."""
+    os.environ.pop('OS_OVERRIDE', None)
+    os.environ.pop('QUEUE_OVERRIDE', None)
+    os.environ['ANDROID_SERIAL'] = 'HT75A0200123'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+    ])
+    self.mock.execute_command.return_value = (
+        'Bus 001 Device 004: ID 18d1:4ee7 Google Inc.\n'
+        '  iSerial                 3 HT75A0200123\n')
+
+    self.assertEqual('/dev/bus/usb/001/004', adb.get_device_path())
+    self.mock.execute_command.assert_called_once()
+
+  def test_cuttlefish_skips_usb_lookup_and_reset(self):
+    """Tests that ANDROID_X86 (Cuttlefish) bypasses host USB operations."""
+    os.environ['OS_OVERRIDE'] = 'ANDROID_X86'
+    os.environ.pop('QUEUE_OVERRIDE', None)
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command_with_return_code',
+    ])
+
+    for serial in (None, '10.0.0.2:6520'):
+      if serial is None:
+        os.environ.pop('ANDROID_SERIAL', None)
+      else:
+        os.environ['ANDROID_SERIAL'] = serial
+      self.assertIsNone(adb.get_device_path())
+      self.assertTrue(adb.reset_usb())
+    self.mock.execute_command_with_return_code.assert_not_called()
+
   def test_physical_device_missing_lsusb_returns_none_without_bad_state(self):
     """Tests that missing lsusb on a physical host does not trigger bad state."""
     with tempfile.TemporaryDirectory() as empty_path_dir:
