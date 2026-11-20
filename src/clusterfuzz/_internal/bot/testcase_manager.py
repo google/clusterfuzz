@@ -1306,8 +1306,7 @@ def check_for_bad_build(job_type: str,
   if environment.is_android() and (package_name :=
                                    android.app.get_package_name()):
     try:
-      is_android_app_dead = not android.adb.get_process_and_child_pids(
-          package_name)
+      is_android_app_dead = not android.util.is_package_running(package_name)
     finally:
       android.app.stop()
   crash_result = CrashResult(return_code, crash_time, output)
