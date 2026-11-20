@@ -446,6 +446,11 @@ class Issue(issue_tracker.Issue):
     return self._ccs
 
   @property
+  def collaborators(self):
+    """The issue collaborator list."""
+    return self._collaborators
+
+  @property
   def labels(self):
     """The issue labels list."""
     return self._labels
