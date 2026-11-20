@@ -800,6 +800,14 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
       helpers.log(message.data.decode(), helpers.VIEW_OPERATION)
       uploaded_file_key = message_data['fuzzed_key']
       uploaded_file = blobs.get_blob_info(uploaded_file_key)
+      is_trusted = False
+      if fuzzer:
+        if fuzzer in fuzzing.ENGINES:
+          is_trusted = True
+        else:
+          fuzzer_entity = data_types.Fuzzer.query(
+              data_types.Fuzzer.name == fuzzer).get()
+          is_trusted = bool(fuzzer_entity and fuzzer_entity.trusted)
       try:
         response = self._handle_upload(
             uploaded_file=uploaded_file,
@@ -811,7 +819,8 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
                                                 None),
             gestures=message_data.get('gestures', '[]'),
             http_flag=message_data.get('http_flag', None),
-            platform_id='Linux',
+            platform_id=None,
+            trusted_agreement_signed=is_trusted,
         )
         monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
             'fuzzer': fuzzer,

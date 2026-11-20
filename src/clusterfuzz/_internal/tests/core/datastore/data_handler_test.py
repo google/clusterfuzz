@@ -1339,3 +1339,36 @@ class GetValueFromJobDefinitionTest(unittest.TestCase):
     self.assertEqual(result, 'env_value')
     self.mock.get_value.assert_called_once_with('VAR_PATTERN', 'default_val')
     self.mock.query.assert_not_called()
+
+
+@test_utils.with_cloud_emulators('datastore')
+class CheckJobSupportsUntrustedWorkloadsTest(unittest.TestCase):
+  """Tests for check_job_supports_untrusted_workloads."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        'clusterfuzz._internal.swarming.is_swarming_job',
+    ])
+    self.mock.is_chromium.return_value = True
+    self.mock.is_remotely_executing_utasks.return_value = True
+
+  def test_swarming_linux_job_rejected(self):
+    """Swarming jobs must reject untrusted workloads even on Linux."""
+    job = data_types.Job(name='swarming_linux_job', platform='LINUX')
+    job.put()
+    self.mock.is_swarming_job.return_value = True
+
+    with self.assertRaises(ValueError):
+      data_handler.check_job_supports_untrusted_workloads(
+          'swarming_linux_job', platform_id='linux')
+    self.mock.is_swarming_job.assert_called_once_with(
+        'swarming_linux_job', job=job)
+
+  def test_non_swarming_linux_job_allowed(self):
+    """Non-Swarming Linux jobs continue to allow untrusted workloads."""
+    data_types.Job(name='batch_linux_job', platform='LINUX').put()
+    self.mock.is_swarming_job.return_value = False
+
+    data_handler.check_job_supports_untrusted_workloads('batch_linux_job')

@@ -1067,3 +1067,73 @@ class CrashReplicationTest(unittest.TestCase):
         'testcase_id': created_testcase_id,
         'uploader_email': self.service_account_email,
     }, metadata.to_dict())
+
+  def test_crash_replication_swarming_engine_fuzzer_is_trusted(self):
+    """Swarming crash replication from an engine fuzzer succeeds as trusted."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        'clusterfuzz._internal.swarming.is_swarming_job',
+    ])
+    self.mock.is_chromium.return_value = True
+    self.mock.is_remotely_executing_utasks.return_value = True
+    self.mock.is_swarming_job.return_value = True
+
+    sampling_message_data = json.dumps({
+        'fuzzed_key': 'some-fuzzed-key',
+        'job': self.job_name,
+        'fuzzer': self.fuzzer_name,
+        'target_name': self.fuzz_target_binary,
+        'arguments': 'some-arg',
+        'application_command_line': 'some-cli-command',
+        'gestures': str([]),
+        'http_flag': False,
+        'original_task_id': 'some-task-id',
+    }).encode()
+
+    with self.app.test_client() as client:
+      result = client.post(
+          '/upload-testcase/crash-replication',
+          data=self._make_message(sampling_message_data, {}),
+          headers={'Authorization': 'Bearer fake'})
+
+    self.assertEqual('200 OK', result.status)
+    testcase = data_handler.get_testcase_by_id(int(result.json['id']))
+    self.assertTrue(testcase.trusted)
+
+  def test_crash_replication_swarming_untrusted_fuzzer_rejected(self):
+    """Swarming crash replication from an untrusted fuzzer returns 400."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        'clusterfuzz._internal.swarming.is_swarming_job',
+    ])
+    self.mock.is_chromium.return_value = True
+    self.mock.is_remotely_executing_utasks.return_value = True
+    self.mock.is_swarming_job.return_value = True
+
+    data_types.Job(
+        name='blackbox_swarming_job',
+        environment_string='PROJECT_NAME = proj',
+        platform='LINUX').put()
+    data_types.Fuzzer(name='untrusted_blackbox', trusted=False).put()
+
+    sampling_message_data = json.dumps({
+        'fuzzed_key': 'some-fuzzed-key',
+        'job': 'blackbox_swarming_job',
+        'fuzzer': 'untrusted_blackbox',
+        'target_name': None,
+        'arguments': '',
+        'application_command_line': '',
+        'gestures': str([]),
+        'http_flag': False,
+        'original_task_id': 'some-task-id',
+    }).encode()
+
+    with self.app.test_client() as client:
+      result = client.post(
+          '/upload-testcase/crash-replication',
+          data=self._make_message(sampling_message_data, {}),
+          headers={'Authorization': 'Bearer fake'})
+
+    self.assertEqual(400, result.status_code)

@@ -1256,7 +1256,14 @@ def check_job_supports_untrusted_workloads(job_name: str,
   if not task_utils.is_remotely_executing_utasks():
     return
 
-  # 3. In remote mode, unprivileged uworkers (where untrusted code must run)
+  # 3. Swarming bots reuse hosts across tasks without per-task VM teardown, so
+  # Swarming jobs must never run untrusted workloads even on Linux.
+  if swarming.is_swarming_job(job_name, job=job):
+    raise ValueError(
+        f'Job "{job_name}" does not support running untrusted workloads. '
+        'Swarming jobs only support trusted workloads.')
+
+  # 4. In remote mode, unprivileged uworkers (where untrusted code must run)
   # are implemented as Linux containers. Thus, non-Linux jobs cannot support
   # untrusted workloads in this setup.
 
