@@ -1300,12 +1300,6 @@ def check_for_bad_build(job_type: str,
       timeout=fast_warmup_timeout,
       current_working_directory=app_directory,
       terminate_android_app=False)
-  crash_result = CrashResult(return_code, crash_time, output)
-  logs.info(
-      f'Bad build check run_process completed: return_code={return_code}, '
-      f'is_crash={crash_result.is_crash(ignore_state=True)}, '
-      f'crash_type={crash_result.get_type()}')
-
   # On Android, if we have an APK package and the application process is not
   # running after startup, the build is bad.
   is_android_app_dead = False
@@ -1316,6 +1310,11 @@ def check_for_bad_build(job_type: str,
           package_name)
     finally:
       android.app.stop()
+  crash_result = CrashResult(return_code, crash_time, output)
+  logs.info(
+      f'Bad build check run_process completed: return_code={return_code}, '
+      f'is_crash={crash_result.is_crash(ignore_state=True)}, '
+      f'crash_type={crash_result.get_type()}')
 
   if is_android_app_dead:
     is_bad_build = True
