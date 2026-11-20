@@ -97,19 +97,10 @@ class SwarmingTaskCreationTest(unittest.TestCase):
     data_types.FeatureFlag(
         id='swarming_remote_execution', enabled=enabled).put()
 
-  def test_skips_blame_and_impact_when_swarming_enabled(self):
-    """Tests that blame and impact tasks are skipped for Swarming jobs when
+  def test_creates_blame_and_impact_when_swarming_enabled(self):
+    """Tests that blame and impact tasks are created for Swarming jobs when
     SWARMING_REMOTE_EXECUTION is enabled."""
     self._set_swarming_flag(True)
-
-    task_creation.create_blame_task_if_needed(self.testcase)
-    task_creation.create_impact_task_if_needed(self.testcase)
-    self.mock.add_task.assert_not_called()
-
-  def test_creates_blame_and_impact_when_swarming_disabled(self):
-    """Tests that blame and impact tasks are still created for Swarming jobs
-    when SWARMING_REMOTE_EXECUTION is disabled."""
-    self._set_swarming_flag(False)
 
     task_creation.create_blame_task_if_needed(self.testcase)
     task_creation.create_impact_task_if_needed(self.testcase)

@@ -622,10 +622,8 @@ class DataHandlerTest(unittest.TestCase):
     testcase.regression = 'nots NA'
     self.assertFalse(data_handler.critical_tasks_completed(testcase))
 
-  def test_critical_tasks_completed_swarming_job_skips_impact(self):
-    """Tests that in Chrome, impact only blocks filing for Swarming jobs while
-    SWARMING_REMOTE_EXECUTION is disabled, since impact tasks are not run for
-    Swarming jobs once it is enabled."""
+  def test_critical_tasks_completed_swarming_job_requires_impact(self):
+    """Tests that in Chrome, impact is required for Swarming jobs."""
     self.mock.is_chromium.return_value = True
     data_types.Job(
         name='swarming_job',
@@ -637,12 +635,10 @@ class DataHandlerTest(unittest.TestCase):
     testcase.is_impact_set_flag = False
     testcase.analyze_pending = False
 
-    flag = data_types.FeatureFlag(id='swarming_remote_execution', enabled=False)
-    flag.put()
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
     self.assertFalse(data_handler.critical_tasks_completed(testcase))
 
-    flag.enabled = True
-    flag.put()
+    testcase.is_impact_set_flag = True
     self.assertTrue(data_handler.critical_tasks_completed(testcase))
 
 

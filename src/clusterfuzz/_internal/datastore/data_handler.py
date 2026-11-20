@@ -967,9 +967,7 @@ def is_impact_required(testcase):
   """Return whether an impact task is expected to run on a testcase."""
   # Only require impact if it is feasible to run it. Don't require it if not
   # (when regression fails).
-  # TODO(crbug.com/582825425): Require impact for Swarming jobs once supported.
-  return (testcase.regression != 'NA' and
-          not swarming.is_swarming_applicable(testcase.job_type))
+  return testcase.regression != 'NA'
 
 
 def critical_tasks_completed(testcase):
