@@ -14,6 +14,9 @@
 """preprocess.py runs the preprocess step of a utask locally, as a tworker
 would, and prints the signed URL of the input its uworker_main needs.
 
+Requires the given idenity to have the `roles/secretmanager.secretAccessor`
+ role in the target ClusterFuzz instance.
+
 Usage:
   butler.py run preprocess -c <config_dir> --script_args \
       --task <task> --argument <fuzzer|fuzz target|testcase id> [--job <job>]
