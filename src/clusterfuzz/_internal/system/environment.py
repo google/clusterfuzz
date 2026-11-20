@@ -1355,8 +1355,32 @@ def is_android_cuttlefish(plt=None):
 
 
 def is_android_emulator():
-  """Return True if we are on android emulator platform."""
+  """Return True if the bot pulls from the ANDROID_EMULATOR task queue.
+
+  Physical Trusty phones currently share OS_OVERRIDE=ANDROID_EMULATOR with
+  virtual emulators for queue routing and Trusty crash/recovery hooks. For
+  Android callers distinguishing physical USB hardware from virtual devices,
+  use uses_virtual_android_connection().
+  """
   return 'ANDROID_EMULATOR' in get_platform_group()
+
+
+def uses_virtual_android_connection() -> bool:
+  """Return True if the target Android device connects without host USB.
+
+  Intended for Android-specific paths (such as ADB USB lookup/reset) and does
+  not check is_android(), so callers with unset OS_OVERRIDE still classify a
+  physical ANDROID_SERIAL as USB. Cross-platform callers should check
+  is_android() first.
+  """
+  if is_android_cuttlefish():
+    return True
+  serial = get_value('ANDROID_SERIAL')
+  if not serial:
+    return is_android_emulator()
+  if serial.startswith('usb:'):
+    return False
+  return serial.startswith('emulator-') or ':' in serial
 
 
 def is_android_real_device():

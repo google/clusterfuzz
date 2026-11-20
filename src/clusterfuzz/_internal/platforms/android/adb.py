@@ -673,9 +673,9 @@ def get_device_path():
         open('/sys/bus/usb/devices/%s/devnum' % device_id).read().strip())
     return '/dev/bus/usb/%03d/%03d' % (bus_number, device_number)
 
-  device_serial = environment.get_value('ANDROID_SERIAL')
-  if _uses_virtual_device_connection(device_serial):
+  if environment.uses_virtual_android_connection():
     return None
+  device_serial = environment.get_value('ANDROID_SERIAL')
   if not device_serial:
     return None
   if device_serial.startswith('usb:'):
@@ -686,7 +686,7 @@ def get_device_path():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if _uses_virtual_device_connection():
+  if environment.uses_virtual_android_connection():
     return True
 
   # App Engine does not let us import this.
@@ -717,21 +717,6 @@ def reset_usb():
   # Wait for usb to recover.
   wait_for_device(recover=False)
   return True
-
-
-def _uses_virtual_device_connection(device_serial: str | None = None) -> bool:
-  """Returns whether the target Android device connects without host USB."""
-  if environment.is_android_cuttlefish():
-    return True
-
-  if device_serial is None:
-    device_serial = environment.get_value('ANDROID_SERIAL')
-  if not device_serial:
-    return environment.is_android_emulator()
-  if device_serial.startswith('usb:'):
-    return False
-
-  return device_serial.startswith('emulator-') or ':' in device_serial
 
 
 def revert_asan_device_setup_if_needed():

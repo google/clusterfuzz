@@ -830,3 +830,74 @@ class EnsureOpenFileLimitTest(unittest.TestCase):
     with unittest.mock.patch.object(environment, 'resource', mock_resource):
       environment.ensure_open_file_limit()
     self.mock.warning.assert_called_once()
+
+
+class AndroidDeviceDetectionTest(unittest.TestCase):
+  """Tests for Android virtual/physical device detection across real fleets."""
+
+  VIRTUAL_ANDROID_FLEETS = (
+      ('ANDROID_X86', 'ANDROID_X86', None),
+      ('ANDROID_X86', 'ANDROID_KERNEL_X86', '10.0.0.2:6520'),
+      ('ANDROID_X86', None, 'HT75A0200123'),
+      ('ANDROID_EMULATOR', 'ANDROID_EMULATOR', None),
+      ('ANDROID_EMULATOR', None, ''),
+      ('ANDROID_EMULATOR', None, 'emulator-5554'),
+      ('ANDROID_EMULATOR', None, '127.0.0.1:5555'),
+      ('ANDROID', 'ANDROID_EMULATOR', None),
+      ('ANDROID', None, 'emulator-5554'),
+      ('ANDROID', None, '127.0.0.1:6520'),
+  )
+  PHYSICAL_ANDROID_FLEETS = (
+      ('ANDROID', None, 'HT75A0200123'),
+      ('ANDROID', None, 'usb:2-4.2'),
+      ('ANDROID', None, None),
+      ('ANDROID:PIXEL6', None, '1C111FDF600G7K'),
+      ('ANDROID_MTE:PIXEL8', None, '38241FDJH0037B'),
+      ('ANDROID_DEP:PIXEL5', None, '0A121FDD400123'),
+      ('ANDROID_AUTO', None, 'SEAHAWK001'),
+      ('ANDROID_KERNEL', None, '123456789'),
+      ('ANDROID_EMULATOR', None, 'HT75A0200123'),
+      ('ANDROID_EMULATOR', None, 'usb:2-4.2'),
+  )
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    self._set_env()
+
+  def _set_env(self, os_override=None, queue_override=None, serial=None):
+    """Set Android fleet env vars after clearing prior values."""
+    for key in ('OS_OVERRIDE', 'QUEUE_OVERRIDE', 'ANDROID_SERIAL'):
+      os.environ.pop(key, None)
+    if os_override is not None:
+      os.environ['OS_OVERRIDE'] = os_override
+    if queue_override is not None:
+      os.environ['QUEUE_OVERRIDE'] = queue_override
+    if serial is not None:
+      os.environ['ANDROID_SERIAL'] = serial
+
+  def test_uses_virtual_android_connection_true(self):
+    """Cuttlefish, emulators, and TCP serials connect without host USB."""
+    cases = self.VIRTUAL_ANDROID_FLEETS + (
+        (None, None, 'emulator-5554'),
+        (None, None, '127.0.0.1:6520'),
+        (None, 'ANDROID_EMULATOR', None),
+    )
+    for os_override, queue_override, serial in cases:
+      with self.subTest(
+          os_override=os_override, queue_override=queue_override,
+          serial=serial):
+        self._set_env(os_override, queue_override, serial)
+        self.assertTrue(environment.uses_virtual_android_connection())
+
+  def test_uses_virtual_android_connection_false(self):
+    """Physical USB devices (including Trusty on ANDROID_EMULATOR) use USB."""
+    cases = self.PHYSICAL_ANDROID_FLEETS + (
+        (None, None, 'HT75A0200123'),
+        (None, None, None),
+    )
+    for os_override, queue_override, serial in cases:
+      with self.subTest(
+          os_override=os_override, queue_override=queue_override,
+          serial=serial):
+        self._set_env(os_override, queue_override, serial)
+        self.assertFalse(environment.uses_virtual_android_connection())
