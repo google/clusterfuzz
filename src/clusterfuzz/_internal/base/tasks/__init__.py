@@ -1017,6 +1017,9 @@ def queue_for_job(job_name, is_high_end=False):
   if not job:
     raise Error('Job {} not found.'.format(job_name))
 
+  if is_high_end and swarming.is_swarming_job(job_name, job=job):
+    is_high_end = False
+
   return queue_for_platform(job.platform, is_high_end)
 
 
