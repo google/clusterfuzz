@@ -167,3 +167,29 @@ class BuildInfoTest(unittest.TestCase):
     """Tests if an invalid platform results in the correct (empty) dict."""
     result = build_info.get_build_to_revision_mappings('foo')
     self.assertEqual(result, {})
+
+  def test_get_build_to_revision_mappings_normalizes_variants(self):
+    """Tests Android/Linux platform variants normalize for ChromiumDash."""
+    android_result = build_info.get_build_to_revision_mappings(
+        'ANDROID_EMULATOR')
+    self.assertEqual(android_result,
+                     build_info.get_build_to_revision_mappings('ANDROID'))
+
+    linux_subqueue_result = build_info.get_build_to_revision_mappings(
+        'LINUX:WITH_GPU')
+    self.assertEqual(linux_subqueue_result,
+                     build_info.get_build_to_revision_mappings('LINUX'))
+
+  def test_linux_extended_stable_empty_response(self):
+    """Tests empty Windows Extended response does not raise IndexError."""
+    original_fetch = self.mock.fetch_url.side_effect
+
+    def _fetch_without_es(url):
+      if 'channel=Extended' in url:
+        return '[]'
+      return original_fetch(url)
+
+    self.mock.fetch_url.side_effect = _fetch_without_es
+    result = build_info.get_build_to_revision_mappings('LINUX')
+    self.assertNotIn('extended_stable', result)
+    self.assertIn('stable', result)
