@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 from typing import Optional
 
@@ -168,8 +169,13 @@ def _handle_unrecoverable_error_on_windows():
     return
 
   logs.error('Unrecoverable error, restarting machine...')
+  # Allow async Cloud Logging transport to flush error logs before forced
+  # shutdown (shutdown /f /r /t 0 skips atexit) and throttle reboot loops.
   time.sleep(60)
   utils.restart_machine()
+  # Only reached if OS shutdown fails or times out; exit non-zero so the
+  # failed task is not acked and no new task is leased.
+  sys.exit(1)
 
 
 def _remove_scheme(bucket_path):
