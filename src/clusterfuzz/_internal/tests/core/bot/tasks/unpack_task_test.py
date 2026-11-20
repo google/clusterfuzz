@@ -19,7 +19,6 @@ import shutil
 import tarfile
 import tempfile
 import unittest
-from unittest import mock
 import zipfile
 
 from clusterfuzz._internal.bot.tasks import unpack_task
@@ -74,14 +73,15 @@ class UnpackTaskTestBase(unittest.TestCase):
   def _archive_path(self, archive_filename):
     return os.path.join(self.temp_dir, archive_filename)
 
-  def _create_metadata(self, archive_filename, blobstore_key):
+  def _create_metadata(self, archive_filename, blobstore_key, trusted=False):
     """Creates the bundle and upload metadata, as upload_testcase does."""
     metadata = data_types.BundledArchiveMetadata(
         blobstore_key=blobstore_key,
         job_type=JOB_NAME,
         job_queue='jobs-linux',
         archive_filename=archive_filename,
-        uploader_email=UPLOADER_EMAIL)
+        uploader_email=UPLOADER_EMAIL,
+        trusted=trusted)
     metadata.put()
     data_types.TestcaseUploadMetadata(
         blobstore_key=blobstore_key,
@@ -188,15 +188,18 @@ class ExecuteTaskTest(UnpackTaskTestBase):
     self.mock.add_task.assert_called_once_with('unpack', metadata_id, JOB_NAME)
     self.mock.create_user_uploaded_testcase.assert_not_called()
 
-  def test_retries_when_archive_cannot_be_unpacked(self):
-    """Tests that the task is retried when the archive is invalid."""
+  def test_marks_failed_when_archive_cannot_be_unpacked(self):
+    """Tests that invalid archives fail without infinite requeue and clean up."""
     with open(self._archive_path('bundle.zip'), 'wb') as f:
       f.write(b'not a zip file')
 
     self._execute('bundle.zip')
 
-    self.mock.add_task.assert_called_once_with('unpack', mock.ANY, JOB_NAME)
+    self.mock.add_task.assert_not_called()
     self.mock.create_user_uploaded_testcase.assert_not_called()
+    upload_metadata = data_types.TestcaseUploadMetadata.query().get()
+    self.assertEqual('Unpack failed', upload_metadata.status)
+    self.assertEqual(2, self.mock.clear_testcase_directories.call_count)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -215,11 +218,12 @@ class ExecuteTaskIntegrationTest(UnpackTaskTestBase):
     os.environ['TEST_BLOBS_BUCKET'] = 'blobs-bucket'
     storage.create_bucket_if_needed('blobs-bucket')
 
-  def _execute(self, archive_filename):
+  def _execute(self, archive_filename, trusted=False):
     """Uploads the archive to blob storage and runs the unpack task, like a
     multiple testcase upload does."""
     archive_key = blobs.write_blob(self._archive_path(archive_filename))
-    metadata_id = self._create_metadata(archive_filename, archive_key)
+    metadata_id = self._create_metadata(
+        archive_filename, archive_key, trusted=trusted)
     unpack_task.execute_task(metadata_id, JOB_NAME)
     return archive_key
 
@@ -255,7 +259,7 @@ class ExecuteTaskIntegrationTest(UnpackTaskTestBase):
     self.assertCountEqual(
         [('analyze', testcase.key.id(), JOB_NAME) for testcase in testcases],
         [call.args[:3] for call in self.mock.add_task.call_args_list])
-    self.mock.clear_testcase_directories.assert_called_once_with()
+    self.assertEqual(2, self.mock.clear_testcase_directories.call_count)
 
   def test_zip_bundle(self):
     """Tests unpacking a regular zip archive with nested directories."""
@@ -304,3 +308,16 @@ class ExecuteTaskIntegrationTest(UnpackTaskTestBase):
     self._assert_testcases_created('bundle.zip', archive_key, {
         'testcase1': b'testcase 1',
     })
+
+  def test_trusted_bundle_propagates_trusted_flag(self):
+    """Tests that trusted=True on BundledArchiveMetadata propagates to testcases."""
+    with zipfile.ZipFile(self._archive_path('bundle.zip'), 'w') as zip_file:
+      zip_file.writestr('testcase1', b'testcase 1')
+
+    archive_key = self._execute('bundle.zip', trusted=True)
+
+    self._assert_testcases_created('bundle.zip', archive_key, {
+        'testcase1': b'testcase 1',
+    })
+    testcases = list(data_types.Testcase.query())
+    self.assertTrue(all(testcase.trusted for testcase in testcases))

@@ -95,68 +95,88 @@ def execute_task(metadata_id, job_type):
   # by tmpfs limits.
   testcases_directory = environment.get_value('FUZZ_INPUTS_DISK')
 
-  # Retrieve multi-testcase archive.
-  archive_path = os.path.join(testcases_directory, metadata.archive_filename)
-  if not blobs.read_blob_to_disk(metadata.blobstore_key, archive_path):
-    logs.error(f'Could not retrieve archive for bundle {metadata_id}.')
-    tasks.add_task('unpack', metadata_id, job_type)
-    return
-
+  shell.clear_testcase_directories()
   try:
-    with archive.open(archive_path) as reader:
-      if not reader.extract_all(testcases_directory):
-        logs.warning(
-            f'Some members of the archive for bundle {metadata_id} could not '
-            'be extracted. Only the extracted ones will be unpacked.')
-      members = reader.list_members()
-  except:
-    logs.error(f'Could not unpack archive for bundle {metadata_id}.')
-    tasks.add_task('unpack', metadata_id, job_type)
-    return
-
-  # Get additional testcase metadata (if any).
-  additional_metadata = None
-  if upload_metadata.additional_metadata_string:
-    additional_metadata = json.loads(upload_metadata.additional_metadata_string)
-
-  archive_state = data_types.ArchiveStatus.NONE
-  bundled = True
-
-  for f in members:
-    if f.is_dir:
-      continue
-
-    absolute_file_path = _get_extracted_testcase_path(testcases_directory,
-                                                      f.name)
-    if not absolute_file_path:
-      continue
-
-    filename = os.path.basename(f.name)
+    # Retrieve multi-testcase archive.
+    archive_path = os.path.join(testcases_directory, metadata.archive_filename)
+    if not blobs.read_blob_to_disk(metadata.blobstore_key, archive_path):
+      logs.error(f'Could not retrieve archive for bundle {metadata_id}.')
+      tasks.add_task('unpack', metadata_id, job_type)
+      return
 
     try:
-      with open(absolute_file_path, 'rb') as file_handle:
-        blob_key = blobs.write_blob(file_handle)
-    except:
-      blob_key = None
+      with archive.open(archive_path) as reader:
+        if not reader.extract_all(testcases_directory):
+          logs.warning(
+              f'Some members of the archive for bundle {metadata_id} could not '
+              'be extracted. Only the extracted ones will be unpacked.')
+        members = reader.list_members()
+    except Exception:
+      logs.error(f'Could not unpack archive for bundle {metadata_id}.')
+      upload_metadata.status = 'Unpack failed'
+      upload_metadata.put()
+      return
 
-    if not blob_key:
-      logs.error(
-          'Could not write testcase %s to blobstore.' % absolute_file_path)
-      continue
+    # Get additional testcase metadata (if any).
+    additional_metadata = None
+    if upload_metadata.additional_metadata_string:
+      additional_metadata = json.loads(
+          upload_metadata.additional_metadata_string)
 
-    data_handler.create_user_uploaded_testcase(
-        blob_key, metadata.blobstore_key, archive_state,
-        metadata.archive_filename, filename, metadata.timeout, job,
-        metadata.job_queue, metadata.http_flag, metadata.gestures,
-        metadata.additional_arguments, metadata.bug_information,
-        metadata.crash_revision, metadata.uploader_email, metadata.platform_id,
-        metadata.app_launch_command, metadata.fuzzer_name,
-        metadata.overridden_fuzzer_name, metadata.fuzzer_binary_name, bundled,
-        upload_metadata.retries, upload_metadata.bug_summary_update_flag,
-        upload_metadata.quiet_flag, additional_metadata)
+    archive_state = data_types.ArchiveStatus.NONE
+    bundled = True
 
-  # The upload metadata for the archive is not needed anymore since we created
-  # one for each testcase.
-  upload_metadata.key.delete()
+    for f in members:
+      if f.is_dir:
+        continue
 
-  shell.clear_testcase_directories()
+      absolute_file_path = _get_extracted_testcase_path(testcases_directory,
+                                                        f.name)
+      if not absolute_file_path:
+        continue
+
+      filename = os.path.basename(f.name)
+
+      try:
+        with open(absolute_file_path, 'rb') as file_handle:
+          blob_key = blobs.write_blob(file_handle)
+      except Exception:
+        blob_key = None
+
+      if not blob_key:
+        logs.error(
+            'Could not write testcase %s to blobstore.' % absolute_file_path)
+        continue
+
+      data_handler.create_user_uploaded_testcase(
+          blob_key,
+          metadata.blobstore_key,
+          archive_state,
+          metadata.archive_filename,
+          filename,
+          metadata.timeout,
+          job,
+          metadata.job_queue,
+          metadata.http_flag,
+          metadata.gestures,
+          metadata.additional_arguments,
+          metadata.bug_information,
+          metadata.crash_revision,
+          metadata.uploader_email,
+          metadata.platform_id,
+          metadata.app_launch_command,
+          metadata.fuzzer_name,
+          metadata.overridden_fuzzer_name,
+          metadata.fuzzer_binary_name,
+          bundled,
+          upload_metadata.retries,
+          upload_metadata.bug_summary_update_flag,
+          upload_metadata.quiet_flag,
+          additional_metadata,
+          trusted=bool(metadata.trusted))
+
+    # The upload metadata for the archive is not needed anymore since we created
+    # one for each testcase.
+    upload_metadata.key.delete()
+  finally:
+    shell.clear_testcase_directories()

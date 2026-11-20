@@ -879,7 +879,11 @@ class UploadOAuthTest(unittest.TestCase):
                          data_handler.get_fuzz_target('libFuzzer_proj_target')
                          ._to_dict())
 
-  def _upload_to_platform(self, platform, trusted_agreement):
+  def _upload_to_platform(self,
+                          platform,
+                          trusted_agreement,
+                          multiple=False,
+                          filename='input'):
     """Uploads a testcase to a new job on |platform|, in a Chrome deployment
     where only Linux jobs support untrusted workloads."""
     test_helpers.patch(self, [
@@ -889,6 +893,7 @@ class UploadOAuthTest(unittest.TestCase):
     ])
     self.mock.is_chromium.return_value = True
     self.mock.is_remotely_executing_utasks.return_value = True
+    self.mock.get_blob_info.return_value.filename = filename
 
     email = 'uploader@email'
     data_types.Config(privileged_users=email).put()
@@ -908,8 +913,10 @@ class UploadOAuthTest(unittest.TestCase):
         'job': job_name,
         'target': 'target',
         'revision': '1337',
-        'file': (io.BytesIO(b'contents'), 'file'),
+        'file': (io.BytesIO(b'contents'), filename),
     }
+    if multiple:
+      data['multiple'] = 'true'
     if trusted_agreement:
       data['trustedAgreement'] = upload_testcase.TRUSTED_AGREEMENT_TEXT
     with self.app.test_client() as client:
@@ -935,6 +942,15 @@ class UploadOAuthTest(unittest.TestCase):
     """Tests that uploads to jobs without uworkers require the agreement."""
     response = self._upload_to_platform('WINDOWS', trusted_agreement=False)
     self.assertEqual(400, response.status_code, response.data)
+
+  def test_bundled_archive_upload_persists_trusted(self):
+    """Tests that bundled archive uploads persist trusted on metadata."""
+    response = self._upload_to_platform(
+        'MAC', trusted_agreement=True, multiple=True, filename='bundle.zip')
+    self.assertEqual(200, response.status_code, response.data)
+    metadata = data_types.BundledArchiveMetadata.query().get()
+    self.assertIsNotNone(metadata)
+    self.assertTrue(metadata.trusted)
 
 
 # pylint: disable=protected-access

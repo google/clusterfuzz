@@ -584,6 +584,7 @@ class UploadHandlerCommon:
           metadata.fuzzer_name = fuzzer_name
           metadata.overridden_fuzzer_name = fully_qualified_fuzzer_name
           metadata.fuzzer_binary_name = target_name
+          metadata.trusted = trusted
           metadata.put()
 
           # Use wait_time=0 to execute the task ASAP, since it is
