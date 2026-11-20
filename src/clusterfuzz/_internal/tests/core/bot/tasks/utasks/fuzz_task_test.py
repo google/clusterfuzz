@@ -2728,22 +2728,139 @@ class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     self.assertEqual(fuzzer.result, generated_testcase_string)
 
 
+_TASK_ID = 'a6f7e8f6-0c39-4b4a-9f4c-4b1c4e2f5d10'
+_OTHER_TASK_ID = '0184cde6-1b2c-4d3e-8f90-123456789abc'
+
+
+def _uploaded_filenames(mock_upload_stats):
+  return [call.kwargs['filename'] for call in mock_upload_stats.call_args_list]
+
+
+class PostprocessGetUniqueFilePrefixTest(unittest.TestCase):
+  """Tests for postprocess_get_unique_file_prefix."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.error',
+    ])
+
+  def test_task_id(self):
+    """Test that prefixes depend on task id."""
+    os.environ['CF_TASK_ID'] = _TASK_ID
+    prefix1 = fuzz_task.postprocess_get_unique_file_prefix()
+    self.assertIn(prefix1[0], '0123456789abcdef')
+    self.mock.error.assert_not_called()
+    os.environ['CF_TASK_ID'] = _OTHER_TASK_ID
+    prefix2 = fuzz_task.postprocess_get_unique_file_prefix()
+    self.assertIn(prefix2[0], '0123456789abcdef')
+    self.mock.error.assert_not_called()
+    self.assertNotEqual(prefix1, prefix2)
+
+  def test_same_prefix_on_retry(self):
+    os.environ['CF_TASK_ID'] = _TASK_ID
+    self.assertEqual(fuzz_task.postprocess_get_unique_file_prefix(),
+                     fuzz_task.postprocess_get_unique_file_prefix())
+
+  def test_no_task_id(self):
+    """Test that prefixes are different when there is no TASK_ID."""
+    os.environ.pop('CF_TASK_ID', None)
+    prefix1 = fuzz_task.postprocess_get_unique_file_prefix()
+    self.assertIn(prefix1[0], '0123456789abcdef')
+    self.mock.error.assert_called_once()
+    prefix2 = fuzz_task.postprocess_get_unique_file_prefix()
+    self.assertIn(prefix2[0], '0123456789abcdef')
+    self.assertEqual(self.mock.error.call_count, 2)
+    self.assertNotEqual(prefix1, prefix2)
+
+  def test_int_task_id(self):
+    os.environ['CF_TASK_ID'] = '123'
+    prefix = fuzz_task.postprocess_get_unique_file_prefix()
+    self.assertIn(prefix[0], '0123456789abcdef')
+    self.mock.error.assert_not_called()
+
+  def test_non_hex_task_id(self):
+    os.environ['CF_TASK_ID'] = 'ABC'
+    prefix = fuzz_task.postprocess_get_unique_file_prefix()
+    self.assertIn(prefix[0], '0123456789abcdef')
+    self.mock.error.assert_called()
+
+
 class UploadTestcaseRunJsons(unittest.TestCase):
   """Tests for upload_testcase_run_jsons."""
 
   def setUp(self):
+    helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.metrics.fuzzer_stats.upload_stats',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
-
-  def test_upload_testcase_run_jsons(self):
-    """Tests that upload_testcase_run_jsons works as intended."""
     testcase_run_json_path = os.path.join(
         os.path.dirname(__file__), 'test_data', 'testcase_run.json')
     with open(testcase_run_json_path, 'r') as fp:
-      testcase_run_jsons = [fp.read(), None]
+      self.testcase_run_json = fp.read()
+
+  def test_upload_testcase_run_jsons(self):
+    """Tests that upload_testcase_run_jsons works as intended."""
+    os.environ['CF_TASK_ID'] = _TASK_ID
+    testcase_run_jsons = [self.testcase_run_json, None]
     fuzz_task._upload_testcase_run_jsons(testcase_run_jsons)
     self.assertEqual(self.mock.upload_stats.call_count, 1)
+
+  def test_filenames_use_prefix_and_index(self):
+    """Test the the filenames use the prefix and are different."""
+    os.environ['CF_TASK_ID'] = _TASK_ID
+    testcase_run_jsons = [self.testcase_run_json, None, self.testcase_run_json]
+    fuzz_task._upload_testcase_run_jsons(testcase_run_jsons)
+    prefix = fuzz_task.postprocess_get_unique_file_prefix()
+    filenames = _uploaded_filenames(self.mock.upload_stats)
+
+    self.assertEqual(len(set(filenames)), 2)
+    for filename in filenames:
+      self.assertIn(prefix, filename)
+      self.assertTrue(filename.endswith('.json'))
+
+  def test_retried_upload_uses_same_filenames(self):
+    os.environ['CF_TASK_ID'] = _TASK_ID
+    testcase_run_jsons = [self.testcase_run_json, self.testcase_run_json]
+    fuzz_task._upload_testcase_run_jsons(testcase_run_jsons)
+    fuzz_task._upload_testcase_run_jsons(testcase_run_jsons)
+    filenames = _uploaded_filenames(self.mock.upload_stats)
+
+    self.assertEqual(len(filenames), 4)
+    self.assertEqual(filenames[:2], filenames[2:])
+
+
+class UploadJobRunStatsTest(unittest.TestCase):
+  """Tests for upload_job_run_stats."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.fuzzer_stats.upload_stats',
+        'clusterfuzz._internal.metrics.logs.error',
+    ])
+
+  def _upload_job_run_stats(self):
+    fuzz_task.upload_job_run_stats('fuzzer', 'job', 123, 1472846341.017923, 1,
+                                   2, 1337, [])
+
+  def test_upload_uses_task_id_filename(self):
+    os.environ['CF_TASK_ID'] = _TASK_ID
+    self._upload_job_run_stats()
+    filenames = _uploaded_filenames(self.mock.upload_stats)
+    prefix = fuzz_task.postprocess_get_unique_file_prefix()
+    self.assertEqual(len(filenames), 1)
+    self.assertIn(prefix, filenames[0])
+    self.assertTrue(filenames[0].endswith('.json'))
+
+  def test_retried_upload_uses_same_filename(self):
+    os.environ['CF_TASK_ID'] = _TASK_ID
+    self._upload_job_run_stats()
+    self._upload_job_run_stats()
+    filenames = _uploaded_filenames(self.mock.upload_stats)
+    self.assertEqual(len(filenames), 2)
+    self.assertEqual(filenames[0], filenames[1])
 
 
 @test_utils.with_cloud_emulators('datastore')
