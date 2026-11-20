@@ -23,4 +23,7 @@ RUN cd /data/clusterfuzz && bash local/install_deps.bash
 
 COPY ${CLUSTERFUZZ_SOURCE_DIR}/clusterfuzz-config/configs/external /data/clusterfuzz/src/appengine/config
 
+COPY ${CLUSTERFUZZ_SOURCE_DIR}/docker/base/start_clusterfuzz.sh /data/start_clusterfuzz.sh
+RUN printf '* soft nofile 65535\n' > /etc/security/limits.d/99-clusterfuzz-nofile.conf
+
 RUN rm -rf /data/clusterfuzz/clusterfuzz-config

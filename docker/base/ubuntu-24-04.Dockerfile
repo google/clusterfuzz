@@ -152,7 +152,8 @@ ENV RUN_CMD "python3.11 $ROOT_DIR/src/python/bot/startup/run.py"
 
 # Passwordless sudo (needed for AFL launcher).
 RUN groupadd nopwsudo && \
-    echo "%nopwsudo ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/mysudoers
+    echo "%nopwsudo ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/mysudoers && \
+    printf '* soft nofile 65535\n' > /etc/security/limits.d/99-clusterfuzz-nofile.conf
 
 # Make sure GSUtil uses the GCE service account.
 RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg

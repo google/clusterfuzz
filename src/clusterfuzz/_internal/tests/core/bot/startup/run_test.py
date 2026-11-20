@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Run tests."""
+import getpass
+import os
+from pathlib import Path
+import resource
+import shutil
+import subprocess
+import sys
 import unittest
 from unittest import mock
 
 from clusterfuzz._internal.tests.test_libs import helpers
 from python.bot.startup import run
+
+EXPECTED_OPEN_FILES_SOFT_LIMIT = 65535
 
 
 class UpdateSourceCodeIfNeededTest(unittest.TestCase):
@@ -112,3 +121,34 @@ class MainStartupLimitTest(unittest.TestCase):
     run.main()
 
     self.mock.ensure_open_file_limit.assert_called_once_with()
+
+  @unittest.skipUnless(sys.platform.startswith('linux'), 'Linux-only script')
+  def test_start_clusterfuzz_script_raises_soft_nofile_after_sudo(self):
+    """Tests start_clusterfuzz.sh enforces ulimit -Sn >= 65535 across sudo."""
+    current_user = getpass.getuser()
+    if shutil.which('sudo') is None:
+      self.skipTest('sudo binary not available')
+    probe = subprocess.run(
+        ['sudo', '-n', '-u', current_user, 'true'],
+        capture_output=True,
+        check=False)
+    if probe.returncode != 0:
+      self.skipTest('Non-interactive sudo to current user is not permitted')
+
+    _, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if hard_limit != resource.RLIM_INFINITY and hard_limit < EXPECTED_OPEN_FILES_SOFT_LIMIT:
+      self.skipTest(f'Host hard RLIMIT_NOFILE ({hard_limit}) is below 65535')
+
+    repo_root = Path(__file__).resolve().parents[7]
+    script_path = repo_root / 'docker' / 'base' / 'start_clusterfuzz.sh'
+    env = os.environ.copy()
+    env['USER'] = current_user
+    env['RUN_CMD'] = 'ulimit -Sn'
+    proc = subprocess.run(
+        ['bash', str(script_path)],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True)
+    soft_limit = int(proc.stdout.strip().splitlines()[-1])
+    self.assertGreaterEqual(soft_limit, EXPECTED_OPEN_FILES_SOFT_LIMIT)
