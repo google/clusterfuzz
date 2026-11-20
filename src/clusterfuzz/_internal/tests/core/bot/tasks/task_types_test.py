@@ -368,6 +368,7 @@ class UTaskExecuteTest(unittest.TestCase):
           self.utask.preprocess.assert_called()
 
 
+@test_utils.with_cloud_emulators('datastore')
 class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
   """Tests that executing a task either runs it locally or queues it for remote
   execution, for every kind of task module in COMMAND_TYPES."""
@@ -513,6 +514,20 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
           self._execute(command)
           self._assert_queued_on(
               pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+
+  def test_tworker_routes_mac_arm64_swarming_jobs_to_mac_arm64_queue(self):
+    """Tests that on a tworker every utask on a MAC_ARM64 swarming job is
+    queued on utask_main-swarming-mac-arm64."""
+    os.environ['TWORKER'] = 'True'
+    self.mock.is_remote_task.return_value = False
+    self.mock.is_swarming_job.return_value = True
+    data_types.Job(name='job', platform='MAC_ARM64').put()
+
+    for command in self.UTASK_COMMANDS:
+      with self.subTest(command=command):
+        self._execute(command)
+        self._assert_queued_on(
+            pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64.name)
 
   def test_trusted_tasks_are_not_queued_for_remote_execution(self):
     """Tests that trusted tasks run in this process and are never queued, even

@@ -109,11 +109,14 @@ SWARMING_QUEUES = {
     PREPROCESS_QUEUE: 'preprocess-swarming',
     UTASK_MAIN_QUEUE: 'utask_main-swarming',
 }
+SWARMING_PREPROCESS_QUEUE_MAC_ARM64 = 'preprocess-swarming-mac-arm64'
+SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64 = 'utask_main-swarming-mac-arm64'
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
 UTASK_QUEUE_PULL_SECONDS = 150
+SWARMING_UTASK_QUEUE_PULL_SECONDS = 30
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
@@ -723,7 +726,9 @@ def get_task_from_message(message, queue=None, can_defer=True,
   return task
 
 
-def get_utask_mains(queue_name: str) -> List[PubSubTask]:
+def get_utask_mains(queue_name: str,
+                    pull_seconds: int = UTASK_QUEUE_PULL_SECONDS
+                   ) -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
   base_os_version = environment.get_value('BASE_OS_VERSION')
@@ -731,8 +736,7 @@ def get_utask_mains(queue_name: str) -> List[PubSubTask]:
     queue_name = f'{queue_name}-{base_os_version}'
 
   pubsub_puller = PubSubPuller(queue_name)
-  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
-                                                     UTASK_QUEUE_PULL_SECONDS)
+  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS, pull_seconds)
   return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
 
 

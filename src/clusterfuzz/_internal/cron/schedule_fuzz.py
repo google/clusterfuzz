@@ -26,8 +26,7 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
-from clusterfuzz._internal.base.tasks.pub_sub_task_queue import \
-    SWARMING_PREPROCESS_QUEUE
+from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PREPROCESS_QUEUE
 from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PubSubTaskQueue
 from clusterfuzz._internal.datastore import data_types
@@ -222,7 +221,8 @@ def _get_jobs_for_platforms(platforms: list[str]) -> list[data_types.Job]:
 
 def _get_swarming_jobs():
   """Returns all jobs that have swarming environment variables."""
-  jobs = _get_jobs_for_platforms(['ANDROID', 'LINUX', 'ANDROID_EMULATOR'])
+  jobs = _get_jobs_for_platforms(
+      ['ANDROID', 'LINUX', 'ANDROID_EMULATOR', 'MAC_ARM64'])
   return [
       job for job in jobs
       if swarming.has_swarming_env_vars(job.get_environment())
@@ -303,8 +303,18 @@ def schedule_chrome_fuzz_tasks():
     return
 
   swarming_jobs = _get_swarming_jobs()
-  swarming_provider = ChromeFuzzTaskProvider(swarming_jobs)
-  _fill_queue(SWARMING_PREPROCESS_QUEUE, swarming_provider)
+  jobs_by_queue = collections.defaultdict(list)
+  for job in swarming_jobs:
+    queue = pub_sub_task_queue.get_swarming_preprocess_queue(job.platform)
+    jobs_by_queue[queue].append(job)
+
+  for queue in pub_sub_task_queue.get_all_swarming_preprocess_queues():
+    queue_jobs = jobs_by_queue.get(queue)
+    if not queue_jobs:
+      logs.info(f'No swarming jobs found for queue {queue.name}. Skipping.')
+      continue
+    swarming_provider = ChromeFuzzTaskProvider(queue_jobs)
+    _fill_queue(queue, swarming_provider)
 
 
 def schedule_fuzz_tasks():

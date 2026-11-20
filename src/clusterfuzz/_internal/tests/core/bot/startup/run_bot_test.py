@@ -263,7 +263,47 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
     )
 
   def test_schedule_tasks_both_queues(self):
-    """Test that schedule_utask_mains picks up tasks from both queues."""
+    """Test that schedule_utask_mains picks up and dispatches tasks from
+    utask_main and all platform Swarming utask_main queues independently."""
+    regular_task = mock.MagicMock(
+        command='command1', job='job1', argument='argument1')
+    swarming_task = mock.MagicMock(
+        command='command2', job='job2', argument='argument2')
+    mac_arm64_task = mock.MagicMock(
+        command='fuzz', job='mac_arm64_job', argument='argument3')
+    data_types.FeatureFlag(
+        id=feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.value,
+        enabled=True).put()
+
+    self.mock.get_utask_mains.side_effect = [
+        [regular_task],
+        [swarming_task],
+        [mac_arm64_task],
+    ]
+    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
+
+    run_bot.schedule_utask_mains()
+
+    self.mock.get_utask_mains.assert_has_calls([
+        mock.call(pub_sub_task_queue.UTASK_MAIN_QUEUE.name),
+        mock.call(
+            pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name,
+            pull_seconds=taskslib.SWARMING_UTASK_QUEUE_PULL_SECONDS),
+        mock.call(
+            pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64.name,
+            pull_seconds=taskslib.SWARMING_UTASK_QUEUE_PULL_SECONDS),
+    ])
+    create_calls = (
+        self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.
+        call_args_list)
+    self.assertEqual(len(create_calls), 3)
+    self.assertEqual(create_calls[0].args[0][0].pubsub_task, regular_task)
+    self.assertEqual(create_calls[1].args[0][0].pubsub_task, swarming_task)
+    self.assertEqual(create_calls[2].args[0][0].pubsub_task, mac_arm64_task)
+
+  def test_schedule_tasks_skips_missing_swarming_subscription(self):
+    """Test that a missing platform Swarming subscription is logged and skipped
+    without blocking other queues during staged rollout."""
     regular_task = mock.MagicMock(
         command='command1', job='job1', argument='argument1')
     swarming_task = mock.MagicMock(
@@ -272,23 +312,18 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
         id=feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.value,
         enabled=True).put()
 
-    self.mock.get_utask_mains.side_effect = [[regular_task], [swarming_task]]
+    self.mock.get_utask_mains.side_effect = [
+        [regular_task],
+        [swarming_task],
+        RuntimeError('Invalid subscription: utask_main-swarming-mac-arm64'),
+    ]
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.return_value = []
 
     run_bot.schedule_utask_mains()
 
-    self.mock.get_utask_mains.assert_has_calls([
-        mock.call(pub_sub_task_queue.UTASK_MAIN_QUEUE.name),
-        mock.call(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name),
-    ])
-    self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
-    )
-
-    args, _ = self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.call_args
-    called_batch_tasks = args[0]
-    self.assertEqual(len(called_batch_tasks), 2)
-    self.assertEqual(called_batch_tasks[0].pubsub_task, regular_task)
-    self.assertEqual(called_batch_tasks[1].pubsub_task, swarming_task)
+    self.assertEqual(
+        self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.call_count,
+        2)
 
 
 class TworkerGetTaskTest(unittest.TestCase):
