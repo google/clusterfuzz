@@ -190,18 +190,24 @@ def _get_env_vars(logs_project_id: str,
   _append_metadata_env_var(default_task_environment, 'DEPLOYMENT_ZIP',
                            'project/attributes/deployment-zip')
 
-  swarming_bot_env = []
-  swarming_bot_env.append(
-      swarming_pb2.StringPair(  # pylint: disable=no-member
-          key='DOCKER_IMAGE',
-          value=instance_spec.get('docker_image', '')))
+  env_vars = {
+      'DOCKER_IMAGE': instance_spec.get('docker_image', ''),
+  }
 
+  # Platform-specific env vars in swarming.yaml take precedence over scheduler
+  # host/metadata defaults (e.g., DEPLOYMENT_ZIP=macos_arm64-3.zip over
+  # linux-3.zip on Linux utask-main-scheduler hosts).
   platform_specific_env = instance_spec.get('env', [])
   for var in platform_specific_env:
-    swarming_bot_env.append(
-        swarming_pb2.StringPair(key=var['key'], value=var['value']))  # pylint: disable=no-member
+    env_vars[var['key']] = str(var['value'])
 
-  swarming_bot_env.extend(default_task_environment)
+  for pair in default_task_environment:
+    env_vars.setdefault(pair.key, pair.value)
+
+  swarming_bot_env = [
+      swarming_pb2.StringPair(key=key, value=value)  # pylint: disable=no-member
+      for key, value in env_vars.items()
+  ]
   swarming_bot_env.append(_env_vars_to_json(swarming_bot_env))
 
   return swarming_bot_env
