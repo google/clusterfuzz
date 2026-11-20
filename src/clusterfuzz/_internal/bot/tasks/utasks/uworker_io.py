@@ -245,7 +245,7 @@ def check_handling_testcase_safe(testcase):
   safely. Returns True if safe to handle, False otherwise."""
   if testcase.trusted:
     return True
-  if environment.is_uworker():
+  if environment.is_uworker() and not environment.is_running_on_swarming():
     return True
 
   logs.log_fatal_and_exit(
@@ -259,7 +259,7 @@ def check_running_fuzzer_safe(fuzzer):
   trusted."""
   if fuzzer.trusted:
     return True
-  if environment.is_uworker():
+  if environment.is_uworker() and not environment.is_running_on_swarming():
     return True
   logs.log_fatal_and_exit(
       f'Security Violation: Cannot run untrusted fuzzer {fuzzer.name} '
