@@ -101,10 +101,15 @@ def _get_k8s_job_configs(remote_tasks: list[remote_task_types.RemoteTask]
   configs = {}
   for task in remote_tasks:
     if (task.command, task.job_type) in configs:
-      # Don't repeat work for no reason.
       continue
-    config_name, disk_size_gb, base_os_version = config_map[(task.command,
-                                                             task.job_type)]
+    mapped = config_map.get((task.command, task.job_type))
+    if mapped is None:
+      logs.error(
+          'Error on mapping the job',
+          command=task.command,
+          job_type=task.job_type)
+      continue
+    config_name, disk_size_gb, base_os_version = mapped
     instance_spec = batch_config.get('mapping').get(config_name)
     if instance_spec is None:
       raise ValueError(f'No mapping for {config_name}')
@@ -318,10 +323,16 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:
+      config = configs.get((remote_task.command, remote_task.job_type))
+      if config is None:
+        logs.warning('Skipping utask_main with missing K8s config: '
+                     f'{remote_task.command}, {remote_task.job_type}.')
+        continue
       logs.info(
           f'Scheduling {remote_task.command}, {remote_task.job_type} in K8s.')
-      config = configs[(remote_task.command, remote_task.job_type)]
       job_specs[config].append(remote_task.input_download_url)
+    if not job_specs:
+      return []
     logs.info('Creating Kubernetes jobs.')
     for config, input_urls in job_specs.items():
       for input_url in input_urls:

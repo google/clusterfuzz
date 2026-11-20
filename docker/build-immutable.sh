@@ -18,6 +18,24 @@
 # Dockerfiles found in subdirectories, and optionally pushes them to a container
 # registry.
 
+MIN_EXPECTED_NOFILE_SOFT_LIMIT=65535
+
+function verify_ubuntu24_open_file_limit {
+  local image_ref="$1"
+  docker run --rm --ulimit "nofile=${MIN_EXPECTED_NOFILE_SOFT_LIMIT}:${MIN_EXPECTED_NOFILE_SOFT_LIMIT}" \
+    --entrypoint bash "$image_ref" -c "
+      set -e
+      if [ ! -f /data/start_clusterfuzz.sh ]; then
+        exit 0
+      fi
+      id -u clusterfuzz >/dev/null 2>&1 || useradd -mU -G nopwsudo clusterfuzz
+      sudo_limit=\$(sudo -E -H -u clusterfuzz bash -c 'ulimit -Sn')
+      test \"\$sudo_limit\" -ge ${MIN_EXPECTED_NOFILE_SOFT_LIMIT}
+      startup_limit=\$(USER=clusterfuzz RUN_CMD='ulimit -Sn' bash /data/start_clusterfuzz.sh | tail -n 1)
+      test \"\$startup_limit\" -ge ${MIN_EXPECTED_NOFILE_SOFT_LIMIT}
+    "
+}
+
 # An array of Docker image names to be built.
 IMAGES=(
   us-central1-docker.pkg.dev/clusterfuzz-images/clusterfuzz-immutable-images/base/immutable
@@ -93,6 +111,10 @@ for image_name in "${IMAGES[@]}"; do
     # -f "$dockerfile": Specifies the path to the Dockerfile.
     # .: Sets the build context to the current directory.
     docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$full_image_name":${tag} -f "$dockerfile" .
+
+    if [ "$OS_VERSION" == "ubuntu-24-04" ]; then
+      verify_ubuntu24_open_file_limit "$full_image_name:${tag}"
+    fi
 
     # If the second argument to the script is "true", push the newly built
     # image to the container registry.

@@ -189,3 +189,32 @@ class KubernetesServiceTest(unittest.TestCase):
     self.assertEqual('command', tasks[0].command)
     self.assertEqual('job', tasks[0].job_type)
     self.assertEqual('url', tasks[0].input_download_url)
+
+  @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
+  @mock.patch.object(service.KubernetesService, 'create_job')
+  @mock.patch('clusterfuzz._internal.k8s.service._get_k8s_job_configs')
+  def test_create_utask_main_jobs_skips_deleted_job(
+      self, mock_get_configs, mock_create_job, mock_pending_count, _):
+    """Tests that deleted jobs missing from K8s configs are skipped cleanly."""
+    mock_pending_count.return_value = 0
+    active_cfg = service.KubernetesJobConfig(
+        job_type='active_job',
+        docker_image='img',
+        command='progression',
+        disk_size_gb=10,
+        service_account_email='sa@example.com',
+        clusterfuzz_release='prod',
+        is_kata=False)
+    mock_get_configs.return_value = {('progression', 'active_job'): active_cfg}
+    kube_service = service.KubernetesService()
+    tasks = [
+        service.remote_task_types.RemoteTask('progression', 'deleted_job',
+                                             'url_deleted'),
+        service.remote_task_types.RemoteTask('progression', 'active_job',
+                                             'url_active'),
+    ]
+
+    result = kube_service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(result, [])
+    mock_create_job.assert_called_once_with(active_cfg, 'url_active')

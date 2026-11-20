@@ -498,9 +498,16 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
       return remote_tasks
 
     for remote_task in remote_tasks:
+      spec = specs.get((remote_task.command, remote_task.job_type))
+      if spec is None:
+        logs.warning('Skipping utask_main with missing batch spec: '
+                     f'{remote_task.command}, {remote_task.job_type}.')
+        continue
       logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
-      spec = specs[(remote_task.command, remote_task.job_type)]
       job_specs[spec].append(remote_task.input_download_url)
+
+    if not job_specs:
+      return []
 
     logs.info('Creating batch jobs.')
 

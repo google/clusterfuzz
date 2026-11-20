@@ -92,6 +92,24 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+MIN_EXPECTED_NOFILE_SOFT_LIMIT=65535
+
+function verify_ubuntu24_open_file_limit {
+  local image_ref="$1"
+  docker run --rm --ulimit "nofile=${MIN_EXPECTED_NOFILE_SOFT_LIMIT}:${MIN_EXPECTED_NOFILE_SOFT_LIMIT}" \
+    --entrypoint bash "$image_ref" -c "
+      set -e
+      if [ ! -f /data/start_clusterfuzz.sh ]; then
+        exit 0
+      fi
+      id -u clusterfuzz >/dev/null 2>&1 || useradd -mU -G nopwsudo clusterfuzz
+      sudo_limit=\$(sudo -E -H -u clusterfuzz bash -c 'ulimit -Sn')
+      test \"\$sudo_limit\" -ge ${MIN_EXPECTED_NOFILE_SOFT_LIMIT}
+      startup_limit=\$(USER=clusterfuzz RUN_CMD='ulimit -Sn' bash /data/start_clusterfuzz.sh | tail -n 1)
+      test \"\$startup_limit\" -ge ${MIN_EXPECTED_NOFILE_SOFT_LIMIT}
+    "
+}
+
 function docker_push {
   if [ "$PUSH" == "true" ]; then
     docker push "$image_with_version_tag"
@@ -146,6 +164,10 @@ for image_name in "${IMAGES[@]}"; do
   fi
 
   docker build -t "$image_with_version_tag" -f "$dockerfile" "$image_dir"
+
+  if [ "$VERSION_TAG" == "ubuntu-24-04" ]; then
+    verify_ubuntu24_open_file_limit "$image_with_version_tag"
+  fi
 
   # Clean up the copied files.
   if [[ "$NEEDS_ROOT_PIPFILE" == "true" ]]; then
