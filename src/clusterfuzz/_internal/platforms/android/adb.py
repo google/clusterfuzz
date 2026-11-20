@@ -55,6 +55,8 @@ STOP_CVD_WAIT = 20
 LAUNCH_CVD_TIMEOUT = 2700
 CMD_KILL_CROSVM = 'pkill crosvm'
 MALFORMED_COMMAND_RETURN_CODE = 2
+COMMAND_NOT_EXECUTABLE_RETURN_CODE = 126
+COMMAND_NOT_FOUND_RETURN_CODE = 127
 
 # Output patterns to parse "lsusb" output.
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
@@ -127,18 +129,6 @@ def execute_command(cmd: str,
   return output
 
 
-def _build_host_command_args(cmd: str, on_cuttlefish_host: bool) -> list[str]:
-  """Builds argv for host subprocess execution without a host shell."""
-  if on_cuttlefish_host and environment.is_android_cuttlefish():
-    return [
-        'ssh', '-o', 'StrictHostKeyChecking=no',
-        get_cuttlefish_ssh_target(), cmd
-    ]
-  if on_cuttlefish_host:
-    return ['/bin/bash', '-c', cmd]
-  return shlex.split(cmd)
-
-
 def execute_command_with_return_code(cmd: str,
                                      timeout: int | None = None,
                                      on_cuttlefish_host: bool = False
@@ -160,14 +150,21 @@ def execute_command_with_return_code(cmd: str,
   so = []
   # pylint: disable=consider-using-with
   output_dest = tempfile.TemporaryFile()
-  # pylint: disable=subprocess-popen-preexec-fn,consider-using-with
-  pipe = subprocess.Popen(
-      argv,
-      stdout=output_dest,
-      stderr=subprocess.STDOUT,
-      shell=False,
-      preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL),
-      bufsize=0)
+  try:
+    # pylint: disable=subprocess-popen-preexec-fn,consider-using-with
+    pipe = subprocess.Popen(
+        argv,
+        stdout=output_dest,
+        stderr=subprocess.STDOUT,
+        shell=False,
+        preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL),
+        bufsize=0)
+  except OSError as error:
+    output_dest.close()
+    return_code = _return_code_for_spawn_error(error)
+    logs.warning(
+        '%s returned %d error code.' % (cmd, return_code), output=str(error))
+    return return_code, str(error)
 
   def run():
     """Thread target function that waits for subprocess to complete."""
@@ -199,6 +196,25 @@ def execute_command_with_return_code(cmd: str,
 
   bytes_output = b''.join(so)
   return pipe.returncode, bytes_output.strip().decode('utf-8', errors='ignore')
+
+
+def _build_host_command_args(cmd: str, on_cuttlefish_host: bool) -> list[str]:
+  """Builds argv for host subprocess execution without a host shell."""
+  if on_cuttlefish_host and environment.is_android_cuttlefish():
+    return [
+        'ssh', '-o', 'StrictHostKeyChecking=no',
+        get_cuttlefish_ssh_target(), cmd
+    ]
+  if on_cuttlefish_host:
+    return ['/bin/bash', '-c', cmd]
+  return shlex.split(cmd)
+
+
+def _return_code_for_spawn_error(error: OSError) -> int:
+  """Maps a host subprocess spawn OSError to its POSIX shell exit code."""
+  if isinstance(error, FileNotFoundError):
+    return COMMAND_NOT_FOUND_RETURN_CODE
+  return COMMAND_NOT_EXECUTABLE_RETURN_CODE
 
 
 def copy_to_cuttlefish(src_path, dest_path, timeout=None):
@@ -657,10 +673,11 @@ def get_device_path():
         open('/sys/bus/usb/devices/%s/devnum' % device_id).read().strip())
     return '/dev/bus/usb/%03d/%03d' % (bus_number, device_number)
 
-  if environment.is_android_cuttlefish():
-    return None
-
   device_serial = environment.get_value('ANDROID_SERIAL')
+  if _uses_virtual_device_connection(device_serial):
+    return None
+  if not device_serial:
+    return None
   if device_serial.startswith('usb:'):
     return _get_device_path_for_usb()
 
@@ -669,8 +686,7 @@ def get_device_path():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if environment.is_android_cuttlefish():
-    # Nothing to do here.
+  if _uses_virtual_device_connection():
     return True
 
   # App Engine does not let us import this.
@@ -701,6 +717,21 @@ def reset_usb():
   # Wait for usb to recover.
   wait_for_device(recover=False)
   return True
+
+
+def _uses_virtual_device_connection(device_serial: str | None = None) -> bool:
+  """Returns whether the target Android device connects without host USB."""
+  if environment.is_android_cuttlefish():
+    return True
+
+  if device_serial is None:
+    device_serial = environment.get_value('ANDROID_SERIAL')
+  if not device_serial:
+    return environment.is_android_emulator()
+  if device_serial.startswith('usb:'):
+    return False
+
+  return device_serial.startswith('emulator-') or ':' in device_serial
 
 
 def revert_asan_device_setup_if_needed():

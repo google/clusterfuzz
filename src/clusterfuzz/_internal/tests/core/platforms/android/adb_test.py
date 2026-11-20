@@ -14,6 +14,7 @@
 """Tests for adb functions."""
 
 import os
+import shlex
 import tempfile
 import unittest
 from unittest import mock
@@ -439,3 +440,72 @@ class CommandExecutionSafetyTest(unittest.TestCase):
     empty_code, empty_out = adb.execute_command_with_return_code('   ')
     self.assertEqual(0, empty_code)
     self.assertEqual('', empty_out)
+
+  def test_execute_command_missing_binary_returns_127_and_error_output(self):
+    """Tests that a missing host binary returns exit code 127 without raising."""
+    missing_cmd = '/nonexistent_clusterfuzz_bin/lsusb -v'
+    return_code, output = adb.execute_command_with_return_code(missing_cmd)
+    self.assertEqual(adb.COMMAND_NOT_FOUND_RETURN_CODE, return_code)
+    self.assertIsNotNone(output)
+    self.assertIn('lsusb', output)
+    self.assertIsNotNone(adb.execute_command(missing_cmd))
+
+  def test_execute_command_non_executable_file_returns_126_and_error_output(
+      self):
+    """Tests that a non-executable host file returns exit code 126."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+      script_path = os.path.join(temp_dir, 'non_executable.sh')
+      with open(script_path, 'w') as script_file:
+        script_file.write('#!/bin/sh\necho ok\n')
+      os.chmod(script_path, 0o644)
+
+      return_code, output = adb.execute_command_with_return_code(
+          shlex.quote(script_path))
+      self.assertEqual(adb.COMMAND_NOT_EXECUTABLE_RETURN_CODE, return_code)
+      self.assertIsNotNone(output)
+
+  def test_emulator_skips_usb_lookup_and_reset(self):
+    """Tests that virtual emulator and TCP serials bypass host USB operations."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command_with_return_code',
+    ])
+    for os_override, serial in [('ANDROID_EMULATOR', 'emulator-5554'),
+                                ('ANDROID',
+                                 '127.0.0.1:6520'), ('ANDROID_EMULATOR', '')]:
+      os.environ['OS_OVERRIDE'] = os_override
+      os.environ['ANDROID_SERIAL'] = serial
+      self.assertIsNone(adb.get_device_path())
+      self.assertTrue(adb.reset_usb())
+
+    os.environ['OS_OVERRIDE'] = 'ANDROID'
+    os.environ.pop('ANDROID_SERIAL', None)
+    self.assertIsNone(adb.get_device_path())
+    self.mock.execute_command_with_return_code.assert_not_called()
+
+  def test_emulator_override_with_physical_usb_serial_preserves_usb_lookup(
+      self):
+    """Tests that physical USB serials still resolve USB paths under ANDROID_EMULATOR."""
+    os.environ['OS_OVERRIDE'] = 'ANDROID_EMULATOR'
+    os.environ['ANDROID_SERIAL'] = 'HT75A0200123'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+    ])
+    self.mock.execute_command.return_value = (
+        'Bus 001 Device 004: ID 18d1:4ee7 Google Inc.\n'
+        '  iSerial                 3 HT75A0200123\n')
+
+    self.assertEqual('/dev/bus/usb/001/004', adb.get_device_path())
+    self.mock.execute_command.assert_called_once()
+
+  def test_physical_device_missing_lsusb_returns_none_without_bad_state(self):
+    """Tests that missing lsusb on a physical host does not trigger bad state."""
+    with tempfile.TemporaryDirectory() as empty_path_dir:
+      os.environ['OS_OVERRIDE'] = 'ANDROID'
+      os.environ['ANDROID_SERIAL'] = 'HT75A0200123'
+      os.environ['PATH'] = empty_path_dir
+      test_helpers.patch(self, [
+          'clusterfuzz._internal.platforms.android.adb.bad_state_reached',
+      ])
+
+      self.assertIsNone(adb.get_device_path())
+      self.mock.bad_state_reached.assert_not_called()
