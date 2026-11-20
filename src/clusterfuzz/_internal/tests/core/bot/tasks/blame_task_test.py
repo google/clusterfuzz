@@ -16,9 +16,11 @@
 
 import json
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.bot.tasks import blame_task
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.core.bot.tasks.component_revision_patching_test import \
     ComponentRevisionPatchingTest
@@ -462,6 +464,58 @@ class PreparePredatorRequestBodyTest(ComponentRevisionPatchingTest):
     actual_message = blame_task._prepare_predator_message(testcase)
     actual_message = json.loads(actual_message.data)
     self.assertDictEqual(actual_message, expected_message)
+
+  def test_android_emulator_platform_normalized_and_platform_id_passed(self):
+    """Test job.platform ANDROID_EMULATOR overrides Linux testcase.platform."""
+    testcase = test_utils.create_generic_testcase()
+    data_types.Job(name=testcase.job_type, platform='ANDROID_EMULATOR').put()
+    testcase.crash_revision = 398287
+    testcase.regression = '398287:399171'
+    testcase.platform = 'linux'
+    testcase.platform_id = 'android_emulator'
+    testcase.put()
+
+    actual_message = blame_task._prepare_predator_message(testcase)
+
+    self.assertIsNotNone(actual_message)
+    self.assertEqual('android', json.loads(actual_message.data)['platform'])
+    self.assertEqual([
+        mock.call(398287, testcase.job_type, platform_id='android_emulator'),
+        mock.call(398287, testcase.job_type, platform_id='android_emulator'),
+        mock.call(399171, testcase.job_type, platform_id='android_emulator'),
+    ], self.mock.get_component_revisions_dict.call_args_list)
+
+    job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
+    job.platform = 'LINUX_WITH_GPU'
+    job.put()
+    gpu_message = blame_task._prepare_predator_message(testcase)
+    self.assertEqual('linux', json.loads(gpu_message.data)['platform'])
+
+  def test_zero_crash_revision_sets_error(self):
+    """Test crash_revision == 0 sets Predator error instead of IndexError."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.crash_revision = 0
+    testcase.regression = 'NA'
+    testcase.put()
+
+    self.assertIsNone(blame_task._prepare_predator_message(testcase))
+    testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    self.assertEqual(
+        'Failed to fetch component revisions for revision 0.',
+        testcase.get_metadata('predator_result')['result']['error_message'])
+
+  def test_missing_src_entry_returns_none(self):
+    """Test non-empty revisions dict without /src returns (None, None)."""
+    with mock.patch(
+        'clusterfuzz._internal.build_management.revisions.'
+        'get_component_revisions_dict',
+        return_value={'v8': {
+            'url': 'https://example/v8',
+            'rev': 'abc'
+        }}):
+      self.assertEqual((None, None),
+                       blame_task._prepare_component_revisions_dict(
+                           123, 'job', platform_id='android_emulator'))
 
 
 class FilterStacktraceTest(unittest.TestCase):
