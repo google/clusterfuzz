@@ -32,6 +32,8 @@ message SetupInput {
 
 message AnalyzeTaskInput {
   repeated int64 bad_revisions = 1;
+  optional string stacktrace_blob_name = 2;
+  optional string stacktrace_upload_url = 3;
 }
 
 message SymbolizeTaskInput {
