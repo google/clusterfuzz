@@ -439,3 +439,109 @@ class RedoTestcaseSwarmingTest(unittest.TestCase):
     testcase = self.testcase.key.get()
     self.assertTrue(testcase.get_metadata('potentially_flaky'))
     self.assertEqual(testcase.comments, original_comments)
+
+
+@test_utils.with_cloud_emulators('datastore', 'pubsub')
+class OsVersionedTopicAndSubscriptionIntegrationTest(unittest.TestCase):
+  """End-to-end Pub/Sub emulator tests for OS-versioned worker routing."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.persistent_cache.get_value',
+        'clusterfuzz._internal.base.persistent_cache.set_value',
+        'clusterfuzz._internal.base.tasks.full_utask_task_model',
+        'clusterfuzz._internal.base.utils.utcnow',
+        'time.sleep',
+    ])
+    self.mock.get_value.return_value = None
+    self.mock.full_utask_task_model.return_value = False
+    self.mock.sleep.return_value = None
+    self.mock.utcnow.return_value = test_utils.CURRENT_TIME.replace(
+        microsecond=0)
+
+    os.environ['OS_OVERRIDE'] = 'LINUX'
+    os.environ['BASE_OS_VERSION'] = 'ubuntu-24-04'
+    os.environ['THREAD_MULTIPLIER'] = '1'
+    os.environ['FAIL_WAIT'] = '1'
+
+    data_types.Job(
+        name='libfuzzer_asan_g3_u24',
+        platform='LINUX',
+        base_os_version='ubuntu-24-04').put()
+
+    self.client = pubsub.PubSubClient()
+    jobs_topic = pubsub.topic_name('test-clusterfuzz', 'jobs-linux')
+    self.client.create_topic(jobs_topic)
+    self.client.create_subscription(
+        pubsub.subscription_name('test-clusterfuzz', 'jobs-linux-ubuntu-24-04'),
+        jobs_topic)
+
+    high_end_topic = pubsub.topic_name('test-clusterfuzz',
+                                       'high-end-jobs-linux')
+    self.client.create_topic(high_end_topic)
+    self.client.create_subscription(
+        pubsub.subscription_name('test-clusterfuzz',
+                                 'high-end-jobs-linux-ubuntu-24-04'),
+        high_end_topic)
+
+  def test_add_task_with_none_queue_publishes_to_base_topic_and_pulls_u24(self):
+    """Tests queue=None publishes to topics/jobs-linux and pulls from u24 sub."""
+    tasks.add_task('minimize', '555', 'libfuzzer_asan_g3_u24', wait_time=0)
+
+    pulled = tasks.get_task()
+    self.assertIsNotNone(pulled)
+    self.assertEqual('minimize', pulled.command)
+    self.assertEqual('555', pulled.argument)
+    self.assertEqual('libfuzzer_asan_g3_u24', pulled.job)
+    self.assertEqual('jobs-linux', pulled.queue)
+    self.assertEqual({'base_os_version': 'ubuntu-24-04'}, pulled.extra_info)
+
+  def test_high_end_worker_publishes_to_base_high_end_topic_and_pulls_u24(self):
+    """Tests THREAD_MULTIPLIER>1 worker publishes to base high-end topic."""
+    os.environ['THREAD_MULTIPLIER'] = '4'
+
+    tasks.add_task('regression', '777', 'libfuzzer_asan_g3_u24', wait_time=0)
+
+    pulled = tasks.get_task()
+    self.assertIsNotNone(pulled)
+    self.assertEqual('regression', pulled.command)
+    self.assertEqual('high-end-jobs-linux', pulled.queue)
+    self.assertTrue(pulled.high_end)
+    self.assertEqual({'base_os_version': 'ubuntu-24-04'}, pulled.extra_info)
+
+  def test_explicit_suffixed_queue_is_normalized_to_base_topic(self):
+    """Tests passing a suffixed subscription name still publishes to base topic."""
+    tasks.add_task(
+        'progression',
+        '888',
+        'libfuzzer_asan_g3_u24',
+        queue='jobs-linux-ubuntu-24-04',
+        wait_time=0)
+
+    pulled = tasks.get_task()
+    self.assertIsNotNone(pulled)
+    self.assertEqual('progression', pulled.command)
+    self.assertEqual('888', pulled.argument)
+    self.assertEqual('jobs-linux', pulled.queue)
+
+  def test_u24_worker_requeuing_legacy_job_delivers_to_unsuffixed_subscription(
+      self):
+    """Tests U24 worker publishing a legacy job routes to unsuffixed jobs-linux."""
+    data_types.Job(
+        name='libfuzzer_asan_legacy_u20',
+        platform='LINUX',
+        base_os_version=None).put()
+    self.client.create_subscription(
+        pubsub.subscription_name('test-clusterfuzz', 'jobs-linux'),
+        pubsub.topic_name('test-clusterfuzz', 'jobs-linux'))
+
+    tasks.add_task('minimize', '999', 'libfuzzer_asan_legacy_u20', wait_time=0)
+
+    os.environ['BASE_OS_VERSION'] = ''
+    pulled = tasks.get_task()
+    self.assertIsNotNone(pulled)
+    self.assertEqual('minimize', pulled.command)
+    self.assertEqual('999', pulled.argument)
+    self.assertEqual('jobs-linux', pulled.queue)
+    self.assertEqual({}, pulled.extra_info)
