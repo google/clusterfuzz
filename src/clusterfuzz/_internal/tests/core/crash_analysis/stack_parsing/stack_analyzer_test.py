@@ -13,7 +13,11 @@
 # limitations under the License.
 """Tests for the stack analyzer module."""
 
+import contextlib
 import os
+import signal
+import threading
+import time
 import unittest
 
 from clusterfuzz._internal.bot.fuzzers.centipede.engine import \
@@ -26,6 +30,38 @@ from clusterfuzz.stacktraces import StackParser
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'stack_analyzer_data')
 TEST_JOB_NAME = 'test'
+
+
+class _CpuTimeLimitExceeded(BaseException):
+  """Raised from SIGVTALRM handler so `except Exception:` cannot swallow it."""
+
+
+@contextlib.contextmanager
+def _cpu_time_limit(seconds):
+  """Fails the test if user CPU time exceeds `seconds` on POSIX main thread."""
+  if (not hasattr(signal, 'SIGVTALRM') or
+      not hasattr(signal, 'ITIMER_VIRTUAL') or
+      threading.current_thread() is not threading.main_thread()):
+    yield
+    return
+
+  def _handle_timeout(signum, frame):
+    del signum, frame
+    raise _CpuTimeLimitExceeded()
+
+  previous_handler = signal.signal(signal.SIGVTALRM, _handle_timeout)
+  try:
+    try:
+      signal.setitimer(signal.ITIMER_VIRTUAL, seconds)
+      yield
+    finally:
+      try:
+        signal.setitimer(signal.ITIMER_VIRTUAL, 0)
+      finally:
+        signal.signal(signal.SIGVTALRM, previous_handler)
+  except _CpuTimeLimitExceeded as exc:
+    raise AssertionError(
+        f'Stack parsing exceeded {seconds}s of user CPU time') from exc
 
 
 class StackAnalyzerTestcase(unittest.TestCase):
@@ -4040,6 +4076,33 @@ class StackAnalyzerTestcase(unittest.TestCase):
     well crafted input."""
     stacktrace = "S text\n" + " 42 " * 100000 + "j text\n"
     StackParser.split_stacktrace(stacktrace)
+
+  def test_parse_long_line_no_dos(self):
+    """Tests that parsing a single long line scales sub-quadratically."""
+    parser = StackParser(detect_v8_runtime_errors=True)
+
+    def _measure_min_cpu_time(stacktrace):
+      best = float('inf')
+      for _ in range(3):
+        start = time.process_time()
+        with _cpu_time_limit(5):
+          actual_state = parser.parse(stacktrace)
+        best = min(best, time.process_time() - start)
+        self.assertEqual(actual_state.crash_type, '')
+      return best
+
+    payloads = (
+        ('letters', lambda n: 'a' * n),
+        ('digits_and_spaces', lambda n: ('0' * (n // 2)) + (' ' * (n // 2))),
+    )
+    for label, build_body in payloads:
+      with self.subTest(payload=label):
+        small_input = f'ReferenceError: {build_body(1000)} is not defined\n'
+        large_input = f'ReferenceError: {build_body(100000)} is not defined\n'
+        small_time = _measure_min_cpu_time(small_input)
+        large_time = _measure_min_cpu_time(large_input)
+        # 100x larger input should grow far less than 10,000x (O(N^2)).
+        self.assertLess(large_time, max(small_time, 1e-4) * 1000)
 
   def test_jazzer_js_javascript(self):
     """Test Jazzer.js JS stacktrace."""
