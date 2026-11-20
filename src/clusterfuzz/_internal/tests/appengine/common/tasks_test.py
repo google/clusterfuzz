@@ -410,32 +410,26 @@ class RedoTestcaseSwarmingTest(unittest.TestCase):
     self.testcase.set_metadata('blame_pending', False, update_testcase=False)
     self.testcase.put()
 
-  def test_redo_supported_task_succeeds_when_swarming_enabled(self):
-    """Tests that supported redo tasks still run on Swarming jobs."""
+  def test_redo_schedules_impact_and_blame_when_swarming_enabled(self):
+    """Tests that redoing impact and blame schedules them on Swarming jobs."""
     data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
 
-    tasks.redo_testcase(self.testcase, ['minimize'], 'user@example.com')
+    tasks.redo_testcase(self.testcase, ['impact', 'blame'], 'user@example.com')
 
-    self.mock.add_task.assert_called_once_with(
-        'minimize',
-        self.testcase.key.id(),
-        'android_emu_swarming',
-        queue='jobs-android-emulator',
-        wait_time=0)
+    self.assertEqual([
+        mock.call(
+            'impact',
+            self.testcase.key.id(),
+            'android_emu_swarming',
+            'jobs-android-emulator',
+            wait_time=0),
+        mock.call(
+            'blame',
+            self.testcase.key.id(),
+            'android_emu_swarming',
+            'jobs-android-emulator',
+            wait_time=0),
+    ], self.mock.add_task.call_args_list)
     testcase = self.testcase.key.get()
-    self.assertTrue(testcase.is_impact_set_flag)
-    self.assertFalse(testcase.get_metadata('blame_pending'))
-
-  def test_redo_rejects_impact_and_blame_when_swarming_enabled(self):
-    """Tests that redoing impact or blame on a Swarming job raises InvalidRedoTask."""
-    data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
-    original_comments = self.testcase.comments
-
-    with self.assertRaises(tasks.InvalidRedoTask):
-      tasks.redo_testcase(self.testcase, ['minimize', 'impact', 'blame'],
-                          'user@example.com')
-
-    self.mock.add_task.assert_not_called()
-    testcase = self.testcase.key.get()
-    self.assertTrue(testcase.get_metadata('potentially_flaky'))
-    self.assertEqual(testcase.comments, original_comments)
+    self.assertFalse(testcase.is_impact_set_flag)
+    self.assertTrue(testcase.get_metadata('blame_pending'))

@@ -395,8 +395,10 @@ class TestCheckRunningFuzzerSafe(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_running_on_swarming',
         'clusterfuzz._internal.system.environment.is_uworker',
     ])
+    self.mock.is_running_on_swarming.return_value = False
     self.fuzzer = mock.MagicMock(spec=data_types.Fuzzer)
     self.fuzzer.name = 'test_fuzzer'
 
@@ -411,6 +413,14 @@ class TestCheckRunningFuzzerSafe(unittest.TestCase):
     self.mock.is_uworker.return_value = True
     self.assertTrue(uworker_io.check_running_fuzzer_safe(self.fuzzer))
 
+  def test_untrusted_fuzzer_swarming_uworker_raises(self):
+    """Test that untrusted fuzzer on Swarming uworker raises SystemExit."""
+    self.fuzzer.trusted = False
+    self.mock.is_uworker.return_value = True
+    self.mock.is_running_on_swarming.return_value = True
+    with self.assertRaises(SystemExit):
+      uworker_io.check_running_fuzzer_safe(self.fuzzer)
+
   def test_untrusted_fuzzer_not_uworker_raises(self):
     """Test that untrusted fuzzer not on uworker raises SystemExit."""
     self.fuzzer.trusted = False
@@ -424,8 +434,10 @@ class TestCheckRunningTestcaseSafe(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_running_on_swarming',
         'clusterfuzz._internal.system.environment.is_uworker',
     ])
+    self.mock.is_running_on_swarming.return_value = False
     self.testcase = mock.MagicMock(spec=data_types.Testcase)
     self.testcase.name = 'test_testcase'
 
@@ -439,6 +451,14 @@ class TestCheckRunningTestcaseSafe(unittest.TestCase):
     self.testcase.trusted = False
     self.mock.is_uworker.return_value = True
     self.assertTrue(uworker_io.check_handling_testcase_safe(self.testcase))
+
+  def test_untrusted_testcase_swarming_uworker_raises(self):
+    """Test that untrusted testcase on Swarming uworker raises SystemExit."""
+    self.testcase.trusted = False
+    self.mock.is_uworker.return_value = True
+    self.mock.is_running_on_swarming.return_value = True
+    with self.assertRaises(SystemExit):
+      uworker_io.check_handling_testcase_safe(self.testcase)
 
   def test_untrusted_testcase_not_uworker_raises(self):
     """Test that untrusted testcase not on uworker raises SystemExit."""

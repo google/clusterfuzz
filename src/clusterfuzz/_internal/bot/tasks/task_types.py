@@ -51,7 +51,7 @@ class TrustedTask(BaseTask):
   def execute(self, task_argument, job_type, uworker_env):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
-    assert not environment.is_tworker()
+    assert not environment.is_uworker()
     task_utils.reset_task_stage_env()
 
     task_command = task_utils.get_command_from_module(self.module.__name__)
@@ -100,6 +100,8 @@ class BaseUTask(BaseTask):
 
 def is_no_privilege_workload(command, job):
   if not COMMAND_TYPES[command].is_execution_remote(command):
+    return False
+  if swarming.is_swarming_job(job):
     return False
   return batch_service.is_remote_task(command, job)
 

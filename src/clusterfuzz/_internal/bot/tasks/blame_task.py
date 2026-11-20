@@ -125,13 +125,17 @@ def _filter_stacktrace(stacktrace):
   return '\n'.join(reversed(filtered_stacktrace_lines))
 
 
-def _prepare_component_revisions_dict(revision, job_type):
+def _prepare_component_revisions_dict(revision, job_type, platform_id=None):
   """Get a component revisions dict and git sha for a revision and job type.
 
   Revision is expected to be a commit position."""
-  revisions_dict = revisions.get_component_revisions_dict(revision, job_type)
+  revisions_dict = revisions.get_component_revisions_dict(
+      revision, job_type, platform_id=platform_id)
   if not revisions_dict:
     return revisions_dict, None
+
+  if '/src' not in revisions_dict:
+    return None, None
 
   # Other code depends on the "/" prefix, but it doesn't match the DEPS format
   # that we would usually expect. Clean these values up before sending to
@@ -168,9 +172,10 @@ def _prepare_predator_message(testcase):
     return None
 
   crash_revisions_dict, crash_revision_hash = _prepare_component_revisions_dict(
-      testcase.crash_revision, testcase.job_type)
-  # Do a None check since we can return {} for revision = 0.
-  if crash_revisions_dict is None:
+      testcase.crash_revision,
+      testcase.job_type,
+      platform_id=testcase.platform_id)
+  if not crash_revisions_dict:
     _set_predator_result_with_error(
         testcase, 'Failed to fetch component revisions for revision %s.' %
         testcase.crash_revision)
@@ -184,7 +189,9 @@ def _prepare_predator_message(testcase):
     end_revision = int(regression_parts[1])
 
     start_revisions_dict, start_revision_hash = (
-        _prepare_component_revisions_dict(start_revision, testcase.job_type))
+        _prepare_component_revisions_dict(
+            start_revision, testcase.job_type,
+            platform_id=testcase.platform_id))
     # Do a None check since we can return {} for revision = 0.
     if start_revisions_dict is None:
       _set_predator_result_with_error(
@@ -193,9 +200,9 @@ def _prepare_predator_message(testcase):
       return None
 
     end_revisions_dict, end_revision_hash = (
-        _prepare_component_revisions_dict(end_revision, testcase.job_type))
-    # Do a None check since we can return {} for revision = 0.
-    if end_revisions_dict is None:
+        _prepare_component_revisions_dict(
+            end_revision, testcase.job_type, platform_id=testcase.platform_id))
+    if not end_revisions_dict:
       _set_predator_result_with_error(
           testcase,
           'Failed to fetch component revisions for revision %s.' % end_revision)
@@ -240,6 +247,19 @@ def _prepare_predator_message(testcase):
   }
 
   crash_stacktrace = _filter_stacktrace(data_handler.get_stacktrace(testcase))
+  job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
+  platform = (
+      job.platform.lower() if job and job.platform else testcase.platform)
+  if platform:
+    platform = platform.split(':', 1)[0]
+    if environment.is_android(platform.upper()):
+      platform = 'android'
+    elif platform.startswith('linux'):
+      platform = 'linux'
+    elif platform.startswith('windows'):
+      platform = 'windows'
+    elif platform.startswith('mac'):
+      platform = 'mac'
 
   return pubsub.Message(
       data=json.dumps({
@@ -256,7 +276,7 @@ def _prepare_predator_message(testcase):
               'job_type': testcase.job_type,
               'testcase_id': testcase.key.id()
           },
-          'platform': testcase.platform,
+          'platform': platform,
           'client_id': 'clusterfuzz',
           'signature': testcase.crash_state,
       }).encode('utf-8'))

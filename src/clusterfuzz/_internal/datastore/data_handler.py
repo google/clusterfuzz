@@ -967,9 +967,7 @@ def is_impact_required(testcase):
   """Return whether an impact task is expected to run on a testcase."""
   # Only require impact if it is feasible to run it. Don't require it if not
   # (when regression fails).
-  # TODO(crbug.com/582825425): Require impact for Swarming jobs once supported.
-  return (testcase.regression != 'NA' and
-          not swarming.is_swarming_applicable(testcase.job_type))
+  return testcase.regression != 'NA'
 
 
 def critical_tasks_completed(testcase):
@@ -1255,7 +1253,8 @@ def get_trusted_job_names() -> list[str]:
 
   return sorted(job.name
                 for job in data_types.Job.query()
-                if (job.platform or '').lower() != 'linux')
+                if (job.platform or '').lower() != 'linux' or
+                swarming.is_swarming_job(job.name, job=job))
 
 
 def check_job_supports_untrusted_workloads(job_name: str,
@@ -1272,6 +1271,13 @@ def check_job_supports_untrusted_workloads(job_name: str,
 
   if not _restrict_untrusted_workloads():
     return
+
+  # Swarming bots reuse hosts across tasks without per-task VM teardown, so
+  # Swarming jobs must never run untrusted workloads even on Linux.
+  if swarming.is_swarming_job(job_name, job=job):
+    raise ValueError(
+        f'Job "{job_name}" does not support running untrusted workloads. '
+        'Swarming jobs only support trusted workloads.')
 
   # In remote mode, unprivileged uworkers (where untrusted code must run) are
   # implemented as Linux containers. Thus, non-Linux jobs cannot support

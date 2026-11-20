@@ -233,6 +233,24 @@ def _allow_unprivileged_metadata(testcase_metadata):
       testcase_metadata) == 2 and 'skip_minimization' in testcase_metadata
 
 
+def _is_linux_platform(platform_name):
+  """Returns whether a job or override platform name resolves to LINUX."""
+  if not platform_name:
+    return False
+  return environment.base_platform(platform_name.strip()).upper() == 'LINUX'
+
+
+def _allow_unprivileged_additional_arguments(job, platform_id, trusted):
+  """Returns whether a non-privileged user may supply custom CLI arguments."""
+  if utils.is_oss_fuzz() or trusted:
+    return False
+  if not _is_linux_platform(job.platform):
+    return False
+  if platform_id and not _is_linux_platform(platform_id):
+    return False
+  return access.has_access(need_privileged_access=False)
+
+
 class Handler(base_handler.Handler):
   """Handler for the testcase uploads page."""
 
@@ -490,6 +508,9 @@ class UploadHandlerCommon:
     bundled = False
     file_path_input = ''
 
+    if additional_arguments and not additional_arguments.strip():
+      additional_arguments = ''
+
     # Certain modifications such as app launch command, issue updates are only
     # allowed for privileged users.
     if not privileged_user:
@@ -507,6 +528,12 @@ class UploadHandlerCommon:
       if app_launch_command:
         raise helpers.EarlyExitError(
             'You are not privileged to run arbitrary launch commands.', 400)
+
+      if (additional_arguments and not _allow_unprivileged_additional_arguments(
+          job, platform_id, trusted)):
+        raise helpers.EarlyExitError(
+            'You are not privileged to run arbitrary command-line arguments.',
+            400)
 
       if (testcase_metadata and
           not _allow_unprivileged_metadata(testcase_metadata)):
@@ -580,6 +607,7 @@ class UploadHandlerCommon:
           metadata.fuzzer_name = fuzzer_name
           metadata.overridden_fuzzer_name = fully_qualified_fuzzer_name
           metadata.fuzzer_binary_name = target_name
+          metadata.trusted = trusted
           metadata.put()
 
           # Use wait_time=0 to execute the task ASAP, since it is
@@ -796,6 +824,14 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
       helpers.log(message.data.decode(), helpers.VIEW_OPERATION)
       uploaded_file_key = message_data['fuzzed_key']
       uploaded_file = blobs.get_blob_info(uploaded_file_key)
+      is_trusted = False
+      if fuzzer:
+        if fuzzer in fuzzing.ENGINES:
+          is_trusted = True
+        else:
+          fuzzer_entity = data_types.Fuzzer.query(
+              data_types.Fuzzer.name == fuzzer).get()
+          is_trusted = bool(fuzzer_entity and fuzzer_entity.trusted)
       try:
         response = self._handle_upload(
             uploaded_file=uploaded_file,
@@ -807,7 +843,8 @@ class CrashReplicationUploadHandler(base_handler.Handler, UploadHandlerCommon):
                                                 None),
             gestures=message_data.get('gestures', '[]'),
             http_flag=message_data.get('http_flag', None),
-            platform_id='Linux',
+            platform_id=None,
+            trusted_agreement_signed=is_trusted,
         )
         monitoring_metrics.UPLOAD_TESTCASE_COUNT.increment({
             'fuzzer': fuzzer,

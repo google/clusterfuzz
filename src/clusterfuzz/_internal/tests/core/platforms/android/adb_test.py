@@ -14,6 +14,7 @@
 """Tests for adb functions."""
 
 import os
+import shlex
 import tempfile
 import unittest
 from unittest import mock
@@ -303,3 +304,208 @@ class ResetSafetyTest(unittest.TestCase):
     self.mock.run_shell_command.assert_called_once()
     self.assertIn('android.intent.action.MASTER_CLEAR',
                   self.mock.run_shell_command.call_args[0][0])
+
+
+class CommandExecutionSafetyTest(unittest.TestCase):
+  """Tests that host subprocess execution does not evaluate shell syntax."""
+
+  def setUp(self):
+    super().setUp()
+    test_helpers.patch_environ(self)
+
+  def test_execute_command_does_not_evaluate_host_shell_substitutions(self):
+    """Tests that $(...) metacharacters are passed literally, not executed."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+      canary_path = os.path.join(temp_dir, 'canary')
+      return_code, output = adb.execute_command_with_return_code(
+          f'/bin/echo "$(touch {canary_path})"')
+      self.assertEqual(0, return_code)
+      self.assertEqual(f'$(touch {canary_path})', output)
+      self.assertFalse(os.path.exists(canary_path))
+
+  def test_cuttlefish_ssh_builds_argv_without_host_shell(self):
+    """Tests that Cuttlefish SSH commands build an explicit argv list."""
+    os.environ['OS_OVERRIDE'] = 'ANDROID_CUTTLEFISH'
+    os.environ['CVD_HOST_IP'] = '127.0.0.1'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_android_cuttlefish',
+        'clusterfuzz._internal.platforms.android.adb.get_cuttlefish_ssh_target',
+    ])
+    self.mock.is_android_cuttlefish.return_value = True
+    self.mock.get_cuttlefish_ssh_target.return_value = 'vsoc-01@127.0.0.1'
+
+    argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        'rm -rf /tmp/cvd/*',
+        on_cuttlefish_host=True)
+    self.assertEqual([
+        'ssh', '-o', 'StrictHostKeyChecking=no', 'vsoc-01@127.0.0.1',
+        'rm -rf /tmp/cvd/*'
+    ], argv)
+
+  def test_local_cuttlefish_host_uses_explicit_bash_c(self):
+    """Tests that on_cuttlefish_host=True outside remote CVD uses bash -c."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.system.environment.is_android_cuttlefish',
+    ])
+    self.mock.is_android_cuttlefish.return_value = False
+    argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        'ulimit -n 1048576 && /cvd/bin/launch_cvd',
+        on_cuttlefish_host=True)
+    self.assertEqual(
+        ['/bin/bash', '-c', 'ulimit -n 1048576 && /cvd/bin/launch_cvd'], argv)
+
+  def test_execute_command_timeout_kills_process_and_returns_none(self):
+    """Tests that execute_command_with_return_code returns (None, None) on timeout."""
+    return_code, output = adb.execute_command_with_return_code(
+        '/bin/sleep 5', timeout=0.05)
+    self.assertIsNone(return_code)
+    self.assertIsNone(output)
+
+  def test_write_command_line_file_and_system_remount_quoting(self):
+    """Tests write_command_line_file and /system path remount quoting."""
+    os.environ['ADB'] = '/usr/bin/adb'
+    os.environ['ANDROID_SERIAL'] = 'emulator-5554'
+    os.environ['COMMAND_LINE_PATH'] = '/system/etc/chrome-command-line'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+        'clusterfuzz._internal.platforms.android.adb.remount',
+        'clusterfuzz._internal.platforms.android.adb.reboot',
+        'clusterfuzz._internal.platforms.android.adb.wait_until_fully_booted',
+    ])
+    self.mock.execute_command.return_value = ''
+
+    adb.write_data_to_file(
+        'chrome --js-flags="$(id)" `uname`',
+        '/system/etc/chrome-command-line',
+        should_reboot=False)
+    self.mock.remount.assert_called_once()
+    self.mock.reboot.assert_not_called()
+    self.assertEqual(3, self.mock.execute_command.call_count)
+    remount_ro_cmd = self.mock.execute_command.call_args_list[2][0][0]
+    remount_argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        remount_ro_cmd,
+        on_cuttlefish_host=False)
+    self.assertEqual([
+        '/usr/bin/adb', '-s', 'emulator-5554', 'shell',
+        "su root sh -c 'mount -o ro,remount /system'"
+    ], remount_argv)
+
+  def test_write_data_to_file_quotes_metacharacters(self):
+    """Tests that write_data_to_file shell-quotes contents and file_path."""
+    os.environ['ADB'] = '/usr/bin/adb'
+    os.environ['ANDROID_SERIAL'] = 'emulator-5554'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+    ])
+    self.mock.execute_command.return_value = ''
+    adb.write_data_to_file("chrome --flag='x' $(id)",
+                           '/data/local/tmp/cmd $(id)')
+    first_host_cmd = self.mock.execute_command.call_args_list[0][0][0]
+    second_host_cmd = self.mock.execute_command.call_args_list[1][0][0]
+    first_argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        first_host_cmd,
+        on_cuttlefish_host=False)
+    second_argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        second_host_cmd,
+        on_cuttlefish_host=False)
+    self.assertEqual(['/usr/bin/adb', '-s', 'emulator-5554', 'shell'],
+                     first_argv[:4])
+    self.assertIn("printf %s 'chrome --flag='\"'\"'x'\"'\"' $(id)'",
+                  first_argv[4])
+    self.assertEqual([
+        '/usr/bin/adb', '-s', 'emulator-5554', 'shell',
+        'su root sh -c \'chmod 0644 \'"\'"\'/data/local/tmp/cmd $(id)\'"\'"\'\''
+    ], second_argv)
+
+  def test_remove_file_and_malformed_command_handling(self):
+    """Tests device path quoting in remove_file and malformed quote handling."""
+    os.environ['ADB'] = '/usr/bin/adb'
+    os.environ['ANDROID_SERIAL'] = 'emulator-5554'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+    ])
+    self.mock.execute_command.return_value = ''
+    adb.remove_file('/data/local/tmp/bad $(id)')
+    rm_argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        self.mock.execute_command.call_args[0][0],
+        on_cuttlefish_host=False)
+    self.assertEqual([
+        '/usr/bin/adb', '-s', 'emulator-5554', 'shell',
+        'su root sh -c \'rm -f \'"\'"\'/data/local/tmp/bad $(id)\'"\'"\'\''
+    ], rm_argv)
+
+    return_code, output = adb.execute_command_with_return_code('echo "unclosed')
+    self.assertEqual(adb.MALFORMED_COMMAND_RETURN_CODE, return_code)
+    self.assertIn('No closing quotation', output)
+    empty_code, empty_out = adb.execute_command_with_return_code('   ')
+    self.assertEqual(0, empty_code)
+    self.assertEqual('', empty_out)
+
+  def test_execute_command_missing_binary_returns_127_and_error_output(self):
+    """Tests that a missing host binary returns exit code 127 without raising."""
+    missing_cmd = '/nonexistent_clusterfuzz_bin/lsusb -v'
+    return_code, output = adb.execute_command_with_return_code(missing_cmd)
+    self.assertEqual(adb.COMMAND_NOT_FOUND_RETURN_CODE, return_code)
+    self.assertIsNotNone(output)
+    self.assertIn('lsusb', output)
+    self.assertIsNotNone(adb.execute_command(missing_cmd))
+
+  def test_execute_command_non_executable_file_returns_126_and_error_output(
+      self):
+    """Tests that a non-executable host file returns exit code 126."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+      script_path = os.path.join(temp_dir, 'non_executable.sh')
+      with open(script_path, 'w') as script_file:
+        script_file.write('#!/bin/sh\necho ok\n')
+      os.chmod(script_path, 0o644)
+
+      return_code, output = adb.execute_command_with_return_code(
+          shlex.quote(script_path))
+      self.assertEqual(adb.COMMAND_NOT_EXECUTABLE_RETURN_CODE, return_code)
+      self.assertIsNotNone(output)
+
+  def test_emulator_skips_usb_lookup_and_reset(self):
+    """Tests that virtual emulator and TCP serials bypass host USB operations."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command_with_return_code',
+    ])
+    for os_override, serial in [('ANDROID_EMULATOR', 'emulator-5554'),
+                                ('ANDROID',
+                                 '127.0.0.1:6520'), ('ANDROID_EMULATOR', '')]:
+      os.environ['OS_OVERRIDE'] = os_override
+      os.environ['ANDROID_SERIAL'] = serial
+      self.assertIsNone(adb.get_device_path())
+      self.assertTrue(adb.reset_usb())
+
+    os.environ['OS_OVERRIDE'] = 'ANDROID'
+    os.environ.pop('ANDROID_SERIAL', None)
+    self.assertIsNone(adb.get_device_path())
+    self.mock.execute_command_with_return_code.assert_not_called()
+
+  def test_emulator_override_with_physical_usb_serial_preserves_usb_lookup(
+      self):
+    """Tests that physical USB serials still resolve USB paths under ANDROID_EMULATOR."""
+    os.environ['OS_OVERRIDE'] = 'ANDROID_EMULATOR'
+    os.environ['ANDROID_SERIAL'] = 'HT75A0200123'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+    ])
+    self.mock.execute_command.return_value = (
+        'Bus 001 Device 004: ID 18d1:4ee7 Google Inc.\n'
+        '  iSerial                 3 HT75A0200123\n')
+
+    self.assertEqual('/dev/bus/usb/001/004', adb.get_device_path())
+    self.mock.execute_command.assert_called_once()
+
+  def test_physical_device_missing_lsusb_returns_none_without_bad_state(self):
+    """Tests that missing lsusb on a physical host does not trigger bad state."""
+    with tempfile.TemporaryDirectory() as empty_path_dir:
+      os.environ['OS_OVERRIDE'] = 'ANDROID'
+      os.environ['ANDROID_SERIAL'] = 'HT75A0200123'
+      os.environ['PATH'] = empty_path_dir
+      test_helpers.patch(self, [
+          'clusterfuzz._internal.platforms.android.adb.bad_state_reached',
+      ])
+
+      self.assertIsNone(adb.get_device_path())
+      self.mock.bad_state_reached.assert_not_called()

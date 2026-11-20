@@ -196,7 +196,9 @@ def can_user_access_testcase(testcase):
       _is_trusted_domain_user(auth.get_current_user()))
   for issue in issues_to_check:
     if relaxed_restrictions:
-      if (any(utils.emails_equal(user_email, cc) for cc in issue.ccs) or
+      if (any(utils.emails_equal(user_email, cc) for cc in issue.ccs) or any(
+          utils.emails_equal(user_email, collab)
+          for collab in issue.collaborators) or
           utils.emails_equal(user_email, issue.assignee) or
           utils.emails_equal(user_email, issue.reporter)):
         return True

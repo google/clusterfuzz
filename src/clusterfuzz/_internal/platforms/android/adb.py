@@ -16,6 +16,7 @@
 import collections
 import os
 import re
+import shlex
 import signal
 import socket
 import subprocess
@@ -53,6 +54,9 @@ GET_DEVICE_STATE_TIMEOUT = 20
 STOP_CVD_WAIT = 20
 LAUNCH_CVD_TIMEOUT = 2700
 CMD_KILL_CROSVM = 'pkill crosvm'
+MALFORMED_COMMAND_RETURN_CODE = 2
+COMMAND_NOT_EXECUTABLE_RETURN_CODE = 126
+COMMAND_NOT_FOUND_RETURN_CODE = 127
 
 # Output patterns to parse "lsusb" output.
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
@@ -129,29 +133,38 @@ def execute_command_with_return_code(cmd: str,
                                      timeout: int | None = None,
                                      on_cuttlefish_host: bool = False
                                     ) -> tuple[int | None, str | None]:
-  """Spawns a subprocess to run the given shell command.
+  """Spawns a subprocess to run the given command without host shell expansion.
 
   Returns:
     A (return_code, output) tuple. Both values are None if the command timed
     out.
   """
-  if on_cuttlefish_host and environment.is_android_cuttlefish():
-    # Auto accept key fingerprint for ssh command.
-    cmd = ('ssh -o StrictHostKeyChecking=no '
-           f'{get_cuttlefish_ssh_target()} "{cmd}"')
+  try:
+    argv = _build_host_command_args(cmd, on_cuttlefish_host)
+  except ValueError as error:
+    logs.warning('Failed to parse command %s: %s' % (cmd, error))
+    return MALFORMED_COMMAND_RETURN_CODE, str(error)
+  if not argv:
+    return 0, ''
 
   so = []
   # pylint: disable=consider-using-with
   output_dest = tempfile.TemporaryFile()
-  # pylint: disable=subprocess-popen-preexec-fn,consider-using-with
-  pipe = subprocess.Popen(
-      cmd,
-      executable='/bin/bash',
-      stdout=output_dest,
-      stderr=subprocess.STDOUT,
-      shell=True,
-      preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL),
-      bufsize=0)
+  try:
+    # pylint: disable=subprocess-popen-preexec-fn,consider-using-with
+    pipe = subprocess.Popen(
+        argv,
+        stdout=output_dest,
+        stderr=subprocess.STDOUT,
+        shell=False,
+        preexec_fn=lambda: signal.signal(signal.SIGPIPE, signal.SIG_DFL),
+        bufsize=0)
+  except OSError as error:
+    output_dest.close()
+    return_code = _return_code_for_spawn_error(error)
+    logs.warning(
+        '%s returned %d error code.' % (cmd, return_code), output=str(error))
+    return return_code, str(error)
 
   def run():
     """Thread target function that waits for subprocess to complete."""
@@ -183,6 +196,25 @@ def execute_command_with_return_code(cmd: str,
 
   bytes_output = b''.join(so)
   return pipe.returncode, bytes_output.strip().decode('utf-8', errors='ignore')
+
+
+def _build_host_command_args(cmd: str, on_cuttlefish_host: bool) -> list[str]:
+  """Builds argv for host subprocess execution without a host shell."""
+  if on_cuttlefish_host and environment.is_android_cuttlefish():
+    return [
+        'ssh', '-o', 'StrictHostKeyChecking=no',
+        get_cuttlefish_ssh_target(), cmd
+    ]
+  if on_cuttlefish_host:
+    return ['/bin/bash', '-c', cmd]
+  return shlex.split(cmd)
+
+
+def _return_code_for_spawn_error(error: OSError) -> int:
+  """Maps a host subprocess spawn OSError to its POSIX shell exit code."""
+  if isinstance(error, FileNotFoundError):
+    return COMMAND_NOT_FOUND_RETURN_CODE
+  return COMMAND_NOT_EXECUTABLE_RETURN_CODE
 
 
 def copy_to_cuttlefish(src_path, dest_path, timeout=None):
@@ -543,14 +575,14 @@ def restart_adb():
 
 def remove_directory(device_directory, recreate=False):
   """Delete everything inside of a device directory and recreate if needed."""
-  run_shell_command('rm -rf %s' % device_directory, root=True)
+  run_shell_command(f'rm -rf {shlex.quote(device_directory)}', root=True)
   if recreate:
     create_directory_if_needed(device_directory)
 
 
 def remove_file(file_path):
   """Remove file."""
-  run_shell_command('rm -f %s' % file_path, root=True)
+  run_shell_command(f'rm -f {shlex.quote(file_path)}', root=True)
 
 
 def reset_device_connection():
@@ -641,10 +673,11 @@ def get_device_path():
         open('/sys/bus/usb/devices/%s/devnum' % device_id).read().strip())
     return '/dev/bus/usb/%03d/%03d' % (bus_number, device_number)
 
-  if environment.is_android_cuttlefish():
-    return None
-
   device_serial = environment.get_value('ANDROID_SERIAL')
+  if _uses_virtual_device_connection(device_serial):
+    return None
+  if not device_serial:
+    return None
   if device_serial.startswith('usb:'):
     return _get_device_path_for_usb()
 
@@ -653,8 +686,7 @@ def get_device_path():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if environment.is_android_cuttlefish():
-    # Nothing to do here.
+  if _uses_virtual_device_connection():
     return True
 
   # App Engine does not let us import this.
@@ -685,6 +717,21 @@ def reset_usb():
   # Wait for usb to recover.
   wait_for_device(recover=False)
   return True
+
+
+def _uses_virtual_device_connection(device_serial: str | None = None) -> bool:
+  """Returns whether the target Android device connects without host USB."""
+  if environment.is_android_cuttlefish():
+    return True
+
+  if device_serial is None:
+    device_serial = environment.get_value('ANDROID_SERIAL')
+  if not device_serial:
+    return environment.is_android_emulator()
+  if device_serial.startswith('usb:'):
+    return False
+
+  return device_serial.startswith('emulator-') or ':' in device_serial
 
 
 def revert_asan_device_setup_if_needed():
@@ -777,17 +824,13 @@ def run_shell_command(cmd,
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
 
-  if cmd[0] not in ['"', "'"]:
-    cmd = '"{}"'.format(_escape_specials(cmd))
-
   if root:
-    root_cmd_prefix = 'su root sh -c '
-
-    # The arguments to adb shell need to be quoted, so if we're using
-    # su root sh -c, quote the combined command
-    full_cmd = 'shell \'{}{}\''.format(root_cmd_prefix, cmd)
+    device_cmd = f'su root sh -c {shlex.quote(cmd)}'
+    full_cmd = f'shell {shlex.quote(device_cmd)}'
   else:
-    full_cmd = 'shell {}'.format(cmd)
+    if not cmd or cmd[0] not in ['"', "'"]:
+      cmd = '"{}"'.format(_escape_specials(cmd))
+    full_cmd = f'shell {cmd}'
 
   return run_command(
       full_cmd, log_output=log_output, timeout=timeout, recover=recover)
@@ -940,25 +983,21 @@ def write_data_to_file(contents, file_path, should_reboot=True):
         Only applies if `file_path` is under `/system`, since we need to
         remount that partition as read-write first.
   """
-  # If this is a file in /system, we need to remount /system as read-write and
-  # after file is written, revert it back to read-only.
   is_system_file = file_path.startswith('/system')
   if is_system_file:
     remount()
 
-  # Write file with desired contents.
-  run_shell_command("\"echo -n '%s' | su root dd of=%s\"" % (contents.replace(
-      '"', '\\"'), file_path))
-
-  # Make command line file is readable.
-  run_shell_command('chmod 0644 %s' % file_path, root=True)
+  quoted_contents = shlex.quote(contents)
+  quoted_path = shlex.quote(file_path)
+  run_shell_command(
+      f'printf %s {quoted_contents} | su root dd of={quoted_path}')
+  run_shell_command(f'chmod 0644 {quoted_path}', root=True)
 
   if is_system_file:
     if should_reboot:
       reboot()
       wait_until_fully_booted()
     else:
-      # Manually revert /system to read-only since we aren't rebooting.
       run_shell_command('mount -o ro,remount /system', root=True)
 
 

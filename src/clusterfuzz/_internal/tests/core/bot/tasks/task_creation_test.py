@@ -97,19 +97,10 @@ class SwarmingTaskCreationTest(unittest.TestCase):
     data_types.FeatureFlag(
         id='swarming_remote_execution', enabled=enabled).put()
 
-  def test_skips_blame_and_impact_when_swarming_enabled(self):
-    """Tests that blame and impact tasks are skipped for Swarming jobs when
+  def test_creates_blame_and_impact_when_swarming_enabled(self):
+    """Tests that blame and impact tasks are created for Swarming jobs when
     SWARMING_REMOTE_EXECUTION is enabled."""
     self._set_swarming_flag(True)
-
-    task_creation.create_blame_task_if_needed(self.testcase)
-    task_creation.create_impact_task_if_needed(self.testcase)
-    self.mock.add_task.assert_not_called()
-
-  def test_creates_blame_and_impact_when_swarming_disabled(self):
-    """Tests that blame and impact tasks are still created for Swarming jobs
-    when SWARMING_REMOTE_EXECUTION is disabled."""
-    self._set_swarming_flag(False)
 
     task_creation.create_blame_task_if_needed(self.testcase)
     task_creation.create_impact_task_if_needed(self.testcase)
@@ -119,6 +110,12 @@ class SwarmingTaskCreationTest(unittest.TestCase):
   def test_skips_variant_for_untrusted_testcase_on_swarming_job(self):
     """Tests that untrusted testcases don't get variant tasks on Swarming jobs,
     since Swarming can't run untrusted workloads."""
+    data_types.Job(
+        name='linux_swarming',
+        platform='LINUX',
+        project='chromium',
+        environment_string=(
+            'PROJECT_NAME = chromium\nIS_SWARMING_JOB = True\n')).put()
     linux_testcase = test_utils.create_generic_testcase()
     linux_testcase.job_type = 'linux_asan_chrome'
     linux_testcase.project_name = 'chromium'
@@ -130,6 +127,12 @@ class SwarmingTaskCreationTest(unittest.TestCase):
 
   def test_creates_variant_for_trusted_testcase_on_swarming_job(self):
     """Tests that trusted testcases still get variant tasks on Swarming jobs."""
+    data_types.Job(
+        name='linux_swarming',
+        platform='LINUX',
+        project='chromium',
+        environment_string=(
+            'PROJECT_NAME = chromium\nIS_SWARMING_JOB = True\n')).put()
     linux_testcase = test_utils.create_generic_testcase()
     linux_testcase.job_type = 'linux_asan_chrome'
     linux_testcase.project_name = 'chromium'
@@ -137,6 +140,8 @@ class SwarmingTaskCreationTest(unittest.TestCase):
     linux_testcase.put()
 
     task_creation.create_variant_tasks_if_needed(linux_testcase)
-    self.mock.add_task.assert_called_once_with(
-        'variant', linux_testcase.key.id(), 'android_emu_swarming',
-        'jobs-android-emulator')
+    self.assertCountEqual([
+        ('variant', linux_testcase.key.id(), 'android_emu_swarming',
+         'jobs-android-emulator'),
+        ('variant', linux_testcase.key.id(), 'linux_swarming', 'jobs-linux'),
+    ], [call.args for call in self.mock.add_task.call_args_list])

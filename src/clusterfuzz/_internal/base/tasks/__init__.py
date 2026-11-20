@@ -1017,6 +1017,9 @@ def queue_for_job(job_name, is_high_end=False):
   if not job:
     raise Error('Job {} not found.'.format(job_name))
 
+  if is_high_end and swarming.is_swarming_job(job_name, job=job):
+    is_high_end = False
+
   return queue_for_platform(job.platform, is_high_end)
 
 
@@ -1026,12 +1029,6 @@ def redo_testcase(testcase, tasks, user_email):
   for task in tasks:
     if task not in VALID_REDO_TASKS:
       raise InvalidRedoTask(task)
-
-  # TODO(crbug.com/582825425): Support blame and impact tasks for Swarming jobs.
-  if swarming.is_swarming_applicable(testcase.job_type):
-    for task in tasks:
-      if task in ('impact', 'blame'):
-        raise InvalidRedoTask(task)
 
   minimize = 'minimize' in tasks
   regression = 'regression' in tasks

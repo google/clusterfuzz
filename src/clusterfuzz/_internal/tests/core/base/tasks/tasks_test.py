@@ -818,3 +818,19 @@ class SwarmingNonFuzzTaskRoutingTest(unittest.TestCase):
     tasks.add_task(
         'minimize', '123', 'android_emulator_swarming', queue='custom-queue')
     self.assertEqual(self._queue_used(), 'custom-queue')
+
+  def test_queue_for_job_ignores_high_end_for_swarming_job(self):
+    """Tests that Swarming jobs ignore is_high_end even when the feature flag is
+    disabled, so tasks never land on unconsumed high-end queues."""
+    self.flag.enabled = False
+    self.flag.put()
+    self.assertEqual(
+        tasks.queue_for_job('android_emulator_swarming', is_high_end=True),
+        'jobs-android-emulator')
+
+  def test_queue_for_job_preserves_high_end_for_non_swarming_job(self):
+    """Tests that non-Swarming jobs still use the high-end queue when
+    requested."""
+    self.assertEqual(
+        tasks.queue_for_job('android_emulator_non_swarming', is_high_end=True),
+        'high-end-jobs-android-emulator')

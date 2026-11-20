@@ -43,6 +43,7 @@ MEMCACHE_OLD_TTL_IN_SECONDS = 24 * 60 * 60
 # New fuzzer stats change, and aren't as likely to be reaccessed, don't cache
 # for very long.
 MEMCACHE_TODAY_TTL_IN_SECONDS = 30 * 60
+ALLOWED_LINK_PREFIXES = ('gs://', 'https://', 'http://')
 
 
 class QueryField:
@@ -255,12 +256,7 @@ def _build_rows(result, columns, rows, group_by):
       elif isinstance(column, BuiltinField):
         data = column.field.get(group_by, first_column_value)
         if data:
-          formatted_value = data.value
-          if data.link:
-            link = (
-                _get_cloud_storage_link(data.link)
-                if data.link.startswith('gs://') else data.link)
-            formatted_value = '<a href="%s">%s</a>' % (link, data.value)
+          formatted_value = _format_builtin_field_value(data)
 
           if data.sort_key is not None:
             cell['v'] = data.sort_key
@@ -276,6 +272,25 @@ def _build_rows(result, columns, rows, group_by):
       row_data.append(cell)
 
     result['rows'].append({'c': row_data})
+
+
+def _resolve_safe_stats_link(raw_link):
+  """Returns a safe URL for a stats cell link, or None if disallowed."""
+  if not raw_link or not raw_link.startswith(ALLOWED_LINK_PREFIXES):
+    return None
+  if raw_link.startswith('gs://'):
+    return _get_cloud_storage_link(raw_link)
+  return raw_link
+
+
+def _format_builtin_field_value(data):
+  """Formats a BuiltinFieldData value with HTML escaping and link validation."""
+  escaped_value = html.escape(str(data.value))
+  safe_link = _resolve_safe_stats_link(data.link)
+  if not safe_link:
+    return escaped_value
+  escaped_href = html.escape(safe_link, quote=True)
+  return '<a href="%s">%s</a>' % (escaped_href, escaped_value)
 
 
 def _get_cloud_storage_link(bucket_path):

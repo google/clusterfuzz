@@ -184,6 +184,11 @@ class Issue:
     raise NotImplementedError
 
   @property
+  def collaborators(self):
+    """The issue collaborator list."""
+    return ()
+
+  @property
   def labels(self):
     """The issue labels list."""
     raise NotImplementedError

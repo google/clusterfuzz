@@ -313,6 +313,174 @@ class UploadOAuthTest(unittest.TestCase):
     testcase = data_handler.get_testcase_by_id(response.json['id'])
     self.assertIsNone(testcase.get_metadata('skip_minimization'))
 
+  def _setup_upload_jobs_and_targets(self):
+    """Creates Linux, Android, and Mac test jobs and FuzzTarget entities."""
+    for platform_name in ('LINUX', 'ANDROID', 'ANDROID_X86', 'MAC'):
+      job_name = f'libfuzzer_proj_{platform_name.lower()}'
+      data_types.Job(
+          name=job_name,
+          environment_string=f'PROJECT_NAME = proj\nJOB_NAME = {job_name}',
+          platform=platform_name).put()
+    data_types.FuzzTarget(
+        engine='libFuzzer', project='proj', binary='target').put()
+
+  def test_unprivileged_additional_arguments_matrix(self):
+    """Tests additional_arguments authorization across OSS-Fuzz, Chrome, and
+    Google3/Android user and platform combinations."""
+    self._setup_upload_jobs_and_targets()
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_oss_fuzz',
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.'
+        'is_remotely_executing_utasks',
+    ])
+
+    def domain_user_access(need_privileged_access=False, **_):
+      return not need_privileged_access
+
+    def job_scoped_external_access(need_privileged_access=False,
+                                   job_type=None,
+                                   fuzzer_name=None):
+      if need_privileged_access:
+        return False
+      return bool(job_type or fuzzer_name)
+
+    denied_cases = [
+        ('oss_fuzz_linux_non_privileged', domain_user_access, True, False,
+         'libfuzzer_proj_linux', None, False),
+        ('google3_android_domain_user', domain_user_access, False, False,
+         'libfuzzer_proj_android', None, False),
+        ('google3_android_job_with_forged_linux_platform', domain_user_access,
+         False, False, 'libfuzzer_proj_android', 'Linux', False),
+        ('google3_cuttlefish_domain_user', domain_user_access, False, False,
+         'libfuzzer_proj_android_x86', None, False),
+        ('google3_cuttlefish_job_with_forged_linux_platform',
+         domain_user_access, False, False, 'libfuzzer_proj_android_x86',
+         'linux:ubuntu', False),
+        ('chrome_quick_upload_mixed_case_android_override', domain_user_access,
+         False, False, 'libfuzzer_proj_linux', 'Android', False),
+        ('chrome_android_subplatform_override', domain_user_access, False,
+         False, 'libfuzzer_proj_linux', 'android:pixel_8', False),
+        ('chrome_mac_trusted_agreement_domain_user', domain_user_access, False,
+         True, 'libfuzzer_proj_mac', None, True),
+        ('chrome_mac_job_with_forged_linux_platform', domain_user_access, False,
+         True, 'libfuzzer_proj_mac', 'Linux', True),
+        ('external_job_scoped_user_on_linux', job_scoped_external_access, False,
+         True, 'libfuzzer_proj_linux', None, False),
+    ]
+
+    for (case_name, access_fn, is_oss_fuzz, is_chromium, job_name, platform_id,
+         sign_agreement) in denied_cases:
+      with self.subTest(case=case_name):
+        self.mock.has_access.side_effect = access_fn
+        self.mock.is_oss_fuzz.return_value = is_oss_fuzz
+        self.mock.is_chromium.return_value = is_chromium
+        self.mock.is_remotely_executing_utasks.return_value = is_chromium
+
+        form_data = {
+            'job': job_name,
+            'target': 'target',
+            'revision': '1337',
+            'args': '--custom-flag $(id)',
+            'file': (io.BytesIO(b'contents'), 'file'),
+        }
+        if platform_id:
+          form_data['platform'] = platform_id
+        if sign_agreement:
+          form_data['trustedAgreement'] = upload_testcase.TRUSTED_AGREEMENT_TEXT
+
+        with self.app.test_client() as client:
+          response = client.post('/', data=form_data)
+        self.assertEqual(400, response.status_code, response.data)
+        self.assertIn(
+            'You are not privileged to run arbitrary command-line arguments.',
+            response.json['message'])
+
+  def test_domain_user_linux_uworker_additional_arguments_allowed(self):
+    """Tests that verified domain engineers on Chrome/Google3 Linux uworker jobs
+    can still pass custom CLI arguments without regression."""
+    self._setup_upload_jobs_and_targets()
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_oss_fuzz',
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.'
+        'is_remotely_executing_utasks',
+    ])
+    self.mock.is_oss_fuzz.return_value = False
+    self.mock.is_chromium.return_value = True
+    self.mock.is_remotely_executing_utasks.return_value = True
+    self.mock.has_access.side_effect = (
+        lambda need_privileged_access=False, **_: not need_privileged_access)
+
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj_linux',
+              'target': 'target',
+              'revision': '1337',
+              'args': '--expose-gc --jit-fuzzing',
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
+
+    self.assertEqual(200, response.status_code, response.data)
+    testcase = data_handler.get_testcase_by_id(response.json['id'])
+    self.assertFalse(testcase.trusted)
+    self.assertEqual('--expose-gc --jit-fuzzing',
+                     testcase.get_metadata('uploaded_additional_args'))
+
+  def test_android_upload_with_empty_args_or_privileged_user_allowed(self):
+    """Tests that empty args for unprivileged users and custom args for
+    privileged users succeed on Android jobs."""
+    self._setup_upload_jobs_and_targets()
+    self.mock.has_access.side_effect = (
+        lambda need_privileged_access=False, **_: not need_privileged_access)
+
+    with self.app.test_client() as client:
+      empty_args_resp = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj_android',
+              'target': 'target',
+              'revision': '1337',
+              'args': '   ',
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
+    self.assertEqual(200, empty_args_resp.status_code, empty_args_resp.data)
+    empty_tc = data_handler.get_testcase_by_id(empty_args_resp.json['id'])
+    self.assertIsNone(empty_tc.get_metadata('uploaded_additional_args'))
+
+    email = 'uploader@email'
+    data_types.Config(privileged_users=email).put()
+    self.mock.has_access.side_effect = None
+    self.mock.has_access.return_value = True
+    with self.app.test_client() as client:
+      priv_blank_resp = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj_android',
+              'target': 'target',
+              'revision': '1337',
+              'args': '   \t  ',
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
+      priv_resp = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj_android',
+              'target': 'target',
+              'revision': '1337',
+              'args': '--enable-features=TestFeature',
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
+    self.assertEqual(200, priv_blank_resp.status_code, priv_blank_resp.data)
+    priv_blank_tc = data_handler.get_testcase_by_id(priv_blank_resp.json['id'])
+    self.assertIsNone(priv_blank_tc.get_metadata('uploaded_additional_args'))
+    self.assertEqual(200, priv_resp.status_code, priv_resp.data)
+    priv_tc = data_handler.get_testcase_by_id(priv_resp.json['id'])
+    self.assertEqual('--enable-features=TestFeature',
+                     priv_tc.get_metadata('uploaded_additional_args'))
+
   def test_external_upload_uaf(self):
     """Test external upload (uaf)."""
     stacktrace = self._read_test_data('uaf.txt')
@@ -725,10 +893,11 @@ class UploadOAuthTest(unittest.TestCase):
                          data_handler.get_fuzz_target('libFuzzer_proj_target')
                          ._to_dict())
 
-  def _upload_to_platform(self, case):
+  def _upload_to_platform(self, case, multiple=False, filename='input'):
     """Uploads a testcase to a new job for |case|."""
     self.mock.is_chromium.return_value = case.is_chromium
     self.mock.is_remotely_executing_utasks.return_value = case.remote_utasks
+    self.mock.get_blob_info.return_value.filename = filename
 
     # Every user here passes the upload check. Only some are privileged.
     def has_access(need_privileged_access=False, **_):
@@ -746,8 +915,10 @@ class UploadOAuthTest(unittest.TestCase):
         'job': job_name,
         'target': 'target',
         'revision': '1337',
-        'file': (io.BytesIO(b'contents'), 'file'),
+        'file': (io.BytesIO(b'contents'), filename),
     }
+    if multiple:
+      data['multiple'] = 'true'
     if case.trusted_agreement:
       data['trustedAgreement'] = upload_testcase.TRUSTED_AGREEMENT_TEXT
     if case.platform_id:
@@ -847,6 +1018,36 @@ class UploadOAuthTest(unittest.TestCase):
         if case.expected_status == 403:
           self.assertEqual(upload_testcase.TRUSTED_JOB_PRIVILEGE_MESSAGE,
                            response.json['message'])
+
+  def test_bundled_archive_upload_persists_trusted(self):
+    """Tests that bundled archive uploads persist trusted on metadata."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.'
+        'is_remotely_executing_utasks',
+    ])
+    email = 'uploader@email'
+    data_types.Config(privileged_users=email).put()
+    data_types.ExternalUserPermission(
+        email=email,
+        entity_name=None,
+        entity_kind=data_types.PermissionEntityKind.UPLOADER,
+        is_prefix=False,
+        auto_cc=data_types.AutoCCType.NONE).put()
+
+    response = self._upload_to_platform(
+        self.UploadCase(
+            'mac_bundled',
+            'MAC',
+            privileged=True,
+            expected_status=200,
+            expected_trusted=True),
+        multiple=True,
+        filename='bundle.zip')
+    self.assertEqual(200, response.status_code, response.data)
+    metadata = data_types.BundledArchiveMetadata.query().get()
+    self.assertIsNotNone(metadata)
+    self.assertTrue(metadata.trusted)
 
 
 # pylint: disable=protected-access
@@ -979,6 +1180,76 @@ class CrashReplicationTest(unittest.TestCase):
         'testcase_id': created_testcase_id,
         'uploader_email': self.service_account_email,
     }, metadata.to_dict())
+
+  def test_crash_replication_swarming_engine_fuzzer_is_trusted(self):
+    """Swarming crash replication from an engine fuzzer succeeds as trusted."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        'clusterfuzz._internal.swarming.is_swarming_job',
+    ])
+    self.mock.is_chromium.return_value = True
+    self.mock.is_remotely_executing_utasks.return_value = True
+    self.mock.is_swarming_job.return_value = True
+
+    sampling_message_data = json.dumps({
+        'fuzzed_key': 'some-fuzzed-key',
+        'job': self.job_name,
+        'fuzzer': self.fuzzer_name,
+        'target_name': self.fuzz_target_binary,
+        'arguments': 'some-arg',
+        'application_command_line': 'some-cli-command',
+        'gestures': str([]),
+        'http_flag': False,
+        'original_task_id': 'some-task-id',
+    }).encode()
+
+    with self.app.test_client() as client:
+      result = client.post(
+          '/upload-testcase/crash-replication',
+          data=self._make_message(sampling_message_data, {}),
+          headers={'Authorization': 'Bearer fake'})
+
+    self.assertEqual('200 OK', result.status)
+    testcase = data_handler.get_testcase_by_id(int(result.json['id']))
+    self.assertTrue(testcase.trusted)
+
+  def test_crash_replication_swarming_untrusted_fuzzer_rejected(self):
+    """Swarming crash replication from an untrusted fuzzer returns 400."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.is_remotely_executing_utasks',
+        'clusterfuzz._internal.swarming.is_swarming_job',
+    ])
+    self.mock.is_chromium.return_value = True
+    self.mock.is_remotely_executing_utasks.return_value = True
+    self.mock.is_swarming_job.return_value = True
+
+    data_types.Job(
+        name='blackbox_swarming_job',
+        environment_string='PROJECT_NAME = proj',
+        platform='LINUX').put()
+    data_types.Fuzzer(name='untrusted_blackbox', trusted=False).put()
+
+    sampling_message_data = json.dumps({
+        'fuzzed_key': 'some-fuzzed-key',
+        'job': 'blackbox_swarming_job',
+        'fuzzer': 'untrusted_blackbox',
+        'target_name': None,
+        'arguments': '',
+        'application_command_line': '',
+        'gestures': str([]),
+        'http_flag': False,
+        'original_task_id': 'some-task-id',
+    }).encode()
+
+    with self.app.test_client() as client:
+      result = client.post(
+          '/upload-testcase/crash-replication',
+          data=self._make_message(sampling_message_data, {}),
+          headers={'Authorization': 'Bearer fake'})
+
+    self.assertEqual(400, result.status_code)
 
 
 @test_utils.with_cloud_emulators('datastore')

@@ -310,6 +310,23 @@ class TrustedTaskEventTest(unittest.TestCase):
     self.mock.emit.assert_any_call(event_started)
     self.mock.emit.assert_any_call(event_finished)
 
+  def test_uworker_cannot_execute_trusted_task(self):
+    """Tests that TrustedTask refuses to execute on a uworker."""
+    os.environ['UWORKER'] = 'True'
+    module = mock.MagicMock(__name__='mock_task')
+    task = task_types.TrustedTask(module)
+    with self.assertRaises(AssertionError):
+      task.execute(task_argument='1', job_type='job1', uworker_env={})
+    module.execute_task.assert_not_called()
+
+  def test_tworker_can_execute_trusted_task(self):
+    """Tests that TrustedTask executes on a tworker."""
+    os.environ['TWORKER'] = 'True'
+    module = mock.MagicMock(__name__='mock_task')
+    task = task_types.TrustedTask(module)
+    task.execute(task_argument='1', job_type='job1', uworker_env={})
+    module.execute_task.assert_called_once_with('1', 'job1')
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UTaskExecuteTest(unittest.TestCase):

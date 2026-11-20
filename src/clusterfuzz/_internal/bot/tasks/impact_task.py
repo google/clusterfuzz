@@ -70,11 +70,13 @@ class Impacts:
             self.head == other.head)
 
 
-def get_chromium_component_start_and_end_revision(start_revision, end_revision,
-                                                  job_type):
+def get_chromium_component_start_and_end_revision(start_revision,
+                                                  end_revision,
+                                                  job_type,
+                                                  platform_id=None):
   """Get revisions from chromium component."""
   component_rev_list = revisions.get_component_range_list(
-      start_revision, end_revision, job_type)
+      start_revision, end_revision, job_type, platform_id=platform_id)
 
   for component_rev in component_rev_list:
     if component_rev['component'] == 'Chromium':
@@ -84,22 +86,29 @@ def get_chromium_component_start_and_end_revision(start_revision, end_revision,
   return start_revision, end_revision
 
 
-def get_start_and_end_revision(regression_range, job_type):
+def get_start_and_end_revision(regression_range,
+                               job_type,
+                               platform=None,
+                               platform_id=None):
   """Get start and end revision."""
   start_revision, end_revision = revisions.get_start_and_end_revision(
       regression_range)
 
   # FIXME: Hack to use chromium revision for android builds.
-  if environment.is_android():
+  if environment.is_android(platform.upper() if platform else None):
     return get_chromium_component_start_and_end_revision(
-        start_revision, end_revision, job_type)
+        start_revision, end_revision, job_type, platform_id=platform_id)
 
   return start_revision, end_revision
 
 
-def is_valid_regression_range(regression_range, job_type):
+def is_valid_regression_range(regression_range,
+                              job_type,
+                              platform=None,
+                              platform_id=None):
   """Return whether we have a valid regression range."""
-  start, end = get_start_and_end_revision(regression_range, job_type)
+  start, end = get_start_and_end_revision(
+      regression_range, job_type, platform=platform, platform_id=platform_id)
   return start != 0 or end != 0
 
 
@@ -125,13 +134,14 @@ def get_component_information_by_name(chromium_revision,
 def get_component_impacts_from_url(component_name,
                                    regression_range,
                                    job_type,
-                                   platform=None):
+                                   platform=None,
+                                   platform_id=None):
   """Gets component impact string using the build information url."""
   logs.info('Getting component impacts from URL. Component name %s, '
             'regression range %s, job type %s, platform %s.' %
             (component_name, regression_range, str(job_type), str(platform)))
   start_revision, end_revision = get_start_and_end_revision(
-      regression_range, job_type)
+      regression_range, job_type, platform=platform, platform_id=platform_id)
   logs.info('Start and end revision %s, %s' % (start_revision, end_revision))
   if not end_revision:
     return Impacts()
@@ -177,17 +187,24 @@ def get_component_impacts_from_url(component_name,
                  found_impacts['extended_stable'], found_impacts['canary'])
 
 
-def get_impacts_from_url(regression_range, job_type, platform=None):
+def get_impacts_from_url(regression_range,
+                         job_type,
+                         platform=None,
+                         platform_id=None):
   """Gets impact string using the build information url."""
   logs.info('Get component impacts from URL: range %s, '
             'job type %s.' % (regression_range, str(job_type)))
   component_name = data_handler.get_component_name(job_type)
   if component_name:
-    return get_component_impacts_from_url(component_name, regression_range,
-                                          job_type, platform)
+    return get_component_impacts_from_url(
+        component_name,
+        regression_range,
+        job_type,
+        platform=platform,
+        platform_id=platform_id)
 
   start_revision, end_revision = get_start_and_end_revision(
-      regression_range, job_type)
+      regression_range, job_type, platform=platform, platform_id=platform_id)
   logs.info('Proceeding to calculate impacts as non-component based on '
             'range %s-%s' % (str(start_revision), str(end_revision)))
   if not end_revision:
@@ -309,6 +326,13 @@ def _execute_task(testcase_id, job_type):
     return
 
   logs.info('Preparing to calculate impact.')
+  job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
+  if not job:
+    logs.error(f'Job {testcase.job_type} not found for testcase {testcase_id}.')
+    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                         f'Job {testcase.job_type} not found')
+    return
+
   # Formerly ClusterFuzz had buckets containing builds for stable,
   # beta and dev builds, and attempted reproduction on them. That had
   # the advantage that we would test against the exact thing shipped on each
@@ -316,7 +340,11 @@ def _execute_task(testcase_id, job_type):
   # never noticed a difference from a bisection-based approach to determining
   # impacted builds, and those production build buckets disappered, so we have
   # switched to a purely bisection-based approach.
-  if not is_valid_regression_range(testcase.regression, testcase.job_type):
+  if not is_valid_regression_range(
+      testcase.regression,
+      testcase.job_type,
+      platform=job.platform,
+      platform_id=testcase.platform_id):
     data_handler.update_testcase_comment(
         testcase, data_types.TaskState.FINISHED,
         'Cannot run without regression range, will re-run once regression '
@@ -324,7 +352,11 @@ def _execute_task(testcase_id, job_type):
     return
 
   logs.info('Calculating impact from URL.')
-  impacts = get_impacts_from_url(testcase.regression, testcase.job_type)
+  impacts = get_impacts_from_url(
+      testcase.regression,
+      testcase.job_type,
+      platform=job.platform,
+      platform_id=testcase.platform_id)
   testcase = data_handler.get_testcase_by_id(testcase_id)
   set_testcase_with_impacts(testcase, impacts)
   testcase_utils.emit_testcase_triage_duration_metric(

@@ -418,11 +418,30 @@ class TworkerNonFuzzGuardsCommandTest(unittest.TestCase):
   @mock.patch('clusterfuzz._internal.bot.tasks.impact_task.execute_task')
   def test_tworker_trusted_task_is_dropped(self, mock_impact_execute,
                                            mock_update_status):
-    """Tests that a stray TrustedTask on a tworker is dropped without running."""
+    """Tests that a non-Swarming TrustedTask on a tworker is dropped."""
     os.environ['TWORKER'] = 'True'
+    data_types.Job(name='linux_batch_job', platform='LINUX').put()
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=True).put()
 
     result = commands.run_command('impact', str(self.testcase.key.id()),
-                                  'android_emu_swarming', {})
+                                  'linux_batch_job', {})
     self.assertIsNone(result)
     mock_impact_execute.assert_not_called()
     mock_update_status.assert_not_called()
+
+  @mock.patch(
+      'clusterfuzz._internal.datastore.data_handler.update_task_status',
+      return_value=True)
+  @mock.patch('clusterfuzz._internal.bot.tasks.impact_task.execute_task')
+  def test_tworker_executes_swarming_trusted_task(self, mock_impact_execute,
+                                                  mock_update_status):
+    """Tests that a Swarming TrustedTask executes in-process on a tworker even
+    when SWARMING_REMOTE_EXECUTION is disabled."""
+    os.environ['TWORKER'] = 'True'
+    data_types.FeatureFlag(id='swarming_remote_execution', enabled=False).put()
+
+    commands.run_command('impact', str(self.testcase.key.id()),
+                         'android_emu_swarming', {})
+    mock_impact_execute.assert_called_once_with(
+        str(self.testcase.key.id()), 'android_emu_swarming')
+    self.assertEqual(2, mock_update_status.call_count)

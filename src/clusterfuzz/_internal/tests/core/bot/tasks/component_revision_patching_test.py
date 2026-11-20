@@ -40,7 +40,8 @@ class ComponentRevisionPatchingTest(unittest.TestCase):
         self.mock_get_component_revisions_dict)
 
   @staticmethod
-  def mock_get_component_revisions_dict(revision, _):
+  def mock_get_component_revisions_dict(revision, _, platform_id=None):
+    del platform_id
     if revision == 0:
       return {}
 
