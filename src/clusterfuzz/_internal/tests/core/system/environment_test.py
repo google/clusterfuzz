@@ -901,3 +901,29 @@ class AndroidDeviceDetectionTest(unittest.TestCase):
           serial=serial):
         self._set_env(os_override, queue_override, serial)
         self.assertFalse(environment.uses_virtual_android_connection())
+
+  def test_is_android_real_device_non_android(self):
+    """Non-Android platforms return False even if ANDROID_SERIAL is set."""
+    for os_override in (None, 'LINUX', 'WINDOWS', 'MAC', 'FUCHSIA', 'CHROMEOS'):
+      for serial in (None, 'HT75A0200123', 'emulator-5554'):
+        with self.subTest(os_override=os_override, serial=serial):
+          self._set_env(os_override, serial=serial)
+          self.assertFalse(environment.is_android_real_device())
+
+  def test_is_android_real_device_virtual_fleets(self):
+    """Cuttlefish, emulators, and TCP-attached Android targets return False."""
+    for os_override, queue_override, serial in self.VIRTUAL_ANDROID_FLEETS:
+      with self.subTest(
+          os_override=os_override, queue_override=queue_override,
+          serial=serial):
+        self._set_env(os_override, queue_override, serial)
+        self.assertFalse(environment.is_android_real_device())
+
+  def test_is_android_real_device_physical_fleets(self):
+    """All physical USB Android fleets return True."""
+    for os_override, queue_override, serial in self.PHYSICAL_ANDROID_FLEETS:
+      with self.subTest(
+          os_override=os_override, queue_override=queue_override,
+          serial=serial):
+        self._set_env(os_override, queue_override, serial)
+        self.assertTrue(environment.is_android_real_device())

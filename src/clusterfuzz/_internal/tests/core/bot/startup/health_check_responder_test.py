@@ -14,6 +14,7 @@
 """health check reposnser tests."""
 
 from http.server import HTTPServer
+import os
 import threading
 import unittest
 from unittest import mock
@@ -21,6 +22,8 @@ from unittest import mock
 import psutil
 import requests
 
+from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
+from python.bot.startup import health_check_responder
 from python.bot.startup.health_check_responder import EXPECTED_SCRIPTS
 from python.bot.startup.health_check_responder import RequestHandler
 from python.bot.startup.health_check_responder import RESPONDER_IP
@@ -118,3 +121,68 @@ class HealthCheckResponderTest(unittest.TestCase):
         500,
         requests.get(f'{RESPONDER_ADDR}',
                      timeout=HTTP_REQUEST_TIMEOUT).status_code)
+
+
+class RunServerTest(unittest.TestCase):
+  """Tests for health_check_responder.run_server() gating."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    for key in ('OS_OVERRIDE', 'QUEUE_OVERRIDE', 'ANDROID_SERIAL'):
+      os.environ.pop(key, None)
+    test_helpers.patch(self, [
+        'python.bot.startup.health_check_responder.HTTPServer',
+        'python.bot.startup.health_check_responder.threading.Thread',
+    ])
+
+  def test_skips_physical_android_fleets(self):
+    """Physical Android fleets skip binding port 7123."""
+    cases = [
+        ('ANDROID', 'HT75A0200123'),
+        ('ANDROID_MTE:PIXEL8', '38241FDJH0037B'),
+        ('ANDROID_EMULATOR', 'HT75A0200123'),
+    ]
+    for os_override, serial in cases:
+      with self.subTest(os_override=os_override, serial=serial):
+        self.mock.HTTPServer.reset_mock()
+        self.mock.Thread.reset_mock()
+        os.environ['OS_OVERRIDE'] = os_override
+        os.environ['ANDROID_SERIAL'] = serial
+
+        health_check_responder.run_server()
+
+        self.mock.HTTPServer.assert_not_called()
+        self.mock.Thread.assert_not_called()
+
+  def test_skips_oss_fuzz(self):
+    """OSS-Fuzz instances skip binding port 7123."""
+    os.environ['OS_OVERRIDE'] = 'LINUX'
+    with mock.patch.object(
+        health_check_responder.utils, 'is_oss_fuzz', return_value=True):
+      health_check_responder.run_server()
+
+    self.mock.HTTPServer.assert_not_called()
+    self.mock.Thread.assert_not_called()
+
+  def test_starts_server_on_non_android_and_virtual_android_fleets(self):
+    """Non-Android and virtual Android fleets start the health check server."""
+    cases = [
+        ('LINUX', None),
+        ('ANDROID_X86', None),
+        ('ANDROID_EMULATOR', 'emulator-5554'),
+    ]
+    for os_override, serial in cases:
+      with self.subTest(os_override=os_override, serial=serial):
+        self.mock.HTTPServer.reset_mock()
+        self.mock.Thread.reset_mock()
+        os.environ['OS_OVERRIDE'] = os_override
+        if serial is None:
+          os.environ.pop('ANDROID_SERIAL', None)
+        else:
+          os.environ['ANDROID_SERIAL'] = serial
+
+        health_check_responder.run_server()
+
+        self.mock.HTTPServer.assert_called_once_with(
+            (RESPONDER_IP, RESPONDER_PORT), RequestHandler)
+        self.mock.Thread.return_value.start.assert_called_once()
