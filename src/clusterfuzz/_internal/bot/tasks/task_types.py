@@ -51,7 +51,7 @@ class TrustedTask(BaseTask):
   def execute(self, task_argument, job_type, uworker_env):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
-    assert not environment.is_tworker()
+    assert not environment.is_uworker()
     task_utils.reset_task_stage_env()
 
     task_command = task_utils.get_command_from_module(self.module.__name__)

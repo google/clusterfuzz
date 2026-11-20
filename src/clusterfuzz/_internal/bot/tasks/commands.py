@@ -19,6 +19,7 @@ import sys
 import time
 import uuid
 
+from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -208,8 +209,8 @@ def get_command_object(task_name):
     return task
 
   if isinstance(task, task_types.TrustedTask):
-    # TrustedTasks have no utask split and cannot run on tworkers; return
-    # as-is so run_command drops them.
+    # TrustedTasks have no utask split; run_command executes them in-process
+    # for Swarming jobs and drops them for non-Swarming jobs.
     return task
 
   # Force remote execution.
@@ -223,7 +224,8 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     logs.error(f'Unknown command "{task_name}"')
     return None
 
-  if environment.is_tworker() and isinstance(task, task_types.TrustedTask):
+  if (environment.is_tworker() and isinstance(task, task_types.TrustedTask) and
+      not swarming.is_swarming_job(job_name)):
     # Returning (not raising) acks the message: dropped, not retried.
     logs.error(f'Dropping TrustedTask "{task_name}" on tworker.')
     return None
@@ -314,10 +316,10 @@ def process_command_impl(task_name,
   environment.set_value('CF_TASK_ARGUMENT', task_argument)
   environment.set_value('CF_TASK_JOB_NAME', job_name)
 
-  # Tworkers never run tasks themselves: they only run utask preprocess and
-  # postprocess, and utask_main runs on Batch/Swarming. Checks that compare the
-  # task against this bot's platform or CPU arch only apply to bots that may run
-  # the task locally.
+  # Tworkers only run utask preprocess/postprocess (utask_main runs on
+  # Batch/Swarming) and platform-independent TrustedTasks for Swarming jobs.
+  # Checks that compare the task against this bot's platform or CPU arch only
+  # apply to bots that may run target binaries locally.
   may_run_task_locally = not environment.is_tworker()
 
   if job_name != 'none':
