@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for tasks."""
+import os
+import tempfile
 import unittest
 from unittest import mock
 
@@ -359,6 +361,18 @@ class GetTaskFromMessageTest(unittest.TestCase):
         message_os_version='ubuntu-24-04',
         base_os_version=None)
 
+  def test_swarming_queues_bypass_os_mismatch_filter(self):
+    """Tests shared Swarming queues never drop messages on OS mismatch."""
+    self.mock_env_get.return_value = None
+    self.mock_message.attributes = {'base_os_version': 'ubuntu-24-04'}
+
+    for swarming_queue in ('preprocess-swarming', 'utask_main-swarming'):
+      result = tasks.get_task_from_message(
+          self.mock_message, queue=swarming_queue)
+      self.assertEqual(result, self.mock_task)
+      self.mock_message.ack.assert_not_called()
+      self.mock_task.set_queue.assert_called_with(swarming_queue)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class AddTaskTest(unittest.TestCase):
@@ -472,7 +486,7 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
   )
   def test_get_postprocess_task_with_os_version(self, mock_is_remote,
                                                 mock_env_get, mock_puller):
-    """Tests that get_postprocess_task selects the suffixed queue."""
+    """Tests postprocess always pulls unsuffixed queue for GCS notifications."""
     mock_is_remote.return_value = True
     mock_puller.return_value.get_messages.return_value = []
     with mock.patch(
@@ -480,7 +494,7 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
       mock_platform.return_value.lower.return_value = 'linux'
       mock_env_get.return_value = 'ubuntu-24-04'
       tasks.get_postprocess_task()
-      mock_puller.assert_called_with('postprocess-ubuntu-24-04')
+      mock_puller.assert_called_with('postprocess')
 
   def test_get_utask_mains_without_os_version(self, mock_env_get, mock_puller):
     """Tests that get_utask_mains selects the default queue."""
@@ -511,28 +525,262 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
     tasks.get_utask_mains('custom_queue')
     mock_puller.assert_called_with('custom_queue-ubuntu-24-04')
 
+  def test_get_utask_mains_swarming_queue_keeps_unsuffixed_subscription(
+      self, mock_env_get, mock_puller):
+    """Tests that Swarming utask_main queue is not suffixed with OS version."""
+    mock_puller.return_value.get_messages_time_limited.return_value = []
+    mock_env_get.return_value = 'ubuntu-24-04'
+    tasks.get_utask_mains(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+    mock_puller.assert_called_with('utask_main-swarming')
+
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.full_utask_task_model',
+      return_value=False)
+  @mock.patch('clusterfuzz._internal.base.tasks.get_task_from_message')
+  @mock.patch(
+      'clusterfuzz._internal.system.environment.platform', return_value='LINUX')
+  def test_get_regular_task_linux_with_os_version_preserves_base_topic_queue(
+      self, unused_mock_platform, mock_get_task_from_msg, unused_mock_utask,
+      mock_env_get, mock_puller):
+    """Tests that get_regular_task pulls from suffixed subscription but sets base queue."""
+    fake_msg = mock.Mock()
+    fake_task = mock.Mock(command='minimize')
+    mock_puller.return_value.get_messages.return_value = [fake_msg]
+    mock_get_task_from_msg.return_value = fake_task
+    mock_env_get.side_effect = lambda key, default='': {
+        'BASE_OS_VERSION': 'ubuntu-24-04',
+        'QUEUE_OVERRIDE': '',}.get(key, default)
+
+    result = tasks.get_regular_task()
+
+    self.assertEqual(result, fake_task)
+    mock_puller.assert_called_with('jobs-linux-ubuntu-24-04')
+    mock_get_task_from_msg.assert_called_once_with(fake_msg, 'jobs-linux')
+
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.full_utask_task_model',
+      return_value=False)
+  @mock.patch('clusterfuzz._internal.base.tasks.get_task_from_message')
+  @mock.patch(
+      'clusterfuzz._internal.system.environment.platform', return_value='LINUX')
+  def test_get_high_end_task_linux_with_os_version_preserves_base_topic_queue(
+      self, unused_mock_platform, mock_get_task_from_msg, unused_mock_utask,
+      mock_env_get, mock_puller):
+    """Tests that get_high_end_task pulls from suffixed subscription but sets base queue."""
+    fake_msg = mock.Mock()
+    fake_task = mock.Mock(command='minimize', high_end=False)
+    mock_puller.return_value.get_messages.return_value = [fake_msg]
+    mock_get_task_from_msg.return_value = fake_task
+    mock_env_get.side_effect = lambda key, default='': {
+        'BASE_OS_VERSION': 'ubuntu-24-04',
+        'QUEUE_OVERRIDE': '',}.get(key, default)
+
+    result = tasks.get_high_end_task()
+
+    self.assertEqual(result, fake_task)
+    self.assertTrue(result.high_end)
+    mock_puller.assert_called_with('high-end-jobs-linux-ubuntu-24-04')
+    mock_get_task_from_msg.assert_called_once_with(fake_msg,
+                                                   'high-end-jobs-linux')
+
+  def test_get_regular_task_swarming_override_keeps_unsuffixed_subscription(
+      self, mock_env_get, mock_puller):
+    """Tests that preprocess-swarming override is not suffixed with OS version."""
+    mock_puller.return_value.get_messages.return_value = []
+    mock_env_get.return_value = 'ubuntu-24-04'
+    tasks.get_regular_task(queue='preprocess-swarming')
+    mock_puller.assert_called_with('preprocess-swarming')
+
+  def test_get_utask_mains_swarming_queue_processes_cross_os_messages(
+      self, mock_env_get, mock_puller):
+    """Tests get_utask_mains preserves Swarming messages across OS versions."""
+    for worker_os in (None, 'ubuntu-24-04'):
+      msg = mock.MagicMock()
+      msg.attributes = {
+          'command': 'fuzz',
+          'argument': 'https://example.com/in',
+          'job': 'android_asan_chrome',
+          'eta': '1',
+          'base_os_version': 'ubuntu-24-04',
+      }
+      mock_puller.return_value.get_messages_time_limited.return_value = [msg]
+      mock_env_get.return_value = worker_os
+
+      pulled = tasks.get_utask_mains(
+          pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+
+      self.assertEqual(1, len(pulled))
+      self.assertEqual('utask_main-swarming', pulled[0].queue)
+      msg.ack.assert_not_called()
+
+  @mock.patch(
+      'clusterfuzz._internal.system.environment.is_tworker', return_value=True)
+  def test_get_regular_task_swarming_override_processes_cross_os_messages(
+      self, unused_is_tworker, mock_env_get, mock_puller):
+    """Tests preprocess-swarming preserves OS-tagged messages on legacy tworkers."""
+    msg = mock.MagicMock()
+    msg.attributes = {
+        'command': 'fuzz',
+        'argument': 'libFuzzer',
+        'job': 'android_asan_chrome',
+        'eta': '1',
+        'base_os_version': 'ubuntu-24-04',
+    }
+    mock_puller.return_value.get_messages.return_value = [msg]
+    mock_env_get.return_value = None
+
+    with mock.patch.object(tasks.PubSubTask, 'defer', return_value=False):
+      pulled = tasks.get_regular_task(queue='preprocess-swarming')
+
+    self.assertIsNotNone(pulled)
+    self.assertEqual('preprocess-swarming', pulled.queue)
+    msg.ack.assert_not_called()
+
 
 @mock.patch('clusterfuzz._internal.system.environment.get_value')
 @mock.patch('clusterfuzz._internal.system.environment.platform')
 class QueueNameGenerationTest(unittest.TestCase):
-  """Tests for queue name generation functions."""
+  """Tests for queue and subscription name generation functions."""
 
   def test_default_queue_suffix_linux_no_os_version(self, mock_platform,
                                                     mock_env_get):
-    """Tests queue suffix for Linux without an OS version."""
-    mock_env_get.side_effect = lambda key, default='': {'QUEUE_OVERRIDE': ''}.get(key, default)
-    mock_platform.return_value = 'LINUX'
-    self.assertEqual(tasks.default_queue_suffix(), '-linux')
-
-  def test_default_queue_suffix_linux_with_os_version(self, mock_platform,
-                                                      mock_env_get):
-    """Tests queue suffix for Linux with an OS version."""
+    """Tests base topic queue suffix for Linux without an OS version."""
     mock_env_get.side_effect = lambda key, default='': {
-        'BASE_OS_VERSION': 'ubuntu-24-04',
         'QUEUE_OVERRIDE': ''
     }.get(key, default)
     mock_platform.return_value = 'LINUX'
-    self.assertEqual(tasks.default_queue_suffix(), '-linux-ubuntu-24-04')
+    self.assertEqual(tasks.default_queue_suffix(), '-linux')
+
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.full_utask_task_model',
+      return_value=False)
+  def test_default_queue_and_suffix_linux_with_os_version_return_base_topic(
+      self, unused_mock_utask, mock_platform, mock_env_get):
+    """Tests topic queue helpers omit OS version suffix on Linux workers."""
+    mock_env_get.side_effect = lambda key, default='': {
+        'BASE_OS_VERSION': 'ubuntu-24-04',
+        'QUEUE_OVERRIDE': '',
+        'THREAD_MULTIPLIER': 1,}.get(key, default)
+    mock_platform.return_value = 'LINUX'
+    self.assertEqual(tasks.default_queue_suffix(), '-linux')
+    self.assertEqual(tasks.regular_queue(), 'jobs-linux')
+    self.assertEqual(tasks.high_end_queue(), 'high-end-jobs-linux')
+    self.assertEqual(tasks.default_queue(), 'jobs-linux')
+
+  def test_subscription_name_for_queue_with_os_version(self, mock_platform,
+                                                       mock_env_get):
+    """Tests OS-versioned subscription resolution across queue types."""
+    del mock_platform
+    mock_env_get.side_effect = lambda key, default='': {
+        'BASE_OS_VERSION': 'ubuntu-24-04',}.get(key, default)
+    for versioned_queue in ('jobs-linux', 'high-end-jobs-linux', 'preprocess',
+                            'utask_main'):
+      self.assertEqual(
+          tasks.subscription_name_for_queue(versioned_queue),
+          f'{versioned_queue}-ubuntu-24-04')
+
+    self.assertEqual(
+        tasks.subscription_name_for_queue('jobs-linux-ubuntu-24-04'),
+        'jobs-linux-ubuntu-24-04')
+
+    for unsuffixed_queue in ('postprocess', 'preprocess-swarming',
+                             'utask_main-swarming', 'jobs-linux-untrusted',
+                             'high-end-jobs-linux-untrusted',
+                             'jobs-linux-with-gpu', 'jobs-linux-x86',
+                             'jobs-curl-linux', 'ml-jobs-linux', 'jobs-fuchsia',
+                             'jobs-android-x86', 'jobs-android', 'jobs-mac'):
+      self.assertEqual(
+          tasks.subscription_name_for_queue(unsuffixed_queue), unsuffixed_queue)
+
+  def test_subscription_name_for_queue_respects_declarative_queues_yaml(
+      self, mock_platform, mock_env_get):
+    """Tests queues.yaml supported_os_versions gates suffixed subscriptions."""
+    del mock_platform
+    with tempfile.TemporaryDirectory() as dev_cfg, \
+        tempfile.TemporaryDirectory() as prod_cfg:
+      os.makedirs(os.path.join(dev_cfg, 'pubsub'))
+      with open(
+          os.path.join(dev_cfg, 'pubsub', 'queue.jinja.schema'),
+          'w',
+          encoding='utf-8') as f:
+        f.write('properties: {}\n')
+      with open(
+          os.path.join(dev_cfg, 'pubsub', 'queues.yaml'), 'w',
+          encoding='utf-8') as f:
+        f.write('resources:\n'
+                '  - name: jobs-linux\n'
+                '    type: queue.jinja\n'
+                '  - name: preprocess\n'
+                '    type: queue.jinja\n')
+
+      os.makedirs(os.path.join(prod_cfg, 'pubsub'))
+      with open(
+          os.path.join(prod_cfg, 'pubsub', 'queue.jinja.schema'),
+          'w',
+          encoding='utf-8') as f:
+        f.write('properties: {}\n')
+      with open(
+          os.path.join(prod_cfg, 'pubsub', 'queues.yaml'),
+          'w',
+          encoding='utf-8') as f:
+        f.write('resources:\n'
+                '  - name: jobs-linux\n'
+                '    type: queue.jinja\n'
+                '    properties:\n'
+                '      supported_os_versions: [ubuntu-24-04]\n'
+                '  - name: high-end-jobs-linux\n'
+                '    type: queue.jinja\n'
+                '  - name: jobs-fuchsia\n'
+                '    type: queue.jinja\n'
+                '    properties:\n'
+                '      supported_os_versions: [ubuntu-24-04]\n')
+
+      mock_env_get.side_effect = lambda key, default='': {
+          'BASE_OS_VERSION': 'ubuntu-24-04',
+          'CONFIG_DIR_OVERRIDE': dev_cfg,}.get(key, default)
+      self.assertEqual(
+          tasks.subscription_name_for_queue('jobs-linux'), 'jobs-linux')
+      self.assertEqual(
+          tasks.subscription_name_for_queue('preprocess'), 'preprocess')
+
+      mock_env_get.side_effect = lambda key, default='': {
+          'BASE_OS_VERSION': 'ubuntu-24-04',
+          'CONFIG_DIR_OVERRIDE': prod_cfg,}.get(key, default)
+      self.assertEqual(
+          tasks.subscription_name_for_queue('jobs-linux'),
+          'jobs-linux-ubuntu-24-04')
+      self.assertEqual(
+          tasks.subscription_name_for_queue('high-end-jobs-linux'),
+          'high-end-jobs-linux')
+      self.assertEqual(
+          tasks.subscription_name_for_queue('jobs-fuchsia'), 'jobs-fuchsia')
+
+  def test_strip_os_version_suffix_handles_cross_os_and_missing_env(
+      self, mock_platform, mock_env_get):
+    """Tests _strip_os_version_suffix strips OS suffixes without worker env."""
+    del mock_platform
+    mock_env_get.return_value = None
+    self.assertEqual(
+        tasks._strip_os_version_suffix('jobs-linux-ubuntu-24-04'),  # pylint: disable=protected-access
+        'jobs-linux')
+    self.assertEqual(
+        tasks._strip_os_version_suffix('utask_main-swarming'),  # pylint: disable=protected-access
+        'utask_main-swarming')
+
+    mock_env_get.return_value = 'ubuntu-24-04'
+    self.assertEqual(
+        tasks._strip_os_version_suffix('jobs-linux-ubuntu-20-04'),  # pylint: disable=protected-access
+        'jobs-linux')
+
+  def test_subscription_name_for_queue_when_root_and_config_dirs_are_unset(
+      self, mock_platform, mock_env_get):
+    """Tests subscription_name_for_queue handles None ROOT_DIR and CONFIG_DIR."""
+    del mock_platform
+    mock_env_get.side_effect = lambda key, default=None: {
+        'BASE_OS_VERSION': 'ubuntu-24-04',}.get(key, default)
+    self.assertEqual(
+        tasks.subscription_name_for_queue('jobs-linux'),
+        'jobs-linux-ubuntu-24-04')
 
   def test_default_queue_suffix_mac_no_os_version(self, mock_platform,
                                                   mock_env_get):

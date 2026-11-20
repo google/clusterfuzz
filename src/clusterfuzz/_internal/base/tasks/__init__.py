@@ -17,13 +17,16 @@ import contextlib
 import datetime
 import functools
 import json
+import os
 import random
+import re
 import threading
 import time
 from typing import List
 from typing import Optional
 
 from google.cloud import monitoring_v3
+import yaml
 
 from clusterfuzz._internal import swarming
 from clusterfuzz._internal.base import external_tasks
@@ -47,6 +50,8 @@ from clusterfuzz._internal.system import environment
 # Task queue prefixes for various job types.
 JOBS_PREFIX = 'jobs'
 HIGH_END_JOBS_PREFIX = 'high-end-jobs'
+ML_JOBS_PREFIX = 'ml-jobs'
+BASE_OS_VERSION_ATTR = 'base_os_version'
 
 # Default task queue names for various job types. These will be different for
 # different platforms with the platform name added as suffix later.
@@ -109,6 +114,13 @@ SWARMING_QUEUES = {
     UTASK_MAIN_QUEUE: 'utask_main-swarming',
 }
 
+OS_VERSIONED_JOB_QUEUES = frozenset({
+    f'{JOBS_PREFIX}-linux',
+    f'{HIGH_END_JOBS_PREFIX}-linux',
+})
+
+_KNOWN_OS_SUFFIX_PATTERN = re.compile(r'-(ubuntu-\d{2}-\d{2})$')
+
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
@@ -143,21 +155,12 @@ def queue_suffix_for_platform(platform):
 
 
 def default_queue_suffix():
-  """Get the queue suffix for the current platform."""
+  """Gets the base topic queue suffix for the current platform."""
   queue_override = environment.get_value('QUEUE_OVERRIDE')
   logs.info(f'QUEUE_OVERRIDE is [{queue_override}]. '
             f'Platform is {environment.platform()}')
-  if queue_override:
-    platform = queue_override
-  else:
-    platform = environment.platform()
-
-  platform_suffix = queue_suffix_for_platform(platform)
-  base_os_version = environment.get_value('BASE_OS_VERSION')
-  if base_os_version and 'LINUX' in platform.upper():
-    platform_suffix = f'{platform_suffix}-{base_os_version}'
-
-  return platform_suffix
+  platform = queue_override or environment.platform()
+  return queue_suffix_for_platform(platform)
 
 
 def regular_queue(prefix=JOBS_PREFIX):
@@ -179,6 +182,87 @@ def default_queue():
     return high_end_queue()
 
   return regular_queue()
+
+
+def subscription_name_for_queue(queue_name: str) -> str:
+  """Resolves the OS-versioned Pub/Sub subscription ID for a queue."""
+  base_os_version = environment.get_value('BASE_OS_VERSION')
+  if not base_os_version or not isinstance(queue_name, str):
+    return queue_name
+
+  os_suffix = f'-{base_os_version}'
+  if queue_name.endswith(os_suffix):
+    return queue_name
+
+  if queue_name == POSTPROCESS_QUEUE or queue_name in SWARMING_QUEUES.values():
+    return queue_name
+
+  if _is_any_job_queue(
+      queue_name) and queue_name not in OS_VERSIONED_JOB_QUEUES:
+    return queue_name
+
+  if not _config_supports_os_version(queue_name, base_os_version):
+    return queue_name
+
+  return f'{queue_name}{os_suffix}'
+
+
+def _is_any_job_queue(queue_name: str) -> bool:
+  """Returns True when queue_name starts with a platform job queue prefix."""
+  return queue_name.startswith((f'{JOBS_PREFIX}-', f'{HIGH_END_JOBS_PREFIX}-',
+                                f'{ML_JOBS_PREFIX}-'))
+
+
+def _config_supports_os_version(queue_name: str, os_version: str) -> bool:
+  """Checks whether pubsub/queues.yaml enables os_version for queue_name."""
+  config_dir = _resolve_config_directory()
+  if not config_dir:
+    return True
+
+  configured_map = _load_configured_os_versions(os.path.abspath(config_dir))
+  if configured_map is None:
+    return True
+
+  return os_version in configured_map.get(queue_name, frozenset())
+
+
+def _resolve_config_directory() -> Optional[str]:
+  """Resolves the active config directory safely when ROOT_DIR may be unset."""
+  config_dir = environment.get_value('CONFIG_DIR_OVERRIDE')
+  if config_dir and isinstance(config_dir, str):
+    return config_dir
+
+  if environment.is_running_on_app_engine():
+    return 'config'
+
+  root_dir = environment.get_root_directory()
+  if not root_dir or not isinstance(root_dir, str):
+    return None
+
+  return os.path.join(root_dir, 'src', 'appengine', 'config')
+
+
+@functools.lru_cache(maxsize=16)
+def _load_configured_os_versions(
+    config_dir: str) -> Optional[dict[str, frozenset[str]]]:
+  """Loads supported_os_versions per queue when queue.jinja.schema exists."""
+  schema_path = os.path.join(config_dir, 'pubsub', 'queue.jinja.schema')
+  queues_path = os.path.join(config_dir, 'pubsub', 'queues.yaml')
+  if not (os.path.isfile(schema_path) and os.path.isfile(queues_path)):
+    return None
+
+  with open(queues_path, encoding='utf-8') as handle:
+    parsed = yaml.safe_load(handle) or {}
+
+  mapping: dict[str, frozenset[str]] = {}
+  for resource in parsed.get('resources') or ():
+    name = resource.get('name')
+    if not name:
+      continue
+    props = resource.get('properties') or {}
+    versions = props.get('supported_os_versions') or ()
+    mapping[name] = frozenset(str(v) for v in versions)
+  return mapping
 
 
 def default_android_queue():
@@ -227,14 +311,16 @@ def get_regular_task(queue=None):
   if not queue:
     queue = regular_queue()
 
-  pubsub_puller = PubSubPuller(queue)
+  subscription_name = subscription_name_for_queue(queue)
+  topic_queue = _strip_os_version_suffix(queue)
+  pubsub_puller = PubSubPuller(subscription_name)
 
   while True:
     messages = pubsub_puller.get_messages(max_messages=1)
     if not messages:
       return None
 
-    task = get_task_from_message(messages[0], queue)
+    task = get_task_from_message(messages[0], topic_queue)
     if not task:
       continue
 
@@ -344,12 +430,8 @@ def get_postprocess_task():
   if not environment.platform().lower() == 'linux':
     return None
 
-  queue_name = POSTPROCESS_QUEUE
-  base_os_version = environment.get_value('BASE_OS_VERSION')
-  if base_os_version:
-    queue_name = f'{queue_name}-{base_os_version}'
-
-  pubsub_puller = PubSubPuller(queue_name)
+  subscription_name = subscription_name_for_queue(POSTPROCESS_QUEUE)
+  pubsub_puller = PubSubPuller(subscription_name)
   logs.info('Pulling from postprocess queue')
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
@@ -371,12 +453,8 @@ def allow_all_tasks():
 
 def get_preprocess_task():
   """Get a preprocess task."""
-  queue_name = PREPROCESS_QUEUE
-  base_os_version = environment.get_value('BASE_OS_VERSION')
-  if base_os_version:
-    queue_name = f'{queue_name}-{base_os_version}'
-
-  pubsub_puller = PubSubPuller(queue_name)
+  subscription_name = subscription_name_for_queue(PREPROCESS_QUEUE)
+  pubsub_puller = PubSubPuller(subscription_name)
   logs.info('Pulling from preprocess queue')
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
@@ -677,8 +755,11 @@ def _filter_task_for_os_mismatch(message, queue) -> bool:
     bool: True if the message had a mismatch and was acknowledged, otherwise
     False.
   """
+  if queue in SWARMING_QUEUES.values():
+    return False
+
   base_os_version = environment.get_value('BASE_OS_VERSION')
-  message_base_os_version = message.attributes.get('base_os_version')
+  message_base_os_version = message.attributes.get(BASE_OS_VERSION_ATTR)
 
   if not message_base_os_version:
     return False
@@ -725,28 +806,24 @@ def get_task_from_message(message, queue=None, can_defer=True,
 def get_utask_mains(queue_name: str) -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
-  base_os_version = environment.get_value('BASE_OS_VERSION')
-  if base_os_version:
-    queue_name = f'{queue_name}-{base_os_version}'
-
-  pubsub_puller = PubSubPuller(queue_name)
+  subscription_name = subscription_name_for_queue(queue_name)
+  topic_queue = _strip_os_version_suffix(queue_name)
+  pubsub_puller = PubSubPuller(subscription_name)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
-  return handle_multiple_utask_main_messages(messages, UTASK_MAIN_QUEUE)
+  return handle_multiple_utask_main_messages(messages, topic_queue)
 
 
 @memoize.wrap(memoize.InMemory(60))
 def get_utask_main_queue_size(queue_name: str) -> int:
   """Returns the size of the utask main queue."""
-  base_os_version = environment.get_value('BASE_OS_VERSION')
-  if base_os_version:
-    queue_name = f'{queue_name}-{base_os_version}'
+  subscription_name = subscription_name_for_queue(queue_name)
 
   application_id = utils.get_application_id()
   metric = 'pubsub.googleapis.com/subscription/num_undelivered_messages'
   query_filter = (f'metric.type="{metric}" AND '
                   f'resource.labels.project_id="{application_id}" AND '
-                  f'resource.labels.subscription_id="{queue_name}"')
+                  f'resource.labels.subscription_id="{subscription_name}"')
 
   try:
     creds = credentials.get_default()[0]
@@ -909,15 +986,11 @@ def add_utask_main(command: str, input_url: str, job_type: str,
 
 def bulk_add_tasks(tasks, queue=None, eta_now=False):
   """Adds |tasks| in bulk to |queue|."""
-  # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
     queue = default_queue()
+  else:
+    queue = _strip_os_version_suffix(queue, tasks)
 
-  # If callers want delays, they must do it themselves, because this function is
-  # meant to be used for batch tasks which don't need this.
-  # Use an ETA of right now for batch because we don't need extra delay, there
-  # is natural delay added by batch, waiting for utask_main_scheduler,
-  # postprocess etc.
   if eta_now:
     now = utils.utcnow()
     for task in tasks:
@@ -928,6 +1001,34 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
   topic_name = pubsub.topic_name(utils.get_application_id(), queue)
   for batch in utils.batched(pubsub_messages, MAX_PUBSUB_MESSAGES_PER_REQ):
     pubsub_client.publish(topic_name, batch)
+
+
+def _strip_os_version_suffix(queue_name: str, task_list=None) -> str:
+  """Strips any OS-version subscription suffix to recover the topic name."""
+  if not isinstance(queue_name, str):
+    return queue_name
+
+  match = _KNOWN_OS_SUFFIX_PATTERN.search(queue_name)
+  if match and match.start() > 0:
+    return queue_name[:match.start()]
+
+  candidate_versions = set()
+  env_os_version = environment.get_value('BASE_OS_VERSION')
+  if env_os_version and isinstance(env_os_version, str):
+    candidate_versions.add(env_os_version)
+
+  for task in task_list or ():
+    extra_info = getattr(task, 'extra_info', None) or {}
+    task_os_version = extra_info.get(BASE_OS_VERSION_ATTR)
+    if task_os_version:
+      candidate_versions.add(str(task_os_version))
+
+  for os_version in candidate_versions:
+    os_suffix = f'-{os_version}'
+    if queue_name.endswith(os_suffix) and len(queue_name) > len(os_suffix):
+      return queue_name[:-len(os_suffix)]
+
+  return queue_name
 
 
 def add_task(command,
@@ -972,7 +1073,7 @@ def add_task(command,
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   extra_info = extra_info or {}
   if base_os_version:
-    extra_info['base_os_version'] = base_os_version
+    extra_info[BASE_OS_VERSION_ATTR] = base_os_version
   task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
 
   bulk_add_tasks([task], queue=queue)
