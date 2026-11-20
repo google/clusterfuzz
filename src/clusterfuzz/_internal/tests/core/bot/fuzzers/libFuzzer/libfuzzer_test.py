@@ -277,31 +277,44 @@ class FixTimeoutArgumentForReproductionTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
 
-  def test_custom_report_processing_time(self):
-    """Uses REPORT_PROCESSING_TIME from environment when set."""
+  def test_custom_timeout_reserve(self):
+    """Uses TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING when set."""
     environment.set_value('TEST_TIMEOUT', 85)
-    environment.set_value('REPORT_PROCESSING_TIME', 25)
+    environment.set_value('TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING', 25)
     args = libfuzzer.fix_timeout_argument_for_reproduction(
         ['-arg=1', '-timeout=123'])
     self.assertCountEqual(['-arg=1', '-timeout=60'], args)
 
-  def test_invalid_report_processing_time_falls_back_to_default(self):
-    """Falls back to default 5s buffer on empty, non-int, or negative values."""
-    environment.set_value('TEST_TIMEOUT', 85)
-    for bad_value in ('', 'None', '25s', '-1', '25.5', 'True'):
-      with self.subTest(bad_value=bad_value):
-        os.environ['REPORT_PROCESSING_TIME'] = bad_value
-        args = libfuzzer.fix_timeout_argument_for_reproduction(['-arg=1'])
-        self.assertCountEqual(['-arg=1', '-timeout=80'], args)
-
-  def test_report_processing_time_clamps_to_one(self):
-    """Clamps -timeout to 1 and warns when buffer >= TEST_TIMEOUT."""
-    environment.set_value('TEST_TIMEOUT', 20)
-    environment.set_value('REPORT_PROCESSING_TIME', 25)
-    with mock.patch.object(libfuzzer.logs, 'warning') as mock_warn:
-      args = libfuzzer.fix_timeout_argument_for_reproduction(['-arg=1'])
-    self.assertCountEqual(['-arg=1', '-timeout=1'], args)
-    mock_warn.assert_called_once()
+  def test_invalid_timeout_configuration_raises(self):
+    """Raises ValueError on non-int, negative, or >= TEST_TIMEOUT reserve."""
+    invalid_envs = (
+        {
+            'TEST_TIMEOUT': '85',
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING': '25s'
+        },
+        {
+            'TEST_TIMEOUT': '85',
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING': '-1'
+        },
+        {
+            'TEST_TIMEOUT': 'invalid'
+        },
+        {
+            'TEST_TIMEOUT': '25',
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING': '25'
+        },
+        {
+            'TEST_TIMEOUT': '20',
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING': '25'
+        },
+    )
+    for env_case in invalid_envs:
+      with self.subTest(env=env_case):
+        os.environ.pop('TEST_TIMEOUT', None)
+        os.environ.pop('TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING', None)
+        os.environ.update(env_case)
+        with self.assertRaises(ValueError):
+          libfuzzer.fix_timeout_argument_for_reproduction(['-arg=1'])
 
 
 if __name__ == '__main__':

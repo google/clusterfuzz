@@ -1252,24 +1252,22 @@ def fix_timeout_argument_for_reproduction(arguments):
   if constants.TIMEOUT_FLAGNAME in args:
     del args[constants.TIMEOUT_FLAGNAME]
 
-  # Leave buffer for report processing (defaults to 5 sec).
-  report_processing_time = environment.get_value(
-      'REPORT_PROCESSING_TIME', constants.REPORT_PROCESSING_TIME)
-  if (not isinstance(report_processing_time, int) or
-      isinstance(report_processing_time, bool) or report_processing_time < 0):
-    logs.warning(
-        f'Invalid REPORT_PROCESSING_TIME value: {report_processing_time!r}. '
-        f'Using default: {constants.REPORT_PROCESSING_TIME}.')
-    report_processing_time = constants.REPORT_PROCESSING_TIME
+  # Leave buffer for startup and crash report processing (defaults to 5 sec).
+  reserve_env_var = 'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING'
+  timeout_reserve = environment.get_int(
+      reserve_env_var,
+      constants.DEFAULT_TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING)
+  if timeout_reserve < 0:
+    raise ValueError(f'{reserve_env_var} must be >= 0, got {timeout_reserve}.')
 
-  test_timeout = environment.get_value('TEST_TIMEOUT',
-                                       constants.DEFAULT_TIMEOUT_LIMIT)
-  if report_processing_time >= test_timeout:
-    logs.warning(
-        f'REPORT_PROCESSING_TIME ({report_processing_time}) >= TEST_TIMEOUT '
-        f'({test_timeout}); clamping reproduction timeout to 1s.')
-  adjusted_test_timeout = max(1, test_timeout - report_processing_time)
-  args[constants.TIMEOUT_FLAGNAME] = adjusted_test_timeout
+  test_timeout = environment.get_int('TEST_TIMEOUT',
+                                     constants.DEFAULT_TIMEOUT_LIMIT)
+  if timeout_reserve >= test_timeout:
+    raise ValueError(
+        f'{reserve_env_var} ({timeout_reserve}) must be < TEST_TIMEOUT '
+        f'({test_timeout}).')
+
+  args[constants.TIMEOUT_FLAGNAME] = test_timeout - timeout_reserve
   return args.list()
 
 

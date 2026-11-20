@@ -678,6 +678,18 @@ def get_value(environment_variable, default_value=None, env=None):
   return _eval_value(value_string)
 
 
+def get_int(environment_variable, default_value=None, env=None):
+  """Return an integer environment variable value."""
+  value = get_value(environment_variable, env=env)
+  if value is None:
+    return default_value
+  if not isinstance(value, int) or isinstance(value, bool):
+    raise ValueError(
+        f'Environment variable {environment_variable} must be an int, '
+        f'got {value!r}.')
+  return value
+
+
 def _job_substring_match(search_string, job_name):
   """Return a bool on whether a string exists in a provided job name or
   use from environment if available (case insensitive)."""
