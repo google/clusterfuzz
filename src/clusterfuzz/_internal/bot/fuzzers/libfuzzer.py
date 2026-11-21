@@ -1252,12 +1252,22 @@ def fix_timeout_argument_for_reproduction(arguments):
   if constants.TIMEOUT_FLAGNAME in args:
     del args[constants.TIMEOUT_FLAGNAME]
 
-  # Leave 5 sec buffer for report processing.
-  adjusted_test_timeout = max(
-      1,
-      environment.get_value('TEST_TIMEOUT', constants.DEFAULT_TIMEOUT_LIMIT) -
-      constants.REPORT_PROCESSING_TIME)
-  args[constants.TIMEOUT_FLAGNAME] = adjusted_test_timeout
+  # Leave buffer for startup and crash report processing (defaults to 5 sec).
+  reserve_env_var = 'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING'
+  timeout_reserve = environment.get_int(
+      reserve_env_var,
+      constants.DEFAULT_TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING)
+  if timeout_reserve < 0:
+    raise ValueError(f'{reserve_env_var} must be >= 0, got {timeout_reserve}.')
+
+  test_timeout = environment.get_int('TEST_TIMEOUT',
+                                     constants.DEFAULT_TIMEOUT_LIMIT)
+  if timeout_reserve >= test_timeout:
+    raise ValueError(
+        f'{reserve_env_var} ({timeout_reserve}) must be < TEST_TIMEOUT '
+        f'({test_timeout}).')
+
+  args[constants.TIMEOUT_FLAGNAME] = test_timeout - timeout_reserve
   return args.list()
 
 
