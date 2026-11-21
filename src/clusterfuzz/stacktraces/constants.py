@@ -374,6 +374,10 @@ GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
 PYTHON_UNHANDLED_EXCEPTION = re.compile(
     r'^\s*=== Uncaught Python exception: ===$')
 
+# Printed by sys.unraisablehook, for example for an exception raised in a
+# weakref callback during interpreter shutdown after the real crash.
+PYTHON_EXCEPTION_IGNORED_REGEX = re.compile(r'^\s*Exception ignored\b')
+
 PYTHON_CRASH_TYPES_MAP = [
     (PYTHON_UNHANDLED_EXCEPTION, 'Uncaught exception'),
     (EXTRA_SANITIZERS_PYSECSAN, 'PySecSan'),

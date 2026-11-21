@@ -1630,6 +1630,10 @@ def reverse_python_stacktrace(stacktrace):
       # Locate beginning of the sanitizer stacktrace.
       if '=========' in line or '== ERROR: ' in line:
         break
+      # An exception reported as ignored after the crash (e.g. from a weakref
+      # callback while the interpreter shuts down) is not part of the crash.
+      if PYTHON_EXCEPTION_IGNORED_REGEX.match(line):
+        break
       python_stacktrace_split.insert(1, line)
 
   return python_stacktrace_split
