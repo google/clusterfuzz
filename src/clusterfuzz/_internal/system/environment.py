@@ -683,6 +683,7 @@ def get_int(environment_variable, default_value=None, env=None):
   value = get_value(environment_variable, env=env)
   if value is None:
     return default_value
+  # bool is a subclass of int in Python, so reject booleans explicitly.
   if not isinstance(value, int) or isinstance(value, bool):
     raise ValueError(
         f'Environment variable {environment_variable} must be an int, '
