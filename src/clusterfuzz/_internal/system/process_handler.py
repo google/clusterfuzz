@@ -124,7 +124,7 @@ def run_process(cmdline,
                 env_copy=None,
                 testcase_run=True,
                 ignore_children=True,
-                terminate_android_app=True):
+                dont_terminate_android_app=False):
   """Executes a process with a given command line and other parameters."""
   if environment.is_trusted_host() and testcase_run:
     from clusterfuzz._internal.bot.untrusted_runner import remote_process_host
@@ -137,7 +137,7 @@ def run_process(cmdline,
         env_copy,
         testcase_run,
         ignore_children,
-        terminate_android_app=terminate_android_app)
+        dont_terminate_android_app=dont_terminate_android_app)
 
   if gestures is None:
     gestures = []

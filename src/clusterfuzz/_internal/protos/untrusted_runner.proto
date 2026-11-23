@@ -67,9 +67,9 @@ message RunProcessRequest {
   map<string, string> env_copy = 6;
   optional bool testcase_run = 7;
   optional bool ignore_children = 8;
-  // If unset, defaults to true (terminate the Android app at the end of the
-  // run).
-  optional bool terminate_android_app = 9;
+  // When true, leave the Android app running after the run instead of stopping
+  // it.
+  optional bool dont_terminate_android_app = 9;
 }
 
 message RunProcessResponse {

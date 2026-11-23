@@ -125,22 +125,22 @@ class RemoteProcessTest(unittest.TestCase):
         testcase_run=True,
         timeout=20)
 
-  def test_run_process_forwards_terminate_android_app(self):
-    """terminate_android_app=False from the host request reaches
+  def test_run_process_forwards_dont_terminate_android_app(self):
+    """dont_terminate_android_app=True from the host request reaches
     process_handler.run_process on the worker."""
     request = untrusted_runner_pb2.RunProcessRequest()
     request.cmdline = 'cmd arg'
-    request.terminate_android_app = False
+    request.dont_terminate_android_app = True
 
     self.mock.run_process.return_value = (0, 10.0, 'output')
 
     remote_process.run_process(request, None)
 
     self.mock.run_process.assert_called_with(
-        cmdline='cmd arg', terminate_android_app=False)
+        cmdline='cmd arg', dont_terminate_android_app=True)
 
-  def test_run_process_unset_terminate_android_app(self):
-    """Requests from older hosts without terminate_android_app omit the
+  def test_run_process_unset_dont_terminate_android_app(self):
+    """Requests from older hosts without dont_terminate_android_app omit the
     argument, so run_process keeps its default (terminate the app)."""
     request = untrusted_runner_pb2.RunProcessRequest()
     request.cmdline = 'cmd arg'
@@ -149,5 +149,5 @@ class RemoteProcessTest(unittest.TestCase):
 
     remote_process.run_process(request, None)
 
-    self.assertNotIn('terminate_android_app',
+    self.assertNotIn('dont_terminate_android_app',
                      self.mock.run_process.call_args.kwargs)

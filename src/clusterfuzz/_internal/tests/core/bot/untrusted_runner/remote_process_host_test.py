@@ -175,15 +175,16 @@ class RemoteProcessHostTest(unittest.TestCase):
     self.assertEqual(execution_time, 10.0)
     self.assertEqual(output, 'output')
 
-  def test_run_process_terminate_android_app_false(self):
-    """terminate_android_app=False is sent to the worker in the request, so the
-    worker leaves the Android app running."""
+  def test_run_process_dont_terminate_android_app_true(self):
+    """dont_terminate_android_app=True is sent to the worker in the request, so
+    the worker leaves the Android app running."""
     self.mock.stub().RunProcess.return_value = (
         untrusted_runner_pb2.RunProcessResponse(
             return_code=0, execution_time=10.0, output='output'))
 
-    remote_process_host.run_process('/executable', terminate_android_app=False)
+    remote_process_host.run_process(
+        '/executable', dont_terminate_android_app=True)
 
     request = self.mock.stub().RunProcess.call_args[0][0]
-    self.assertTrue(request.HasField('terminate_android_app'))
-    self.assertFalse(request.terminate_android_app)
+    self.assertTrue(request.HasField('dont_terminate_android_app'))
+    self.assertTrue(request.dont_terminate_android_app)

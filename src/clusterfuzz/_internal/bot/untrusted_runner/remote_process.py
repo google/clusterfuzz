@@ -79,8 +79,8 @@ def run_process(request, _):
   protobuf_utils.get_protobuf_field(args, request, 'testcase_run')
   protobuf_utils.get_protobuf_field(args, request, 'ignore_children')
   # Unset when the request comes from an older host, in which case
-  # run_process's default (terminate) applies.
-  protobuf_utils.get_protobuf_field(args, request, 'terminate_android_app')
+  # run_process's default (False, terminate the app) applies.
+  protobuf_utils.get_protobuf_field(args, request, 'dont_terminate_android_app')
 
   return_code, execution_time, output = process_handler.run_process(**args)
   response = untrusted_runner_pb2.RunProcessResponse(  # pylint: disable=no-member
