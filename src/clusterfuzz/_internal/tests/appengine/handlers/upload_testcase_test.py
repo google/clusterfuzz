@@ -1147,3 +1147,34 @@ class CrashReplicationTest(unittest.TestCase):
         'testcase_id': created_testcase_id,
         'uploader_email': self.service_account_email,
     }, metadata.to_dict())
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetBlockedTrustedJobsTest(unittest.TestCase):
+  """Tests for _get_blocked_trusted_jobs."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_chromium',
+        'clusterfuzz._internal.base.tasks.task_utils.'
+        'is_remotely_executing_utasks',
+        'libs.access.has_access',
+    ])
+    self.mock.is_remotely_executing_utasks.return_value = True
+    data_types.Job(name='linux_job', platform='LINUX').put()
+    data_types.Job(name='mac_job', platform='MAC').put()
+
+  def test_get_blocked_trusted_jobs(self):
+    """Tests that only users who aren't privileged are blocked from trusted
+    jobs, and only on Chrome."""
+    cases = [
+        ('privileged', True, True, []),
+        ('unprivileged', False, True, ['mac_job']),
+        ('unprivileged_outside_chrome', False, False, []),
+    ]
+    for name, privileged, is_chromium, expected in cases:
+      with self.subTest(name):
+        self.mock.has_access.return_value = privileged
+        self.mock.is_chromium.return_value = is_chromium
+
+        self.assertEqual(expected, upload_testcase._get_blocked_trusted_jobs())

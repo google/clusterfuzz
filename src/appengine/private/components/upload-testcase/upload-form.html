@@ -137,7 +137,9 @@
               <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
             </paper-input>
             <template is="dom-repeat" items="[[fieldValues.jobs]]" filter="{{onmatch(jobKey)}}">
-              <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
+              <paper-item on-click="submit" val="[[item]]"
+                  disabled="[[isJobBlocked(item, fieldValues.blockedTrustedJobs)]]"
+                  title$="[[getJobTooltip(item, fieldValues.blockedTrustedJobs)]]">[[item]]</paper-item>
             </template>
           </paper-listbox>
         </paper-dropdown-menu>
@@ -383,6 +385,15 @@
 
       isAndroid(job) {
         return job && job.startsWith('android_');
+      }
+
+      isJobBlocked(job, blockedJobs) {
+        return !!blockedJobs && blockedJobs.includes(job);
+      }
+
+      getJobTooltip(job, blockedJobs) {
+        return this.isJobBlocked(job, blockedJobs) ?
+            this.fieldValues.trustedJobPrivilegeMessage : '';
       }
 
       generatePermalink() {
