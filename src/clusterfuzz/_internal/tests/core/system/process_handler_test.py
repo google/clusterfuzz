@@ -315,14 +315,14 @@ class RunProcessAndroidTest(unittest.TestCase):
         'com.example.app', None)
     self.assertEqual(return_code, 0)
 
-  def test_run_process_android_terminate_android_app_false_keeps_app(self):
-    """terminate_android_app=False leaves the Android app running after the run,
-    so the bad build check can inspect it, and still returns the result."""
+  def test_run_process_android_dont_terminate_android_app_true_keeps_app(self):
+    """dont_terminate_android_app=True leaves the Android app running after the
+    run, so the bad build check can inspect it, and still returns the result."""
     self.mock.activity_crashed.return_value = False
 
     return_code, _, _ = process_handler.run_process(
         'am start -n com.example.app/.MainActivity',
-        terminate_android_app=False)
+        dont_terminate_android_app=True)
 
     self.mock.stop.assert_not_called()
     self.assertEqual(return_code, 0)

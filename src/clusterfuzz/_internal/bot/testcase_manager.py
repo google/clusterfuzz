@@ -1325,7 +1325,7 @@ def check_for_bad_build(job_type: str,
       # Keep the Android application running at the end of the run so that we
       # can check below whether it is still alive. It is stopped right after the
       # check.
-      terminate_android_app=False)
+      dont_terminate_android_app=True)
   android_app_died_during_test_execution = _check_and_stop_android_app()
   crash_result = CrashResult(return_code, crash_time, output)
   logs.info(

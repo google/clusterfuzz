@@ -1304,8 +1304,8 @@ class CheckForBadBuildTest(unittest.TestCase):
 
     self.assertFalse(build_data.is_bad_build)
     self.assertEqual(build_data.revision, 123)
-    self.assertFalse(
-        self.mock.run_process.call_args.kwargs['terminate_android_app'])
+    self.assertTrue(
+        self.mock.run_process.call_args.kwargs['dont_terminate_android_app'])
     self.assertEqual(['run_process', 'get_process_and_child_pids', 'stop'],
                      [name for name, _, _ in call_order.mock_calls])
 
