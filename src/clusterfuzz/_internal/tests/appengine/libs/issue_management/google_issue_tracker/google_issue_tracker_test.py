@@ -120,8 +120,27 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     self.assertCountEqual([], issue.labels)
     self.assertCountEqual([], issue.components)
     self.assertCountEqual([], issue.ccs)
+    self.assertCountEqual([], issue.collaborators)
     self.assertEqual('test body', issue.body)
     self.assertEqual('2019-06-25T01:29:30.021Z', issue.created_time)
+
+  def test_get_issue_collaborators(self):
+    """Test collaborators property exposes issueState collaborators."""
+    issue_data = copy.deepcopy(BASIC_ISSUE)
+    issue_data['issueState']['collaborators'] = [
+        {
+            'emailAddress': 'collab1@google.com',
+            'userGaiaStatus': 'ACTIVE',
+        },
+        {
+            'emailAddress': 'collab2@google.com',
+            'userGaiaStatus': 'ACTIVE',
+        },
+    ]
+    self.client.issues().get().execute.return_value = issue_data
+    issue = self.issue_tracker.get_issue(68828938)
+    self.assertCountEqual(['collab1@google.com', 'collab2@google.com'],
+                          issue.collaborators)
 
   def test_closed(self):
     """Test a closed issue."""

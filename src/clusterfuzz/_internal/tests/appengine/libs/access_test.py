@@ -436,6 +436,59 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
     self.bug.add_cc(self.email.capitalize())
     self._test_bug_access()
 
+  def test_allowed_because_of_collaborator(self):
+    """Ensure it is allowed because the user is a collaborator."""
+    with mock.patch.object(
+        monorail.Issue,
+        'collaborators',
+        new_callable=mock.PropertyMock,
+        return_value=[self.email.capitalize()]):
+      self._test_bug_access()
+
+  def test_allowed_because_of_collaborator_domain_allowed(self):
+    """Ensure a verified domain collaborator can access a security testcase."""
+    self.mock._is_domain_allowed.return_value = True
+    self.testcase.security_flag = True
+    self.mock.get.return_value = (
+        data_types.Config(relax_testcase_restrictions=False))
+    with mock.patch.object(
+        monorail.Issue,
+        'collaborators',
+        new_callable=mock.PropertyMock,
+        return_value=[self.email]):
+      self._test_bug_access()
+
+  def test_not_relaxed_for_collaborator_unverified_domain(self):
+    """Ensure an unverified domain collaborator does not get relaxed access."""
+    self.mock.get_current_user.return_value = auth.User(
+        self.email, email_verified=False)
+    self.mock._is_domain_allowed.return_value = True
+    self.testcase.security_flag = True
+    self.mock.get.return_value = (
+        data_types.Config(relax_testcase_restrictions=False))
+    self.get_issue.return_value = self.bug
+    self.testcase.bug_information = '1234'
+    with mock.patch.object(
+        monorail.Issue,
+        'collaborators',
+        new_callable=mock.PropertyMock,
+        return_value=[self.email]):
+      self.assertFalse(access.can_user_access_testcase(self.testcase))
+
+  def test_denied_collaborator_no_access(self):
+    """Ensure a collaborator is denied when restrictions are not relaxed."""
+    self.mock._is_domain_allowed.return_value = False
+    self.mock.get.return_value = (
+        data_types.Config(relax_testcase_restrictions=False))
+    self.get_issue.return_value = self.bug
+    self.testcase.bug_information = '1234'
+    with mock.patch.object(
+        monorail.Issue,
+        'collaborators',
+        new_callable=mock.PropertyMock,
+        return_value=[self.email]):
+      self.assertFalse(access.can_user_access_testcase(self.testcase))
+
   def test_allowed_because_of_owner(self):
     """Ensure it is allowed because the user is the owner."""
     self.bug.owner = self.email.capitalize()

@@ -13,7 +13,9 @@
 # limitations under the License.
 """Flash related functions."""
 import datetime
+import fnmatch
 import os
+import shlex
 import socket
 import time
 
@@ -214,10 +216,15 @@ def flash_to_latest_build_if_needed():
       adb.run_fastboot_command(['-w', 'reboot-bootloader'])
 
       for partition, partition_image_filename in FLASH_IMAGE_FILES:
-        partition_image_file_path = os.path.join(image_directory,
-                                                 partition_image_filename)
+        partition_image_file_path = _resolve_partition_image_path(
+            image_directory, partition_image_filename)
+        if not partition_image_file_path:
+          logs.warning('No partition image matching %s in %s.' %
+                       (partition_image_filename, image_directory))
+          continue
         adb.run_fastboot_command(
-            ['flash', partition, partition_image_file_path])
+            ['flash', partition,
+             shlex.quote(partition_image_file_path)])
         if partition in ['bootloader', 'radio']:
           adb.run_fastboot_command(['reboot-bootloader'])
 
@@ -264,3 +271,19 @@ def flash_to_latest_build_if_needed():
   persistent_cache.delete_value(constants.LAST_TEST_ACCOUNT_CHECK_KEY)
   persistent_cache.set_value(constants.LAST_FLASH_BUILD_KEY, build_info)
   persistent_cache.set_value(constants.LAST_FLASH_TIME_KEY, time.time())
+
+
+def _resolve_partition_image_path(image_directory: str,
+                                  image_pattern: str) -> str | None:
+  """Resolves a partition image filename or wildcard pattern in a directory."""
+  if '*' not in image_pattern:
+    return os.path.join(image_directory, image_pattern)
+
+  if not os.path.isdir(image_directory):
+    return None
+
+  for filename in sorted(os.listdir(image_directory)):
+    if fnmatch.fnmatch(filename, image_pattern):
+      return os.path.join(image_directory, filename)
+
+  return None

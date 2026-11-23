@@ -82,16 +82,51 @@ def _save_current_fixed_range_indices(testcase, uworker_output):
       'last_progression_max', last_progression_max, update_testcase=False)
 
 
+def _clear_pending_and_persist(testcase: data_types.Testcase) -> None:
+  """Clears progression_pending metadata and persists the testcase."""
+  if not testcase.get_metadata('progression_pending'):
+    return
+  data_handler.clear_progression_pending(testcase)
+  testcase.put()
+
+
+def _reschedule_progression_task(testcase: data_types.Testcase,
+                                 testcase_id: str,
+                                 job_type: str,
+                                 wait_time=None) -> bool:
+  """Schedules a progression task if testcase is open and job exists."""
+  if not testcase.open:
+    _clear_pending_and_persist(testcase)
+    logs.info(
+        f'Skipping progression reschedule for closed testcase {testcase_id}.')
+    return False
+
+  try:
+    tasks.add_task('progression', testcase_id, job_type, wait_time=wait_time)
+  except tasks.Error as error:
+    _clear_pending_and_persist(testcase)
+    logs.warning(
+        f'Cannot reschedule progression task for testcase {testcase_id}: '
+        f'{error}')
+    return False
+
+  return True
+
+
 def handle_progression_timeout(uworker_output: uworker_msg_pb2.Output):  # pylint: disable=no-member
   """Job has exceeded the deadline. Recreate the task to pick up where we left
   off."""
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase.open:
+    _clear_pending_and_persist(testcase)
+    return
+
   _save_current_fixed_range_indices(testcase, uworker_output)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
-  tasks.add_task('progression', testcase_id, job_type)
+  _reschedule_progression_task(testcase, testcase_id, job_type)
 
 
 def handle_progression_build_not_found(uworker_output: uworker_msg_pb2.Output):  # pylint: disable=no-member
@@ -118,6 +153,27 @@ def handle_progression_revision_list_error(
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.close_testcase_with_error(testcase,
                                          'Failed to fetch revision list')
+
+
+def handle_progression_testcase_setup_error(
+    uworker_output: uworker_msg_pb2.Output):  # pylint: disable=no-member
+  """Handles testcase setup errors for progression tasks."""
+  testcase_id = uworker_output.uworker_input.testcase_id
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase.open:
+    _clear_pending_and_persist(testcase)
+    logs.info(
+        f'Skipping progression reschedule for closed testcase {testcase_id}.')
+    return
+
+  try:
+    setup.handle_setup_testcase_error(uworker_output)
+  except tasks.Error as error:
+    refreshed_testcase = data_handler.get_testcase_by_id(testcase_id)
+    _clear_pending_and_persist(refreshed_testcase)
+    logs.warning(
+        f'Cannot reschedule progression task for testcase {testcase_id}: '
+        f'{error}')
 
 
 def _cleanup_stacktrace_blob_from_storage(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
@@ -190,10 +246,15 @@ def handle_progression_no_crash(uworker_output: uworker_msg_pb2.Output):  # pyli
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase.open:
+    _clear_pending_and_persist(testcase)
+    return
+
   # Retry once on another bot to confirm our result.
   if data_handler.is_first_attempt_for_task(
       'progression', testcase, reset_after_retry=True):
-    tasks.add_task('progression', testcase_id, job_type)
+    if not _reschedule_progression_task(testcase, testcase_id, job_type):
+      return
     error_message = (
         uworker_output.error_message +
         ', will retry on another bot to confirm result.')
@@ -218,11 +279,15 @@ def handle_progression_build_setup_error(
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase.open:
+    _clear_pending_and_persist(testcase)
+    return
+
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
   build_fail_wait = environment.get_value('FAIL_WAIT')
-  tasks.add_task(
-      'progression', testcase_id, job_type, wait_time=build_fail_wait)
+  _reschedule_progression_task(
+      testcase, testcase_id, job_type, wait_time=build_fail_wait)
 
 
 def handle_progression_bad_build(uworker_output: uworker_msg_pb2.Output):  # pylint: disable=no-member
@@ -780,10 +845,9 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_progression_revision_list_error,
     uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT:  # pylint: disable=no-member
         handle_progression_timeout,
-}).compose_with(
-    setup.ERROR_HANDLER,
-    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
-)
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP:  # pylint: disable=no-member
+        handle_progression_testcase_setup_error,
+}).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER,)
 
 
 def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-member
@@ -822,10 +886,11 @@ def utask_postprocess(output: uworker_msg_pb2.Output):  # pylint: disable=no-mem
       # in a bad state which we didn't catch through our usual means.
       if data_handler.is_first_attempt_for_task(
           'progression', testcase, reset_after_retry=True):
-        tasks.add_task('progression', output.uworker_input.testcase_id,
-                       output.uworker_input.job_type)
-        data_handler.update_progression_completion_metadata(
-            testcase, task_output.crash_revision)
+        if _reschedule_progression_task(testcase,
+                                        output.uworker_input.testcase_id,
+                                        output.uworker_input.job_type):
+          data_handler.update_progression_completion_metadata(
+              testcase, task_output.crash_revision)
         return
 
       # The bug is fixed.
