@@ -14,7 +14,6 @@
 """Tests for Android symbols_downloader."""
 
 import os
-import shutil
 import tempfile
 import unittest
 
@@ -53,7 +52,7 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
     self.mock.execute_command.return_value = ''
 
   def test_rejects_malicious_and_malformed_binary_paths(self):
-    """Tests that metacharacters, traversals, dotfiles, and // are rejected."""
+    """Tests that metacharacters, traversals, dotfiles, and pseudo-fs fail."""
     invalid_paths = [
         '',
         'relative/libfoo.so',
@@ -68,6 +67,10 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
         '/system/lib64/.hidden.so',
         '//system/lib64/libc.so',
         '/system//lib64/libc.so',
+        '/dev/zero',
+        '/dev/ashmem/dalvik-jit-code-cache',
+        '/proc/kmsg',
+        '/sys/kernel/notes',
         '/',
         '/system/lib64/',
         '/system/../data/misc/adb/adb_keys',
@@ -85,25 +88,39 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
     self.mock.execute_command.assert_not_called()
 
   def test_does_not_escape_to_host_filesystem_paths(self):
-    """Tests that /dev/zero, /tmp, or host binaries do not match outside dirs."""
-    for host_path in ('/dev/zero', '/tmp', '/bin/sh'):
+    """Tests that /tmp or host binaries do not match outside symbol dirs."""
+    for host_path in ('/tmp', '/bin/sh', '/etc/passwd'):
       with self.subTest(host_path=host_path):
         self.mock.execute_command.reset_mock()
         result = symbols_downloader.filter_binary_path(host_path)
         self.assertEqual('', result)
         self.mock.execute_command.assert_called_once()
 
-  def test_resolves_cached_symbols_inside_build_or_symbols_dir(self):
-    """Tests that cached symbols in BUILD_DIR and SYMBOLS_DIR are found."""
-    cached_symbol = os.path.join(self.symbols_dir, 'system', 'lib64', 'libc.so')
-    os.makedirs(os.path.dirname(cached_symbol))
-    with open(cached_symbol, 'wb') as handle:
+  def test_resolves_cached_symbols_by_subpath_without_basename_collision(self):
+    """Tests subpath lookup in SYMBOLS_DIR without wrong-arch collisions."""
+    cached_direct = os.path.join(self.symbols_dir, 'system', 'lib64', 'libc.so')
+    os.makedirs(os.path.dirname(cached_direct))
+    with open(cached_direct, 'wb') as handle:
+      handle.write(b'\x7fELF')
+
+    nested_vendor = os.path.join(self.symbols_dir, 'out', 'symbols', 'vendor',
+                                 'lib64', 'libhw.so')
+    os.makedirs(os.path.dirname(nested_vendor))
+    with open(nested_vendor, 'wb') as handle:
       handle.write(b'\x7fELF')
 
     self.assertEqual(
-        cached_symbol,
+        cached_direct,
         symbols_downloader.filter_binary_path('/system/lib64/libc.so'))
+    self.assertEqual(
+        nested_vendor,
+        symbols_downloader.filter_binary_path('/vendor/lib64/libhw.so'))
     self.mock.execute_command.assert_not_called()
+
+    # Different subpath sharing the same basename must not return cached_direct.
+    self.assertEqual(
+        '', symbols_downloader.filter_binary_path('/system/lib/libc.so'))
+    self.mock.execute_command.assert_called_once()
 
   def test_pulls_valid_android_binary_into_device_subdir_with_argv_list(self):
     """Tests that valid Android device paths pull into SYMBOLS_DIR/device/."""
@@ -112,6 +129,7 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
     os.makedirs(os.path.join(self.symbols_dir, 'system'), exist_ok=True)
 
     device_paths = [
+        '/init',
         '/system/lib64/libc++.so',
         '/system/lib/libc++.so',
         '/data/local/tmp/system',
@@ -143,10 +161,9 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
             '/usr/bin/adb', '-s', 'emulator-5554', 'pull', '--', device_path,
             expected_local
         ], argv)
-        shutil.rmtree(os.path.join(self.symbols_dir, 'device'))
 
   def test_ignores_pulled_directory_target(self):
-    """Tests that directory entries in SYMBOLS_DIR or device/ are rejected."""
+    """Tests that existing directory entries skip adb pull and return empty."""
     os.makedirs(
         os.path.join(self.symbols_dir, 'device', 'data', 'local', 'tmp',
                      'dir_target'))
@@ -155,6 +172,7 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
 
     result = symbols_downloader.filter_binary_path('/data/local/tmp/dir_target')
     self.assertEqual('', result)
+    self.mock.execute_command.assert_not_called()
 
   def test_stack_symbolizer_line_with_injected_command_does_not_run_adb(self):
     """Tests the b/565097191 stack trace payload end-to-end through filter."""

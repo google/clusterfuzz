@@ -237,8 +237,28 @@ def _is_valid_device_binary_path(binary_path):
   parts = binary_path.split('/')
   if any(part in ('', '.', '..') for part in parts[1:]):
     return False
+  if parts[1] in ('dev', 'proc', 'sys'):
+    return False
   basename = os.path.basename(binary_path)
   return bool(basename) and not basename.startswith(('-', '.'))
+
+
+def _find_cached_symbol_path(symbols_directory, relative_binary_path):
+  """Finds a cached regular file matching |relative_binary_path|."""
+  for candidate in (
+      os.path.join(symbols_directory, relative_binary_path),
+      os.path.join(symbols_directory, 'device', relative_binary_path),
+  ):
+    if os.path.isfile(candidate):
+      return candidate
+
+  subpath_suffix = os.sep + relative_binary_path
+  for root, _, filenames in os.walk(symbols_directory):
+    for filename in filenames:
+      file_path = os.path.join(root, filename)
+      if file_path.endswith(subpath_suffix) and os.path.isfile(file_path):
+        return file_path
+  return None
 
 
 def _get_binary_from_build_or_device(binary_path):
@@ -256,15 +276,17 @@ def _get_binary_from_build_or_device(binary_path):
   # We didn't find the library locally in the build directory.
   # Try finding the library in the local system library cache.
   download_system_symbols_if_needed(symbols_directory)
-  local_binary_path = utils.find_binary_path(symbols_directory,
-                                             relative_binary_path)
-  if local_binary_path and os.path.isfile(local_binary_path):
+  local_binary_path = _find_cached_symbol_path(symbols_directory,
+                                               relative_binary_path)
+  if local_binary_path:
     return local_binary_path
 
   # Try pulling in the binary directly from the device into a dedicated
   # subdirectory of the system library cache directory.
   local_binary_path = os.path.join(symbols_directory, 'device',
                                    relative_binary_path)
+  if os.path.exists(local_binary_path):
+    return None
   adb.copy_remote_file_to_local(binary_path, local_binary_path)
   if os.path.isfile(local_binary_path):
     return local_binary_path
