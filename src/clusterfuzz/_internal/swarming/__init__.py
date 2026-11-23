@@ -33,9 +33,9 @@ from clusterfuzz._internal.system import environment
 # Swarming priorities range from 1 (highest) to 255 (lowest).
 MAX_SWARMING_PRIORITY = 255
 # Added to each platform's configured priority for fuzz tasks so non-fuzz tasks
-# run first. Uses a positive offset instead of a fixed value to preserve
+# run first. Uses a relative penalty instead of a fixed value to preserve
 # per-platform base priorities and avoid Swarming's non-admin floor of 20.
-FUZZ_PRIORITY_OFFSET = 10
+FUZZ_PRIORITY_PENALTY = 10
 
 
 def has_swarming_env_vars(job_environment: dict) -> bool:
@@ -255,7 +255,7 @@ def create_new_task_request(command: str, job_name: str, download_url: str
   # forcibly terminated and the task results in TIMED_OUT.
   execution_timeout_secs = instance_spec['execution_timeout_secs']
   if command == 'fuzz':
-    priority = min(priority + FUZZ_PRIORITY_OFFSET, MAX_SWARMING_PRIORITY)
+    priority = min(priority + FUZZ_PRIORITY_PENALTY, MAX_SWARMING_PRIORITY)
     execution_timeout_secs = swarming_config.get('fuzz_task_duration')
 
   # The cipd_input contains the cipd_packages that need to be installed
