@@ -14,6 +14,7 @@
 """Storage tests."""
 from concurrent import futures
 import datetime
+import io
 import os
 import threading
 import unittest
@@ -757,3 +758,29 @@ class SignedUrlSessionTest(unittest.TestCase):
       child_session = self._session()
       self.assertIsNot(child_session, parent_session)
       self.assertIs(self._session(), child_session)
+
+  def test_upload_rewinds_file_on_retry(self):
+    """A retry after a dropped connection rewinds a file-like body instead of
+    uploading from EOF."""
+    sent = []
+
+    def fake_send(request, **kwargs):
+      del kwargs
+      sent.append((request.headers.get('Content-Length'), request.body.read()))
+      if len(sent) == 1:
+        raise storage.requests.exceptions.ConnectionError('connection dropped')
+      response = storage.requests.Response()
+      response.status_code = 200
+      return response
+
+    payload = b'testcase-bytes'
+    with mock.patch.object(
+        storage, '_provider', return_value=storage.GcsProvider()), \
+        mock.patch.object(storage.retry, 'sleep'), \
+        mock.patch.object(self._session(), 'send', side_effect=fake_send):
+      result = storage.upload_signed_url(
+          io.BytesIO(payload), 'https://signed/upload')
+
+    self.assertTrue(result)
+    expected = (str(len(payload)), payload)
+    self.assertEqual(sent, [expected, expected])
