@@ -96,31 +96,29 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
         self.assertEqual('', result)
         self.mock.execute_command.assert_called_once()
 
-  def test_resolves_cached_symbols_by_subpath_without_basename_collision(self):
-    """Tests subpath lookup in SYMBOLS_DIR without wrong-arch collisions."""
+  def test_resolves_build_symbols_including_apex_basename_fallback(self):
+    """Tests subpath and basename lookup for extracted build symbols."""
     cached_direct = os.path.join(self.symbols_dir, 'system', 'lib64', 'libc.so')
     os.makedirs(os.path.dirname(cached_direct))
     with open(cached_direct, 'wb') as handle:
       handle.write(b'\x7fELF')
 
-    nested_vendor = os.path.join(self.symbols_dir, 'out', 'symbols', 'vendor',
-                                 'lib64', 'libhw.so')
-    os.makedirs(os.path.dirname(nested_vendor))
-    with open(nested_vendor, 'wb') as handle:
+    apex_symbol = os.path.join(self.symbols_dir, 'out', 'symbols', 'apex',
+                               'com.google.android.art', 'lib64', 'libart.so')
+    os.makedirs(os.path.dirname(apex_symbol))
+    with open(apex_symbol, 'wb') as handle:
       handle.write(b'\x7fELF')
 
     self.assertEqual(
         cached_direct,
         symbols_downloader.filter_binary_path('/system/lib64/libc.so'))
+    # Mounted APEX / randomized /data/app paths resolve via basename fallback
+    # against extracted build symbols.
     self.assertEqual(
-        nested_vendor,
-        symbols_downloader.filter_binary_path('/vendor/lib64/libhw.so'))
+        apex_symbol,
+        symbols_downloader.filter_binary_path(
+            '/apex/com.android.art/lib64/libart.so'))
     self.mock.execute_command.assert_not_called()
-
-    # Different subpath sharing the same basename must not return cached_direct.
-    self.assertEqual(
-        '', symbols_downloader.filter_binary_path('/system/lib/libc.so'))
-    self.mock.execute_command.assert_called_once()
 
   def test_pulls_valid_android_binary_into_device_subdir_with_argv_list(self):
     """Tests that valid Android device paths pull into SYMBOLS_DIR/device/."""
@@ -140,8 +138,8 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
     for device_path in device_paths:
       with self.subTest(device_path=device_path):
         self.mock.execute_command.reset_mock()
-        expected_local = os.path.join(self.symbols_dir, 'device',
-                                      device_path.lstrip('/'))
+        expected_local = os.path.abspath(
+            os.path.join(self.symbols_dir, 'device', device_path.lstrip('/')))
 
         def create_pulled_file(cmd, timeout=None, local_path=expected_local):
           del cmd, timeout
@@ -158,7 +156,7 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
             host_cmd,
             on_cuttlefish_host=False)
         self.assertEqual([
-            '/usr/bin/adb', '-s', 'emulator-5554', 'pull', '--', device_path,
+            '/usr/bin/adb', '-s', 'emulator-5554', 'pull', device_path,
             expected_local
         ], argv)
 

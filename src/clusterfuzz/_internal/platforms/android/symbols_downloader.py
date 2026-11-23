@@ -252,13 +252,22 @@ def _find_cached_symbol_path(symbols_directory, relative_binary_path):
     if os.path.isfile(candidate):
       return candidate
 
+  # Search extracted build symbols (excluding device-pulled files so distinct
+  # device paths sharing a basename cannot collide).
   subpath_suffix = os.sep + relative_binary_path
-  for root, _, filenames in os.walk(symbols_directory):
+  binary_filename = os.path.basename(relative_binary_path)
+  basename_match = None
+  for root, dirs, filenames in os.walk(symbols_directory):
+    if root == symbols_directory and 'device' in dirs:
+      dirs.remove('device')
     for filename in filenames:
       file_path = os.path.join(root, filename)
       if file_path.endswith(subpath_suffix) and os.path.isfile(file_path):
         return file_path
-  return None
+      if (basename_match is None and filename == binary_filename and
+          os.path.isfile(file_path)):
+        basename_match = file_path
+  return basename_match
 
 
 def _get_binary_from_build_or_device(binary_path):
@@ -283,8 +292,8 @@ def _get_binary_from_build_or_device(binary_path):
 
   # Try pulling in the binary directly from the device into a dedicated
   # subdirectory of the system library cache directory.
-  local_binary_path = os.path.join(symbols_directory, 'device',
-                                   relative_binary_path)
+  local_binary_path = os.path.abspath(
+      os.path.join(symbols_directory, 'device', relative_binary_path))
   if os.path.exists(local_binary_path):
     return None
   adb.copy_remote_file_to_local(binary_path, local_binary_path)
