@@ -116,14 +116,23 @@ POSTPROCESS_QUEUE = 'postprocess'
 UTASK_MAIN_QUEUE = 'utask_main'
 PREPROCESS_QUEUE = 'preprocess'
 
-SWARMING_QUEUES = {
-    PREPROCESS_QUEUE: 'preprocess-swarming',
-    UTASK_MAIN_QUEUE: 'utask_main-swarming',
-}
+# Default Swarming queues (shared by LINUX and ANDROID_EMULATOR) and
+# platform-specific Swarming queues (MAC_ARM64).
+SWARMING_PREPROCESS_QUEUE_DEFAULT = 'preprocess-swarming'
+SWARMING_UTASK_MAIN_QUEUE_DEFAULT = 'utask_main-swarming'
+SWARMING_PREPROCESS_QUEUE_MAC_ARM64 = 'preprocess-swarming-mac-arm64'
+SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64 = 'utask_main-swarming-mac-arm64'
+
+SWARMING_QUEUES = frozenset({
+    SWARMING_PREPROCESS_QUEUE_DEFAULT,
+    SWARMING_UTASK_MAIN_QUEUE_DEFAULT,
+    SWARMING_PREPROCESS_QUEUE_MAC_ARM64,
+    SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64,
+})
 
 UNVERSIONED_SUBSCRIPTION_QUEUES = frozenset({
     POSTPROCESS_QUEUE,
-    *SWARMING_QUEUES.values(),
+    *SWARMING_QUEUES,
 })
 
 OS_VERSIONED_JOB_QUEUES = frozenset({
@@ -814,7 +823,7 @@ def _dispatches_tasks_across_os_versions(queue_name: Optional[str]) -> bool:
   the local dispatcher's BASE_OS_VERSION, so tworkers and schedulers must never
   acknowledge and discard Swarming messages due to a host OS mismatch.
   """
-  return queue_name in SWARMING_QUEUES.values()
+  return queue_name in SWARMING_QUEUES
 
 
 def get_task_from_message(message, queue=None, can_defer=True,

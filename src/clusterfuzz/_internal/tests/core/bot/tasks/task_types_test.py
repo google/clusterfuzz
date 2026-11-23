@@ -494,7 +494,7 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
       with self.subTest(command=command):
         self._execute(command)
         self._assert_queued_on(
-            pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+            pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT.name)
 
   def test_routes_swarming_jobs_to_the_swarming_queue_when_disabled(self):
     """Tests that utasks on a swarming job are queued on the swarming
@@ -512,7 +512,7 @@ class TaskExecuteLocalOrRemoteTest(unittest.TestCase):
         with self.subTest(command=command):
           self._execute(command)
           self._assert_queued_on(
-              pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+              pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT.name)
 
   def test_trusted_tasks_are_not_queued_for_remote_execution(self):
     """Tests that trusted tasks run in this process and are never queued, even

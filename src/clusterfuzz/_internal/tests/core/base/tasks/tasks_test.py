@@ -366,7 +366,9 @@ class GetTaskFromMessageTest(unittest.TestCase):
     self.mock_env_get.return_value = None
     self.mock_message.attributes = {'base_os_version': 'ubuntu-24-04'}
 
-    for swarming_queue in ('preprocess-swarming', 'utask_main-swarming'):
+    for swarming_queue in ('preprocess-swarming', 'utask_main-swarming',
+                           'preprocess-swarming-mac-arm64',
+                           'utask_main-swarming-mac-arm64'):
       result = tasks.get_task_from_message(
           self.mock_message, queue=swarming_queue)
       self.assertEqual(result, self.mock_task)
@@ -530,7 +532,8 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
     """Tests that Swarming utask_main queue is not suffixed with OS version."""
     mock_puller.return_value.get_messages_time_limited.return_value = []
     mock_env_get.return_value = 'ubuntu-24-04'
-    tasks.get_utask_mains(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+    tasks.get_utask_mains(
+        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT.name)
     mock_puller.assert_called_with('utask_main-swarming')
 
   @mock.patch(
@@ -607,7 +610,7 @@ class GetTaskQueueSelectionTest(unittest.TestCase):
       mock_env_get.return_value = worker_os
 
       pulled = tasks.get_utask_mains(
-          pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+          pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT.name)
 
       self.assertEqual(1, len(pulled))
       self.assertEqual('utask_main-swarming', pulled[0].queue)
@@ -684,11 +687,15 @@ class QueueNameGenerationTest(unittest.TestCase):
         'jobs-linux-ubuntu-24-04')
 
     for unsuffixed_queue in ('postprocess', 'preprocess-swarming',
-                             'utask_main-swarming', 'jobs-linux-untrusted',
+                             'utask_main-swarming',
+                             'preprocess-swarming-mac-arm64',
+                             'utask_main-swarming-mac-arm64',
+                             'jobs-linux-untrusted',
                              'high-end-jobs-linux-untrusted',
                              'jobs-linux-with-gpu', 'jobs-linux-x86',
                              'jobs-curl-linux', 'ml-jobs-linux', 'jobs-fuchsia',
-                             'jobs-android-x86', 'jobs-android', 'jobs-mac'):
+                             'jobs-android-x86', 'jobs-android', 'jobs-mac',
+                             'jobs-mac-arm64'):
       self.assertEqual(
           tasks.subscription_name_for_queue(unsuffixed_queue), unsuffixed_queue)
 
