@@ -32,9 +32,10 @@ from clusterfuzz._internal.system import environment
 
 # Swarming priorities range from 1 (highest) to 255 (lowest).
 MAX_SWARMING_PRIORITY = 255
-# Added to each platform's configured priority for fuzz tasks so non-fuzz tasks
-# run first. Uses a relative penalty instead of a fixed value to preserve
-# per-platform base priorities and avoid Swarming's non-admin floor of 20.
+# Added to a platform's configured priority for fuzz tasks so non-fuzz tasks
+# run first while preserving per-platform base priorities. We penalize fuzz
+# instead of subtracting from non-fuzz because some platforms use priority 20,
+# and Swarming clamps non-admin values below 20 back up to 20.
 FUZZ_PRIORITY_PENALTY = 10
 
 
