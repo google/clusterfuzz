@@ -28,10 +28,12 @@ class HandlerTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_url',
+        'libs.access.can_user_access_testcase',
         'libs.helpers.get_testcase',
         'clusterfuzz._internal.system.environment.is_running_on_app_engine',
     ])
     self.mock.is_running_on_app_engine.return_value = True
+    self.mock.can_user_access_testcase.return_value = False
 
     import server
     self.app = webtest.TestApp(server.app)
@@ -58,3 +60,36 @@ class HandlerTest(unittest.TestCase):
 
     response = self.app.get('/issue/12345', expect_errors=True)
     self.assertEqual(404, response.status_int)
+
+  def test_security_testcase_without_access(self):
+    """Test that a security testcase's issue is not disclosed."""
+    testcase = data_types.Testcase()
+    testcase.bug_information = '456789'
+    testcase.security_flag = True
+    self.mock.get_testcase.return_value = testcase
+    self.mock.get_issue_url.return_value = 'http://google.com/456789'
+    self.mock.can_user_access_testcase.return_value = False
+
+    response = self.app.get('/issue/12345', expect_errors=True)
+
+    # Access is refused, so the caller is never sent to the issue and the
+    # issue id appears nowhere in the response. An unauthenticated caller is
+    # redirected to sign in rather than served the issue URL.
+    self.assertNotEqual('http://google.com/456789',
+                        response.headers.get('Location'))
+    self.assertNotIn('456789', response.headers.get('Location', ''))
+    self.assertNotIn('456789', response.body.decode('utf-8'))
+
+  def test_security_testcase_with_access(self):
+    """Test that an authorized user still gets the redirect."""
+    testcase = data_types.Testcase()
+    testcase.bug_information = '456789'
+    testcase.security_flag = True
+    self.mock.get_testcase.return_value = testcase
+    self.mock.get_issue_url.return_value = 'http://google.com/456789'
+    self.mock.can_user_access_testcase.return_value = True
+
+    response = self.app.get('/issue/12345')
+
+    self.assertEqual(302, response.status_int)
+    self.assertEqual('http://google.com/456789', response.headers['Location'])
