@@ -18,8 +18,14 @@ imports:
 resources:
   - name: jobs-linux
     type: queue.jinja
+    properties:
+      supported_os_versions:
+        - ubuntu-24-04
   - name: high-end-jobs-linux
     type: queue.jinja
+    properties:
+      supported_os_versions:
+        - ubuntu-24-04
   - name: jobs-linux-with-gpu
     type: queue.jinja
   - name: high-end-jobs-linux-with-gpu
@@ -68,7 +74,13 @@ resources:
     type: queue.jinja
   - name: utask_main
     type: queue.jinja
+    properties:
+      supported_os_versions:
+        - ubuntu-24-04
   - name: preprocess
     type: queue.jinja
+    properties:
+      supported_os_versions:
+        - ubuntu-24-04
   - name: postprocess
     type: queue.jinja

@@ -182,9 +182,7 @@ class UTask(BaseUTask):
     utask_main_queue_limit = queue.get_max_target_size()
 
     if utask_main_queue_size > utask_main_queue_limit:
-      base_os_version = environment.get_value('BASE_OS_VERSION')
-      display_queue_name = queue.name if not base_os_version else \
-        f'{queue.name}-{base_os_version}'
+      display_queue_name = tasks.subscription_name_for_queue(queue.name)
       raise errors.QueueLimitReachedError(utask_main_queue_size,
                                           display_queue_name)
 
