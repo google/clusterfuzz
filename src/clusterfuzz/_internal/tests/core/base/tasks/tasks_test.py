@@ -700,11 +700,6 @@ class QueueNameGenerationTest(unittest.TestCase):
         tempfile.TemporaryDirectory() as prod_cfg:
       os.makedirs(os.path.join(dev_cfg, 'pubsub'))
       with open(
-          os.path.join(dev_cfg, 'pubsub', 'queue.jinja.schema'),
-          'w',
-          encoding='utf-8') as f:
-        f.write('properties: {}\n')
-      with open(
           os.path.join(dev_cfg, 'pubsub', 'queues.yaml'), 'w',
           encoding='utf-8') as f:
         f.write('resources:\n'
@@ -714,11 +709,6 @@ class QueueNameGenerationTest(unittest.TestCase):
                 '    type: queue.jinja\n')
 
       os.makedirs(os.path.join(prod_cfg, 'pubsub'))
-      with open(
-          os.path.join(prod_cfg, 'pubsub', 'queue.jinja.schema'),
-          'w',
-          encoding='utf-8') as f:
-        f.write('properties: {}\n')
       with open(
           os.path.join(prod_cfg, 'pubsub', 'queues.yaml'),
           'w',

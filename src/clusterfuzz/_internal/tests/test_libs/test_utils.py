@@ -298,6 +298,10 @@ def setup_pubsub(project):
   for queue in queues:
     create_pubsub_topic(client, project, queue['name'])
     create_pubsub_subscription(client, project, queue['name'], queue['name'])
+    properties = queue.get('properties') or {}
+    for os_version in properties.get('supported_os_versions') or ():
+      create_pubsub_subscription(client, project, queue['name'],
+                                 f"{queue['name']}-{os_version}")
 
 
 def with_cloud_emulators(*emulator_names):

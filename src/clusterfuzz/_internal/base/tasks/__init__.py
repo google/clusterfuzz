@@ -114,6 +114,11 @@ SWARMING_QUEUES = {
     UTASK_MAIN_QUEUE: 'utask_main-swarming',
 }
 
+UNVERSIONED_SUBSCRIPTION_QUEUES = frozenset({
+    POSTPROCESS_QUEUE,
+    *SWARMING_QUEUES.values(),
+})
+
 OS_VERSIONED_JOB_QUEUES = frozenset({
     f'{JOBS_PREFIX}-linux',
     f'{HIGH_END_JOBS_PREFIX}-linux',
@@ -184,27 +189,53 @@ def default_queue():
   return regular_queue()
 
 
-def subscription_name_for_queue(queue_name: str) -> str:
+def subscription_name_for_queue(queue_name: Optional[str]) -> Optional[str]:
   """Resolves the OS-versioned Pub/Sub subscription ID for a queue."""
+  if not queue_name:
+    return queue_name
+
   base_os_version = environment.get_value('BASE_OS_VERSION')
-  if not base_os_version or not isinstance(queue_name, str):
+  if not base_os_version:
     return queue_name
 
   os_suffix = f'-{base_os_version}'
   if queue_name.endswith(os_suffix):
     return queue_name
 
-  if queue_name == POSTPROCESS_QUEUE or queue_name in SWARMING_QUEUES.values():
+  if _uses_unversioned_subscription(queue_name):
     return queue_name
 
-  if _is_any_job_queue(
-      queue_name) and queue_name not in OS_VERSIONED_JOB_QUEUES:
+  if not _supports_os_versioned_job_routing(queue_name):
     return queue_name
 
   if not _config_supports_os_version(queue_name, base_os_version):
     return queue_name
 
   return f'{queue_name}{os_suffix}'
+
+
+def _uses_unversioned_subscription(queue_name: str) -> bool:
+  """Returns True for queues that never pull from OS-suffixed subscriptions.
+
+  Postprocess receives GCS OBJECT_FINALIZE notifications without base_os_version
+  attributes, and Swarming queues dispatch across guest OS versions from a
+  shared unsuffixed queue.
+  """
+  return queue_name in UNVERSIONED_SUBSCRIPTION_QUEUES
+
+
+def _supports_os_versioned_job_routing(queue_name: str) -> bool:
+  """Returns True when a job queue stamps per-OS Pub/Sub message attributes.
+
+  project_setup only sets job.base_os_version on LINUX platforms, so non-Linux
+  job queues (such as Android Cuttlefish or Fuchsia hosts running Ubuntu 24.04
+  containers) publish without base_os_version and must pull unsuffixed
+  subscriptions even when queues.yaml defines unused OS subscriptions.
+  """
+  if not _is_any_job_queue(queue_name):
+    return True
+
+  return queue_name in OS_VERSIONED_JOB_QUEUES
 
 
 def _is_any_job_queue(queue_name: str) -> bool:
@@ -227,28 +258,21 @@ def _config_supports_os_version(queue_name: str, os_version: str) -> bool:
 
 
 def _resolve_config_directory() -> Optional[str]:
-  """Resolves the active config directory safely when ROOT_DIR may be unset."""
-  config_dir = environment.get_value('CONFIG_DIR_OVERRIDE')
-  if config_dir and isinstance(config_dir, str):
-    return config_dir
-
-  if environment.is_running_on_app_engine():
-    return 'config'
-
-  root_dir = environment.get_root_directory()
-  if not root_dir or not isinstance(root_dir, str):
+  """Resolves the active config directory, or None when ROOT_DIR is unset."""
+  if (not environment.get_value('CONFIG_DIR_OVERRIDE') and
+      not environment.is_running_on_app_engine() and
+      not environment.get_root_directory()):
     return None
 
-  return os.path.join(root_dir, 'src', 'appengine', 'config')
+  return environment.get_config_directory()
 
 
 @functools.lru_cache(maxsize=16)
 def _load_configured_os_versions(
     config_dir: str) -> Optional[dict[str, frozenset[str]]]:
-  """Loads supported_os_versions per queue when queue.jinja.schema exists."""
-  schema_path = os.path.join(config_dir, 'pubsub', 'queue.jinja.schema')
+  """Loads supported_os_versions per queue from pubsub/queues.yaml."""
   queues_path = os.path.join(config_dir, 'pubsub', 'queues.yaml')
-  if not (os.path.isfile(schema_path) and os.path.isfile(queues_path)):
+  if not os.path.isfile(queues_path):
     return None
 
   with open(queues_path, encoding='utf-8') as handle:
@@ -755,7 +779,7 @@ def _filter_task_for_os_mismatch(message, queue) -> bool:
     bool: True if the message had a mismatch and was acknowledged, otherwise
     False.
   """
-  if queue in SWARMING_QUEUES.values():
+  if _dispatches_tasks_across_os_versions(queue):
     return False
 
   base_os_version = environment.get_value('BASE_OS_VERSION')
@@ -774,6 +798,16 @@ def _filter_task_for_os_mismatch(message, queue) -> bool:
     return True
 
   return False
+
+
+def _dispatches_tasks_across_os_versions(queue_name: Optional[str]) -> bool:
+  """Returns True when a queue dispatches tasks across guest OS versions.
+
+  Swarming queues select the execution OS via Swarming dimensions rather than
+  the local dispatcher's BASE_OS_VERSION, so tworkers and schedulers must never
+  acknowledge and discard Swarming messages due to a host OS mismatch.
+  """
+  return queue_name in SWARMING_QUEUES.values()
 
 
 def get_task_from_message(message, queue=None, can_defer=True,
@@ -986,11 +1020,17 @@ def add_utask_main(command: str, input_url: str, job_type: str,
 
 def bulk_add_tasks(tasks, queue=None, eta_now=False):
   """Adds |tasks| in bulk to |queue|."""
+  # Old testcases may pass in queue=None explicitly, so we must check this here.
   if queue is None:
     queue = default_queue()
   else:
     queue = _strip_os_version_suffix(queue, tasks)
 
+  # If callers want delays, they must do it themselves, because this function is
+  # meant to be used for batch tasks which don't need this.
+  # Use an ETA of right now for batch because we don't need extra delay, there
+  # is natural delay added by batch, waiting for utask_main_scheduler,
+  # postprocess etc.
   if eta_now:
     now = utils.utcnow()
     for task in tasks:
@@ -1003,9 +1043,10 @@ def bulk_add_tasks(tasks, queue=None, eta_now=False):
     pubsub_client.publish(topic_name, batch)
 
 
-def _strip_os_version_suffix(queue_name: str, task_list=None) -> str:
+def _strip_os_version_suffix(queue_name: Optional[str],
+                             task_list=None) -> Optional[str]:
   """Strips any OS-version subscription suffix to recover the topic name."""
-  if not isinstance(queue_name, str):
+  if not queue_name:
     return queue_name
 
   match = _KNOWN_OS_SUFFIX_PATTERN.search(queue_name)
@@ -1014,8 +1055,8 @@ def _strip_os_version_suffix(queue_name: str, task_list=None) -> str:
 
   candidate_versions = set()
   env_os_version = environment.get_value('BASE_OS_VERSION')
-  if env_os_version and isinstance(env_os_version, str):
-    candidate_versions.add(env_os_version)
+  if env_os_version:
+    candidate_versions.add(str(env_os_version))
 
   for task in task_list or ():
     extra_info = getattr(task, 'extra_info', None) or {}
