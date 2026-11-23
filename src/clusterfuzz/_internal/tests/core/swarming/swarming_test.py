@@ -268,7 +268,7 @@ class SwarmingTest(unittest.TestCase):
                                             'https://download_url')
     expected_spec = swarming_pb2.NewTaskRequest(
         name='task_name',
-        priority=1,
+        priority=11,
         realm='realm-name',
         service_account='test-clusterfuzz-service-account-email',
         tags=['spec_name:clusterfuzz.linux:fuzz'],
@@ -319,6 +319,26 @@ class SwarmingTest(unittest.TestCase):
                     secret_bytes='https://download_url'.encode('utf-8')))
         ])
     self.assertEqual(spec, expected_spec)
+
+  def test_fuzz_priority_capped_at_max(self):
+    """Tests that fuzz task priority is capped at MAX_SWARMING_PRIORITY."""
+    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
+    job.put()
+
+    config = swarming.get_swarming_config()
+    instance_spec = dict(swarming._get_instance_spec(config, job))  # pylint: disable=protected-access
+    instance_spec['priority'] = swarming.MAX_SWARMING_PRIORITY - 5
+
+    with mock.patch(
+        'clusterfuzz._internal.swarming._get_instance_spec',
+        return_value=instance_spec):
+      fuzz_spec = swarming.create_new_task_request('fuzz', job.name,
+                                                   'https://download_url')
+      non_fuzz_spec = swarming.create_new_task_request('analyze', job.name,
+                                                       'https://download_url')
+
+    self.assertEqual(fuzz_spec.priority, swarming.MAX_SWARMING_PRIORITY)
+    self.assertEqual(non_fuzz_spec.priority, swarming.MAX_SWARMING_PRIORITY - 5)
 
   def test_get_spec_from_config_for_android_emulator(self):
     """Tests that create_new_task_request overrides dimensions with (os=Linux)
