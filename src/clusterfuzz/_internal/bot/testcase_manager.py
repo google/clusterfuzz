@@ -1213,6 +1213,31 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
                              extension_config_file_path)
 
 
+def _check_and_stop_android_app() -> bool:
+  """Checks whether an Android APK died during startup, then stops it.
+
+  Skips non-Android platforms and non-APK Android jobs (such as native
+  binaries), which have no package name to inspect.
+
+  Returns:
+    True if an Android APK package had no running process before stop() was
+    called, False otherwise.
+  """
+  if not environment.is_android():
+    return False
+
+  package_name = android.app.get_package_name()
+  if not package_name:
+    return False
+
+  try:
+    app_died = not android.adb.get_process_and_child_pids(package_name)
+  finally:
+    android.app.stop()
+
+  return app_died
+
+
 def check_for_bad_build(job_type: str,
                         crash_revision: int) -> uworker_msg_pb2.BuildData:  # pylint: disable=no-member
   """
@@ -1293,37 +1318,28 @@ def check_for_bad_build(job_type: str,
   logs.info(
       f'Starting bad build check for {job_type} at r{crash_revision} with '
       f'command: {command} (timeout={fast_warmup_timeout})')
-  # Keep the Android application running at the end of the run so that we can
-  # check below whether it is still alive. It is stopped right after the check.
   return_code, crash_time, output = process_handler.run_process(
       command,
       timeout=fast_warmup_timeout,
       current_working_directory=app_directory,
+      # Keep the Android application running at the end of the run so that we
+      # can check below whether it is still alive. It is stopped right after the
+      # check.
       terminate_android_app=False)
-  # On Android, if we have an APK package and the application process is not
-  # running after startup, the build is bad.
-  is_android_app_dead = False
-  if environment.is_android() and (package_name :=
-                                   android.app.get_package_name()):
-    try:
-      is_android_app_dead = not android.adb.get_process_and_child_pids(
-          package_name)
-    finally:
-      android.app.stop()
+  android_app_died_during_test_execution = _check_and_stop_android_app()
   crash_result = CrashResult(return_code, crash_time, output)
   logs.info(
       f'Bad build check run_process completed: return_code={return_code}, '
       f'is_crash={crash_result.is_crash(ignore_state=True)}, '
       f'crash_type={crash_result.get_type()}')
 
-  if is_android_app_dead:
+  if android_app_died_during_test_execution:
     is_bad_build = True
     build_run_console_output = utils.get_crash_stacktrace_output(
         command, output, output)
     logs.info(
         f'Bad build for {job_type} detected at r{crash_revision}: '
-        f'application process for {package_name} is not running after '
-        'startup.',
+        'Android application process is not running after startup.',
         raw_output=output,
         output=build_run_console_output)
   # 1. Need to account for startup crashes with no crash state. E.g. failed to

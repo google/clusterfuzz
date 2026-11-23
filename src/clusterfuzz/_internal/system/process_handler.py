@@ -113,6 +113,7 @@ def cleanup_defunct_processes():
         break
 
 
+# TODO(crbug.com/589842315): Refactor to separate concerns/responsibilities.
 # Note: changes to this function may require changes to untrusted_runner.proto.
 # This should only be used for running target black box applications which
 # return text output.
