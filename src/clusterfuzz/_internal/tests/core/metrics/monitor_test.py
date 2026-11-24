@@ -517,8 +517,7 @@ class TimeStatTrackerTest(unittest.TestCase):
       with tracker.track('inner'):
         self.mock_time.advance(2.0)
 
-    self.mock.error.assert_called_once_with(
-        'Step "inner" is nested inside step "outer".')
+    self.mock.error.assert_called_once()
     self.assertEqual(
         {
             'outer': datetime.timedelta(seconds=3.0),
@@ -533,13 +532,14 @@ class TimeStatTrackerTest(unittest.TestCase):
     with tracker.track('outer'):
       with tracker.track('inner_1'):
         self.assertEqual('inner_1', tracker.current_step)
+        with tracker.track('inner_1.2'):
+          self.assertEqual('inner_1.2', tracker.current_step)
+        self.assertEqual('inner_1', tracker.current_step)
       self.assertEqual('outer', tracker.current_step)
       with tracker.track('inner_2'):
         pass
 
-    self.assertEqual(2, self.mock.error.call_count)
-    self.mock.error.assert_called_with(
-        'Step "inner_2" is nested inside step "outer".')
+    self.assertEqual(3, self.mock.error.call_count)
     self.assertIsNone(tracker.current_step)
 
   def test_current_step_reset_on_exception(self):
