@@ -2377,7 +2377,7 @@ class UploadTestcaseRunJsons(unittest.TestCase):
     self.assertEqual(self.mock.upload_stats.call_count, 1)
 
   def test_filenames_use_prefix_and_index(self):
-    """Test the the filenames use the prefix and are different."""
+    """Test that the filenames use the prefix and are different."""
     os.environ['CF_TASK_ID'] = _TASK_ID
     testcase_run_jsons = [self.testcase_run_json, None, self.testcase_run_json]
     fuzz_task._upload_testcase_run_jsons(testcase_run_jsons)
