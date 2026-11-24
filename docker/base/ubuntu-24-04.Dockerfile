@@ -21,6 +21,14 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
 RUN mkdir /data
 WORKDIR /data
 
+# libc-dev-bin recommends libc-devtools, which depends on libgd3 and through it
+# on image libraries like libheif. Nothing here uses its tools (memusage,
+# mtrace, sotruss, sprof), so keep it out. libgd3 also brought in libfreetype6
+# and libfontconfig1, which the JDKs below need for fonts, so those are
+# installed explicitly.
+RUN printf 'Package: libc-devtools\nPin: release *\nPin-Priority: -1\n' > \
+    /etc/apt/preferences.d/no-libc-devtools
+
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get autoremove -y && \
@@ -34,6 +42,8 @@ RUN apt-get update && \
         libbz2-dev \
         libcurl4-openssl-dev \
         libffi-dev \
+        libfontconfig1 \
+        libfreetype6 \
         libgdbm-dev \
         libidn12 \
         liblzma-dev \

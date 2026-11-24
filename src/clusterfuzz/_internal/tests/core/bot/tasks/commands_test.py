@@ -426,3 +426,49 @@ class TworkerNonFuzzGuardsCommandTest(unittest.TestCase):
     self.assertIsNone(result)
     mock_impact_execute.assert_not_called()
     mock_update_status.assert_not_called()
+
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.full_utask_task_model',
+      return_value=False)
+  def test_wrong_platform_requeues_to_target_platform_topic_on_os_versioned_bot(
+      self, unused_mock_utask):
+    """Tests platform mismatch on Ubuntu 24.04 bot re-queues to target topic."""
+    os.environ['BASE_OS_VERSION'] = 'ubuntu-24-04'
+    data_types.Job(name='windows_asan_chrome', platform='WINDOWS').put()
+
+    result = commands.process_command_impl(
+        task_name='minimize',
+        task_argument=str(self.testcase.key.id()),
+        job_name='windows_asan_chrome',
+        high_end=False,
+        is_command_override=False,
+        queue='jobs-linux')
+
+    self.assertIsNone(result)
+    self.mock.add_task.assert_called_once_with('minimize',
+                                               str(self.testcase.key.id()),
+                                               'windows_asan_chrome',
+                                               'jobs-windows')
+
+  @mock.patch(
+      'clusterfuzz._internal.base.tasks.full_utask_task_model',
+      return_value=False)
+  def test_wrong_subqueue_platform_requeues_preserving_subqueue_suffix(
+      self, unused_mock_utask):
+    """Tests subqueue platform mismatch preserves full subqueue topic suffix."""
+    os.environ['BASE_OS_VERSION'] = 'ubuntu-24-04'
+    data_types.Job(name='windows_gpu_chrome', platform='WINDOWS:GPU').put()
+
+    result = commands.process_command_impl(
+        task_name='minimize',
+        task_argument=str(self.testcase.key.id()),
+        job_name='windows_gpu_chrome',
+        high_end=True,
+        is_command_override=False,
+        queue='high-end-jobs-linux')
+
+    self.assertIsNone(result)
+    self.mock.add_task.assert_called_once_with('minimize',
+                                               str(self.testcase.key.id()),
+                                               'windows_gpu_chrome',
+                                               'high-end-jobs-windows-gpu')

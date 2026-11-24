@@ -352,10 +352,7 @@ def process_command_impl(task_name,
       logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %
                  (job_name, job_base_queue_suffix, bot_base_queue_suffix))
 
-      # Try to recreate the job in the correct task queue.
-      new_queue = (
-          tasks.high_end_queue() if high_end else tasks.regular_queue())
-      new_queue += job_base_queue_suffix
+      new_queue = tasks.queue_for_platform(job.platform, is_high_end=high_end)
 
       # Command override is continuously run by a bot. If we keep failing
       # and recreating the task, it will just DoS the entire task queue.

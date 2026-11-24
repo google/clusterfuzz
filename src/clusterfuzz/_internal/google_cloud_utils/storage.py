@@ -460,7 +460,7 @@ class GcsProvider(StorageProvider):
 
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
     """Uploads |data| to |signed_url|."""
-    requests.put(
+    _signed_url_session().put(
         signed_url, data=data_or_fileobj,
         timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
     return True
@@ -472,7 +472,8 @@ class GcsProvider(StorageProvider):
 
   def delete_signed_url(self, signed_url):
     """Makes a DELETE HTTP request to |signed_url|."""
-    requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
+    _signed_url_session().delete(
+        signed_url, timeout=HTTP_TIMEOUT_SECONDS).raise_for_status()
 
 
 def _sign_url(remote_path: str,
@@ -826,6 +827,21 @@ def _signing_creds():
     _new_signing_creds()
 
   return _local.signing_creds
+
+
+def _signed_url_session() -> requests.Session:
+  """Returns this thread's requests.Session for signed URL operations.
+
+  Reusing the connection avoids a TLS setup per file. Sessions are per thread
+  and process because they aren't thread-safe and forked workers must not reuse
+  their parent's sockets.
+  """
+  pid = os.getpid()
+  if getattr(_local, 'signed_url_session_pid', None) != pid:
+    _local.signed_url_session = requests.Session()
+    _local.signed_url_session_pid = pid
+
+  return _local.signed_url_session
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
@@ -1269,7 +1285,7 @@ def _download_url(url):
   """Downloads |url| and returns the contents."""
   if _integration_test_env_doesnt_support_signed_urls():
     return read_data(url)
-  response = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
+  response = _signed_url_session().get(url, timeout=HTTP_TIMEOUT_SECONDS)
   if not response.ok:
     try:
       element_tree = ET.fromstring(response.text)
@@ -1286,13 +1302,32 @@ def _download_url(url):
   return response.content
 
 
+def _file_position(data_or_fileobj) -> Optional[int]:
+  """Returns the current offset of a seekable file-like object, or None."""
+  if not (hasattr(data_or_fileobj, 'seek') and
+          hasattr(data_or_fileobj, 'tell')):
+    return None
+  try:
+    return data_or_fileobj.tell()
+  except OSError:
+    return None
+
+
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.upload_signed_url')
+def _upload_signed_url_with_retries(data_or_fileobj, url: str,
+                                    initial_pos: Optional[int]) -> bool:
+  if initial_pos is not None:
+    data_or_fileobj.seek(initial_pos)
+  return _provider().upload_signed_url(data_or_fileobj, url)
+
+
 def upload_signed_url(data_or_fileobj, url: str) -> bool:
   """Uploads data to the |signed_url|."""
-  return _provider().upload_signed_url(str_to_bytes(data_or_fileobj), url)
+  data = str_to_bytes(data_or_fileobj)
+  return _upload_signed_url_with_retries(data, url, _file_position(data))
 
 
 def download_signed_url(url):

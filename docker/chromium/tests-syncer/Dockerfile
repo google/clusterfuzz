@@ -29,7 +29,6 @@ RUN apt-get update && \
     apt-get install -y \
         git \
 	python-is-python3 \
-        subversion \
         zip
 
 RUN git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git \
