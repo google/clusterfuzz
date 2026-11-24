@@ -2318,13 +2318,12 @@ class PostprocessGetUniqueFilePrefixTest(unittest.TestCase):
     """Test that prefixes depend on task id."""
     os.environ['CF_TASK_ID'] = _TASK_ID
     prefix1 = fuzz_task.postprocess_get_unique_file_prefix()
-    self.assertIn(prefix1[0], '0123456789abcdef')
+    self.assertEqual(prefix1, _TASK_ID)
     self.mock.error.assert_not_called()
     os.environ['CF_TASK_ID'] = _OTHER_TASK_ID
     prefix2 = fuzz_task.postprocess_get_unique_file_prefix()
-    self.assertIn(prefix2[0], '0123456789abcdef')
+    self.assertEqual(prefix2, _OTHER_TASK_ID)
     self.mock.error.assert_not_called()
-    self.assertNotEqual(prefix1, prefix2)
 
   def test_same_prefix_on_retry(self):
     os.environ['CF_TASK_ID'] = _TASK_ID
@@ -2345,7 +2344,7 @@ class PostprocessGetUniqueFilePrefixTest(unittest.TestCase):
   def test_int_task_id(self):
     os.environ['CF_TASK_ID'] = '123'
     prefix = fuzz_task.postprocess_get_unique_file_prefix()
-    self.assertIn(prefix[0], '0123456789abcdef')
+    self.assertEqual(prefix, '123')
     self.mock.error.assert_not_called()
 
   def test_non_hex_task_id(self):
