@@ -2386,7 +2386,7 @@ class UploadTestcaseRunJsons(unittest.TestCase):
 
     self.assertEqual(len(set(filenames)), 2)
     for filename in filenames:
-      self.assertIn(prefix, filename)
+      self.assertTrue(filename.startswith(prefix))
       self.assertTrue(filename.endswith('.json'))
 
   def test_retried_upload_uses_same_filenames(self):
@@ -2420,7 +2420,7 @@ class UploadJobRunStatsTest(unittest.TestCase):
     filenames = _uploaded_filenames(self.mock.upload_stats)
     prefix = fuzz_task.postprocess_get_unique_file_prefix()
     self.assertEqual(len(filenames), 1)
-    self.assertIn(prefix, filenames[0])
+    self.assertTrue(filenames[0].startswith(prefix))
     self.assertTrue(filenames[0].endswith('.json'))
 
   def test_retried_upload_uses_same_filename(self):
