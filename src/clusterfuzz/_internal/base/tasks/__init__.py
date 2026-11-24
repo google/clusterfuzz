@@ -1211,7 +1211,11 @@ def redo_testcase(testcase, tasks, user_email):
     testcase.triaged = False
     testcase.set_metadata('progression_pending', True, update_testcase=False)
     metadata_keys_to_clear += [
-        'last_progression_min', 'last_progression_max', 'last_tested_revision'
+        'last_progression_min',
+        'last_progression_max',
+        'last_tested_revision',
+        'progression_retry',
+        'progression_bad_min_build_retry',
     ]
 
   if impact:

@@ -335,6 +335,7 @@ message ProgressionTaskOutput {
   // and last_progression_max from the testcase on postprocess.
   optional bool clear_min_max_metadata = 9;
   repeated BuildData build_data_list = 11;
+  optional bool passed_on_latest = 12;
 }
 
 

@@ -1616,6 +1616,7 @@ class ProgressionTaskOutput(google.protobuf.message.Message):
     LAST_PROGRESSION_MAX_FIELD_NUMBER: builtins.int
     CLEAR_MIN_MAX_METADATA_FIELD_NUMBER: builtins.int
     BUILD_DATA_LIST_FIELD_NUMBER: builtins.int
+    PASSED_ON_LATEST_FIELD_NUMBER: builtins.int
     min_revision: builtins.int
     max_revision: builtins.int
     crash_on_latest: builtins.bool
@@ -1632,6 +1633,7 @@ class ProgressionTaskOutput(google.protobuf.message.Message):
     """
     @property
     def build_data_list(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___BuildData]: ...
+    passed_on_latest: builtins.bool
     def __init__(
         self,
         *,
@@ -1645,9 +1647,10 @@ class ProgressionTaskOutput(google.protobuf.message.Message):
         last_progression_max: builtins.int | None = ...,
         clear_min_max_metadata: builtins.bool | None = ...,
         build_data_list: collections.abc.Iterable[global___BuildData] | None = ...,
+        passed_on_latest: builtins.bool | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing_extensions.Literal["_clear_min_max_metadata", b"_clear_min_max_metadata", "_crash_on_latest", b"_crash_on_latest", "_crash_on_latest_message", b"_crash_on_latest_message", "_crash_revision", b"_crash_revision", "_last_progression_max", b"_last_progression_max", "_last_progression_min", b"_last_progression_min", "_last_tested_crash_stacktrace", b"_last_tested_crash_stacktrace", "_max_revision", b"_max_revision", "_min_revision", b"_min_revision", "clear_min_max_metadata", b"clear_min_max_metadata", "crash_on_latest", b"crash_on_latest", "crash_on_latest_message", b"crash_on_latest_message", "crash_revision", b"crash_revision", "last_progression_max", b"last_progression_max", "last_progression_min", b"last_progression_min", "last_tested_crash_stacktrace", b"last_tested_crash_stacktrace", "max_revision", b"max_revision", "min_revision", b"min_revision"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing_extensions.Literal["_clear_min_max_metadata", b"_clear_min_max_metadata", "_crash_on_latest", b"_crash_on_latest", "_crash_on_latest_message", b"_crash_on_latest_message", "_crash_revision", b"_crash_revision", "_last_progression_max", b"_last_progression_max", "_last_progression_min", b"_last_progression_min", "_last_tested_crash_stacktrace", b"_last_tested_crash_stacktrace", "_max_revision", b"_max_revision", "_min_revision", b"_min_revision", "build_data_list", b"build_data_list", "clear_min_max_metadata", b"clear_min_max_metadata", "crash_on_latest", b"crash_on_latest", "crash_on_latest_message", b"crash_on_latest_message", "crash_revision", b"crash_revision", "last_progression_max", b"last_progression_max", "last_progression_min", b"last_progression_min", "last_tested_crash_stacktrace", b"last_tested_crash_stacktrace", "max_revision", b"max_revision", "min_revision", b"min_revision"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["_clear_min_max_metadata", b"_clear_min_max_metadata", "_crash_on_latest", b"_crash_on_latest", "_crash_on_latest_message", b"_crash_on_latest_message", "_crash_revision", b"_crash_revision", "_last_progression_max", b"_last_progression_max", "_last_progression_min", b"_last_progression_min", "_last_tested_crash_stacktrace", b"_last_tested_crash_stacktrace", "_max_revision", b"_max_revision", "_min_revision", b"_min_revision", "_passed_on_latest", b"_passed_on_latest", "clear_min_max_metadata", b"clear_min_max_metadata", "crash_on_latest", b"crash_on_latest", "crash_on_latest_message", b"crash_on_latest_message", "crash_revision", b"crash_revision", "last_progression_max", b"last_progression_max", "last_progression_min", b"last_progression_min", "last_tested_crash_stacktrace", b"last_tested_crash_stacktrace", "max_revision", b"max_revision", "min_revision", b"min_revision", "passed_on_latest", b"passed_on_latest"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["_clear_min_max_metadata", b"_clear_min_max_metadata", "_crash_on_latest", b"_crash_on_latest", "_crash_on_latest_message", b"_crash_on_latest_message", "_crash_revision", b"_crash_revision", "_last_progression_max", b"_last_progression_max", "_last_progression_min", b"_last_progression_min", "_last_tested_crash_stacktrace", b"_last_tested_crash_stacktrace", "_max_revision", b"_max_revision", "_min_revision", b"_min_revision", "_passed_on_latest", b"_passed_on_latest", "build_data_list", b"build_data_list", "clear_min_max_metadata", b"clear_min_max_metadata", "crash_on_latest", b"crash_on_latest", "crash_on_latest_message", b"crash_on_latest_message", "crash_revision", b"crash_revision", "last_progression_max", b"last_progression_max", "last_progression_min", b"last_progression_min", "last_tested_crash_stacktrace", b"last_tested_crash_stacktrace", "max_revision", b"max_revision", "min_revision", b"min_revision", "passed_on_latest", b"passed_on_latest"]) -> None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_clear_min_max_metadata", b"_clear_min_max_metadata"]) -> typing_extensions.Literal["clear_min_max_metadata"] | None: ...
     @typing.overload
@@ -1666,6 +1669,8 @@ class ProgressionTaskOutput(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_max_revision", b"_max_revision"]) -> typing_extensions.Literal["max_revision"] | None: ...
     @typing.overload
     def WhichOneof(self, oneof_group: typing_extensions.Literal["_min_revision", b"_min_revision"]) -> typing_extensions.Literal["min_revision"] | None: ...
+    @typing.overload
+    def WhichOneof(self, oneof_group: typing_extensions.Literal["_passed_on_latest", b"_passed_on_latest"]) -> typing_extensions.Literal["passed_on_latest"] | None: ...
 
 global___ProgressionTaskOutput = ProgressionTaskOutput
 

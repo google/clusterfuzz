@@ -77,6 +77,7 @@ class RejectionReason:
   GROUPER_OVERFLOW = 'grouper_overflow'
   PROGRESSION_BUILD_NOT_FOUND = 'progression_build_not_found'
   PROGRESSION_BAD_STATE_MIN_MAX = 'progression_bad_state_min_max'
+  PROGRESSION_MIN_REVISION_BAD_BUILD = 'progression_min_revision_bad_build'
 
 
 class TaskStage:

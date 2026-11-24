@@ -1056,3 +1056,36 @@ class SwarmingNonFuzzTaskRoutingTest(unittest.TestCase):
     tasks.add_task(
         'minimize', '123', 'android_emulator_swarming', queue='custom-queue')
     self.assertEqual(self._queue_used(), 'custom-queue')
+
+
+@test_utils.with_cloud_emulators('datastore')
+class RedoTestcaseProgressionRetryResetTest(unittest.TestCase):
+  """Tests redo_testcase resets progression confirmation retry metadata."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.add_task',
+    ])
+    data_types.Job(name='linux_asan_app', platform='LINUX').put()
+
+  def test_redo_progression_clears_retry_markers(self):
+    """Tests redoing progression clears prior retry markers and reopens testcase."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.job_type = 'linux_asan_app'
+    testcase.open = False
+    testcase.fixed = 'NA'
+    testcase.set_metadata('progression_retry', True, update_testcase=False)
+    testcase.set_metadata(
+        'progression_bad_min_build_retry', True, update_testcase=False)
+    testcase.set_metadata('potentially_flaky', True, update_testcase=False)
+    testcase.put()
+
+    tasks.redo_testcase(testcase, ['progression'], 'sheriff@example.com')
+
+    updated = testcase.key.get()
+    self.assertTrue(updated.open)
+    self.assertEqual('', updated.fixed)
+    self.assertTrue(updated.get_metadata('progression_pending'))
+    self.assertIsNone(updated.get_metadata('progression_retry'))
+    self.assertIsNone(updated.get_metadata('progression_bad_min_build_retry'))
+    self.assertIsNone(updated.get_metadata('potentially_flaky'))
