@@ -666,7 +666,7 @@ class TimeStatTracker:
     if 'step' in self.common_labels or 'success' in self.common_labels:
       logs.warning('Labels "step" or "success" are in common_labels '
                    'and will be overwritten.')
-    self.current_step = None
+    self.current_step: str | None = None
 
   @contextlib.contextmanager
   def track(self, name: str):
