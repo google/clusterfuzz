@@ -675,7 +675,7 @@ class SymbolizationLoop:
         symbols_dir, trusty_app, trusty_bid)
     kernel_binary = os.path.join(symbols_dir, 'lk.elf')
     trusty_binary = os.path.join(symbols_dir, f'{trusty_app}.syms.elf')
-    if not (os.path.exists(kernel_binary) and os.path.exists(trusty_binary)):
+    if not os.path.exists(kernel_binary) or not os.path.exists(trusty_binary):
       logs.debug('Skipping trusty stacktrace symbolization, symbols are not '
                  f'available for trusty_app={trusty_app}, '
                  f'trusty_bid={trusty_bid} in SYMBOLS_DIR={symbols_dir}.')
