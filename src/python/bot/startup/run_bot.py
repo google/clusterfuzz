@@ -375,6 +375,7 @@ if __name__ == '__main__':
   multiprocessing.set_start_method('spawn')
 
   try:
+    environment.set_bot_environment()
     with monitor.wrap_with_monitoring(), ndb_init.context():
       main()
     exit_code = 0
