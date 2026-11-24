@@ -674,7 +674,8 @@ class TimeStatTracker:
 
     Yields a step tracker whose fail() method, when invoked, marks the step as
     failed without interrupting the block. Any raised exception is also treated
-    as a failure and re-raised.
+    as a failure and re-raised. Steps should not be nested; however, if this
+    occurs, an error is logged and the method continues to execute normally.
     """
     parent_step = self.current_step
     if parent_step is not None:
@@ -689,6 +690,7 @@ class TimeStatTracker:
       step.fail()
       raise
     finally:
+      self.current_step = parent_step
       duration_secs = time.time() - start
       duration = datetime.timedelta(seconds=duration_secs)
       if name in self.stats:
@@ -702,7 +704,6 @@ class TimeStatTracker:
                 **self.common_labels, 'step': name,
                 'success': step.success
             })
-      self.current_step = parent_step
 
 
 # Global state.
