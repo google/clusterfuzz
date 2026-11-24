@@ -42,6 +42,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.metrics import events
+from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -2334,10 +2335,10 @@ class PostprocessGetUniqueFilePrefixTest(unittest.TestCase):
     """Test that prefixes are different when there is no TASK_ID."""
     os.environ.pop('CF_TASK_ID', None)
     prefix1 = fuzz_task.postprocess_get_unique_file_prefix()
-    self.assertIn(prefix1[0], '0123456789abcdef')
+    self.assertIn(prefix1[0], fuzzer_stats.STATS_SHARD_PREFIXES)
     self.mock.error.assert_called_once()
     prefix2 = fuzz_task.postprocess_get_unique_file_prefix()
-    self.assertIn(prefix2[0], '0123456789abcdef')
+    self.assertIn(prefix2[0], fuzzer_stats.STATS_SHARD_PREFIXES)
     self.assertEqual(self.mock.error.call_count, 2)
     self.assertNotEqual(prefix1, prefix2)
 
@@ -2350,7 +2351,7 @@ class PostprocessGetUniqueFilePrefixTest(unittest.TestCase):
   def test_non_hex_task_id(self):
     os.environ['CF_TASK_ID'] = 'ABC'
     prefix = fuzz_task.postprocess_get_unique_file_prefix()
-    self.assertIn(prefix[0], '0123456789abcdef')
+    self.assertIn(prefix[0], fuzzer_stats.STATS_SHARD_PREFIXES)
     self.mock.error.assert_called()
 
 

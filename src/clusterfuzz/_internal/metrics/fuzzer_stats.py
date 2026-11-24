@@ -20,6 +20,7 @@ import json
 import os
 import random
 import re
+import string
 
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
@@ -149,6 +150,9 @@ JOB_RUN_SCHEMA = {
         }
     ]
 }
+
+# Ignore the repeated uppercase digits.
+STATS_SHARD_PREFIXES = string.hexdigits[:-6]
 
 
 class FuzzerStatsError(ValueError):

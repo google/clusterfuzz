@@ -843,7 +843,7 @@ def postprocess_get_unique_file_prefix() -> str:
     logs.error('Missing CF_TASK_ID environment variable, falling back to '
                'random UUID. JobRun or TestcaseRun stats might be duplicated.')
     return str(uuid.uuid4())
-  if task_id[0] not in '0123456789abcdef':
+  if task_id[0] not in fuzzer_stats.STATS_SHARD_PREFIXES:
     logs.error(
         f'CF_TASK_ID ({task_id!r}) does not start with a lowercase hex digit, '
         'falling back to random UUID. JobRun or TestcaseRun stats might be '
