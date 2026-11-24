@@ -518,6 +518,9 @@ class TimeStatTrackerTest(unittest.TestCase):
         self.mock_time.advance(2.0)
 
     self.mock.error.assert_called_once()
+    error_message = self.mock.error.call_args[0][0]
+    self.assertIn('outer', error_message)
+    self.assertIn('inner', error_message)
     self.assertEqual(
         {
             'outer': datetime.timedelta(seconds=3.0),
@@ -539,7 +542,17 @@ class TimeStatTrackerTest(unittest.TestCase):
       with tracker.track('inner_2'):
         pass
 
-    self.assertEqual(3, self.mock.error.call_count)
+    expected_nested_steps = [
+        ('outer', 'inner_1'),
+        ('inner_1', 'inner_1.2'),
+        ('outer', 'inner_2'),
+    ]
+    self.assertEqual(len(expected_nested_steps), self.mock.error.call_count)
+    for (parent_step, current_step), call_args in zip(
+        expected_nested_steps, self.mock.error.call_args_list):
+      error_message = call_args[0][0]
+      self.assertIn(parent_step, error_message)
+      self.assertIn(current_step, error_message)
     self.assertIsNone(tracker.current_step)
 
   def test_current_step_reset_on_exception(self):
