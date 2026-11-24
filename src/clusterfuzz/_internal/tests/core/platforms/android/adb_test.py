@@ -441,6 +441,24 @@ class CommandExecutionSafetyTest(unittest.TestCase):
     self.assertEqual(0, empty_code)
     self.assertEqual('', empty_out)
 
+  def test_run_command_list_preserves_argument_boundaries(self):
+    """Tests that list commands passed to run_command are shell-quoted."""
+    os.environ['ADB'] = '/usr/bin/adb'
+    os.environ['ANDROID_SERIAL'] = 'emulator-5554'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.adb.execute_command',
+    ])
+    self.mock.execute_command.return_value = ''
+
+    adb.run_command(['pull', '/sdcard/a; id; b', '/tmp/local dir/out'])
+    pull_argv = adb._build_host_command_args(  # pylint: disable=protected-access
+        self.mock.execute_command.call_args[0][0],
+        on_cuttlefish_host=False)
+    self.assertEqual([
+        '/usr/bin/adb', '-s', 'emulator-5554', 'pull', '/sdcard/a; id; b',
+        '/tmp/local dir/out'
+    ], pull_argv)
+
   def test_execute_command_missing_binary_returns_127_and_error_output(self):
     """Tests that a missing host binary returns exit code 127 without raising."""
     missing_cmd = '/nonexistent_clusterfuzz_bin/lsusb -v'
