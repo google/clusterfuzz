@@ -641,6 +641,8 @@ class TimeStatTracker:
 
   Time measurements are emitted to the supplied Cloud Monitoring metric and
   are saved as datetime.timedelta in the |self.stats| dictionary as well.
+  There should be only one instance of this class per metric type for the
+  nested steps safety checks to work.
   """
 
   def __init__(self, metric: Metric | None = None, common_labels=None):
