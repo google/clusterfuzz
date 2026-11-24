@@ -71,7 +71,12 @@ def check_symbols_cached(build_params_check_path, build_params):
 
 def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
                                  targets_with_type_and_san, cache_type):
-  """Downloads the repo.prop for a branch"""
+  """Downloads the repo.prop for a branch on a best-effort basis.
+
+  The download is skipped when this bot can't fetch build artifacts (local
+  development or uworkers) and failures are only logged, so callers must check
+  whether the repo.prop exists in |symbols_directory| before using it.
+  """
   if not can_fetch_build_symbols():
     return
 
@@ -205,7 +210,12 @@ def ensure_system_symbols(symbols_directory) -> bool:
 
 
 def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
-  """Downloads and extracts Trusted App ELF files"""
+  """Downloads and extracts Trusted App ELF files on a best-effort basis.
+
+  The download is skipped when this bot can't fetch build artifacts (local
+  development or uworkers) and failures are only logged, so callers must check
+  whether lk.elf and the app ELF exist in |symbols_directory| before using them.
+  """
   if not can_fetch_build_symbols():
     return
 
