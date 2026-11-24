@@ -16,6 +16,7 @@ import datetime
 import os
 import unittest
 from unittest import mock
+import uuid
 
 from google.cloud import ndb
 
@@ -310,6 +311,78 @@ class UpdateEnvironmentForJobTest(unittest.TestCase):
         'FUZZ_TEST_TIMEOUT = 123\nMAX_TESTCASES = 5\n')
     self.assertEqual(9001, environment.get_value('FUZZ_TEST_TIMEOUT'))
     self.assertEqual(42, environment.get_value('MAX_TESTCASES'))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UpdateEnvironmentForTaskTest(unittest.TestCase):
+  """Tests setting the process and uworker environment for a task."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  def test_sets_task_job_and_fuzzer_env_for_standalone_caller(self):
+    """Populates process env and uworker_env with task, job, and fuzzer vars."""
+    job = data_types.Job(name='linux_asan_d8', environment_string='JOB_VAR = 1')
+    job.put()
+    data_types.Fuzzer(
+        name='js_fuzzer',
+        additional_environment_string=('FUZZER_DEFAULT = abc\n'
+                                       'linux_asan_d8:FUZZER_JOB = xyz\n'
+                                       'other_job:IGNORED = nope\n')).put()
+    task_id = uuid.UUID('12345678-1234-5678-1234-567812345678')
+
+    uworker_env = commands.update_environment_for_task('fuzz', 'js_fuzzer', job,
+                                                       None, task_id)
+
+    self.assertEqual('fuzz', environment.get_value('TASK_NAME'))
+    self.assertEqual('js_fuzzer', environment.get_value('TASK_ARGUMENT'))
+    self.assertEqual('linux_asan_d8', environment.get_value('JOB_NAME'))
+    self.assertEqual(str(task_id), environment.get_value('CF_TASK_ID'))
+    self.assertEqual('fuzz', environment.get_value('CF_TASK_NAME'))
+    self.assertEqual('js_fuzzer', environment.get_value('CF_TASK_ARGUMENT'))
+    self.assertEqual('linux_asan_d8', environment.get_value('CF_TASK_JOB_NAME'))
+    self.assertEqual(1, environment.get_value('JOB_VAR'))
+    self.assertEqual('abc', environment.get_value('FUZZER_DEFAULT'))
+    self.assertEqual('xyz', environment.get_value('FUZZER_JOB'))
+    self.assertIsNone(environment.get_value('IGNORED'))
+    self.assertEqual('fuzz', uworker_env['TASK_NAME'])
+    self.assertEqual('js_fuzzer', uworker_env['TASK_ARGUMENT'])
+    self.assertEqual('linux_asan_d8', uworker_env['JOB_NAME'])
+    self.assertEqual(task_id, uworker_env['CF_TASK_ID'])
+    self.assertEqual('fuzz', uworker_env['CF_TASK_NAME'])
+    self.assertEqual('js_fuzzer', uworker_env['CF_TASK_ARGUMENT'])
+    self.assertEqual('linux_asan_d8', uworker_env['CF_TASK_JOB_NAME'])
+    self.assertEqual('1', uworker_env['JOB_VAR'])
+    self.assertEqual('abc', uworker_env['FUZZER_DEFAULT'])
+    self.assertEqual('xyz', uworker_env['FUZZER_JOB'])
+    self.assertNotIn('IGNORED', uworker_env)
+
+  def test_minimize_job_override_updates_process_and_uworker_env(self):
+    """Applies minimize job override to both process env and uworker_env."""
+    original_job = data_types.Job(
+        name='linux_asan_d8',
+        environment_string='MINIMIZE_JOB_OVERRIDE = linux_asan_d8_min\n')
+    original_job.put()
+    data_types.Job(
+        name='linux_asan_d8_min', environment_string='MIN_VAR = 2\n').put()
+    testcase = data_types.Testcase(
+        fuzzer_name='js_fuzzer', job_type='linux_asan_d8')
+    testcase.put()
+    task_id = uuid.UUID('12345678-1234-5678-1234-567812345678')
+
+    uworker_env = commands.update_environment_for_task(
+        'minimize', str(testcase.key.id()), original_job, testcase, task_id)
+
+    self.assertEqual('linux_asan_d8_min', environment.get_value('JOB_NAME'))
+    self.assertEqual('linux_asan_d8_min',
+                     environment.get_value('CF_TASK_JOB_NAME'))
+    self.assertEqual('linux_asan_d8',
+                     environment.get_value('ORIGINAL_JOB_NAME'))
+    self.assertEqual(2, environment.get_value('MIN_VAR'))
+    self.assertEqual('linux_asan_d8_min', uworker_env['JOB_NAME'])
+    self.assertEqual('linux_asan_d8_min', uworker_env['CF_TASK_JOB_NAME'])
+    self.assertEqual('linux_asan_d8', uworker_env['ORIGINAL_JOB_NAME'])
+    self.assertEqual('2', uworker_env['MIN_VAR'])
 
 
 class IsSupportedCpuArchForJobTest(unittest.TestCase):
