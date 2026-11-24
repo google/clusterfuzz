@@ -266,10 +266,10 @@ def _get_binary_from_build_or_device(binary_path):
 
   # We didn't find the library locally in the build directory.
   # Try finding the library in the local system library cache.
-  if ensure_system_symbols(symbols_directory):
-    local_binary_path = utils.find_binary_path(symbols_directory, binary_path)
-    if local_binary_path:
-      return local_binary_path
+  if (ensure_system_symbols(symbols_directory) and
+      (local_binary_path := utils.find_binary_path(symbols_directory,
+                                                   binary_path))):
+    return local_binary_path
 
   # Mirror the device path so libraries sharing a basename don't collide.
   local_binary_path = os.path.join(symbols_directory, relative_binary_path)
