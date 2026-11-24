@@ -15,6 +15,8 @@
 
 import os
 import re
+import shlex
+import tempfile
 import zipfile
 
 from clusterfuzz._internal.base import utils
@@ -224,7 +226,21 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
         symbols_zipfile.extract(filepath, symbols_directory)
 
 
-_VALID_DEVICE_BINARY_PATH_REGEX = re.compile(r'^/[A-Za-z0-9._+@~=/!-]+$')
+_VALID_DEVICE_BINARY_PATH_REGEX = re.compile(r'^/[A-Za-z0-9._+@~=/!-]+\Z')
+_ALLOWED_DEVICE_ROOT_DIRS = frozenset({
+    'apex',
+    'data',
+    'odm',
+    'oem',
+    'product',
+    'sbin',
+    'system',
+    'system_ext',
+    'vendor',
+})
+_ABI_64_PATH_SEGMENTS = frozenset({'arm64', 'arm64-v8a', 'lib64', 'x86_64'})
+_ABI_32_PATH_SEGMENTS = frozenset(
+    {'arm', 'armeabi', 'armeabi-v7a', 'lib', 'x86'})
 
 
 def _is_valid_device_binary_path(binary_path):
@@ -237,37 +253,119 @@ def _is_valid_device_binary_path(binary_path):
   parts = binary_path.split('/')
   if any(part in ('', '.', '..') for part in parts[1:]):
     return False
-  if parts[1] in ('dev', 'proc', 'sys'):
+  if binary_path != '/init':
+    if len(parts) < 3 or parts[1] not in _ALLOWED_DEVICE_ROOT_DIRS:
+      return False
+    if parts[1] == 'data' and parts[2] == 'misc':
+      return False
+  basename = parts[-1]
+  if not basename or basename.startswith(('-', '.')):
     return False
-  basename = os.path.basename(binary_path)
-  return bool(basename) and not basename.startswith(('-', '.'))
+  if '!' in binary_path:
+    archive_part, member_part = binary_path.split('!', 1)
+    archive_basename = os.path.basename(archive_part)
+    member_basename = os.path.basename(member_part)
+    if (not archive_basename or archive_basename.startswith(
+        ('-', '.')) or not member_part or '!' in member_part or
+        not member_basename or member_basename.startswith(('-', '.'))):
+      return False
+  return True
+
+
+def _infer_abi_bitness(path):
+  """Infers 64-bit or 32-bit ABI from path segments, or None if unspecified."""
+  segments = set(path.replace('!', '/').split('/'))
+  if segments & _ABI_64_PATH_SEGMENTS:
+    return 64
+  if segments & _ABI_32_PATH_SEGMENTS:
+    return 32
+  return None
 
 
 def _find_cached_symbol_path(symbols_directory, relative_binary_path):
   """Finds a cached regular file matching |relative_binary_path|."""
-  for candidate in (
+  candidates = [
       os.path.join(symbols_directory, relative_binary_path),
       os.path.join(symbols_directory, 'device', relative_binary_path),
-  ):
+  ]
+  product_root = os.path.join(symbols_directory, 'out', 'target', 'product')
+  if os.path.isdir(product_root):
+    for product_name in sorted(os.listdir(product_root)):
+      candidates.append(
+          os.path.join(product_root, product_name, 'symbols',
+                       relative_binary_path))
+  for candidate in candidates:
     if os.path.isfile(candidate):
       return candidate
 
   # Search extracted build symbols (excluding device-pulled files so distinct
   # device paths sharing a basename cannot collide).
   subpath_suffix = os.sep + relative_binary_path
-  binary_filename = os.path.basename(relative_binary_path)
-  basename_match = None
+  binary_filename = os.path.basename(relative_binary_path.rsplit('!', 1)[-1])
+  requested_bitness = _infer_abi_bitness(relative_binary_path)
+  arch_basename_match = None
+  neutral_basename_match = None
   for root, dirs, filenames in os.walk(symbols_directory):
     if root == symbols_directory and 'device' in dirs:
       dirs.remove('device')
+    dirs.sort()
+    filenames.sort()
     for filename in filenames:
       file_path = os.path.join(root, filename)
       if file_path.endswith(subpath_suffix) and os.path.isfile(file_path):
         return file_path
-      if (basename_match is None and filename == binary_filename and
-          os.path.isfile(file_path)):
-        basename_match = file_path
-  return basename_match
+      if filename != binary_filename or not os.path.isfile(file_path):
+        continue
+      candidate_rel_path = os.path.relpath(file_path, symbols_directory)
+      candidate_bitness = _infer_abi_bitness(candidate_rel_path)
+      if requested_bitness is None:
+        if neutral_basename_match is None:
+          neutral_basename_match = file_path
+      elif candidate_bitness == requested_bitness:
+        if arch_basename_match is None:
+          arch_basename_match = file_path
+      elif candidate_bitness is None and neutral_basename_match is None:
+        neutral_basename_match = file_path
+  return arch_basename_match or neutral_basename_match
+
+
+def _pull_device_binary(binary_path, local_binary_path, symbols_directory):
+  """Validates |binary_path| on the device and atomically pulls it to host."""
+  quoted_path = shlex.quote(binary_path)
+  resolved_output = adb.run_shell_command(
+      f'test -f {quoted_path} && realpath {quoted_path}')
+  resolved_path = (resolved_output or '').strip()
+  if '\n' in resolved_path or not _is_valid_device_binary_path(resolved_path):
+    return None
+
+  device_cache_root = os.path.join(symbols_directory, 'device')
+  try:
+    os.makedirs(device_cache_root, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        dir=device_cache_root, prefix='.pull_', delete=False) as temp_file:
+      temp_path = temp_file.name
+  except OSError:
+    return None
+
+  try:
+    pull_cmd = adb.get_adb_command_line(
+        shlex.join(['pull', resolved_path, temp_path]))
+    return_code, _ = adb.execute_command_with_return_code(
+        pull_cmd, timeout=adb.ADB_TIMEOUT)
+    if (return_code != 0 or not os.path.isfile(temp_path) or
+        os.path.getsize(temp_path) == 0):
+      return None
+    os.makedirs(os.path.dirname(local_binary_path), exist_ok=True)
+    os.replace(temp_path, local_binary_path)
+    return local_binary_path if os.path.isfile(local_binary_path) else None
+  except OSError:
+    return None
+  finally:
+    if os.path.exists(temp_path):
+      try:
+        os.remove(temp_path)
+      except OSError:
+        pass
 
 
 def _get_binary_from_build_or_device(binary_path):
@@ -290,17 +388,18 @@ def _get_binary_from_build_or_device(binary_path):
   if local_binary_path:
     return local_binary_path
 
+  # APK-embedded paths (e.g. base.apk!libchrome.so) are not standalone files on
+  # the device filesystem and cannot be fetched via adb pull.
+  if '!' in binary_path:
+    return None
+
   # Try pulling in the binary directly from the device into a dedicated
   # subdirectory of the system library cache directory.
   local_binary_path = os.path.abspath(
       os.path.join(symbols_directory, 'device', relative_binary_path))
   if os.path.exists(local_binary_path):
     return None
-  adb.copy_remote_file_to_local(binary_path, local_binary_path)
-  if os.path.isfile(local_binary_path):
-    return local_binary_path
-
-  return None
+  return _pull_device_binary(binary_path, local_binary_path, symbols_directory)
 
 
 def filter_binary_path(binary_path):
@@ -320,6 +419,10 @@ def filter_binary_path(binary_path):
   lookup_subpath = binary_path.lstrip('/') if is_android else binary_path
   if build_directory:
     local_binary_path = utils.find_binary_path(build_directory, lookup_subpath)
+    if not local_binary_path and is_android and '!' in lookup_subpath:
+      member_subpath = lookup_subpath.split('!', 1)[1].lstrip('/')
+      local_binary_path = utils.find_binary_path(build_directory,
+                                                 member_subpath)
     if local_binary_path and os.path.isfile(local_binary_path):
       return local_binary_path
 
