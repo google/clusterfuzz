@@ -677,11 +677,11 @@ class TimeStatTracker:
     as a failure and re-raised.
     """
     parent_step = self.current_step
-    if parent_step:
+    if parent_step is not None:
       logs.error(f'Step "{name}" is nested inside step "{parent_step}".')
-    self.current_step = name
     start = time.time()
     step = _StepTracker()
+    self.current_step = name
 
     try:
       yield step
