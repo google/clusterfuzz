@@ -701,3 +701,72 @@ class TimeStatTrackerTest(unittest.TestCase):
         },
         tracker.stats)
     self.assertIsNone(tracker.current_step)
+
+  def test_track_self_nesting_logs_error(self):
+    """Test that track logs an error when expected_parent_step equals step."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('step_1'):
+      with tracker.track('step_1', expected_parent_step='step_1'):
+        self.mock_time.advance(1.5)
+
+    self.mock.error.assert_called_once()
+    error_message = self.mock.error.call_args[0][0]
+    self.assertIn('step_1', error_message)
+    self.assertIsNone(tracker.current_step)
+
+  def test_record_self_nesting_logs_error(self):
+    """Test that record logs an error when expected_parent_step equals step."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('step_1'):
+      tracker.record('step_1', 2.0, expected_parent_step='step_1')
+
+    self.mock.error.assert_called_once()
+    error_message = self.mock.error.call_args[0][0]
+    self.assertIn('step_1', error_message)
+    self.assertIsNone(tracker.current_step)
+
+  def test_record_negative_duration_clamped_to_zero(self):
+    """Test that negative durations log an error and are clamped to 0."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    tracker.record('step_1', -1.5)
+
+    self.mock.error.assert_called_once()
+    error_message = self.mock.error.call_args[0][0]
+    self.assertIn('step_1', error_message)
+    self.assertEqual({'step_1': datetime.timedelta(seconds=0.0)}, tracker.stats)
+    dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': True})
+    self.assertEqual(1, dist.count)
+    self.assertAlmostEqual(0.0, dist.sum)
+
+  def test_track_nested_exception_unwinds(self):
+    """Test that an exception in a nested step fails both and unwinds state."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with self.assertRaises(ValueError):
+      with tracker.track('outer'):
+        self.mock_time.advance(1.0)
+        with tracker.track('inner', expected_parent_step='outer'):
+          self.mock_time.advance(2.0)
+          raise ValueError('boom')
+
+    self.mock.error.assert_not_called()
+    self.assertIsNone(tracker.current_step)
+    self.assertEqual(
+        {
+            'outer': datetime.timedelta(seconds=3.0),
+            'inner': datetime.timedelta(seconds=2.0),
+        },
+        tracker.stats)
+    outer_dist = self.metric.get({
+        'tag': 'val',
+        'step': 'outer',
+        'success': False
+    })
+    self.assertEqual(1, outer_dist.count)
+    self.assertAlmostEqual(3.0, outer_dist.sum)
+    inner_dist = self.metric.get({
+        'tag': 'val',
+        'step': 'inner',
+        'success': False
+    })
+    self.assertEqual(1, inner_dist.count)
+    self.assertAlmostEqual(2.0, inner_dist.sum)

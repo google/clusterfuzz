@@ -671,7 +671,10 @@ class TimeStatTracker:
     self.current_step: str | None = None
 
   def _check_parent_step(self, name: str, expected_parent_step: str | None):
-    """Logs an error if current step does not match |expected_parent_step|."""
+    """Logs an error if parent step is invalid or mismatches current step."""
+    if expected_parent_step == name:
+      logs.error(f'Step "{name}" cannot be nested inside itself.')
+      return
     if self.current_step == expected_parent_step:
       return
     if expected_parent_step is None:
@@ -686,6 +689,11 @@ class TimeStatTracker:
 
   def _record(self, name: str, duration_secs: float, success: bool):
     """Records a duration measurement for |name| in stats and metric."""
+    if duration_secs < 0:
+      # Clamp negative durations (e.g., from wall-clock adjustments) to 0.
+      logs.error(f'Negative duration ({duration_secs}s) recorded for step '
+                 f'"{name}", clamping to 0.')
+      duration_secs = 0.0
     duration = datetime.timedelta(seconds=duration_secs)
     if name in self.stats:
       self.stats[name] += duration
