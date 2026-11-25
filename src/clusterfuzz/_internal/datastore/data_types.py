@@ -1196,6 +1196,9 @@ class BundledArchiveMetadata(Model):
   # Binary name for fuzz target (only applicable to libFuzzer, AFL).
   fuzzer_binary_name = ndb.StringProperty()
 
+  # Whether the unpacked testcases are trusted to run on non-uworker bots.
+  trusted = ndb.BooleanProperty(default=False)
+
 
 class TaskStatus(Model):
   """Information about task status."""

@@ -74,14 +74,15 @@ class UnpackTaskTestBase(unittest.TestCase):
   def _archive_path(self, archive_filename):
     return os.path.join(self.temp_dir, archive_filename)
 
-  def _create_metadata(self, archive_filename, blobstore_key):
+  def _create_metadata(self, archive_filename, blobstore_key, trusted=False):
     """Creates the bundle and upload metadata, as upload_testcase does."""
     metadata = data_types.BundledArchiveMetadata(
         blobstore_key=blobstore_key,
         job_type=JOB_NAME,
         job_queue='jobs-linux',
         archive_filename=archive_filename,
-        uploader_email=UPLOADER_EMAIL)
+        uploader_email=UPLOADER_EMAIL,
+        trusted=trusted)
     metadata.put()
     data_types.TestcaseUploadMetadata(
         blobstore_key=blobstore_key,
@@ -215,11 +216,12 @@ class ExecuteTaskIntegrationTest(UnpackTaskTestBase):
     os.environ['TEST_BLOBS_BUCKET'] = 'blobs-bucket'
     storage.create_bucket_if_needed('blobs-bucket')
 
-  def _execute(self, archive_filename):
+  def _execute(self, archive_filename, trusted=False):
     """Uploads the archive to blob storage and runs the unpack task, like a
     multiple testcase upload does."""
     archive_key = blobs.write_blob(self._archive_path(archive_filename))
-    metadata_id = self._create_metadata(archive_filename, archive_key)
+    metadata_id = self._create_metadata(
+        archive_filename, archive_key, trusted=trusted)
     unpack_task.execute_task(metadata_id, JOB_NAME)
     return archive_key
 
@@ -304,3 +306,16 @@ class ExecuteTaskIntegrationTest(UnpackTaskTestBase):
     self._assert_testcases_created('bundle.zip', archive_key, {
         'testcase1': b'testcase 1',
     })
+
+  def test_trusted_bundle_propagates_trusted_flag(self):
+    """Tests that trusted=True on BundledArchiveMetadata propagates to testcases."""
+    with zipfile.ZipFile(self._archive_path('bundle.zip'), 'w') as zip_file:
+      zip_file.writestr('testcase1', b'testcase 1')
+
+    archive_key = self._execute('bundle.zip', trusted=True)
+
+    self._assert_testcases_created('bundle.zip', archive_key, {
+        'testcase1': b'testcase 1',
+    })
+    testcases = list(data_types.Testcase.query())
+    self.assertTrue(all(testcase.trusted for testcase in testcases))
