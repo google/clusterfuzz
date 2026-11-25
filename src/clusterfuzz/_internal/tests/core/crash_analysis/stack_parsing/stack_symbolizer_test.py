@@ -18,6 +18,7 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
+from clusterfuzz._internal.platforms.android import symbols_downloader
 from clusterfuzz._internal.tests.test_libs import helpers
 
 DATA_DIRECTORY = os.path.join(
@@ -661,6 +662,49 @@ class ProcessTrustyStacktraceTest(unittest.TestCase):
     self.assertEqual(stacktrace,
                      self.loop.process_trusty_stacktrace(stacktrace))
     self.mock.download_trusty_symbols_if_needed.assert_not_called()
+
+  def test_returns_unsymbolized_stacktrace_when_symbol_download_fails(self):
+    """Returns the original stacktrace when Trusty symbols cannot be obtained."""
+    self.mock.get_value.return_value = '/symbols'
+    self.mock.download_trusty_symbols_if_needed.side_effect = (
+        symbols_downloader.SymbolDownloadError('download failed'))
+
+    stacktrace = ('(app: keymaster), Build: 1234567, Built:\n'
+                  'kSP+0x10: 0xdeadbeef\n')
+    with mock.patch.object(stack_symbolizer,
+                           'Addr2LineSymbolizer') as mock_addr2line:
+      result = self.loop.process_trusty_stacktrace(stacktrace)
+
+    self.assertEqual(result, stacktrace)
+    mock_addr2line.assert_not_called()
+
+  def test_symbolizes_kernel_and_app_frames_with_resolved_paths(self):
+    """Uses the kernel and app ELF paths returned by download_trusty_symbols_if_needed."""
+    self.mock.get_value.return_value = '/symbols'
+    self.mock.download_trusty_symbols_if_needed.return_value = (
+        symbols_downloader.TrustySymbols(
+            kernel_binary='/symbols/lk.elf',
+            app_binary='/symbols/keymaster.syms.elf'))
+
+    stacktrace = ('(app: keymaster), Build: 1234567, Built:\n'
+                  'kSP+0x1000: 0x0000000000001111\n'
+                  'uSP+0x2000: 0x0000000000002222\n')
+    with mock.patch.object(stack_symbolizer,
+                           'Addr2LineSymbolizer') as mock_addr2line:
+      mock_addr2line.return_value.symbolize.side_effect = [
+          ['kernel_func at lk.c:10'],
+          ['app_func at keymaster.c:20'],
+      ]
+      result = self.loop.process_trusty_stacktrace(stacktrace)
+
+    self.assertEqual(
+        result, '(app: keymaster), Build: 1234567, Built:\n'
+        'kSP+0x1000: kernel_func at lk.c:10\n'
+        'uSP+0x2000: app_func at keymaster.c:20\n')
+    self.assertEqual(mock_addr2line.call_args_list, [
+        mock.call('/symbols/lk.elf'),
+        mock.call('/symbols/keymaster.syms.elf'),
+    ])
 
 
 class SymbolizeStacktraceChainTest(unittest.TestCase):
