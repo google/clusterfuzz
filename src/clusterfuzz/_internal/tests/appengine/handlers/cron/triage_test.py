@@ -859,3 +859,55 @@ class ReproducibleCrashFreshnessGateTest(unittest.TestCase):
         throttler=triage.Throttler())
 
     self.mock.notify_issue_update.assert_called_once_with(fresh_testcase, 'new')
+
+  def test_stale_skip_preserves_concurrent_testcase_updates(self):
+    """Tests clearing stuck_in_triage re-fetches and preserves concurrent closures."""
+    testcase = self._make_ready_testcase(created_days_ago=180)
+    testcase.stuck_in_triage = True
+    testcase.put()
+
+    def close_concurrently(unused_testcase, unused_tracker):
+      concurrent = data_handler.get_testcase_by_id(testcase.key.id())
+      concurrent.open = False
+      concurrent.fixed = '100:200'
+      concurrent.put()
+      return False
+
+    self.mock._check_and_update_similar_bug.side_effect = close_concurrently
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
+    updated = data_handler.get_testcase_by_id(testcase.key.id())
+    self.assertFalse(updated.open)
+    self.assertEqual(updated.fixed, '100:200')
+    self.assertFalse(updated.stuck_in_triage)
+    self.assertEqual(
+        updated.get_metadata(triage.TRIAGE_MESSAGE_KEY),
+        triage.STALE_REPRODUCIBLE_TRIAGE_MESSAGE)
+
+  def test_throttler_caches_failed_issue_tracker_config_initialization(self):
+    """Tests failed IssueTrackerConfig loads once per Throttler without retries."""
+    first = self._make_ready_testcase(created_days_ago=180)
+    second = self._make_ready_testcase(created_days_ago=180)
+    throttler = triage.Throttler()
+
+    with mock.patch(
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig',
+        side_effect=errors.ConfigParseError('broken.yaml')) as mock_config:
+      triage._triage_testcase(
+          first,
+          excluded_jobs=[],
+          all_jobs=[first.job_type],
+          throttler=throttler)
+      triage._triage_testcase(
+          second,
+          excluded_jobs=[],
+          all_jobs=[second.job_type],
+          throttler=throttler)
+
+    mock_config.assert_called_once()
+    self.mock._file_issue.assert_not_called()

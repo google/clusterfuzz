@@ -17,6 +17,7 @@ import collections
 import datetime
 import itertools
 import json
+from typing import Any
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
@@ -41,6 +42,7 @@ CONFIG_ERRORS = (
     errors.ConfigParseError,
     errors.InvalidConfigKey,
 )
+_UNSET = object()
 MAX_BUGS_PER_PROJECT_PER_24HRS_DEFAULT = 100
 REPRODUCIBLE_FRESHNESS_CONFIG_KEY = 'reproducible_testcase_freshness_deadline'
 STALE_REPRODUCIBLE_TRIAGE_MESSAGE = (
@@ -385,10 +387,18 @@ def _file_issue(testcase, issue_tracker, throttler):
 
 
 def _set_testcase_stuck_state(testcase: data_types.Testcase, state: bool):
+  """Updates stuck_in_triage on the latest Datastore testcase entity."""
   if testcase.stuck_in_triage == state:
     return
   testcase.stuck_in_triage = state
-  testcase.put()
+  try:
+    latest_testcase = data_handler.get_testcase_by_id(testcase.key.id())
+  except errors.InvalidTestcaseError:
+    return
+  if latest_testcase.stuck_in_triage == state:
+    return
+  latest_testcase.stuck_in_triage = state
+  latest_testcase.put()
 
 
 untriaged_testcases = {}
@@ -441,7 +451,7 @@ def _skip_stale_reproducible_testcase(testcase: data_types.Testcase,
 def _has_recent_crash_confirmation(
     testcase: data_types.Testcase,
     issue_tracker_name: str | None,
-    issue_tracker_config: local_config.IssueTrackerConfig | None = None
+    issue_tracker_config: Any = _UNSET,
 ) -> bool:
   """Returns whether a testcase is eligible to file based on crash freshness."""
   if testcase.one_time_crasher_flag:
@@ -461,14 +471,17 @@ def _has_recent_crash_confirmation(
 
 def _get_reproducible_freshness_deadline_days(
     issue_tracker_name: str | None,
-    issue_tracker_config: local_config.IssueTrackerConfig | None = None) -> int:
+    issue_tracker_config: Any = _UNSET,
+) -> int:
   """Returns the crash-freshness deadline in days for reproducible testcases."""
   default_deadline = data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE
-  if not issue_tracker_name:
+  if not issue_tracker_name or issue_tracker_config is None:
     return default_deadline
 
   try:
-    tracker_config = issue_tracker_config or local_config.IssueTrackerConfig()
+    tracker_config = (
+        local_config.IssueTrackerConfig()
+        if issue_tracker_config is _UNSET else issue_tracker_config)
     config = tracker_config.get(issue_tracker_name, {})
   except CONFIG_ERRORS:
     logs.error(f'Failed to load issue tracker config for {issue_tracker_name}')
@@ -745,15 +758,16 @@ class Throttler:
 
     self._max_bugs_per_job_per_24hrs = {}
     self._max_bugs_per_project_per_24hrs = {}
-    self._issue_tracker_config = None
+    self._issue_tracker_config: Any = _UNSET
 
   def get_issue_tracker_config(self) -> local_config.IssueTrackerConfig | None:
     """Returns a cached IssueTrackerConfig instance for the triage run."""
-    if self._issue_tracker_config is None:
+    if self._issue_tracker_config is _UNSET:
       try:
         self._issue_tracker_config = local_config.IssueTrackerConfig()
       except CONFIG_ERRORS:
         logs.error('Failed to initialize IssueTrackerConfig.')
+        self._issue_tracker_config = None
     return self._issue_tracker_config
 
   def _get_job_bugs_filing_max(self, job_type):
