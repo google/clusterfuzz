@@ -18,6 +18,8 @@
 # Dockerfiles found in subdirectories, and optionally pushes them to a container
 # registry.
 
+source "$(dirname "${BASH_SOURCE[0]}")/verify_ubuntu24_nofile.sh"
+
 # An array of Docker image names to be built.
 IMAGES=(
   us-central1-docker.pkg.dev/clusterfuzz-images/clusterfuzz-immutable-images/base/immutable
@@ -93,6 +95,10 @@ for image_name in "${IMAGES[@]}"; do
     # -f "$dockerfile": Specifies the path to the Dockerfile.
     # .: Sets the build context to the current directory.
     docker build --build-arg CLUSTERFUZZ_SOURCE_DIR=. -t "$full_image_name":${tag} -f "$dockerfile" .
+
+    if [ "$OS_VERSION" == "ubuntu-24-04" ]; then
+      verify_ubuntu24_immutable_open_file_limit "$full_image_name:${tag}"
+    fi
 
     # If the second argument to the script is "true", push the newly built
     # image to the container registry.

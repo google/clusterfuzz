@@ -92,6 +92,8 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+source "$(dirname "${BASH_SOURCE[0]}")/verify_ubuntu24_nofile.sh"
+
 function docker_push {
   if [ "$PUSH" == "true" ]; then
     docker push "$image_with_version_tag"
@@ -146,6 +148,10 @@ for image_name in "${IMAGES[@]}"; do
   fi
 
   docker build -t "$image_with_version_tag" -f "$dockerfile" "$image_dir"
+
+  if [ "$VERSION_TAG" == "ubuntu-24-04" ]; then
+    verify_ubuntu24_base_open_file_limit "$image_with_version_tag"
+  fi
 
   # Clean up the copied files.
   if [[ "$NEEDS_ROOT_PIPFILE" == "true" ]]; then
