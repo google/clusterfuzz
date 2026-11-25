@@ -266,14 +266,16 @@ def is_remote_task(command: str, job_name: str) -> bool:
 def _get_config_names(batch_tasks: List[remote_task_types.RemoteTask]):
   """Gets the name of the configs for each batch_task. Returns a dict
   that is indexed by command and job_type for efficient lookup."""
-  job_names = {task.job_type for task in batch_tasks}
+  job_names = {task.job_type for task in batch_tasks if task.job_type}
+  if not job_names:
+    return {}
   query = data_types.Job.query(data_types.Job.name.IN(list(job_names)))
   jobs = ndb_utils.get_all_from_query(query)
   job_map = {job.name: job for job in jobs}
   config_map = {}
   for task in batch_tasks:
-    if task.job_type not in job_map:
-      logs.error(f'{task.job_type} doesn\'t exist.')
+    task_key = (task.command, task.job_type)
+    if task_key in config_map or task.job_type not in job_map:
       continue
     if task.command == 'fuzz':
       suffix = '-PREEMPTIBLE-UNPRIVILEGED'
@@ -353,19 +355,20 @@ def _get_specs_from_config(batch_tasks: List[remote_task_types.RemoteTask],
   config_map = _get_config_names(batch_tasks)
   specs = {}
   subconfig_map = {}
+  seen_keys = set()
   for task in batch_tasks:
-    if (task.command, task.job_type) in specs:
-      # Don't repeat work for no reason.
+    task_key = (task.command, task.job_type)
+    if task_key in seen_keys:
       continue
-    try:
-      config_name, disk_size_gb, base_os_version = config_map[(task.command,
-                                                               task.job_type)]
-    except Exception:
+    seen_keys.add(task_key)
+    mapped = config_map.get(task_key)
+    if mapped is None:
       logs.error(
           'Error on mapping the job',
           command=task.command,
           job_type=task.job_type)
       continue
+    config_name, disk_size_gb, base_os_version = mapped
 
     instance_spec = batch_config.get('mapping').get(config_name)
     if instance_spec is None:
@@ -498,9 +501,14 @@ class GcpBatchService(remote_task_types.RemoteTaskInterface):
       return remote_tasks
 
     for remote_task in remote_tasks:
+      spec = specs.get((remote_task.command, remote_task.job_type))
+      if spec is None:
+        continue
       logs.info(f'Scheduling {remote_task.command}, {remote_task.job_type}.')
-      spec = specs[(remote_task.command, remote_task.job_type)]
       job_specs[spec].append(remote_task.input_download_url)
+
+    if not job_specs:
+      return []
 
     logs.info('Creating batch jobs.')
 

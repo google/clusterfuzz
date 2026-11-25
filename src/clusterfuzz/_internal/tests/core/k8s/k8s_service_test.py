@@ -189,3 +189,70 @@ class KubernetesServiceTest(unittest.TestCase):
     self.assertEqual('command', tasks[0].command)
     self.assertEqual('job', tasks[0].job_type)
     self.assertEqual('url', tasks[0].input_download_url)
+
+  @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
+  @mock.patch.object(service.KubernetesService, 'create_job')
+  def test_create_utask_main_jobs_skips_deleted_job(self, mock_create_job,
+                                                    mock_pending_count, _):
+    """Tests that deleted jobs are skipped with one error log per key."""
+    mock_pending_count.return_value = 0
+    kube_service = service.KubernetesService()
+    tasks = [
+        remote_task_types.RemoteTask('progression', 'deleted_job',
+                                     'url_deleted_1'),
+        remote_task_types.RemoteTask('progression', 'deleted_job',
+                                     'url_deleted_2'),
+        remote_task_types.RemoteTask('progression', 'job1', 'url_active'),
+    ]
+
+    with mock.patch(
+        'clusterfuzz._internal.metrics.logs.error') as mock_log_error, \
+        mock.patch(
+            'clusterfuzz._internal.metrics.logs.warning') as mock_log_warning:
+      result = kube_service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(result, [])
+    self.assertEqual(1, mock_create_job.call_count)
+    self.assertEqual('job1', mock_create_job.call_args[0][0].job_type)
+    self.assertEqual('url_active', mock_create_job.call_args[0][1])
+    mock_log_error.assert_called_once_with(
+        'Error on mapping the job',
+        command='progression',
+        job_type='deleted_job')
+    mock_log_warning.assert_not_called()
+
+  @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
+  @mock.patch.object(service.KubernetesService, 'create_job')
+  def test_create_utask_main_jobs_only_deleted_jobs(self, mock_create_job,
+                                                    mock_pending_count, _):
+    """Tests that batches with only deleted jobs return empty without RPCs."""
+    mock_pending_count.return_value = 0
+    kube_service = service.KubernetesService()
+    tasks = [
+        remote_task_types.RemoteTask('progression', 'deleted_job',
+                                     'url_deleted'),
+    ]
+
+    result = kube_service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(result, [])
+    mock_create_job.assert_not_called()
+
+  @mock.patch.object(service.KubernetesService, '_get_pending_jobs_count')
+  @mock.patch.object(service.KubernetesService, 'create_job')
+  def test_create_utask_main_jobs_raises_for_unmapped_platform(
+      self, mock_create_job, mock_pending_count, _):
+    """Tests that unmapped job platforms still raise ValueError."""
+    mock_pending_count.return_value = 0
+    data_types.Job(name='unmapped_job', platform='UNMAPPED_OS').put()
+    kube_service = service.KubernetesService()
+    tasks = [
+        remote_task_types.RemoteTask('progression', 'unmapped_job',
+                                     'url_unmapped'),
+        remote_task_types.RemoteTask('progression', 'job1', 'url_active'),
+    ]
+
+    with self.assertRaises(ValueError):
+      kube_service.create_utask_main_jobs(tasks)
+
+    mock_create_job.assert_not_called()

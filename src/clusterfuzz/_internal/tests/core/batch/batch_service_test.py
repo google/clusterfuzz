@@ -233,6 +233,82 @@ class GcpBatchServiceTest(unittest.TestCase):
       self.assertEqual(result, tasks)
       self.mock_batch_client_instance.create_job.assert_not_called()
 
+  def test_create_uworker_main_batch_jobs_skips_deleted_job(self):
+    """Tests that deleted jobs missing from specs are skipped cleanly."""
+    spec1 = batch_service.BatchWorkloadSpec(
+        clusterfuzz_release='release1',
+        disk_size_gb=10,
+        disk_type='type1',
+        docker_image='image1',
+        user_data='user_data1',
+        service_account_email='email1',
+        subnetwork='subnetwork1',
+        preemptible=False,
+        project='project1',
+        machine_type='machine1',
+        network='network1',
+        gce_region='region1',
+        priority=1,
+        max_run_duration='1s',
+        retry=False)
+    with mock.patch('clusterfuzz._internal.batch.service._get_specs_from_config'
+                   ) as mock_get_specs_from_config:
+      mock_get_specs_from_config.return_value = {
+          ('progression', 'active_job'): spec1,
+      }
+      tasks = [
+          remote_task_types.RemoteTask('progression', 'deleted_job',
+                                       'url_deleted'),
+          remote_task_types.RemoteTask('progression', 'active_job',
+                                       'url_active'),
+      ]
+
+      result = self.batch_service.create_utask_main_jobs(tasks)
+
+      self.assertEqual(result, [])
+      expected_request = _get_expected_create_request(UUIDS[0], spec1,
+                                                      ['url_active'])
+      self.mock_batch_client_instance.create_job.assert_called_once_with(
+          expected_request)
+
+  def test_create_uworker_main_batch_jobs_only_deleted_jobs(self):
+    """Tests that deleted jobs return empty and log one error per key."""
+    tasks = [
+        remote_task_types.RemoteTask('progression', 'deleted_job',
+                                     'url_deleted_1'),
+        remote_task_types.RemoteTask('progression', 'deleted_job',
+                                     'url_deleted_2'),
+    ]
+
+    with mock.patch(
+        'clusterfuzz._internal.metrics.logs.error') as mock_log_error, \
+        mock.patch(
+            'clusterfuzz._internal.metrics.logs.warning') as mock_log_warning:
+      result = self.batch_service.create_utask_main_jobs(tasks)
+
+    self.assertEqual(result, [])
+    self.mock_batch_client_instance.create_job.assert_not_called()
+    mock_log_error.assert_called_once_with(
+        'Error on mapping the job',
+        command='progression',
+        job_type='deleted_job')
+    mock_log_warning.assert_not_called()
+
+  def test_create_uworker_main_batch_jobs_raises_for_unmapped_platform(self):
+    """Tests that unmapped job platforms still raise ValueError."""
+    data_types.Job(name='unmapped_job', platform='UNMAPPED_OS').put()
+    tasks = [
+        remote_task_types.RemoteTask('progression', 'unmapped_job',
+                                     'url_unmapped'),
+    ]
+
+    with self.assertRaises(ValueError):
+      self.batch_service.create_utask_main_jobs(tasks)
+
+    self.mock_batch_client_instance.create_job.assert_not_called()
+    self.assertFalse(
+        batch_service.is_remote_task('progression', 'unmapped_job'))
+
   def test_create_uworker_main_batch_job(self):
     """Tests that create_utask_main_job works as expected."""
     # Create mock data.
@@ -559,6 +635,23 @@ class GetSpecsFromConfigTest(unittest.TestCase):
     spec = batch_service._get_specs_from_config(
         [remote_task_types.RemoteTask('fuzz', job_name, None)])
     self.assertEqual(spec['fuzz', job_name].disk_size_gb, overridden_size)
+
+  def test_get_specs_from_config_mixed_deleted_and_active_jobs(self):
+    """Tests mixed deleted and active jobs deduplicate errors and keep specs."""
+    tasks = [
+        remote_task_types.RemoteTask('analyze', 'deleted_job', 'u1'),
+        remote_task_types.RemoteTask('analyze', 'deleted_job', 'u2'),
+        remote_task_types.RemoteTask('analyze', self.job.name, 'u3'),
+        remote_task_types.RemoteTask('analyze', self.job.name, 'u4'),
+    ]
+
+    with mock.patch(
+        'clusterfuzz._internal.metrics.logs.error') as mock_log_error:
+      specs = batch_service._get_specs_from_config(tasks)
+
+    self.assertEqual({('analyze', self.job.name)}, set(specs.keys()))
+    mock_log_error.assert_called_once_with(
+        'Error on mapping the job', command='analyze', job_type='deleted_job')
 
   @mock.patch('clusterfuzz._internal.batch.service.utils.is_oss_fuzz')
   @mock.patch('clusterfuzz._internal.datastore.data_types.OssFuzzProject.query')

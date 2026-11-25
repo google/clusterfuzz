@@ -57,14 +57,16 @@ def _get_config_names(remote_tasks: list[remote_task_types.RemoteTask]):
 
   that is indexed by command and job_type for efficient lookup."""
 
-  job_names = {task.job_type for task in remote_tasks}
+  job_names = {task.job_type for task in remote_tasks if task.job_type}
+  if not job_names:
+    return {}
   query = data_types.Job.query(data_types.Job.name.IN(list(job_names)))
   jobs = ndb_utils.get_all_from_query(query)
   job_map = {job.name: job for job in jobs}
   config_map = {}
   for task in remote_tasks:
-    if task.job_type not in job_map:
-      logs.error(f'{task.job_type} doesnt exist.')
+    task_key = (task.command, task.job_type)
+    if task_key in config_map or task.job_type not in job_map:
       continue
     if task.command == 'fuzz':
       suffix = '-PREEMPTIBLE-UNPRIVILEGED'
@@ -99,12 +101,20 @@ def _get_k8s_job_configs(remote_tasks: list[remote_task_types.RemoteTask]
   batch_config = local_config.BatchConfig()
   config_map = _get_config_names(remote_tasks)
   configs = {}
+  seen_keys = set()
   for task in remote_tasks:
-    if (task.command, task.job_type) in configs:
-      # Don't repeat work for no reason.
+    task_key = (task.command, task.job_type)
+    if task_key in seen_keys:
       continue
-    config_name, disk_size_gb, base_os_version = config_map[(task.command,
-                                                             task.job_type)]
+    seen_keys.add(task_key)
+    mapped = config_map.get(task_key)
+    if mapped is None:
+      logs.error(
+          'Error on mapping the job',
+          command=task.command,
+          job_type=task.job_type)
+      continue
+    config_name, disk_size_gb, base_os_version = mapped
     instance_spec = batch_config.get('mapping').get(config_name)
     if instance_spec is None:
       raise ValueError(f'No mapping for {config_name}')
@@ -318,10 +328,14 @@ class KubernetesService(remote_task_types.RemoteTaskInterface):
     job_specs = collections.defaultdict(list)
     configs = _get_k8s_job_configs(remote_tasks)
     for remote_task in remote_tasks:
+      config = configs.get((remote_task.command, remote_task.job_type))
+      if config is None:
+        continue
       logs.info(
           f'Scheduling {remote_task.command}, {remote_task.job_type} in K8s.')
-      config = configs[(remote_task.command, remote_task.job_type)]
       job_specs[config].append(remote_task.input_download_url)
+    if not job_specs:
+      return []
     logs.info('Creating Kubernetes jobs.')
     for config, input_urls in job_specs.items():
       for input_url in input_urls:
