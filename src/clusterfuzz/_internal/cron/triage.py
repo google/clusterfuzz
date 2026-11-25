@@ -43,6 +43,7 @@ CONFIG_ERRORS = (
     errors.InvalidConfigKey,
 )
 _UNSET = object()
+DISABLED_ISSUE_TRACKER_NAME = 'disabled'
 MAX_BUGS_PER_PROJECT_PER_24HRS_DEFAULT = 100
 REPRODUCIBLE_FRESHNESS_CONFIG_KEY = 'reproducible_testcase_freshness_deadline'
 STALE_REPRODUCIBLE_TRIAGE_MESSAGE = (
@@ -55,13 +56,27 @@ TRIAGE_MESSAGE_KEY = 'triage_message'
 
 
 def _add_triage_message(testcase, message):
-  """Add a triage message."""
+  """Adds a triage message to the latest Datastore testcase entity."""
   if testcase.get_metadata(TRIAGE_MESSAGE_KEY) == message:
-    # Message already exists, skip update.
     return
-  # Re-fetch testcase to get latest entity and avoid race condition in updates.
-  testcase = data_handler.get_testcase_by_id(testcase.key.id())
-  testcase.set_metadata(TRIAGE_MESSAGE_KEY, message)
+  try:
+    latest_testcase = data_handler.get_testcase_by_id(testcase.key.id())
+  except errors.InvalidTestcaseError:
+    return
+  latest_testcase.set_metadata(TRIAGE_MESSAGE_KEY, message)
+  testcase.set_metadata(TRIAGE_MESSAGE_KEY, message, update_testcase=False)
+
+
+def _clear_triage_message(testcase: data_types.Testcase):
+  """Removes a stale triage message from the latest Datastore testcase."""
+  if testcase.get_metadata(TRIAGE_MESSAGE_KEY) is None:
+    return
+  testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
+  try:
+    latest_testcase = data_handler.get_testcase_by_id(testcase.key.id())
+  except errors.InvalidTestcaseError:
+    return
+  latest_testcase.delete_metadata(TRIAGE_MESSAGE_KEY)
 
 
 def _create_filed_bug_metadata(testcase):
@@ -429,6 +444,15 @@ PENDING_FILING = 'pending_filing'
 STALE_UNVERIFIED = 'stale_unverified'
 
 
+def _resolve_fallback_issue_tracker_name(
+    testcase: data_types.Testcase) -> str | None:
+  """Returns the configured tracker name when not explicitly disabled."""
+  tracker_name = data_handler.get_issue_tracker_name(testcase.job_type)
+  if tracker_name == DISABLED_ISSUE_TRACKER_NAME:
+    return None
+  return tracker_name
+
+
 def _skip_stale_reproducible_testcase(testcase: data_types.Testcase,
                                       issue_tracker_name: str | None,
                                       throttler: 'Throttler') -> bool:
@@ -649,11 +673,12 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
   except ValueError:
     issue_tracker = None
   if not issue_tracker:
-    fallback_tracker_name = data_handler.get_issue_tracker_name(
-        testcase.job_type)
+    fallback_tracker_name = _resolve_fallback_issue_tracker_name(testcase)
     if _skip_stale_reproducible_testcase(testcase, fallback_tracker_name,
                                          throttler):
       return
+    _set_testcase_stuck_state(testcase, False)
+    _clear_triage_message(testcase)
     logs.info(f'No issue tracker detected for testcase {testcase_id}, '
               'publishing message.')
     issue_filer.notify_issue_update(testcase, 'new')

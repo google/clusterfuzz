@@ -839,26 +839,39 @@ class ReproducibleCrashFreshnessGateTest(unittest.TestCase):
     self.mock._file_issue.assert_not_called()
 
   def test_no_issue_tracker_skips_stale_notification_until_fresh(self):
-    """Tests Pub/Sub-only projects also enforce crash freshness before notifying."""
+    """Tests Pub/Sub-only projects enforce freshness and clear stale state on recovery."""
     self.mock.get_issue_tracker_for_testcase.return_value = None
     stale_testcase = self._make_ready_testcase(created_days_ago=180)
+    with mock.patch.object(
+        data_handler, 'get_issue_tracker_name', return_value='disabled'):
+      triage._triage_testcase(
+          stale_testcase,
+          excluded_jobs=[],
+          all_jobs=[stale_testcase.job_type],
+          throttler=triage.Throttler())
 
-    triage._triage_testcase(
-        stale_testcase,
-        excluded_jobs=[],
-        all_jobs=[stale_testcase.job_type],
-        throttler=triage.Throttler())
-
+    self.mock.get.assert_not_called()
     self.mock.notify_issue_update.assert_not_called()
 
-    fresh_testcase = self._make_ready_testcase(created_days_ago=2)
+    recovered = data_handler.get_testcase_by_id(stale_testcase.key.id())
+    self.assertEqual(
+        recovered.get_metadata(triage.TRIAGE_MESSAGE_KEY),
+        triage.STALE_REPRODUCIBLE_TRIAGE_MESSAGE)
+    recovered.stuck_in_triage = True
+    recovered.set_metadata(
+        'last_tested_crash_time',
+        test_utils.CURRENT_TIME - datetime.timedelta(days=1))
+
     triage._triage_testcase(
-        fresh_testcase,
+        recovered,
         excluded_jobs=[],
-        all_jobs=[fresh_testcase.job_type],
+        all_jobs=[recovered.job_type],
         throttler=triage.Throttler())
 
-    self.mock.notify_issue_update.assert_called_once_with(fresh_testcase, 'new')
+    self.mock.notify_issue_update.assert_called_once_with(recovered, 'new')
+    refreshed = data_handler.get_testcase_by_id(recovered.key.id())
+    self.assertFalse(refreshed.stuck_in_triage)
+    self.assertIsNone(refreshed.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_stale_skip_preserves_concurrent_testcase_updates(self):
     """Tests clearing stuck_in_triage re-fetches and preserves concurrent closures."""
@@ -910,4 +923,24 @@ class ReproducibleCrashFreshnessGateTest(unittest.TestCase):
           throttler=throttler)
 
     mock_config.assert_called_once()
+    self.mock._file_issue.assert_not_called()
+
+  def test_concurrently_deleted_testcase_does_not_abort_stale_skip(self):
+    """Tests concurrent testcase deletion during triage RPCs does not raise."""
+    testcase = self._make_ready_testcase(created_days_ago=180)
+    testcase.stuck_in_triage = True
+    testcase.put()
+
+    def delete_concurrently(unused_testcase, unused_tracker):
+      testcase.key.delete()
+      return False
+
+    self.mock._check_and_update_similar_bug.side_effect = delete_concurrently
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
     self.mock._file_issue.assert_not_called()
