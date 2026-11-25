@@ -22,6 +22,7 @@ from unittest import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.crash_analysis import \
@@ -907,7 +908,7 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
     self.assertFalse(updated.get_metadata('progression_pending'))
 
   def test_no_crash_first_attempt_with_deleted_job_clears_pending(self):
-    """Test first-attempt PROGRESSION_NO_CRASH with deleted job does not raise."""
+    """Test first-attempt PROGRESSION_NO_CRASH with deleted job clears retry."""
     output = self._make_output('deleted_job_type',
                                uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)
 
@@ -915,6 +916,21 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
 
     updated = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertFalse(updated.get_metadata('progression_pending'))
+    self.assertIsNone(updated.get_metadata('progression_retry'))
+
+  def test_no_crash_second_attempt_mark_flaky_error_clears_pending(self):
+    """Test tasks.Error in mark_unreproducible_if_flaky clears pending."""
+    self.testcase.set_metadata('progression_retry', True)
+    output = self._make_output('deleted_job_type',
+                               uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)
+    self.mock.mark_unreproducible_if_flaky.side_effect = tasks.Error(
+        'Job deleted')
+
+    progression_task.handle_progression_no_crash(output)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertFalse(bool(updated.get_metadata('progression_pending')))
+    self.assertIn('task error', updated.comments)
 
   def test_timeout_with_deleted_job_clears_pending_without_raising(self):
     """Test PROGRESSION_TIMEOUT with deleted job does not raise."""
@@ -980,6 +996,10 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
 
     def _real_mark_flaky(testcase, unused_task_name, potentially_flaky):
       if testcase.get_metadata('potentially_flaky'):
+        persisted_before_flaky = data_handler.get_testcase_by_id(
+            testcase.key.id())
+        self.assertTrue(
+            persisted_before_flaky.get_metadata('progression_pending'))
         testcase.one_time_crasher_flag = True
         testcase.fixed = 'NA'
         testcase.put()
@@ -1197,10 +1217,12 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
     self.assertFalse(bool(updated.get_metadata('progression_pending')))
 
   def test_closed_custom_binary_testcase_skips_postprocess_updates(self):
-    """Test closed custom-binary testcases are not modified in postprocess."""
+    """Test closed custom-binary testcases clear pending and stale retries."""
     self.testcase.open = False
     self.testcase.fixed = 'NA'
     self.testcase.put()
+    self.testcase.set_metadata('progression_retry', True)
+    self.testcase.set_metadata('progression_bad_min_build_retry', True)
     custom_input = uworker_msg_pb2.ProgressionTaskInput(
         custom_binary=True,
         blob_name='blob_name',
@@ -1224,6 +1246,80 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
     self.assertFalse(updated.open)
     self.assertEqual('NA', updated.fixed)
     self.assertFalse(bool(updated.get_metadata('progression_pending')))
+    self.assertIsNone(updated.get_metadata('progression_retry'))
+    self.assertIsNone(updated.get_metadata('progression_bad_min_build_retry'))
+
+  def test_bad_build_fallback_clears_stale_bad_min_build_retry_flag(self):
+    """Test fallback PROGRESSION_BAD_BUILD clears all stale retry keys."""
+    self.testcase.set_metadata('progression_retry', True)
+    self.testcase.set_metadata('progression_bad_min_build_retry', True)
+    uworker_input = uworker_msg_pb2.Input(
+        module_name=progression_task.__name__,
+        testcase_id=str(self.testcase.key.id()),
+        job_type='active_job_type',
+        progression_task_input=self.progression_task_input)
+    output = uworker_msg_pb2.Output(
+        uworker_input=uworker_input,
+        progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(
+            passed_on_latest=False),
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+        error_message='Bad build at r500. Skipping')
+
+    progression_task.handle_progression_bad_build(output)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertTrue(updated.open)
+    self.assertFalse(bool(updated.get_metadata('progression_pending')))
+    self.assertIsNone(updated.get_metadata('progression_retry'))
+    self.assertIsNone(updated.get_metadata('progression_bad_min_build_retry'))
+
+  def test_unfiled_bad_min_build_clears_progression_retry_and_failed_reschedule(
+      self):
+    """Test symmetry and failed reschedule retry cleanup across handlers."""
+    self.testcase.set_metadata('progression_retry', True)
+    uworker_input = uworker_msg_pb2.Input(
+        module_name=progression_task.__name__,
+        testcase_id=str(self.testcase.key.id()),
+        job_type='deleted_job_type',
+        progression_task_input=self.progression_task_input)
+    output = uworker_msg_pb2.Output(
+        uworker_input=uworker_input,
+        progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(
+            passed_on_latest=True, max_revision=500),
+        error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+        error_message='Bad build at r100. Skipping')
+
+    progression_task.handle_progression_bad_build(output)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertTrue(updated.open)
+    self.assertFalse(bool(updated.get_metadata('progression_pending')))
+    self.assertIsNone(updated.get_metadata('progression_retry'))
+    self.assertIsNone(updated.get_metadata('progression_bad_min_build_retry'))
+
+  def test_custom_binary_failed_reschedule_clears_retry_and_pending(self):
+    """Test custom-binary first attempt with deleted job clears retry flag."""
+    custom_input = uworker_msg_pb2.ProgressionTaskInput(
+        custom_binary=True,
+        blob_name='blob_name',
+        stacktrace_upload_url='https://signed_upload_url')
+    uworker_input = uworker_msg_pb2.Input(
+        module_name=progression_task.__name__,
+        testcase_id=str(self.testcase.key.id()),
+        job_type='deleted_job_type',
+        progression_task_input=custom_input)
+    output = uworker_msg_pb2.Output(
+        uworker_input=uworker_input,
+        progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(
+            crash_revision=77))
+
+    with mock.patch('clusterfuzz._internal.base.bisection.request_bisection'):
+      progression_task.utask_postprocess(output)
+
+    updated = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertTrue(updated.open)
+    self.assertFalse(bool(updated.get_metadata('progression_pending')))
+    self.assertIsNone(updated.get_metadata('progression_retry'))
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -1369,8 +1465,8 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
                      output.error_type)
     self.assertFalse(output.progression_task_output.passed_on_latest)
 
-  def test_clamped_min_past_bad_revisions_returns_bad_build_when_clean(self):
-    """Tests aged-out crash_revision clamped past bad_revisions returns BAD_BUILD."""
+  def test_clamped_min_past_bad_revisions_returns_no_crash_when_clean(self):
+    """Tests aged-out crash_revision clamped past bad_revisions uses NO_CRASH."""
     self.testcase.crash_revision = 90
     self.testcase.put()
     self.mock.get_revisions_list.return_value = [150, 200]
@@ -1383,7 +1479,6 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
 
     output = progression_task.find_fixed_range(uworker_input)
 
-    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH,
                      output.error_type)
-    self.assertTrue(output.progression_task_output.passed_on_latest)
-    self.assertEqual(200, output.progression_task_output.max_revision)
+    self.assertEqual(150, output.progression_task_output.crash_revision)

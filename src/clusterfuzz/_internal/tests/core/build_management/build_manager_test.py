@@ -2086,3 +2086,31 @@ class ReadSchemaVersionFromManifestTest(fake_filesystem_unittest.TestCase):
                                        'gs://dummy/url.zip')
     self.assertEqual(
         build_manager._read_schema_version_from_manifest(build.build_dir), 0)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetRevisionsListTest(unittest.TestCase):
+  """Tests get_revisions_list bad_revisions exemptions."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager.get_build_urls_list',
+    ])
+
+  def test_preserves_crash_revision_and_last_tested_crash_revision(self):
+    """Tests get_revisions_list keeps both crash_revision and last_tested."""
+    bucket_path = 'gs://builds/app-([0-9]+).zip'
+    self.mock.get_build_urls_list.return_value = [
+        'gs://builds/app-100.zip',
+        'gs://builds/app-150.zip',
+        'gs://builds/app-175.zip',
+        'gs://builds/app-200.zip',
+    ]
+    testcase = data_types.Testcase(crash_revision=100)
+    testcase.put()
+    testcase.set_metadata('last_tested_crash_revision', 175)
+
+    revisions_list = build_manager.get_revisions_list(
+        bucket_path, [100, 150, 175], testcase=testcase)
+
+    self.assertEqual([100, 175, 200], revisions_list)

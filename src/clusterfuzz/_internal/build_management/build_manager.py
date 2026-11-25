@@ -1153,11 +1153,16 @@ def get_revisions_list(bucket_path, bad_revisions, testcase=None):
       revision = revisions.convert_revision_to_integer(match.group(1))
       revision_list.append(revision)
 
+  preserved_revisions = set()
+  if testcase:
+    preserved_revisions.add(testcase.crash_revision)
+    last_tested_crash_revision = testcase.get_metadata(
+        'last_tested_crash_revision')
+    if last_tested_crash_revision is not None:
+      preserved_revisions.add(int(last_tested_crash_revision))
+
   for bad_revision in bad_revisions:
-    # Don't remove testcase revision even if it is in bad build list. This
-    # usually happens when a bad bot sometimes marks a particular revision as
-    # bad due to flakiness.
-    if testcase and bad_revision == testcase.crash_revision:
+    if bad_revision in preserved_revisions:
       continue
 
     if bad_revision in revision_list:

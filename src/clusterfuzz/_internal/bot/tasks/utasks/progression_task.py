@@ -87,11 +87,17 @@ def _save_current_fixed_range_indices(testcase, uworker_output):
 
 
 def _clear_pending_and_persist(testcase: data_types.Testcase) -> None:
-  """Clears progression_pending metadata and persists the testcase."""
-  if not testcase.get_metadata('progression_pending'):
-    return
-  data_handler.clear_progression_pending(testcase)
-  testcase.put()
+  """Clears progression_pending and retry metadata, then persists."""
+  dirty = False
+  if testcase.get_metadata('progression_pending'):
+    data_handler.clear_progression_pending(testcase)
+    dirty = True
+  for retry_key in PROGRESSION_RETRY_KEYS:
+    if testcase.get_metadata(retry_key) is not None:
+      testcase.delete_metadata(retry_key, update_testcase=False)
+      dirty = True
+  if dirty:
+    testcase.put()
 
 
 def _reschedule_progression_task(testcase: data_types.Testcase,
@@ -218,7 +224,8 @@ def crash_on_latest(uworker_output: uworker_msg_pb2.Output):  # pylint: disable=
 
   # Since we've verified that the test case is still crashing, clear out any
   # metadata indicating potential flake from previous runs.
-  task_creation.mark_unreproducible_if_flaky(testcase, 'progression', False)
+  task_creation.mark_unreproducible_if_flaky(testcase,
+                                             PROGRESSION_RETRY_TASK_NAME, False)
 
 
 def handle_progression_bad_state_min_max(
@@ -273,11 +280,10 @@ def handle_progression_no_crash(uworker_output: uworker_msg_pb2.Output):  # pyli
                                          error_message)
     return
 
-  is_terminal_flaky_attempt = bool(testcase.get_metadata('potentially_flaky'))
-  if is_terminal_flaky_attempt:
-    data_handler.clear_progression_pending(testcase)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
+  if testcase.get_metadata('potentially_flaky'):
+    data_handler.clear_progression_pending(testcase)
   try:
     task_creation.mark_unreproducible_if_flaky(
         testcase, PROGRESSION_RETRY_TASK_NAME, True)
@@ -327,6 +333,8 @@ def handle_progression_bad_build(uworker_output: uworker_msg_pb2.Output):  # pyl
         testcase, uworker_output, error_message)
     return
 
+  for retry_key in PROGRESSION_RETRY_KEYS:
+    testcase.delete_metadata(retry_key, update_testcase=False)
   data_handler.clear_progression_pending(testcase)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        error_message)
@@ -352,7 +360,10 @@ def _handle_unfiled_bad_min_revision_after_clean_latest(
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
   latest_revision = uworker_output.progression_task_output.max_revision
+  base_message = error_message.rstrip('.')
 
+  testcase.delete_metadata(
+      f'{PROGRESSION_RETRY_TASK_NAME}_retry', update_testcase=False)
   if data_handler.is_first_attempt_for_task(
       BAD_MIN_BUILD_RETRY_TASK_NAME, testcase, reset_after_retry=True):
     if not _reschedule_progression_task(testcase, testcase_id, job_type):
@@ -360,7 +371,7 @@ def _handle_unfiled_bad_min_revision_after_clean_latest(
     testcase.set_metadata(
         'last_tested_revision', latest_revision, update_testcase=False)
     retry_message = (
-        f'{error_message}, will retry on another bot to confirm result.')
+        f'{base_message}, will retry on another bot to confirm result.')
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          retry_message)
     return
@@ -368,7 +379,7 @@ def _handle_unfiled_bad_min_revision_after_clean_latest(
   testcase.fixed = 'NA'
   testcase.open = False
   close_message = (
-      f'{error_message}. Closing unfiled testcase since latest revision '
+      f'{base_message}. Closing unfiled testcase since latest revision '
       f'r{latest_revision} did not crash')
   data_handler.update_progression_completion_metadata(
       testcase, latest_revision, message=close_message)
@@ -730,16 +741,12 @@ def find_fixed_range(uworker_input):
 
   last_tested_revision = testcase.get_metadata('last_tested_crash_revision')
   known_crash_revision = last_tested_revision or testcase.crash_revision
-  skipped_bad_min_build = False
   if not min_revision:
     min_revision = known_crash_revision
     min_revision_in_list = revisions.get_first_revision_in_list(revision_list)
     if min_revision < min_revision_in_list:
       logs.info(f'Build {min_revision} might not exist in the list. Hence '
                 f'updating the min_revision to {min_revision_in_list}')
-      skipped_bad_min_build = any(
-          known_crash_revision <= r < min_revision_in_list
-          for r in bad_revisions)
       min_revision = min_revision_in_list
   if not max_revision:
     max_revision = revisions.get_last_revision_in_list(revision_list)
@@ -812,14 +819,6 @@ def find_fixed_range(uworker_input):
     return error
 
   if result and not result.is_crash():
-    if skipped_bad_min_build:
-      return uworker_msg_pb2.Output(  # pylint: disable=no-member
-          progression_task_output=progression_task_output,
-          issue_metadata=json.dumps(issue_metadata),
-          error_message=(
-              f'Bad build skipped before r{min_revision}; subsequent build '
-              f'r{min_revision} did not crash.'),
-          error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)  # pylint: disable=no-member
     error_message = f'Minimum revision r{min_revision} did not crash.'
     progression_task_output.crash_revision = int(min_revision)
     return uworker_msg_pb2.Output(  # pylint: disable=no-member
