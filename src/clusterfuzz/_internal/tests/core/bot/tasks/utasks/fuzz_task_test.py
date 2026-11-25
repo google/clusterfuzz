@@ -2438,6 +2438,28 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         0,
         self._get_fuzz_dist(success=False, step='fuzz_process_exec').count)
 
+  @mock.patch('clusterfuzz._internal.bot.tasks.utasks.fuzz_task.logs')
+  def test_fuzz_missing_time_executed(self, mock_logs):
+    """Test that None time_executed logs an error and skips fuzz_process_exec."""
+    session = self._create_engine_fuzzing_session()
+    engine_impl = self._create_engine_impl()
+    engine_impl.fuzz.side_effect = (
+        lambda *_: engine.FuzzResult('logs', ['cmd'], [], {'stat': 1}, None))
+
+    session.do_engine_fuzzing(engine_impl)
+
+    self.assertEqual(2, engine_impl.fuzz.call_count)
+    self.assertIn('fuzz', session.steps_time_tracker.stats)
+    self.assertEqual(2, self._get_fuzz_dist(success=True).count)
+    self.assertNotIn('fuzz_process_exec', session.steps_time_tracker.stats)
+    self.assertEqual(
+        0,
+        self._get_fuzz_dist(success=True, step='fuzz_process_exec').count)
+    self.assertEqual(
+        0,
+        self._get_fuzz_dist(success=False, step='fuzz_process_exec').count)
+    self.assertEqual(2, mock_logs.error.call_count)
+
   def test_basic(self):
     """Test basic fuzzing session."""
     target = 'test_target'

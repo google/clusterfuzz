@@ -1493,8 +1493,13 @@ def run_engine_fuzzer(
   with steps_time_tracker.track('fuzz'):
     result = engine_impl.fuzz(target_path, options, testcase_directory,
                               adjusted_fuzz_test_timeout)
-    steps_time_tracker.record(
-        'fuzz_process_exec', result.time_executed, expected_parent_step='fuzz')
+    if result.time_executed is not None:
+      steps_time_tracker.record(
+          'fuzz_process_exec',
+          result.time_executed,
+          expected_parent_step='fuzz')
+    else:
+      logs.error('Engine fuzz result missing time_executed.')
 
   logs.info('Used strategies.', strategies=options.strategies)
   for strategy, value in options.strategies.items():
