@@ -2042,6 +2042,13 @@ class BuildPropertyTest(unittest.TestCase):
     build = build_manager.Build('/base', 1, build_prefix='', fuzz_target=None)
     self.assertFalse(build.is_discovery)
 
+  def test_is_discovery_fuchsia_build(self):
+    """Test is_discovery is False for FuchsiaBuild during target discovery."""
+    self.mock.is_engine_fuzzer_job.return_value = True
+    build = build_manager.FuchsiaBuild(
+        '/base', 1, 'https://example.com/fuchsia-1.zip', fuzz_target=None)
+    self.assertFalse(build.is_discovery)
+
 
 class ReadSchemaVersionFromManifestTest(fake_filesystem_unittest.TestCase):
   """Tests _read_schema_version_from_manifest resolution."""
