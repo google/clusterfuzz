@@ -124,8 +124,20 @@ def download_kernel_repo_prop_if_needed(symbols_directory):
                                targets_with_type_and_san, 'kernel')
 
 
-def download_system_symbols_if_needed(symbols_directory) -> bool:
-  """Download system libraries from |SYMBOLS_URL| and cache locally."""
+def ensure_system_symbols(symbols_directory) -> bool:
+  """Ensures system symbols for the current build are available locally.
+
+  Downloads and extracts the system symbols archive if it is not already found
+  in the local cache.
+
+  Args:
+    symbols_directory: Local directory where system symbols are extracted and
+      cached.
+
+  Returns:
+    True if system symbols are cached or downloaded successfully; False if
+    downloading is skipped, build parameters are missing, or fetching fails.
+  """
   if not should_download_symbols():
     return False
 
@@ -254,10 +266,10 @@ def _get_binary_from_build_or_device(binary_path):
 
   # We didn't find the library locally in the build directory.
   # Try finding the library in the local system library cache.
-  download_system_symbols_if_needed(symbols_directory)
-  local_binary_path = utils.find_binary_path(symbols_directory, binary_path)
-  if local_binary_path:
-    return local_binary_path
+  if ensure_system_symbols(symbols_directory):
+    local_binary_path = utils.find_binary_path(symbols_directory, binary_path)
+    if local_binary_path:
+      return local_binary_path
 
   # Mirror the device path so libraries sharing a basename don't collide.
   local_binary_path = os.path.join(symbols_directory, relative_binary_path)
