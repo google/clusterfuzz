@@ -98,7 +98,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
         mock.call().execute(),
     ])
 
-    for i, prefix in enumerate(load_bigquery_stats._HEX_DIGITS):  # pylint: disable=protected-access
+    for i, prefix in enumerate(fuzzer_stats.STATS_SHARD_PREFIXES):
       self.mock_bigquery.jobs().insert.assert_has_calls(
           [
               mock.call(

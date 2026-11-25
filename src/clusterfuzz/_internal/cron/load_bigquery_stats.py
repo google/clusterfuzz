@@ -17,7 +17,6 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import random
-import string
 import time
 
 from googleapiclient.errors import HttpError
@@ -36,9 +35,6 @@ NUM_THREADS = 4
 NUM_RETRIES = 2
 RETRY_SLEEP_TIME = 5
 POLL_INTERVAL = 5
-
-# Ignore the repeated uppercase digits.
-_HEX_DIGITS = string.hexdigits[:-6]
 
 
 def _utc_now():
@@ -147,7 +143,7 @@ def _load_data(fuzzer, target_date):
     gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
     # Shard loads by prefix to avoid causing BigQuery to run out of memory.
     first_write = True
-    for prefix in _HEX_DIGITS:
+    for prefix in fuzzer_stats.STATS_SHARD_PREFIXES:
       load = {
           'destinationTable': {
               'projectId': project_id,
