@@ -42,12 +42,9 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz.stacktraces import constants as stacktrace_constants
 
-PROGRESSION_RETRY_TASK_NAME = 'progression'
-BAD_MIN_BUILD_RETRY_TASK_NAME = 'progression_bad_min_build'
-PROGRESSION_RETRY_KEYS = (
-    f'{PROGRESSION_RETRY_TASK_NAME}_retry',
-    f'{BAD_MIN_BUILD_RETRY_TASK_NAME}_retry',
-)
+PROGRESSION_RETRY_TASK_NAME = tasks.PROGRESSION_RETRY_TASK_NAME
+BAD_MIN_BUILD_RETRY_TASK_NAME = tasks.PROGRESSION_BAD_MIN_BUILD_RETRY_TASK_NAME
+PROGRESSION_RETRY_KEYS = tasks.PROGRESSION_RETRY_METADATA_KEYS
 
 
 def _maybe_clear_progression_last_min_max_metadata(
@@ -259,8 +256,10 @@ def handle_progression_no_crash(uworker_output: uworker_msg_pb2.Output):  # pyli
     _clear_pending_and_persist(testcase)
     return
 
+  testcase.delete_metadata(
+      f'{BAD_MIN_BUILD_RETRY_TASK_NAME}_retry', update_testcase=False)
   if data_handler.is_first_attempt_for_task(
-      'progression', testcase, reset_after_retry=True):
+      PROGRESSION_RETRY_TASK_NAME, testcase, reset_after_retry=True):
     if not _reschedule_progression_task(testcase, testcase_id, job_type):
       return
     error_message = (
@@ -280,7 +279,8 @@ def handle_progression_no_crash(uworker_output: uworker_msg_pb2.Output):  # pyli
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
   try:
-    task_creation.mark_unreproducible_if_flaky(testcase, 'progression', True)
+    task_creation.mark_unreproducible_if_flaky(
+        testcase, PROGRESSION_RETRY_TASK_NAME, True)
   except tasks.Error as error:
     refreshed_testcase = data_handler.get_testcase_by_id(testcase_id)
     _clear_pending_and_persist(refreshed_testcase)
@@ -321,10 +321,8 @@ def handle_progression_bad_build(uworker_output: uworker_msg_pb2.Output):  # pyl
     error_message = f'{error_message}: {uworker_output.error_message}'
 
   task_output = uworker_output.progression_task_output
-  has_associated_bug = bool(testcase.bug_information or
-                            testcase.group_bug_information or
-                            testcase.has_bug_flag)
-  if task_output.passed_on_latest and not has_associated_bug:
+  if task_output.passed_on_latest and _is_unfiled_auto_close_candidate(
+      testcase):
     _handle_unfiled_bad_min_revision_after_clean_latest(
         testcase, uworker_output, error_message)
     return
@@ -332,6 +330,18 @@ def handle_progression_bad_build(uworker_output: uworker_msg_pb2.Output):  # pyl
   data_handler.clear_progression_pending(testcase)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        error_message)
+
+
+def _is_unfiled_auto_close_candidate(testcase: data_types.Testcase) -> bool:
+  """Returns True when an unfiled testcase can close after clean trunk."""
+  has_associated_bug = bool(testcase.bug_information or
+                            testcase.group_bug_information or
+                            testcase.has_bug_flag or testcase.github_issue_num)
+  if has_associated_bug:
+    return False
+  if testcase.uploader_email or testcase.analyze_pending:
+    return False
+  return testcase.status in ('Processed', 'Duplicate')
 
 
 def _handle_unfiled_bad_min_revision_after_clean_latest(
@@ -720,16 +730,16 @@ def find_fixed_range(uworker_input):
 
   last_tested_revision = testcase.get_metadata('last_tested_crash_revision')
   known_crash_revision = last_tested_revision or testcase.crash_revision
+  skipped_bad_min_build = False
   if not min_revision:
     min_revision = known_crash_revision
-    # If the min_revision (based on last_tested_crash_revision or
-    # known_crash_revision) no longer exists, then use the first
-    # revision in the list so that progression does not error out with
-    # "Build not found"
     min_revision_in_list = revisions.get_first_revision_in_list(revision_list)
     if min_revision < min_revision_in_list:
       logs.info(f'Build {min_revision} might not exist in the list. Hence '
                 f'updating the min_revision to {min_revision_in_list}')
+      skipped_bad_min_build = any(
+          known_crash_revision <= r < min_revision_in_list
+          for r in bad_revisions)
       min_revision = min_revision_in_list
   if not max_revision:
     max_revision = revisions.get_last_revision_in_list(revision_list)
@@ -790,12 +800,11 @@ def find_fixed_range(uworker_input):
         progression_task_output=progression_task_output,
         issue_metadata=json.dumps(issue_metadata))
 
-  if testing_latest_revision:
+  if (testing_latest_revision and max_revision > known_crash_revision and
+      min_index < max_index):
     progression_task_output.passed_on_latest = True
     progression_task_output.max_revision = int(max_revision)
 
-  # Verify that we do crash in the min revision. This is assumed to be true
-  # while we are doing the bisect.
   result, error = _testcase_reproduces_in_revision(
       testcase, testcase_file_path, job_type, min_revision, fuzz_target,
       progression_task_output)
@@ -803,6 +812,14 @@ def find_fixed_range(uworker_input):
     return error
 
   if result and not result.is_crash():
+    if skipped_bad_min_build:
+      return uworker_msg_pb2.Output(  # pylint: disable=no-member
+          progression_task_output=progression_task_output,
+          issue_metadata=json.dumps(issue_metadata),
+          error_message=(
+              f'Bad build skipped before r{min_revision}; subsequent build '
+              f'r{min_revision} did not crash.'),
+          error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)  # pylint: disable=no-member
     error_message = f'Minimum revision r{min_revision} did not crash.'
     progression_task_output.crash_revision = int(min_revision)
     return uworker_msg_pb2.Output(  # pylint: disable=no-member

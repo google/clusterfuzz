@@ -970,35 +970,38 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
     self.assertIn('task error', updated.comments)
 
   def test_no_crash_retries_keep_progression_pending_until_terminal_flaky(self):
-    """Test non-crash retries keep progression_pending set until terminal flaky."""
+    """Test real 4-attempt non-crash state machine holds progression_pending."""
     data_types.Job(name='active_job_type', platform='LINUX').put()
+    self.testcase.set_metadata('progression_bad_min_build_retry', True)
     output = self._make_output(
         'active_job_type',
         uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH,
         crash_revision=42)
 
+    def _real_mark_flaky(testcase, unused_task_name, potentially_flaky):
+      if testcase.get_metadata('potentially_flaky'):
+        testcase.one_time_crasher_flag = True
+        testcase.fixed = 'NA'
+        testcase.put()
+        return
+      testcase.set_metadata('potentially_flaky', potentially_flaky)
+
+    self.mock.mark_unreproducible_if_flaky.side_effect = _real_mark_flaky
     with mock.patch('clusterfuzz._internal.base.tasks.add_task') as mock_add:
-      progression_task.handle_progression_no_crash(output)
-      mock_add.assert_called_once()
+      for attempt in range(1, 4):
+        progression_task.handle_progression_no_crash(output)
+        cur = data_handler.get_testcase_by_id(self.testcase.key.id())
+        self.assertTrue(
+            cur.get_metadata('progression_pending'), f'attempt={attempt}')
+        self.assertIsNone(cur.get_metadata('progression_bad_min_build_retry'))
+      self.assertEqual(2, mock_add.call_count)
 
-    after_attempt_1 = data_handler.get_testcase_by_id(self.testcase.key.id())
-    self.assertTrue(after_attempt_1.get_metadata('progression_pending'))
-    self.assertEqual(42, after_attempt_1.get_metadata('last_tested_revision'))
-
-    progression_task.handle_progression_no_crash(output)
-    after_attempt_2 = data_handler.get_testcase_by_id(self.testcase.key.id())
-    self.assertTrue(after_attempt_2.get_metadata('progression_pending'))
-    self.mock.mark_unreproducible_if_flaky.assert_called_once_with(
-        mock.ANY, 'progression', True)
-
-    after_attempt_2.set_metadata('potentially_flaky', True)
-    with mock.patch(
-        'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
-        return_value=False):
       progression_task.handle_progression_no_crash(output)
 
     after_terminal = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertFalse(bool(after_terminal.get_metadata('progression_pending')))
+    self.assertTrue(after_terminal.one_time_crasher_flag)
+    self.assertEqual('NA', after_terminal.fixed)
 
   def test_custom_binary_first_non_crash_attempt_keeps_progression_pending(
       self):
@@ -1123,6 +1126,51 @@ class ProgressionRescheduleGuardTest(unittest.TestCase):
     self.assertTrue(updated.open)
     self.assertEqual('', updated.fixed)
     self.assertFalse(bool(updated.get_metadata('progression_pending')))
+
+  def test_uploaded_or_pending_analysis_bad_min_build_stays_open(self):
+    """Test user-uploaded, pending-analysis, and GitHub-linked cases stay open."""
+    data_types.Job(name='active_job_type', platform='LINUX').put()
+    protected_mutations = [
+        {
+            'uploader_email': 'researcher@example.com'
+        },
+        {
+            'analyze_pending': True
+        },
+        {
+            'github_issue_num': 42
+        },
+        {
+            'status': 'Pending'
+        },
+    ]
+    for attrs in protected_mutations:
+      tc = test_utils.create_generic_testcase()
+      tc.set_metadata('progression_pending', True)
+      for key, val in attrs.items():
+        setattr(tc, key, val)
+      tc.put()
+      uworker_input = uworker_msg_pb2.Input(
+          module_name=progression_task.__name__,
+          testcase_id=str(tc.key.id()),
+          job_type='active_job_type',
+          progression_task_input=self.progression_task_input)
+      output = uworker_msg_pb2.Output(
+          uworker_input=uworker_input,
+          progression_task_output=uworker_msg_pb2.ProgressionTaskOutput(
+              passed_on_latest=True, max_revision=500),
+          error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+          error_message='Bad build at r100. Skipping')
+
+      with mock.patch('clusterfuzz._internal.base.tasks.add_task') as mock_add:
+        progression_task.utask_postprocess(output)
+        mock_add.assert_not_called()
+
+      updated = data_handler.get_testcase_by_id(tc.key.id())
+      self.assertTrue(updated.open, f'attrs={attrs}')
+      self.assertEqual('', updated.fixed, f'attrs={attrs}')
+      self.assertFalse(
+          bool(updated.get_metadata('progression_pending')), f'attrs={attrs}')
 
   def test_crash_on_latest_clears_stale_retry_flags(self):
     """Test crash_on_latest resets stale retry metadata keys."""
@@ -1304,3 +1352,38 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
         output.progression_task_output.HasField('last_progression_min'))
     self.assertFalse(
         output.progression_task_output.HasField('last_progression_max'))
+
+  def test_older_max_revision_than_known_crash_leaves_passed_on_latest_false(
+      self):
+    """Tests max_revision <= known_crash_revision never sets passed_on_latest."""
+    self.testcase.set_metadata('last_tested_crash_revision', 200)
+    self.mock.get_revisions_list.return_value = [100, 150]
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 200))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+    self.assertFalse(output.progression_task_output.passed_on_latest)
+
+  def test_clamped_min_past_bad_revisions_returns_bad_build_when_clean(self):
+    """Tests aged-out crash_revision clamped past bad_revisions returns BAD_BUILD."""
+    self.testcase.crash_revision = 90
+    self.testcase.put()
+    self.mock.get_revisions_list.return_value = [150, 200]
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=False))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+    uworker_input = self._make_input()
+    uworker_input.progression_task_input.bad_revisions.append(100)
+
+    output = progression_task.find_fixed_range(uworker_input)
+
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+    self.assertTrue(output.progression_task_output.passed_on_latest)
+    self.assertEqual(200, output.progression_task_output.max_revision)

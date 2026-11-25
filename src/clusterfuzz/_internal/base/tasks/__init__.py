@@ -52,6 +52,12 @@ JOBS_PREFIX = 'jobs'
 HIGH_END_JOBS_PREFIX = 'high-end-jobs'
 ML_JOBS_PREFIX = 'ml-jobs'
 BASE_OS_VERSION_ATTR = 'base_os_version'
+PROGRESSION_RETRY_TASK_NAME = 'progression'
+PROGRESSION_BAD_MIN_BUILD_RETRY_TASK_NAME = 'progression_bad_min_build'
+PROGRESSION_RETRY_METADATA_KEYS = (
+    f'{PROGRESSION_RETRY_TASK_NAME}_retry',
+    f'{PROGRESSION_BAD_MIN_BUILD_RETRY_TASK_NAME}_retry',
+)
 
 # Default task queue names for various job types. These will be different for
 # different platforms with the platform name added as suffix later.
@@ -1214,8 +1220,7 @@ def redo_testcase(testcase, tasks, user_email):
         'last_progression_min',
         'last_progression_max',
         'last_tested_revision',
-        'progression_retry',
-        'progression_bad_min_build_retry',
+        *PROGRESSION_RETRY_METADATA_KEYS,
     ]
 
   if impact:
