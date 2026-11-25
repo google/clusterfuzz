@@ -1493,7 +1493,7 @@ def run_engine_fuzzer(
   with steps_time_tracker.track('fuzz'):
     result = engine_impl.fuzz(target_path, options, testcase_directory,
                               adjusted_fuzz_test_timeout)
-    steps_time_tracker.measure(
+    steps_time_tracker.record(
         'fuzz_process_exec',
         result.time_executed,
         success=True,

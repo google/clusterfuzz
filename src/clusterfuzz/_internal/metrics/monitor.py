@@ -684,7 +684,7 @@ class TimeStatTracker:
                  f'"{expected_parent_step}", but is nested inside step '
                  f'"{self.current_step}".')
 
-  def _measure(self, name: str, duration_secs: float, success: bool):
+  def _record(self, name: str, duration_secs: float, success: bool):
     """Records a duration measurement for |name| in stats and metric."""
     duration = datetime.timedelta(seconds=duration_secs)
     if name in self.stats:
@@ -699,11 +699,11 @@ class TimeStatTracker:
               'success': success
           })
 
-  def measure(self,
-              name: str,
-              duration_secs: float,
-              success: bool,
-              expected_parent_step: str | None = None):
+  def record(self,
+             name: str,
+             duration_secs: float,
+             success: bool,
+             expected_parent_step: str | None = None):
     """Records a manual time measurement for the stat named |name|.
 
     Args:
@@ -716,7 +716,7 @@ class TimeStatTracker:
         executes normally.
     """
     self._check_parent_step(name, expected_parent_step)
-    self._measure(name, duration_secs, success)
+    self._record(name, duration_secs, success)
 
   @contextlib.contextmanager
   def track(self, name: str, expected_parent_step: str | None = None):
@@ -746,7 +746,7 @@ class TimeStatTracker:
     finally:
       self.current_step = parent_step
       duration_secs = time.time() - start
-      self._measure(name, duration_secs, step.success)
+      self._record(name, duration_secs, step.success)
 
 
 # Global state.
