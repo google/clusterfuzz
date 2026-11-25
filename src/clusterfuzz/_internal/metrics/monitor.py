@@ -637,7 +637,7 @@ class _StepTracker:
 
 
 class TimeStatTracker:
-  """Reusable context manager to keep track of time stats.
+  """Keeps track of time stats.
 
   Time measurements are emitted to the supplied Cloud Monitoring metric and
   are saved as datetime.timedelta in the |self.stats| dictionary as well.
@@ -702,7 +702,7 @@ class TimeStatTracker:
   def record(self,
              name: str,
              duration_secs: float,
-             success: bool,
+             success: bool = True,
              expected_parent_step: str | None = None):
     """Records a manual time measurement for the stat named |name|.
 
@@ -720,7 +720,7 @@ class TimeStatTracker:
 
   @contextlib.contextmanager
   def track(self, name: str, expected_parent_step: str | None = None):
-    """Tracks the stat named |name|.
+    """Context manager that tracks the stat named |name|.
 
     Yields a step tracker whose fail() method, when invoked, marks the step as
     failed without interrupting the block. Any raised exception is also treated

@@ -492,7 +492,7 @@ class TimeStatTrackerTest(unittest.TestCase):
       self.mock_time.advance(4.5)
     with tracker.track('step_1'):
       self.mock_time.advance(3.2)
-    tracker.record('step_1', 2.3, True)
+    tracker.record('step_1', 2.3)
 
     self.assertEqual(
         {
@@ -640,7 +640,7 @@ class TimeStatTrackerTest(unittest.TestCase):
   def test_record_success(self):
     """Test recording a manual measurement on success."""
     tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
-    tracker.record('step_1', 4.5, True)
+    tracker.record('step_1', 4.5)
 
     self.mock.error.assert_not_called()
     self.assertEqual({'step_1': datetime.timedelta(seconds=4.5)}, tracker.stats)
@@ -664,7 +664,7 @@ class TimeStatTrackerTest(unittest.TestCase):
     tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
     with tracker.track('outer'):
       self.mock_time.advance(1.0)
-      tracker.record('inner', 2.5, True, expected_parent_step='outer')
+      tracker.record('inner', 2.5, expected_parent_step='outer')
       self.assertEqual('outer', tracker.current_step)
       self.mock_time.advance(2.0)
 
@@ -688,7 +688,7 @@ class TimeStatTrackerTest(unittest.TestCase):
     """Test manual measurement logs an error when nested without expected parent."""
     tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
     with tracker.track('outer'):
-      tracker.record('inner', 2.0, True)
+      tracker.record('inner', 2.0)
 
     self.mock.error.assert_called_once()
     error_message = self.mock.error.call_args[0][0]
