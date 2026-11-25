@@ -17,6 +17,7 @@ import collections
 import datetime
 import itertools
 import json
+from typing import Any
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
@@ -36,7 +37,18 @@ from clusterfuzz._internal.metrics import monitoring_metrics
 
 from . import grouper
 
+CONFIG_ERRORS = (
+    errors.BadConfigError,
+    errors.ConfigParseError,
+    errors.InvalidConfigKey,
+)
+_UNSET = object()
+DISABLED_ISSUE_TRACKER_NAME = 'disabled'
 MAX_BUGS_PER_PROJECT_PER_24HRS_DEFAULT = 100
+REPRODUCIBLE_FRESHNESS_CONFIG_KEY = 'reproducible_testcase_freshness_deadline'
+STALE_REPRODUCIBLE_TRIAGE_MESSAGE = (
+    'Skipping filing a bug since reproducible testcase has not crashed '
+    'recently.')
 UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
     'Out-of-memory', 'Stack-overflow', 'Timeout'
 ]
@@ -44,13 +56,27 @@ TRIAGE_MESSAGE_KEY = 'triage_message'
 
 
 def _add_triage_message(testcase, message):
-  """Add a triage message."""
+  """Adds a triage message to the latest Datastore testcase entity."""
   if testcase.get_metadata(TRIAGE_MESSAGE_KEY) == message:
-    # Message already exists, skip update.
     return
-  # Re-fetch testcase to get latest entity and avoid race condition in updates.
-  testcase = data_handler.get_testcase_by_id(testcase.key.id())
-  testcase.set_metadata(TRIAGE_MESSAGE_KEY, message)
+  try:
+    latest_testcase = data_handler.get_testcase_by_id(testcase.key.id())
+  except errors.InvalidTestcaseError:
+    return
+  latest_testcase.set_metadata(TRIAGE_MESSAGE_KEY, message)
+  testcase.set_metadata(TRIAGE_MESSAGE_KEY, message, update_testcase=False)
+
+
+def _clear_triage_message(testcase: data_types.Testcase):
+  """Removes a stale triage message from the latest Datastore testcase."""
+  if testcase.get_metadata(TRIAGE_MESSAGE_KEY) is None:
+    return
+  testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
+  try:
+    latest_testcase = data_handler.get_testcase_by_id(testcase.key.id())
+  except errors.InvalidTestcaseError:
+    return
+  latest_testcase.delete_metadata(TRIAGE_MESSAGE_KEY)
 
 
 def _create_filed_bug_metadata(testcase):
@@ -376,10 +402,18 @@ def _file_issue(testcase, issue_tracker, throttler):
 
 
 def _set_testcase_stuck_state(testcase: data_types.Testcase, state: bool):
+  """Updates stuck_in_triage on the latest Datastore testcase entity."""
   if testcase.stuck_in_triage == state:
     return
   testcase.stuck_in_triage = state
-  testcase.put()
+  try:
+    latest_testcase = data_handler.get_testcase_by_id(testcase.key.id())
+  except errors.InvalidTestcaseError:
+    return
+  if latest_testcase.stuck_in_triage == state:
+    return
+  latest_testcase.stuck_in_triage = state
+  latest_testcase.put()
 
 
 untriaged_testcases = {}
@@ -407,6 +441,120 @@ PENDING_CRITICAL_TASKS = 'pending_critical_tasks'
 PENDING_PROGRESSION = 'pending_progression'
 PENDING_GROUPING = 'pending_grouping'
 PENDING_FILING = 'pending_filing'
+STALE_UNVERIFIED = 'stale_unverified'
+
+
+def _resolve_fallback_issue_tracker_name(
+    testcase: data_types.Testcase) -> str | None:
+  """Returns the configured tracker name when not explicitly disabled."""
+  tracker_name = data_handler.get_issue_tracker_name(testcase.job_type)
+  if tracker_name == DISABLED_ISSUE_TRACKER_NAME:
+    return None
+  return tracker_name
+
+
+def _skip_stale_reproducible_testcase(testcase: data_types.Testcase,
+                                      issue_tracker_name: str | None,
+                                      throttler: 'Throttler') -> bool:
+  """Records stale-unverified state and returns True when freshness fails."""
+  if _has_recent_crash_confirmation(
+      testcase,
+      issue_tracker_name,
+      issue_tracker_config=throttler.get_issue_tracker_config()):
+    return False
+
+  _set_testcase_stuck_state(testcase, False)
+  _add_triage_message(testcase, STALE_REPRODUCIBLE_TRIAGE_MESSAGE)
+  _emit_untriaged_testcase_age_metric(testcase, STALE_UNVERIFIED)
+  _increment_untriaged_testcase_count(testcase.job_type, STALE_UNVERIFIED)
+  logs.info(
+      f'Skipping testcase {testcase.key.id()}, no recent crash confirmation.')
+  return True
+
+
+def _has_recent_crash_confirmation(
+    testcase: data_types.Testcase,
+    issue_tracker_name: str | None,
+    issue_tracker_config: Any = _UNSET,
+) -> bool:
+  """Returns whether a testcase is eligible to file based on crash freshness."""
+  if testcase.one_time_crasher_flag:
+    return True
+
+  deadline_days = _get_reproducible_freshness_deadline_days(
+      issue_tracker_name, issue_tracker_config=issue_tracker_config)
+  if deadline_days <= 0:
+    return True
+
+  latest_crash_timestamp = _get_latest_confirmed_crash_timestamp(testcase)
+  if latest_crash_timestamp is None:
+    return False
+
+  return not dates.time_has_expired(latest_crash_timestamp, days=deadline_days)
+
+
+def _get_reproducible_freshness_deadline_days(
+    issue_tracker_name: str | None,
+    issue_tracker_config: Any = _UNSET,
+) -> int:
+  """Returns the crash-freshness deadline in days for reproducible testcases."""
+  default_deadline = data_types.FILE_CONSISTENT_UNREPRODUCIBLE_TESTCASE_DEADLINE
+  if not issue_tracker_name or issue_tracker_config is None:
+    return default_deadline
+
+  try:
+    tracker_config = (
+        local_config.IssueTrackerConfig()
+        if issue_tracker_config is _UNSET else issue_tracker_config)
+    config = tracker_config.get(issue_tracker_name, {})
+  except CONFIG_ERRORS:
+    logs.error(f'Failed to load issue tracker config for {issue_tracker_name}')
+    return default_deadline
+
+  if not isinstance(config, dict):
+    return default_deadline
+
+  configured_deadline = config.get(REPRODUCIBLE_FRESHNESS_CONFIG_KEY,
+                                   default_deadline)
+  if isinstance(configured_deadline, bool):
+    logs.error(f'Invalid config value of {REPRODUCIBLE_FRESHNESS_CONFIG_KEY!r} '
+               f'for issue tracker {issue_tracker_name}')
+    return default_deadline
+
+  try:
+    return int(configured_deadline)
+  except (TypeError, ValueError):
+    logs.error(f'Invalid config value of {REPRODUCIBLE_FRESHNESS_CONFIG_KEY!r} '
+               f'for issue tracker {issue_tracker_name}')
+    return default_deadline
+
+
+def _get_latest_confirmed_crash_timestamp(
+    testcase: data_types.Testcase) -> datetime.datetime | None:
+  """Returns the newest of creation timestamps and last_tested_crash_time."""
+  timestamps = []
+  for candidate in (
+      testcase.timestamp,
+      testcase.created,
+      testcase.get_metadata('last_tested_crash_time'),
+  ):
+    normalized = _normalize_utc_naive(candidate)
+    if normalized is not None:
+      timestamps.append(normalized)
+
+  if not timestamps:
+    return None
+
+  return max(timestamps)
+
+
+def _normalize_utc_naive(value) -> datetime.datetime | None:
+  """Normalizes a datetime value to naive UTC if valid."""
+  if not isinstance(value, datetime.datetime):
+    return None
+  if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
+    return value.replace(tzinfo=None)
+  return value.astimezone(datetime.timezone.utc).replace(tzinfo=None)
 
 
 def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase,
@@ -429,6 +577,11 @@ def _emit_untriaged_testcase_age_metric(testcase: data_types.Testcase,
 def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
   """Files a bug for a given testcase."""
   testcase_id = testcase.key.id()
+  if not testcase.open:
+    _set_testcase_stuck_state(testcase, False)
+    logs.info(f'Skipping testcase {testcase_id}, since it is closed.')
+    return
+
   critical_tasks_completed = data_handler.critical_tasks_completed(testcase)
 
   # Skip if testcase's job is removed.
@@ -520,6 +673,12 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
   except ValueError:
     issue_tracker = None
   if not issue_tracker:
+    fallback_tracker_name = _resolve_fallback_issue_tracker_name(testcase)
+    if _skip_stale_reproducible_testcase(testcase, fallback_tracker_name,
+                                         throttler):
+      return
+    _set_testcase_stuck_state(testcase, False)
+    _clear_triage_message(testcase)
     logs.info(f'No issue tracker detected for testcase {testcase_id}, '
               'publishing message.')
     issue_filer.notify_issue_update(testcase, 'new')
@@ -531,6 +690,10 @@ def _triage_testcase(testcase, excluded_jobs, all_jobs, throttler):
     _set_testcase_stuck_state(testcase, False)
     logs.info(f'Skipping testcase {testcase_id}, since a similar bug'
               ' was already filed.')
+    return
+
+  if _skip_stale_reproducible_testcase(testcase, issue_tracker.project,
+                                       throttler):
     return
 
   # Clean up old triage messages that would be not applicable now.
@@ -620,6 +783,17 @@ class Throttler:
 
     self._max_bugs_per_job_per_24hrs = {}
     self._max_bugs_per_project_per_24hrs = {}
+    self._issue_tracker_config: Any = _UNSET
+
+  def get_issue_tracker_config(self) -> local_config.IssueTrackerConfig | None:
+    """Returns a cached IssueTrackerConfig instance for the triage run."""
+    if self._issue_tracker_config is _UNSET:
+      try:
+        self._issue_tracker_config = local_config.IssueTrackerConfig()
+      except CONFIG_ERRORS:
+        logs.error('Failed to initialize IssueTrackerConfig.')
+        self._issue_tracker_config = None
+    return self._issue_tracker_config
 
   def _get_job_bugs_filing_max(self, job_type):
     """Gets the maximum number of bugs that can be filed for a given job."""

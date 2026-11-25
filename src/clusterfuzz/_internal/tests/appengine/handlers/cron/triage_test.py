@@ -18,6 +18,7 @@ import datetime
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.cron import triage
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -571,6 +572,7 @@ class IssueFilingEventEmitTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.utcnow',
         'clusterfuzz._internal.metrics.events.emit',
         'clusterfuzz._internal.metrics.events._get_datetime_now',
         'clusterfuzz._internal.cron.triage._file_issue',
@@ -585,6 +587,7 @@ class IssueFilingEventEmitTest(unittest.TestCase):
         'clusterfuzz._internal.cron.triage._emit_untriaged_testcase_age_metric',
         'clusterfuzz._internal.cron.triage._increment_untriaged_testcase_count',
     ])
+    self.mock.utcnow.return_value = test_utils.CURRENT_TIME
     self.mock._get_datetime_now.return_value = datetime.datetime(2025, 1, 1)
     self.mock._is_bug_filed.return_value = False
     self.mock._is_crash_important.return_value = True
@@ -596,7 +599,7 @@ class IssueFilingEventEmitTest(unittest.TestCase):
     self.mock._emit_untriaged_testcase_age_metric.return_value = None
     self.mock._increment_untriaged_testcase_count.return_value = None
 
-    self.testcase = test_utils.create_generic_testcase()
+    self.testcase = test_utils.create_generic_testcase(created_days_ago=1)
     self.testcase.set_metadata('ran_grouper', True)
 
     issue_tracker = mock.MagicMock()
@@ -640,3 +643,304 @@ class IssueFilingEventEmitTest(unittest.TestCase):
             testcase=self.testcase,
             issue_tracker_project='oss-fuzz',
             issue_created=False))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ReproducibleCrashFreshnessGateTest(unittest.TestCase):
+  """Tests the crash-freshness filing gate for reproducible testcases."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.cron.triage._check_and_update_similar_bug',
+        'clusterfuzz._internal.cron.triage._create_filed_bug_metadata',
+        'clusterfuzz._internal.cron.triage._emit_untriaged_testcase_age_metric',
+        'clusterfuzz._internal.cron.triage._file_issue',
+        'clusterfuzz._internal.cron.triage._increment_untriaged_testcase_count',
+        'clusterfuzz._internal.cron.triage._is_bug_filed',
+        'clusterfuzz._internal.cron.triage._is_crash_important',
+        'clusterfuzz._internal.cron.triage.issue_filer.notify_issue_update',
+        'clusterfuzz._internal.datastore.data_handler.critical_tasks_completed',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_tracker_for_testcase',
+        'clusterfuzz._internal.metrics.events.emit',
+    ])
+    self.mock.utcnow.return_value = test_utils.CURRENT_TIME
+    self.mock.get.return_value = {}
+    self.mock._is_bug_filed.return_value = False
+    self.mock._is_crash_important.return_value = True
+    self.mock.critical_tasks_completed.return_value = True
+    self.mock._check_and_update_similar_bug.return_value = False
+
+    self.issue_tracker = mock.MagicMock()
+    self.issue_tracker.project = 'test-project'
+    self.mock.get_issue_tracker_for_testcase.return_value = self.issue_tracker
+
+    def fake_file_issue(testcase, issue_tracker_obj, throttler):  # pylint: disable=unused-argument
+      testcase.bug_information = '101'
+      return True
+
+    self.mock._file_issue.side_effect = fake_file_issue
+
+  def _make_ready_testcase(self, created_days_ago):
+    testcase = test_utils.create_generic_testcase(
+        created_days_ago=created_days_ago)
+    testcase.set_metadata('ran_grouper', True)
+    return testcase
+
+  def test_fresh_reproducible_testcase_without_progression_files_bug(self):
+    """Tests new reproducible testcases file before progression runs."""
+    testcase = self._make_ready_testcase(created_days_ago=5)
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock._file_issue.assert_called_once()
+
+  def test_old_reproducible_testcase_with_recent_progression_crash_files_bug(
+      self):
+    """Tests aged reproducible testcases file when progression confirmed a crash."""
+    testcase = self._make_ready_testcase(created_days_ago=180)
+    testcase.set_metadata(
+        'last_tested_crash_time',
+        test_utils.CURRENT_TIME - datetime.timedelta(days=2))
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock._file_issue.assert_called_once()
+
+  def test_stale_reproducible_testcase_without_recent_crash_skips_filing(self):
+    """Tests stale reproducible testcases without recent crash are held back."""
+    testcase = self._make_ready_testcase(created_days_ago=280)
+    testcase.stuck_in_triage = True
+    testcase.put()
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock._file_issue.assert_not_called()
+    updated = data_handler.get_testcase_by_id(testcase.key.id())
+    self.assertFalse(updated.stuck_in_triage)
+    self.assertEqual(triage.STALE_REPRODUCIBLE_TRIAGE_MESSAGE,
+                     updated.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+    self.mock._emit_untriaged_testcase_age_metric.assert_called_once_with(
+        testcase, triage.STALE_UNVERIFIED)
+    self.mock._increment_untriaged_testcase_count.assert_called_once_with(
+        testcase.job_type, triage.STALE_UNVERIFIED)
+
+  def test_stale_reproducible_testcase_with_expired_progression_skips_filing(
+      self):
+    """Tests reproducible testcases whose last confirmed crash expired skip filing."""
+    testcase = self._make_ready_testcase(created_days_ago=90)
+    testcase.set_metadata(
+        'last_tested_crash_time',
+        test_utils.CURRENT_TIME - datetime.timedelta(days=20))
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock._file_issue.assert_not_called()
+
+  def test_stale_one_time_crasher_still_files_when_important(self):
+    """Tests one-time crashes rely on crash_stats rather than progression metadata."""
+    testcase = self._make_ready_testcase(created_days_ago=60)
+    testcase.one_time_crasher_flag = True
+    testcase.put()
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock._file_issue.assert_called_once()
+
+  def test_custom_freshness_deadline_and_disable_setting(self):
+    """Tests issue-tracker config overrides and zero-value disablement."""
+    testcase = self._make_ready_testcase(created_days_ago=25)
+    self.mock.get.return_value = {
+        triage.REPRODUCIBLE_FRESHNESS_CONFIG_KEY: 30,
+    }
+    self.assertTrue(
+        triage._has_recent_crash_confirmation(testcase, 'test-project'))
+
+    self.mock.get.return_value = {
+        triage.REPRODUCIBLE_FRESHNESS_CONFIG_KEY: 20,
+    }
+    self.assertFalse(
+        triage._has_recent_crash_confirmation(testcase, 'test-project'))
+
+    self.mock.get.return_value = {
+        triage.REPRODUCIBLE_FRESHNESS_CONFIG_KEY: 0,
+    }
+    self.assertTrue(
+        triage._has_recent_crash_confirmation(testcase, 'test-project'))
+
+    self.mock.get.return_value = {
+        triage.REPRODUCIBLE_FRESHNESS_CONFIG_KEY: True,
+    }
+    self.assertFalse(
+        triage._has_recent_crash_confirmation(testcase, 'test-project'))
+
+    self.mock.get.side_effect = errors.InvalidConfigKey('bad.key')
+    self.assertFalse(triage._has_recent_crash_confirmation(testcase, 'bad.key'))
+
+  def test_missing_timestamps_fails_closed(self):
+    """Tests reproducible testcases with no valid timestamps do not file."""
+    testcase = self._make_ready_testcase(created_days_ago=1)
+    testcase.timestamp = None
+    testcase.created = None
+    self.assertFalse(
+        triage._has_recent_crash_confirmation(testcase, 'test-project'))
+
+    testcase.created = test_utils.CURRENT_TIME - datetime.timedelta(days=2)
+    self.assertTrue(
+        triage._has_recent_crash_confirmation(testcase, 'test-project'))
+
+  def test_malformed_or_tz_aware_last_tested_crash_time_handled_safely(self):
+    """Tests invalid or tz-aware metadata does not raise TypeError."""
+    testcase = self._make_ready_testcase(created_days_ago=40)
+    testcase.metadata_cache['last_tested_crash_time'] = 'not-a-datetime'
+    self.assertFalse(
+        triage._has_recent_crash_confirmation(testcase, 'test-project'))
+
+    aware_recent = (test_utils.CURRENT_TIME - datetime.timedelta(days=1)
+                   ).replace(tzinfo=datetime.timezone.utc)
+    testcase.metadata_cache['last_tested_crash_time'] = aware_recent
+    self.assertTrue(
+        triage._has_recent_crash_confirmation(testcase, 'test-project'))
+
+  def test_closed_testcase_skips_filing(self):
+    """Tests testcases closed concurrently during triage iteration skip filing."""
+    testcase = self._make_ready_testcase(created_days_ago=1)
+    testcase.open = False
+    testcase.fixed = 'NA'
+    testcase.put()
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock._file_issue.assert_not_called()
+
+  def test_no_issue_tracker_skips_stale_notification_until_fresh(self):
+    """Tests Pub/Sub-only projects enforce freshness and clear stale state on recovery."""
+    self.mock.get_issue_tracker_for_testcase.return_value = None
+    stale_testcase = self._make_ready_testcase(created_days_ago=180)
+    with mock.patch.object(
+        data_handler, 'get_issue_tracker_name', return_value='disabled'):
+      triage._triage_testcase(
+          stale_testcase,
+          excluded_jobs=[],
+          all_jobs=[stale_testcase.job_type],
+          throttler=triage.Throttler())
+
+    self.mock.get.assert_not_called()
+    self.mock.notify_issue_update.assert_not_called()
+
+    recovered = data_handler.get_testcase_by_id(stale_testcase.key.id())
+    self.assertEqual(
+        recovered.get_metadata(triage.TRIAGE_MESSAGE_KEY),
+        triage.STALE_REPRODUCIBLE_TRIAGE_MESSAGE)
+    recovered.stuck_in_triage = True
+    recovered.set_metadata(
+        'last_tested_crash_time',
+        test_utils.CURRENT_TIME - datetime.timedelta(days=1))
+
+    triage._triage_testcase(
+        recovered,
+        excluded_jobs=[],
+        all_jobs=[recovered.job_type],
+        throttler=triage.Throttler())
+
+    self.mock.notify_issue_update.assert_called_once_with(recovered, 'new')
+    refreshed = data_handler.get_testcase_by_id(recovered.key.id())
+    self.assertFalse(refreshed.stuck_in_triage)
+    self.assertIsNone(refreshed.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+
+  def test_stale_skip_preserves_concurrent_testcase_updates(self):
+    """Tests clearing stuck_in_triage re-fetches and preserves concurrent closures."""
+    testcase = self._make_ready_testcase(created_days_ago=180)
+    testcase.stuck_in_triage = True
+    testcase.put()
+
+    def close_concurrently(unused_testcase, unused_tracker):
+      concurrent = data_handler.get_testcase_by_id(testcase.key.id())
+      concurrent.open = False
+      concurrent.fixed = '100:200'
+      concurrent.put()
+      return False
+
+    self.mock._check_and_update_similar_bug.side_effect = close_concurrently
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
+    updated = data_handler.get_testcase_by_id(testcase.key.id())
+    self.assertFalse(updated.open)
+    self.assertEqual(updated.fixed, '100:200')
+    self.assertFalse(updated.stuck_in_triage)
+    self.assertEqual(
+        updated.get_metadata(triage.TRIAGE_MESSAGE_KEY),
+        triage.STALE_REPRODUCIBLE_TRIAGE_MESSAGE)
+
+  def test_throttler_caches_failed_issue_tracker_config_initialization(self):
+    """Tests failed IssueTrackerConfig loads once per Throttler without retries."""
+    first = self._make_ready_testcase(created_days_ago=180)
+    second = self._make_ready_testcase(created_days_ago=180)
+    throttler = triage.Throttler()
+
+    with mock.patch(
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig',
+        side_effect=errors.ConfigParseError('broken.yaml')) as mock_config:
+      triage._triage_testcase(
+          first,
+          excluded_jobs=[],
+          all_jobs=[first.job_type],
+          throttler=throttler)
+      triage._triage_testcase(
+          second,
+          excluded_jobs=[],
+          all_jobs=[second.job_type],
+          throttler=throttler)
+
+    mock_config.assert_called_once()
+    self.mock._file_issue.assert_not_called()
+
+  def test_concurrently_deleted_testcase_does_not_abort_stale_skip(self):
+    """Tests concurrent testcase deletion during triage RPCs does not raise."""
+    testcase = self._make_ready_testcase(created_days_ago=180)
+    testcase.stuck_in_triage = True
+    testcase.put()
+
+    def delete_concurrently(unused_testcase, unused_tracker):
+      testcase.key.delete()
+      return False
+
+    self.mock._check_and_update_similar_bug.side_effect = delete_concurrently
+
+    triage._triage_testcase(
+        testcase,
+        excluded_jobs=[],
+        all_jobs=[testcase.job_type],
+        throttler=triage.Throttler())
+
+    self.mock._file_issue.assert_not_called()
