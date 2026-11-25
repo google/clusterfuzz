@@ -3657,6 +3657,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_python_exception_ignored_after_unhandled_exception(self):
+    """Test that an exception ignored during shutdown does not replace the
+    crash state of the unhandled exception printed before it."""
+    data = self._read_test_data('python_exception_ignored_after_uncaught.txt')
+    expected_type = 'Uncaught exception'
+    expected_address = ''
+    expected_state = 'parse_mime_type\nparse_media_range\n<listcomp>\n'
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_gdb_sigtrap(self):
     """Test for GDB stack."""
     data = self._read_test_data('gdb_sigtrap.txt')
