@@ -39,10 +39,18 @@ class BuildInfo:
 def _convert_platform_to_chromiumdash_platform(platform):
   """Converts platform to Chromium Dash platform.
   Note that Windows in Chromium Dash is win64 and we only want win32."""
-  platform_lower = platform.lower()
-  if platform_lower == 'windows':
+  base_platform = platform.split(':', 1)[0].upper()
+  if base_platform.startswith('ANDROID'):
+    return 'Android'
+  if base_platform.startswith('LINUX'):
+    return 'Linux'
+  if base_platform.startswith('WINDOWS'):
     return 'Win32'
-  return platform_lower.capitalize()
+  if base_platform.startswith('MAC'):
+    return 'Mac'
+  if base_platform.startswith('IOS'):
+    return 'iOS'
+  return base_platform.lower().capitalize()
 
 
 def _fetch_releases_from_chromiumdash(platform, channel=None):
@@ -90,7 +98,7 @@ def get_production_builds_info_from_cd(platform):
 
   # Hack: pretend Windows extended stable info to be Linux extended stable info.
   # Because Linux doesn't have extended stable channel.
-  if platform.lower() == 'linux':
+  if _convert_platform_to_chromiumdash_platform(platform) == 'Linux':
     es_info = _fetch_releases_from_chromiumdash(
         'WINDOWS', channel='Extended')[0]
     builds_metadata.append(
@@ -141,7 +149,7 @@ def get_build_to_revision_mappings(platform=None):
 
   # Hack: pretend Windows extended stable info to be Linux extended stable info.
   # Because Linux doesn't have extended stable channel.
-  if platform.lower() == 'linux':
+  if _convert_platform_to_chromiumdash_platform(platform) == 'Linux':
     es_info = _fetch_releases_from_chromiumdash(
         'WINDOWS', channel='Extended')[0]
     result['extended_stable'] = {
