@@ -30,13 +30,13 @@ def normalize_email_for_group(email):
   email = email.strip().lower()
 
   parts = email.split('@')
-  if len(parts) != 2:
+  if len(parts) != 2 or not parts[0] or not parts[1]:
     logs.error(f'Email with unexpected format: {email}')
     return None
   local, domain = parts
 
   # Convert googlemail to gmail
-  if domain in 'googlemail.com':
+  if domain == 'googlemail.com':
     domain = 'gmail.com'
 
   # Remove dots if domain is gmail
@@ -45,6 +45,9 @@ def normalize_email_for_group(email):
 
   # Remove pluses alias/tags as it is not supported by cloud identity api.
   local = local.split('+', 1)[0]
+  if not local:
+    logs.error(f'Email with unexpected format: {email}')
+    return None
 
   return f'{local}@{domain}'
 
