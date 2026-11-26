@@ -734,3 +734,48 @@ class CreateTempFileTest(unittest.TestCase):
       self.assertTrue(file_path.startswith(tmpdir))
       self.assertIn('prefix_', file_path)
       self.assertTrue(file_path.endswith('_suffix'))
+
+
+class GetInstanceNameTest(unittest.TestCase):
+  """Tests for get_instance_name."""
+
+  def setUp(self):
+    helpers.patch_environ(self, {})
+
+  def test_swarming_with_k8s_env_uses_bot_name(self):
+    """Swarming bots use BOT_NAME even when IS_K8S_ENV=True and HOSTNAME is unset."""
+    os.environ['SWARMING_BOT'] = 'True'
+    os.environ['IS_K8S_ENV'] = 'True'
+    os.environ['BOT_NAME'] = 'mac-103-h527'
+    self.assertEqual(utils.get_instance_name(), 'mac-103-h527')
+
+  def test_swarming_with_k8s_env_prefers_bot_name_over_hostname(self):
+    """Swarming bots prefer BOT_NAME over HOSTNAME when IS_K8S_ENV=True."""
+    os.environ['SWARMING_BOT'] = 'True'
+    os.environ['IS_K8S_ENV'] = 'True'
+    os.environ['BOT_NAME'] = 'lin-30-h709'
+    os.environ['HOSTNAME'] = 'container-hostname'
+    self.assertEqual(utils.get_instance_name(), 'lin-30-h709')
+
+  def test_k8s_uses_hostname(self):
+    """Non-Swarming Kubernetes pods use HOSTNAME."""
+    os.environ['IS_K8S_ENV'] = 'True'
+    os.environ['HOSTNAME'] = 'k8s-pod-1'
+    os.environ['BOT_NAME'] = 'bot-1'
+    self.assertEqual(utils.get_instance_name(), 'k8s-pod-1')
+
+  def test_app_engine_uses_gae_instance(self):
+    """App Engine instances use GAE_INSTANCE."""
+    os.environ['GAE_ENV'] = 'standard'
+    os.environ['GAE_INSTANCE'] = 'gae-instance-1'
+    os.environ['BOT_NAME'] = 'bot-1'
+    self.assertEqual(utils.get_instance_name(), 'gae-instance-1')
+
+  def test_default_uses_bot_name(self):
+    """Standard bots fall back to BOT_NAME."""
+    os.environ['BOT_NAME'] = 'clusterfuzz-linux-0001'
+    self.assertEqual(utils.get_instance_name(), 'clusterfuzz-linux-0001')
+
+  def test_empty_when_unset(self):
+    """Returns empty string when no environment identity is set."""
+    self.assertEqual(utils.get_instance_name(), '')
