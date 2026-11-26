@@ -132,6 +132,7 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
   @parameterized.parameterized.expand([
       ('test1@googlemail.com', 'test1@gmail.com'),
       ('user.dot@googlemail.com', 'userdot@gmail.com'),
+      ('  Test.User+tag@GoogleMail.com  ', 'testuser@gmail.com'),
       ('TesT2@gmail.com', 'test2@gmail.com'),
       ('test3@example.com', 'test3@example.com'),
       ('test4.dot@gmail.com', 'test4dot@gmail.com'),
@@ -144,6 +145,12 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
       ('user@', None),
       ('@mail.com', None),
       ('+alias@example.com', None),
+      ('.+alias@gmail.com', None),
+      ('...@gmail.com', None),
+      ('. +alias@gmail.com', None),
+      ('user@localhost', None),
+      ('user@.com', None),
+      (None, None),
   ])
   def test_normalize_email_for_group(self, test_email, normalized_email):
     """Test normalize email for groups method."""
