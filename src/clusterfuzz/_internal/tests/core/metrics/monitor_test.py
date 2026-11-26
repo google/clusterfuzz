@@ -298,8 +298,49 @@ class MonitorTest(unittest.TestCase):
     gauge.set(5)
     self.assertIsInstance(gauge, monitor._MockMetric)
 
-  def test_iter_values_skips_unchanged_cumulative_metrics(self):
-    """Test that unchanged cumulative metrics are skipped while gauges emit."""
+
+class FlushMetricsTest(unittest.TestCase):
+  """Tests for _flush_metrics and _MetricsStore clearing behavior."""
+
+  def setUp(self):
+    monitor.metrics_store().reset_for_testing()
+    helpers.patch_environ(self, {})
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.get_application_id',
+        'clusterfuzz._internal.google_cloud_utils.compute_metadata.is_gce',
+        'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.metrics.logs.warning',
+        'clusterfuzz._internal.metrics.monitor.check_module_loaded',
+        'time.time',
+    ])
+    self.mock.check_module_loaded.return_value = True
+    self.mock.get_application_id.return_value = 'test-project'
+    self.mock.is_gce.return_value = False
+    self.mock_time = helpers.MockTime(start_time=100.0)
+    self.mock.time.side_effect = self.mock_time.time
+
+    self.uploaded_batches = []
+    self.mock_client = unittest.mock.MagicMock()
+    self.mock_client.common_project_path.return_value = 'projects/test-project'
+    self.mock_client.create_time_series.side_effect = (
+        lambda name, time_series: self.uploaded_batches.append(
+            list(time_series)))
+
+    client_patcher = patch.object(monitor, '_monitoring_v3_client',
+                                  self.mock_client)
+    client_patcher.start()
+    self.addCleanup(client_patcher.stop)
+
+    prev_resource = monitor._monitored_resource
+    monitor._initialize_monitored_resource()
+    self.addCleanup(setattr, monitor, '_monitored_resource', prev_resource)
+
+  def _uploaded_types(self, batch):
+    prefix = monitor.CUSTOM_METRIC_PREFIX
+    return [ts.metric.type.removeprefix(prefix) for ts in batch]
+
+  def test_flush_clears_cumulative_metrics_and_keeps_gauges(self):
+    """Test that cumulative metrics are cleared on flush while gauges remain."""
     counter = monitor.CounterMetric('c', 'desc', field_spec=None)
     dist = monitor.CumulativeDistributionMetric(
         'd',
@@ -312,22 +353,190 @@ class MonitorTest(unittest.TestCase):
     dist.add(2.0)
     gauge.set(1)
 
-    first_flush = list(monitor.metrics_store().iter_values())
-    self.assertEqual({'c', 'd', 'g'}, {v.metric.name for v in first_flush})
-    first_counter = next(v for v in first_flush if v.metric.name == 'c')
-    self.assertEqual(1, first_counter.value)
+    self.mock_time.advance(10.0)
+    monitor._flush_metrics()
+
+    self.assertEqual(1, len(self.uploaded_batches))
+    self.assertEqual({'c', 'd', 'g'},
+                     set(self._uploaded_types(self.uploaded_batches[0])))
+    first_counter_ts = next(
+        ts for ts in self.uploaded_batches[0] if ts.metric.type.endswith('/c'))
+    self.assertEqual(1, first_counter_ts.points[0].value.int64_value)
 
     # Second flush with no updates should only emit the gauge.
-    second_flush = list(monitor.metrics_store().iter_values())
-    self.assertEqual(['g'], [v.metric.name for v in second_flush])
+    self.uploaded_batches.clear()
+    self.mock_time.advance(10.0)
+    monitor._flush_metrics()
 
-    # Updating counter re-emits it with the same start_time and cumulative sum.
+    self.assertEqual(1, len(self.uploaded_batches))
+    self.assertEqual(['g'], self._uploaded_types(self.uploaded_batches[0]))
+
+    # Updating the counter after clearing starts a fresh cumulative interval.
     counter.increment_by(3)
-    fourth_flush = list(monitor.metrics_store().iter_values())
-    self.assertEqual({'c', 'g'}, {v.metric.name for v in fourth_flush})
-    updated_counter = next(v for v in fourth_flush if v.metric.name == 'c')
-    self.assertEqual(4, updated_counter.value)
-    self.assertEqual(first_counter.start_time, updated_counter.start_time)
+    self.uploaded_batches.clear()
+    self.mock_time.advance(10.0)
+    monitor._flush_metrics()
+
+    self.assertEqual(1, len(self.uploaded_batches))
+    self.assertEqual({'c', 'g'},
+                     set(self._uploaded_types(self.uploaded_batches[0])))
+    updated_counter_ts = next(
+        ts for ts in self.uploaded_batches[0] if ts.metric.type.endswith('/c'))
+    self.assertEqual(3, updated_counter_ts.points[0].value.int64_value)
+    self.assertGreater(updated_counter_ts.points[0].interval.start_time,
+                       first_counter_ts.points[0].interval.end_time)
+
+  def test_flush_retains_metrics_on_upload_failure(self):
+    """Test that failed uploads keep metrics in the store for the next flush."""
+    counter = monitor.CounterMetric('c', 'desc', field_spec=None)
+    dist = monitor.CumulativeDistributionMetric(
+        'd',
+        'desc',
+        bucketer=monitor.FixedWidthBucketer(width=1.0, num_finite_buckets=5),
+        field_spec=None)
+
+    counter.increment_by(2)
+    dist.add(1.5)
+    initial_start_time = monitor.metrics_store().get(counter, None).start_time
+
+    self.mock_client.create_time_series.side_effect = RuntimeError('rpc error')
+    self.mock_time.advance(10.0)
+    monitor._flush_metrics()
+
+    # Metrics should still be in the store with the original start_time.
+    stored_counter = monitor.metrics_store().get(counter, None)
+    self.assertEqual(2, stored_counter.value)
+    self.assertEqual(initial_start_time, stored_counter.start_time)
+    self.assertEqual(1, monitor.metrics_store().get(dist, None).value.count)
+
+    # Next flush succeeds and clears the cumulative metrics.
+    self.mock_client.create_time_series.side_effect = (
+        lambda name, time_series: self.uploaded_batches.append(
+            list(time_series)))
+    self.mock_time.advance(10.0)
+    monitor._flush_metrics()
+
+    self.assertEqual(1, len(self.uploaded_batches))
+    self.assertEqual({'c', 'd'},
+                     set(self._uploaded_types(self.uploaded_batches[0])))
+    self.assertEqual([], list(monitor.metrics_store().iter_store()))
+
+  def test_flush_partial_batch_failure(self):
+    """Test that succeeded batches are cleared while failed batches remain."""
+    counter = monitor.CounterMetric(
+        'c', 'desc', field_spec=[monitor.StringField('k')])
+    counter.increment({'k': '1'})
+    counter.increment({'k': '2'})
+    counter.increment({'k': '3'})
+
+    call_count = 0
+
+    def fail_second_batch(name, time_series):
+      del name
+      nonlocal call_count
+      call_count += 1
+      if call_count == 2:
+        raise RuntimeError('batch 2 failed')
+      self.uploaded_batches.append(list(time_series))
+
+    self.mock_client.create_time_series.side_effect = fail_second_batch
+    self.mock_time.advance(10.0)
+    with patch.object(monitor, 'MAX_TIME_SERIES_PER_CALL', 2):
+      monitor._flush_metrics()
+
+    # Batch 1 (2 items) cleared; batch 2 (1 item) retained.
+    self.assertEqual(1, len(self.uploaded_batches))
+    self.assertEqual(2, len(self.uploaded_batches[0]))
+    remaining = list(monitor.metrics_store().iter_store())
+    self.assertEqual(1, len(remaining))
+    self.assertEqual({'k': '3'}, remaining[0][1].labels)
+
+  def test_flush_preserves_metrics_modified_during_upload(self):
+    """Test that a metric updated during upload is not cleared."""
+    counter = monitor.CounterMetric('c', 'desc', field_spec=None)
+    counter.increment()
+    initial_start_time = monitor.metrics_store().get(counter, None).start_time
+
+    def upload_and_mutate(name, time_series):
+      del name
+      self.uploaded_batches.append(list(time_series))
+      # Simulate a concurrent write while the RPC is in flight.
+      counter.increment_by(3)
+
+    self.mock_client.create_time_series.side_effect = upload_and_mutate
+    self.mock_time.advance(10.0)
+    monitor._flush_metrics()
+
+    # First upload sent value 1, and concurrent update (+3) is retained.
+    self.assertEqual(1, len(self.uploaded_batches))
+    self.assertEqual(1, self.uploaded_batches[0][0].points[0].value.int64_value)
+    stored = monitor.metrics_store().get(counter, None)
+    self.assertEqual(4, stored.value)
+    self.assertEqual(initial_start_time, stored.start_time)
+
+    # Next flush (without concurrent update) uploads 4 with same start_time
+    # and clears it.
+    self.uploaded_batches.clear()
+    self.mock_client.create_time_series.side_effect = (
+        lambda name, time_series: self.uploaded_batches.append(
+            list(time_series)))
+    self.mock_time.advance(10.0)
+    monitor._flush_metrics()
+
+    self.assertEqual(1, len(self.uploaded_batches))
+    point = self.uploaded_batches[0][0].points[0]
+    self.assertEqual(4, point.value.int64_value)
+    self.assertEqual(
+        int(initial_start_time), int(point.interval.start_time.timestamp()))
+    self.assertEqual([], list(monitor.metrics_store().iter_store()))
+
+  def test_flush_skips_metrics_with_start_time_gte_end_time(self):
+    """Test that cumulative metrics with start_time >= end_time are skipped."""
+    counter = monitor.CounterMetric('c', 'desc', field_spec=None)
+    counter.increment()
+
+    # Flush at the same timestamp: start_time == end_time.
+    monitor._flush_metrics()
+
+    self.assertEqual([], self.uploaded_batches)
+    self.assertEqual(1, monitor.metrics_store().get(counter, None).value)
+
+    # Advancing time allows the metric to flush and be cleared.
+    self.mock_time.advance(1.0)
+    monitor._flush_metrics()
+
+    self.assertEqual(1, len(self.uploaded_batches))
+    self.assertEqual(1, self.uploaded_batches[0][0].points[0].value.int64_value)
+    self.assertEqual([], list(monitor.metrics_store().iter_store()))
+
+  def test_reset_start_time_respects_min_reset_gap(self):
+    """Test that recreated metrics start strictly after the last flush."""
+    counter = monitor.CounterMetric('c', 'desc', field_spec=None)
+    counter.increment()
+
+    self.mock_time.advance(10.0)  # t = 110.0
+    monitor._flush_metrics()
+    self.assertEqual([], list(monitor.metrics_store().iter_store()))
+
+    # Simulate coarse clock or NTP step-back (t = 109.0 < last_flush_end 110.0).
+    self.mock_time.advance(-1.0)
+    counter.increment()
+
+    stored = monitor.metrics_store().get(counter, None)
+    expected_start_time = 110.0 + monitor.MIN_RESET_GAP_SECONDS
+    self.assertAlmostEqual(expected_start_time, stored.start_time)
+
+    # Flushing before wall clock passes start_time skips it safely.
+    self.uploaded_batches.clear()
+    monitor._flush_metrics()
+    self.assertEqual([], self.uploaded_batches)
+    self.assertEqual(1, monitor.metrics_store().get(counter, None).value)
+
+    # Once time advances past start_time, it flushes cleanly.
+    self.mock_time.advance(2.0)  # t = 111.0
+    monitor._flush_metrics()
+    self.assertEqual(1, len(self.uploaded_batches))
+    self.assertEqual([], list(monitor.metrics_store().iter_store()))
 
 
 class TestMonitoringDaemon(unittest.TestCase):
