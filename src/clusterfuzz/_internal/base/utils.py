@@ -1067,10 +1067,15 @@ def emails_equal(first, second):
 
 def is_service_account(email: str) -> bool:
   """Check if an email is a SA based on email address pattern."""
-  sa_email = normalize_email(email)
-  if '@' not in sa_email:
+  sa_email = normalize_email(email).strip()
+  parts = sa_email.split('@')
+  if len(parts) != 2 or not parts[0]:
     return False
-  return sa_email.endswith('gserviceaccount.com')
+  domain = parts[1]
+  if not domain or not all(domain.split('.')):
+    return False
+  return domain == 'gserviceaccount.com' or domain.endswith(
+      '.gserviceaccount.com')
 
 
 def parse_delimited(value_or_handle, delimiter, strip=False,
