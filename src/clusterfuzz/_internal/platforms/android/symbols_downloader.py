@@ -15,7 +15,11 @@
 
 import os
 import re
+import shutil
+import tempfile
+from typing import NamedTuple
 import zipfile
+import zlib
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
@@ -32,6 +36,12 @@ from . import constants
 
 class SymbolDownloadError(errors.Error):
   """Raised when symbol artifacts are unavailable or fail to download."""
+
+
+class TrustySymbols(NamedTuple):
+  """Resolved local ELF paths for Trusty kernel and Trusted App symbols."""
+  kernel_binary: str
+  app_binary: str
 
 
 def get_repo_prop_archive_filename(build_id: str, target: str) -> str:
@@ -216,44 +226,126 @@ def download_system_symbols_if_needed(symbols_directory):
   utils.write_data_to_file(build_params, build_params_check_path)
 
 
-def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
-  """Downloads and extracts Trusted App ELF files"""
-  ab_target = ''
-  device = settings.get_build_parameters().get('target')
+def _get_trusty_build_target() -> str:
+  """Returns the Android Build target for the current Trusty device.
+
+  Returns:
+    The Android Build target string for fetching Trusty symbols.
+
+  Raises:
+    SymbolDownloadError: If device build parameters are unavailable or the
+      device is unsupported.
+  """
+  build_params = settings.get_build_parameters()
+  if not build_params or not build_params.get('target'):
+    raise SymbolDownloadError('Unable to determine device target for Trusty.')
+  device = build_params['target']
   if 'cheetah' in device or 'panther' in device:
-    ab_target = 'cloudripper-fuzz-test-debug'
-  elif 'oriole' in device or 'raven' in device or 'bluejay' in device:
-    ab_target = 'slider-fuzz-test-debug'
-  else:
-    logs.error(f'Unsupported device {device}.')
+    return 'cloudripper-fuzz-test-debug'
+  if 'oriole' in device or 'raven' in device or 'bluejay' in device:
+    return 'slider-fuzz-test-debug'
+  raise SymbolDownloadError('Unsupported Trusty device: %s.' % device)
 
-  branch = 'polygon-trusty-whitechapel-master'
-  if not bid:
-    build_info = fetch_artifact.get_latest_artifact_info(branch, ab_target)
-    if not build_info:
-      logs.info(f'Unable to fetch build info for branch {branch} '
-                f'and target {ab_target}.')
-      return
-    bid = build_info['bid']
 
-  artifact_filename = f'{ab_target}-{bid}.syms.zip'
-  symbols_archive_path = os.path.join(symbols_directory, artifact_filename)
+def _extract_trusty_symbols(symbols_archive_path: str, symbols_directory: str,
+                            app_name: str) -> None:
+  """Extracts lk.elf and the Trusted App ELF from a Trusty symbols archive.
 
-  download_artifact_if_needed(bid, symbols_directory, symbols_archive_path,
-                              [ab_target], artifact_filename, None)
+  Args:
+    symbols_archive_path: Path to the downloaded Trusty symbols zip archive.
+    symbols_directory: Directory where extracted ELF files will be written.
+    app_name: Name of the Trusted App whose symbols ELF should be extracted.
 
-  if not os.path.exists(symbols_archive_path):
-    logs.error(f'Unable to locate symbols archive {symbols_archive_path}.')
-    return
+  Raises:
+    SymbolDownloadError: If the symbols archive is not a valid zip file or
+      cannot be decompressed.
+  """
+  app_filename = '%s.syms.elf' % app_name
+  try:
+    with zipfile.ZipFile(symbols_archive_path, 'r') as symbols_zipfile:
+      for member in symbols_zipfile.infolist():
+        if member.is_dir():
+          continue
+        if os.path.basename(member.filename) == app_filename:
+          target_path = os.path.join(symbols_directory, app_filename)
+        elif member.filename == 'lk.elf':
+          target_path = os.path.join(symbols_directory, 'lk.elf')
+        else:
+          continue
+        with symbols_zipfile.open(member, 'r') as src, open(target_path,
+                                                            'wb') as dst:
+          shutil.copyfileobj(src, dst)
+  except (zipfile.BadZipFile, zlib.error, EOFError) as error:
+    raise SymbolDownloadError(
+        'Invalid Trusty symbols archive %s.' % symbols_archive_path) from error
 
-  with zipfile.ZipFile(symbols_archive_path, 'r') as symbols_zipfile:
-    for filepath in symbols_zipfile.namelist():
-      if f'{app_name}.syms.elf' in filepath:
-        symbols_zipfile.extract(filepath, symbols_directory)
-        os.rename(f'{symbols_directory}/{filepath}',
-                  f'{symbols_directory}/{app_name}.syms.elf')
-      if 'lk.elf' == filepath:
-        symbols_zipfile.extract(filepath, symbols_directory)
+
+def _download_trusty_symbols(
+    trusty_root: str,
+    bid: str,
+    app_name: str,
+    trusty_symbols_dir: str,
+) -> None:
+  """Downloads, extracts, and installs Trusty ELF symbols into a bid dir."""
+  ab_target = _get_trusty_build_target()
+  artifact_filename = '%s-%s.syms.zip' % (ab_target, bid)
+  app_filename = '%s.syms.elf' % app_name
+  os.makedirs(trusty_root, exist_ok=True)
+  with tempfile.TemporaryDirectory(dir=trusty_root) as temp_dir:
+    symbols_archive_path = os.path.join(temp_dir, artifact_filename)
+    fetch_artifact.get(bid, ab_target, artifact_filename, temp_dir, None)
+    if not os.path.isfile(symbols_archive_path):
+      raise SymbolDownloadError(
+          'Unable to download Trusty symbols archive %s.' % artifact_filename)
+
+    _extract_trusty_symbols(symbols_archive_path, temp_dir, app_name)
+    temp_kernel_path = os.path.join(temp_dir, 'lk.elf')
+    temp_app_path = os.path.join(temp_dir, app_filename)
+    if not (os.path.isfile(temp_kernel_path) and os.path.isfile(temp_app_path)):
+      raise SymbolDownloadError(
+          'Missing Trusty ELF symbols after extracting %s.' % artifact_filename)
+
+    os.makedirs(trusty_symbols_dir, exist_ok=True)
+    os.replace(temp_kernel_path, os.path.join(trusty_symbols_dir, 'lk.elf'))
+    os.replace(temp_app_path, os.path.join(trusty_symbols_dir, app_filename))
+
+
+def download_trusty_symbols_if_needed(
+    symbols_directory: str,
+    app_name: str,
+    bid: str,
+) -> TrustySymbols:
+  """Returns local Trusty ELF paths, downloading and extracting if needed.
+
+  Args:
+    symbols_directory: Base symbols directory under which Trusty ELF symbols
+      are cached in ``trusty/<bid>/``.
+    app_name: Name of the crashed Trusted App.
+    bid: Trusty build ID.
+
+  Returns:
+    TrustySymbols containing local paths to lk.elf and <app_name>.syms.elf.
+
+  Raises:
+    SymbolDownloadError: If the ELF symbols are not present locally and
+      downloading is disabled or fails, or extraction fails.
+  """
+  trusty_root = os.path.join(symbols_directory, 'trusty')
+  trusty_symbols_dir = os.path.join(trusty_root, bid)
+  app_filename = '%s.syms.elf' % app_name
+  kernel_binary_path = os.path.join(trusty_symbols_dir, 'lk.elf')
+  app_binary_path = os.path.join(trusty_symbols_dir, app_filename)
+  if os.path.isfile(kernel_binary_path) and os.path.isfile(app_binary_path):
+    return TrustySymbols(
+        kernel_binary=kernel_binary_path, app_binary=app_binary_path)
+
+  if environment.get_value('LOCAL_DEVELOPMENT'):
+    raise SymbolDownloadError(
+        'Symbol downloading is disabled in local development.')
+
+  _download_trusty_symbols(trusty_root, bid, app_name, trusty_symbols_dir)
+  return TrustySymbols(
+      kernel_binary=kernel_binary_path, app_binary=app_binary_path)
 
 
 _VALID_DEVICE_BINARY_PATH_REGEX = re.compile(r'^/[A-Za-z0-9._+@~=/!-]+\Z')

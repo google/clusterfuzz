@@ -693,10 +693,12 @@ class SymbolizationLoop:
                    f'SYMBOLS_DIR={symbols_dir}')
       return unsymbolized_crash_stacktrace
 
-    symbols_downloader.download_trusty_symbols_if_needed(
-        symbols_dir, trusty_app, trusty_bid)
-    kernel_binary = f'{symbols_dir}/lk.elf'
-    trusty_binary = f'{symbols_dir}/{trusty_app}.syms.elf'
+    try:
+      trusty_symbols = symbols_downloader.download_trusty_symbols_if_needed(
+          symbols_dir, trusty_app, trusty_bid)
+    except symbols_downloader.SymbolDownloadError as error:
+      logs.warning(f'Unable to obtain Trusty symbols: {error}')
+      return unsymbolized_crash_stacktrace
 
     symbolized_stacktrace = ''
     unsymbolized_crash_stacktrace_lines = \
@@ -705,15 +707,15 @@ class SymbolizationLoop:
       line = line.strip()
       memory_space, offset, addr = self._trusty_line_parser(line)
       if memory_space == 'kSP':
-        addr2line = Addr2LineSymbolizer(kernel_binary)
+        addr2line = Addr2LineSymbolizer(trusty_symbols.kernel_binary)
         symbolized_stacktrace += '{}+{}: {}\n'.format(
             memory_space, offset,
-            addr2line.symbolize(addr, kernel_binary, addr)[0])
+            addr2line.symbolize(addr, trusty_symbols.kernel_binary, addr)[0])
       elif memory_space == 'uSP':
-        addr2line = Addr2LineSymbolizer(trusty_binary)
+        addr2line = Addr2LineSymbolizer(trusty_symbols.app_binary)
         symbolized_stacktrace += '{}+{}: {}\n'.format(
             memory_space, offset,
-            addr2line.symbolize(addr, trusty_binary, addr)[0])
+            addr2line.symbolize(addr, trusty_symbols.app_binary, addr)[0])
       else:
         symbolized_stacktrace += '%s\n' % line
 
