@@ -161,13 +161,8 @@ ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
 ENV RUN_CMD "python3.11 $ROOT_DIR/src/python/bot/startup/run.py"
 
 # Passwordless sudo (needed for AFL launcher).
-# Raise PAM soft nofile for sudo commands outside start_clusterfuzz.sh,
-# such as Xvfb/blackbox in chromium/base/setup_x.sh and dbus-launch/pulseaudio
-# in chromium/base/setup.sh. Explicit root entry is needed because limits.conf
-# wildcard '*' excludes UID 0.
 RUN groupadd nopwsudo && \
-    echo "%nopwsudo ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/mysudoers && \
-    printf '* soft nofile 65535\nroot soft nofile 65535\n' > /etc/security/limits.d/99-clusterfuzz-nofile.conf
+    echo "%nopwsudo ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/mysudoers
 
 # Make sure GSUtil uses the GCE service account.
 RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg

@@ -36,6 +36,30 @@ NEEDS_ROOT_PIPFILE=false
 
 INSTALL_BUILD_DEPS_GOB_URL='https://chromium.googlesource.com/a/chromium/src/+/main/build/install-build-deps.py?format=TEXT'
 INSTALL_BUILD_DEPS_GITHUB_URL='https://raw.githubusercontent.com/chromium/chromium/main/build/install-build-deps.py'
+MIN_EXPECTED_NOFILE_SOFT_LIMIT=65535
+NOFILE_HARD_LIMIT=524288
+INITIAL_LOW_NOFILE_SOFT_LIMIT=1024
+
+# Verifies start_clusterfuzz.sh raises soft nofile to >= 65535 on Ubuntu 24.04
+# even when starting from the default 1024 soft limit.
+function verify_ubuntu24_open_file_limit {
+  local image_ref="$1"
+  docker run --rm \
+    --ulimit "nofile=${MIN_EXPECTED_NOFILE_SOFT_LIMIT}:${NOFILE_HARD_LIMIT}" \
+    --entrypoint bash "$image_ref" -c '
+      set -euo pipefail
+      min_limit="$1"
+      low_limit="$2"
+      test -f /data/start_clusterfuzz.sh
+      id -u clusterfuzz >/dev/null 2>&1 || useradd -mU -G nopwsudo clusterfuzz
+      ulimit -Sn "$low_limit"
+      startup_limit=$(USER=clusterfuzz RUN_CMD="ulimit -Sn" bash -e /data/start_clusterfuzz.sh)
+      if [[ ! "$startup_limit" =~ ^[0-9]+$ ]] || (( startup_limit < min_limit )); then
+        echo "Expected Ubuntu 24.04 soft nofile >= ${min_limit}, got ${startup_limit}" >&2
+        exit 1
+      fi
+    ' _ "$MIN_EXPECTED_NOFILE_SOFT_LIMIT" "$INITIAL_LOW_NOFILE_SOFT_LIMIT"
+}
 
 # Set up a trap to clean up Pipfiles on exit.
 function cleanup() {
@@ -92,8 +116,6 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-source "$(dirname "${BASH_SOURCE[0]}")/verify_ubuntu24_nofile.sh"
-
 function docker_push {
   if [ "$PUSH" == "true" ]; then
     docker push "$image_with_version_tag"
@@ -149,8 +171,8 @@ for image_name in "${IMAGES[@]}"; do
 
   docker build -t "$image_with_version_tag" -f "$dockerfile" "$image_dir"
 
-  if [ "$VERSION_TAG" == "ubuntu-24-04" ]; then
-    verify_ubuntu24_base_open_file_limit "$image_with_version_tag"
+  if [[ "$VERSION_TAG" == "ubuntu-24-04" && "$image_dir" == "base" ]]; then
+    verify_ubuntu24_open_file_limit "$image_with_version_tag"
   fi
 
   # Clean up the copied files.
