@@ -16,6 +16,8 @@ from concurrent import futures
 import datetime
 import io
 import os
+import stat
+import tempfile
 import threading
 import unittest
 from unittest import mock
@@ -322,19 +324,42 @@ class SignedUrlDownloadTest(fake_filesystem_unittest.TestCase):
     self.mock.use_async_http.return_value = False
 
   def test_failed_download_does_not_open_or_leave_empty_file(self):
-    """If download_signed_url raises, the destination file is never opened or
-    created."""
+    """If an HTTP download fails before or during streaming, the destination
+    file is never created and no temporary file is left behind."""
     filepath = '/bundle/data.db'
+    self.mock._provider.return_value = storage.GcsProvider()  # pylint: disable=protected-access
+
+    error_response = mock.MagicMock(ok=False, status_code=404, text='not found')
+    error_response.__enter__.return_value = error_response
+    session = mock.MagicMock()
+    session.get.return_value = error_response
 
     with mock.patch.object(
-        storage, 'download_signed_url', side_effect=RuntimeError('boom')), \
-         mock.patch('builtins.open', wraps=open) as mocked_open:
+        storage,
+        '_integration_test_env_doesnt_support_signed_urls',
+        return_value=False), \
+        mock.patch.object(storage, '_signed_url_session', return_value=session), \
+        mock.patch.object(storage.retry, 'sleep'), \
+        mock.patch('builtins.open', wraps=open) as mocked_open:
       self.assertFalse(
           storage._error_tolerant_download_signed_url_to_file(  # pylint: disable=protected-access
               ('https://storage.googleapis.com/b/data.db', filepath)))
       mocked_open.assert_not_called()
 
-    self.assertFalse(os.path.exists(filepath))
+      def broken_stream(chunk_size=1):
+        del chunk_size
+        yield b'partial'
+        raise storage.requests.exceptions.ChunkedEncodingError('dropped')
+
+      stream_response = mock.MagicMock(ok=True)
+      stream_response.__enter__.return_value = stream_response
+      stream_response.iter_content.side_effect = broken_stream
+      session.get.return_value = stream_response
+      self.assertFalse(
+          storage._error_tolerant_download_signed_url_to_file(  # pylint: disable=protected-access
+              ('https://storage.googleapis.com/b/data.db', filepath)))
+
+    self.assertEqual(os.listdir('/bundle'), [])
 
   def test_valid_bundle_paths(self):
     """Valid relative paths resolve under the bundle directory."""
@@ -442,11 +467,16 @@ class SignedUrlDownloadTest(fake_filesystem_unittest.TestCase):
         f'{bucket}/{urllib.parse.quote(rel)}{_SIGNED_QUERY}' for rel in blobs
     ]
 
+    def fake_download_to_filepath(url, filepath):
+      rel = storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
+          url, f'gs://{bucket}')
+      with open(filepath, 'wb') as fp:
+        fp.write(blobs[rel])
+
     with mock.patch.object(
-        storage,
-        'download_signed_url',
-        side_effect=lambda u: blobs[storage._get_relative_path_from_signed_url(  # pylint: disable=protected-access
-            u, f'gs://{bucket}')]):
+        self.provider,
+        'download_signed_url_to_filepath',
+        side_effect=fake_download_to_filepath):
       sync_results = storage.download_signed_urls_preserving_paths(
           urls, '/sync_bundle', f'gs://{bucket}')
 
@@ -481,8 +511,7 @@ class SignedUrlDownloadTest(fake_filesystem_unittest.TestCase):
     """An underivable URL falls back to a uuid name and redacts the query."""
     bad_url = 'https://custom.host.example/bucket/data.db' + _SIGNED_QUERY
 
-    with mock.patch.object(
-        storage, 'download_signed_url', return_value=b'content'), \
+    with mock.patch.object(self.provider, 'download_signed_url_to_filepath'), \
          mock.patch.object(storage.logs, 'error') as mock_error:
       results = storage.download_signed_urls_preserving_paths(
           [bad_url], '/fallback_dir', 'gs://bucket')
@@ -499,13 +528,19 @@ class SignedUrlDownloadTest(fake_filesystem_unittest.TestCase):
     root_url = 'https://storage.googleapis.com/b/' + _SIGNED_QUERY
     good_url = 'https://storage.googleapis.com/b/data.db' + _SIGNED_QUERY
 
+    def fake_download(_, filepath):
+      with open(filepath, 'wb') as fp:
+        fp.write(b'data')
+
     with mock.patch.object(
-        storage, 'download_signed_url', return_value=b'data') as mock_download, \
+        self.provider,
+        'download_signed_url_to_filepath',
+        side_effect=fake_download) as mock_download, \
          mock.patch.object(storage.logs, 'error') as mock_error:
       results = storage.download_signed_urls_preserving_paths(
           [root_url, good_url], '/root_dir', 'gs://b')
 
-    mock_download.assert_called_once_with(good_url)
+    mock_download.assert_called_once_with(good_url, '/root_dir/data.db')
     self.assertEqual([r.filepath for r in results], ['/root_dir/data.db'])
     self.assertEqual(os.listdir('/root_dir'), ['data.db'])
 
@@ -694,24 +729,29 @@ class SignedUrlSessionTest(unittest.TestCase):
     # Bare requests.get/put/delete are mocked too, so a call site that stops
     # using the session fails the assertions below instead of reaching the
     # network.
-    with mock.patch.multiple(
+    with tempfile.TemporaryDirectory() as tmpdir, mock.patch.multiple(
         storage.requests,
         Session=mock.DEFAULT,
         get=mock.DEFAULT,
         put=mock.DEFAULT,
         delete=mock.DEFAULT) as mocks:
       session = mocks['Session'].return_value
-      session.get.return_value.ok = True
-      session.get.return_value.content = b'data'
+      response = session.get.return_value
+      response.__enter__.return_value = response
+      response.ok = True
+      response.content = b'data'
+      response.iter_content.return_value = [b'data']
       provider = storage.GcsProvider()
 
       provider.download_signed_url('https://signed/a')
       provider.download_signed_url('https://signed/b')
+      provider.download_signed_url_to_filepath('https://signed/file',
+                                               os.path.join(tmpdir, 'file'))
       provider.upload_signed_url(b'data', 'https://signed/c')
       provider.delete_signed_url('https://signed/d')
 
     mocks['Session'].assert_called_once()
-    self.assertEqual(session.get.call_count, 2)
+    self.assertEqual(session.get.call_count, 3)
     session.put.assert_called_once()
     session.delete.assert_called_once()
 
@@ -784,3 +824,47 @@ class SignedUrlSessionTest(unittest.TestCase):
     self.assertTrue(result)
     expected = (str(len(payload)), payload)
     self.assertEqual(sent, [expected, expected])
+
+  def test_download_to_filepath_streams_and_retries(self):
+    """Streams chunks via a temp file without reading .content, retrying and
+    cleaning up partial temp files on truncated or dropped streams."""
+    attempts = 0
+
+    def fake_get(url, **kwargs):
+      nonlocal attempts
+      attempts += 1
+      self.assertEqual(url, 'https://signed/large.pdf')
+      self.assertTrue(kwargs.get('stream'))
+      response = mock.MagicMock(ok=True)
+      response.__enter__.return_value = response
+      type(response).content = mock.PropertyMock(
+          side_effect=AssertionError('.content must not be accessed'))
+      if attempts == 1:
+        response.iter_content.return_value = iter([b'stale-truncated'])
+        response.raw.length_remaining = 5
+      else:
+        response.iter_content.return_value = iter([b'chunk-1-', b'chunk-2'])
+        response.raw.length_remaining = 0
+      return response
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+      filepath = os.path.join(tmpdir, 'large.pdf')
+      with mock.patch.object(
+          storage, '_provider', return_value=storage.GcsProvider()), \
+          mock.patch.object(storage.retry, 'sleep'), \
+          mock.patch.object(self._session(), 'get', side_effect=fake_get):
+        result = storage.download_signed_url_to_filepath(
+            'https://signed/large.pdf', filepath)
+
+      self.assertEqual(result, filepath)
+      self.assertEqual(attempts, 2)
+      self.assertEqual(os.listdir(tmpdir), ['large.pdf'])
+      with open(filepath, 'rb') as fp:
+        self.assertEqual(fp.read(), b'chunk-1-chunk-2')
+
+      ref_path = os.path.join(tmpdir, 'ref')
+      with open(ref_path, 'wb') as fp:
+        fp.write(b'x')
+      self.assertEqual(
+          stat.S_IMODE(os.stat(filepath).st_mode),
+          stat.S_IMODE(os.stat(ref_path).st_mode))
