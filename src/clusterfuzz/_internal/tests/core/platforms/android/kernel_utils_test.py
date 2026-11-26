@@ -19,6 +19,7 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.platforms.android import kernel_utils
+from clusterfuzz._internal.platforms.android import symbols_downloader
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -101,31 +102,33 @@ class GetRepoPropDataTest(unittest.TestCase):
   def setUp(self):
     """Set up mocks."""
     helpers.patch(self, [
-        'clusterfuzz._internal.system.environment.get_value',
-        'clusterfuzz._internal.platforms.android.symbols_downloader.get_repo_prop_archive_filename',
-        'clusterfuzz._internal.platforms.android.symbols_downloader.download_kernel_repo_prop_if_needed',
-        'clusterfuzz._internal.base.utils.find_binary_path',
         'clusterfuzz._internal.base.utils.read_data_from_file',
-        'os.path.exists',
+        'clusterfuzz._internal.platforms.android.symbols_downloader.download_kernel_repo_prop_if_needed',
+        'clusterfuzz._internal.system.environment.get_value',
     ])
     self.mock.get_value.return_value = '/symbols'
-    self.mock.get_repo_prop_archive_filename.return_value = 'repo.prop'
 
   def test_success(self):
-    """Test success path."""
-    self.mock.find_binary_path.return_value = '/symbols/repo.prop'
-    self.mock.exists.return_value = True
+    """Returns decoded repo.prop contents when download succeeds."""
+    self.mock.download_kernel_repo_prop_if_needed.return_value = (
+        '/symbols/kernel/target-build_id-repo.prop')
     self.mock.read_data_from_file.return_value = b'data'
 
     result = kernel_utils._get_repo_prop_data('build_id', 'target')
     self.assertEqual(result, 'data')
+    self.mock.download_kernel_repo_prop_if_needed.assert_called_once_with(
+        '/symbols/kernel', 'build_id', 'target')
+    self.mock.read_data_from_file.assert_called_once_with(
+        '/symbols/kernel/target-build_id-repo.prop', eval_data=False)
 
   def test_failure(self):
-    """Test failure path."""
-    self.mock.find_binary_path.return_value = None
+    """Returns None when download raises SymbolDownloadError."""
+    self.mock.download_kernel_repo_prop_if_needed.side_effect = (
+        symbols_downloader.SymbolDownloadError('download failed'))
 
     result = kernel_utils._get_repo_prop_data('build_id', 'target')
     self.assertIsNone(result)
+    self.mock.read_data_from_file.assert_not_called()
 
 
 class GetKernelNameTest(unittest.TestCase):
