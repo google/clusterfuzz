@@ -1,24 +1,58 @@
-[2844:7652:1111/220040.930:FATAL:content\utility\services.cc:373] Check failed: on_device_model::WasPreSandboxInitCalled();
-	html_in_process_fuzzer!(No symbol) [0x7ff6d7c7bcb0]
-	html_in_process_fuzzer!(No symbol) [0x7ff6d7cb0b4e]
-	html_in_process_fuzzer!(No symbol) [0x7ff6d7f54308]
-	html_in_process_fuzzer!(No symbol) [0x7ff6ce7cfbc0]
-	html_in_process_fuzzer!(No symbol) [0x7ff6d86aa046]
-	html_in_process_fuzzer!(No symbol) [0x7ff6d7c013ce]
-	clang_rt.asan_dynamic-x86_64!_asan_wrap_CreateThread [0x7ff963f4e837+147]
-	KERNEL32!BaseThreadInitThunk [0x7ff99dd5dd37+17]
-	ntdll!RtlUserThreadStart [0x7ff99f3df2bc+2c]
+[1126/070301.297:FATAL:content\browser\indexed_db\indexed_db_leveldb_coding.cc:340] Check failed: !std::isnan(value);
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b2a6960]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b2c36ae]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b4989ca]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b49803f]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b4ffb44]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b4ff0eb]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e6644a2]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e6622aa]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e824633]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e80685a]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e8540f4]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e86d8cb]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e86d439]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e860c4c]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e736bf9]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e6bb2c0]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e6d4990]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b36f3f4]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76d4c01bc]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76d4be27f]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b9ff015]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76d4bd643]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76d4da690]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76d4d9246]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b22476e]
+	clang_rt.asan_dynamic-x86_64!_asan_wrap_CreateThread [0x7ff8fe64e857+147]
+	KERNEL32!BaseThreadInitThunk [0x7ff91e418364+14]
+	ntdll!RtlUserThreadStart [0x7ff91e767091+21]
+Task trace:
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e6ba866]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b805df5]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b83f2c6]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff75e5a4e4a]
+	idb_factory_mojolpm_fuzzer!(No symbol) [0x7ff76b83f2c6]
+Task trace buffer limit hit, update PendingTask::kTaskBacktraceLength to increase.
 
 =================================================================
-==2844==ERROR: AddressSanitizer: breakpoint on unknown address 0x7ff6d7f55df2 (pc 0x7ff6d7f55df2 bp 0x00d35fdfe440 sp 0x00d35fdfe3c0 T290)
+==828==ERROR: AddressSanitizer: breakpoint on unknown address 0x7ff76b49a462 (pc 0x7ff76b49a462 bp 0x00b2ef1fdc40 sp 0x00b2ef1fdbc0 T3)
 SCARINESS: 10 (signal)
-    #0 0x7ff6d7f54308 in logging::LogMessage::Flush(void) C:\b\s\w\ir\cache\builder\src\base\logging.cc:714:7
-    #1 0x7ff6d7f5390f in logging::LogMessage::~LogMessage(void) C:\b\s\w\ir\cache\builder\src\base\logging.cc:704:3
-    #2 0x7ff6d7fce004 in logging::`anonymous namespace'::CheckLogMessage::~CheckLogMessage C:\b\s\w\ir\cache\builder\src\base\check.cc:205:31
-    #3 0x7ff6ce7cfbc0 in content::`anonymous namespace'::RunOnDeviceModel C:\b\s\w\ir\cache\builder\src\content\utility\services.cc:373:3
-    #4 0x7ff6d86aa046 in mojo::ServiceFactory::RunService C:\b\s\w\ir\cache\builder\src\mojo\public\cpp\bindings\service_factory.cc:37:5
-    #5 0x7ff6d7c013ce in base::`anonymous namespace'::ThreadFunc C:\b\s\w\ir\cache\builder\src\base\threading\platform_thread_win.cc:111:13
-    #6 0x7ff963f4e837 in _asan_wrap_CreateThread+0x147 (C:\b\s\w\ir\cache\builder\src\out\Release_x64\clang_rt.asan_dynamic-x86_64.dll+0x18004e837)
-    #7 0x7ff99dd5dd37 in BaseThreadInitThunk (C:\Windows\System32\KERNEL32.DLL+0x18001dd37)
-    #8 0x7ff99f3df2bc in RtlUserThreadStart (C:\Windows\SYSTEM32\ntdll.dll+0x18005f2bc)
-==2844==ABORTING
+==828==*** WARNING: Failed to initialize DbgHelp!              ***
+==828==*** Most likely this means that the app is already      ***
+==828==*** using DbgHelp, possibly with incompatible flags.    ***
+==828==*** Due to technical reasons, symbolization might crash ***
+==828==*** or produce wrong results.                           ***
+    #0 0x7ff76b49a461 in logging::LogMessage::HandleFatal(unsigned __int64, class std::__Cr::basic_string<char, struct std::__Cr::char_traits<char>, class std::__Cr::allocator<char>> const &) const C:\b\s\w\ir\cache\builder\src\base\logging.cc:1018:5
+    #1 0x7ff76b4991ea in logging::LogMessage::Flush::<lambda_0>::operator() C:\b\s\w\ir\cache\builder\src\base\logging.cc:749
+    #2 0x7ff76b4991ea in absl::cleanup_internal::Storage<`lambda at ..\..\base\logging.cc:747:40'>::InvokeCallback C:\b\s\w\ir\cache\builder\src\third_party\abseil-cpp\absl\cleanup\internal\cleanup.h:87
+    #3 0x7ff76b4991ea in absl::Cleanup<absl::cleanup_internal::Tag,`lambda at ..\..\base\logging.cc:747:40'>::~Cleanup C:\b\s\w\ir\cache\builder\src\third_party\abseil-cpp\absl\cleanup\cleanup.h:111
+    #4 0x7ff76b4991ea in logging::LogMessage::Flush(void) C:\b\s\w\ir\cache\builder\src\base\logging.cc:897:1
+    #5 0x7ff76b49803e in logging::LogMessage::~LogMessage(void) C:\b\s\w\ir\cache\builder\src\base\logging.cc:703:3
+    #6 0x7ff76b4ffb43 in logging::`anonymous namespace'::CheckLogMessage::~CheckLogMessage C:\b\s\w\ir\cache\builder\src\base\check.cc:208
+    #7 0x7ff76b4ffb43 in logging::`anonymous namespace'::CheckLogMessage::~CheckLogMessage C:\b\s\w\ir\cache\builder\src\base\check.cc:205:31
+    #8 0x7ff76b4ff0ea in logging::NotReachedNoreturnError::~NotReachedNoreturnError(void) C:\b\s\w\ir\cache\builder\src\base\check.cc:459:16
+    #9 0x7ff75e6644a1 in content::indexed_db::`anonymous namespace'::EncodeSortableDouble C:\b\s\w\ir\cache\builder\src\content\browser\indexed_db\indexed_db_leveldb_coding.cc:340:3
+    #10 0x7ff75e6622a9 in blink::IndexedDBKey::date C:\b\s\w\ir\cache\builder\src\third_party\blink\public\common\indexeddb\indexeddb_key.h:90
+    #11 0x7ff75e6622a9 in content::indexed_db::EncodeSortableIDBKey(class blink::IndexedDBKey const &) C:\b\s\w\ir\cache\builder\src\content\browser\indexed_db\indexed_db_leveldb_coding.cc:606:35
+==828==ABORTING

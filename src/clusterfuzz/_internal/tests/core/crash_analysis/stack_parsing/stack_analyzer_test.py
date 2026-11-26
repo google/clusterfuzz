@@ -4300,9 +4300,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'check_failure_chrome_win_no_symbol_fallback.txt')
     expected_type = 'CHECK failure'
     expected_address = ''
-    expected_state = (
-        'on_device_model::WasPreSandboxInitCalled() in services.cc\n'
-        'content::RunOnDeviceModel\n'
-        'mojo::ServiceFactory::RunService\n')
+    expected_state = ('!std::isnan(value) in indexed_db_leveldb_coding.cc\n'
+                      'absl::cleanup_internal::Storage<`lambda\n'
+                      'absl::Cleanup<absl::cleanup_internal::Tag,`lambda\n')
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, data, False)
