@@ -23,6 +23,9 @@ from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management.jira.issue_tracker_manager import \
     IssueTrackerManager
 
+_JIRA_SPECIAL_CHARS = '+-&|!(){}[]^~*?\\:"\'=,`;<>/'
+_JIRA_SPECIAL_CHARS_TABLE = str.maketrans({c: ' ' for c in _JIRA_SPECIAL_CHARS})
+
 
 class Issue(issue_tracker.Issue):
   """Represents an issue."""
@@ -178,12 +181,18 @@ class IssueTracker(issue_tracker.IssueTracker):
 
     return Issue(self._itm, jira_issue)
 
-  def find_issues(self, keywords=None, only_open=False):
-    """Find issues."""
-    search_text = 'project = {project_name}' + _get_search_text(keywords)
-    search_text = search_text.format(project_name=self._itm.project_name)
+  def _build_search_query(self, keywords=None, only_open=False):
+    """Build a JQL search query scoped to this project."""
+    search_text = (
+        f'project = {self._itm.project_name}{_get_search_text(keywords)}')
     if only_open:
       search_text += ' AND resolution = Unresolved'
+    return search_text
+
+  def find_issues(self, keywords=None, only_open=False):
+    """Find issues."""
+    search_text = self._build_search_query(
+        keywords=keywords, only_open=only_open)
     issues = self._itm.get_issues(search_text)
     return [Issue(self._itm, issue) for issue in issues]
 
@@ -193,7 +202,7 @@ class IssueTracker(issue_tracker.IssueTracker):
                                only_open=None):
     """Find issues given query filters."""
     # Jira treats keywords and query filters the same for queries.
-    return self.find_issues(keywords + query_filters, only_open)
+    return self.find_issues((keywords or []) + (query_filters or []), only_open)
 
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
@@ -206,10 +215,8 @@ class IssueTracker(issue_tracker.IssueTracker):
     return url
 
   def find_issues_url(self, keywords=None, only_open=None):
-    search_text = 'project = {project_name}' + _get_search_text(keywords)
-    search_text = search_text.format(project_name=self._itm.project_name)
-    if only_open:
-      search_text += ' AND resolution = Unresolved'
+    search_text = self._build_search_query(
+        keywords=keywords, only_open=only_open)
     config = db_config.get()
     return urljoin(config.jira_url, f'/issues/?jql={search_text}')
 
@@ -219,7 +226,8 @@ class IssueTracker(issue_tracker.IssueTracker):
                                    only_open=None):
     """Return the issue URL with the given ID and additional query filters."""
     # Jira treats keywords and query filters the same for queries.
-    return self.find_issues_url(keywords + query_filters, only_open)
+    return self.find_issues_url((keywords or []) + (query_filters or []),
+                                only_open)
 
 
 def _get_issue_tracker_manager_for_project(project_name):
@@ -241,17 +249,18 @@ def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
 
 
 def _get_search_text(keywords):
-  """Get search text."""
-  jira_special_characters = '+-&|!(){}[]^~*?\\:'
-  search_text = ''
-  for keyword in keywords:
-    # Replace special characters with whitespace as they are not allowed and
-    # can't be searched for.
-    stripped_keyword = keyword
-    for special_character in jira_special_characters:
-      stripped_keyword = stripped_keyword.replace(special_character, ' ')
-    # coalesce multiple spaces into one.
-    stripped_keyword = ' '.join(stripped_keyword.split())
-    search_text += f' AND text ~ "{stripped_keyword}"'
+  """Build JQL text search clauses with special characters stripped."""
+  if not keywords:
+    return ''
 
-  return search_text
+  clauses = []
+  for keyword in keywords:
+    # Replace Jira/JQL special characters (including quotes and clause
+    # operators) with whitespace so keywords cannot break out of the quoted
+    # text search literal.
+    stripped_keyword = ' '.join(
+        keyword.translate(_JIRA_SPECIAL_CHARS_TABLE).split())
+    if stripped_keyword:
+      clauses.append(f' AND text ~ "{stripped_keyword}"')
+
+  return ''.join(clauses)

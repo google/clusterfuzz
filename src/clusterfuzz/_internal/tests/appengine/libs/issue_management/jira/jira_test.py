@@ -157,6 +157,33 @@ class JiraTests(unittest.TestCase):
     self.mock.get_issues.return_value = [self.jira_issue]
     issues = self.issue_tracker.find_issues(keywords=['body'], only_open=True)
     self.assertCountEqual(['VSEC-3112'], [issue.key for issue in issues])
+    self.mock.get_issues.assert_called_once_with(
+        self.itm,
+        'project = VSEC AND text ~ "body" AND resolution = Unresolved')
+
+  def test_find_issues_sanitizes_jql_injection(self):
+    """Test find_issues strips quotes and JQL operators from keywords."""
+    self.mock.get_issues.return_value = []
+    self.issue_tracker.find_issues(
+        keywords=['x" OR project = "OTHER'], only_open=False)
+    self.mock.get_issues.assert_called_once_with(
+        self.itm, 'project = VSEC AND text ~ "x OR project OTHER"')
+
+  def test_find_issues_sanitizes_quotes_and_delimiters(self):
+    """Test find_issues strips all JQL quotes and delimiters."""
+    self.mock.get_issues.return_value = []
+    self.issue_tracker.find_issues(
+        keywords=['a\'b=c,d`e;f<g>h/i\\j"k'], only_open=False)
+    self.mock.get_issues.assert_called_once_with(
+        self.itm, 'project = VSEC AND text ~ "a b c d e f g h i j k"')
+
+  def test_find_issues_empty_or_special_only_keywords(self):
+    """Test find_issues omits empty clauses when keywords are empty or stripped."""
+    self.mock.get_issues.return_value = []
+    for keywords in (None, [], ['"""===', '   ']):
+      self.mock.get_issues.reset_mock()
+      self.issue_tracker.find_issues(keywords=keywords, only_open=False)
+      self.mock.get_issues.assert_called_once_with(self.itm, 'project = VSEC')
 
   def test_issue_url(self):
     """Test issue_url."""
@@ -173,6 +200,16 @@ class JiraTests(unittest.TestCase):
     self.assertEqual(
         'https://jira.company.com/issues/?jql=project = VSEC AND text ~ "keyword test"',
         issue_url)
+
+  def test_find_issues_url_sanitizes_jql_injection(self):
+    """Test find_issues_url strips quotes and JQL operators from keywords."""
+    self.mock.get.return_value = Config()
+    issue_url = self.issue_tracker.find_issues_url(
+        keywords=['x" OR project = "OTHER'], only_open=True)
+    self.assertEqual(
+        'https://jira.company.com/issues/?jql='
+        'project = VSEC AND text ~ "x OR project OTHER"'
+        ' AND resolution = Unresolved', issue_url)
 
   def test_issue_save(self):
     """Test save."""
