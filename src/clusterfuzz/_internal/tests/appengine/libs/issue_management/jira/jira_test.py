@@ -15,6 +15,8 @@
 
 import datetime
 import unittest
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 import pytz
 
@@ -157,6 +159,60 @@ class JiraTests(unittest.TestCase):
     self.mock.get_issues.return_value = [self.jira_issue]
     issues = self.issue_tracker.find_issues(keywords=['body'], only_open=True)
     self.assertCountEqual(['VSEC-3112'], [issue.key for issue in issues])
+    self.mock.get_issues.assert_called_once_with(
+        self.itm,
+        'project = VSEC AND text ~ "body" AND resolution = Unresolved')
+
+  def test_find_issues_sanitizes_jql_injection(self):
+    """Test find_issues strips quotes and JQL operators from keywords."""
+    self.mock.get_issues.return_value = []
+    self.issue_tracker.find_issues(
+        keywords=['x" OR project = "OTHER'], only_open=False)
+    self.mock.get_issues.assert_called_once_with(
+        self.itm, 'project = VSEC AND text ~ "x OR project OTHER"')
+
+  def test_find_issues_sanitizes_quotes_and_delimiters(self):
+    """Test find_issues strips all JQL quotes and delimiters."""
+    self.mock.get_issues.return_value = []
+    self.issue_tracker.find_issues(
+        keywords=['a\'b=c,d`e;f<g>h/i\\j"k'], only_open=False)
+    self.mock.get_issues.assert_called_once_with(
+        self.itm, 'project = VSEC AND text ~ "a b c d e f g h i j k"')
+
+  def test_find_issues_empty_or_special_only_keywords(self):
+    """Test find_issues returns empty list when no usable keywords remain."""
+    self.mock.get_issues.return_value = [self.jira_issue]
+    for keywords in (None, [], ['"""===', '   ']):
+      self.mock.get_issues.reset_mock()
+      issues = self.issue_tracker.find_issues(
+          keywords=keywords, only_open=False)
+      self.assertEqual([], issues)
+      self.mock.get_issues.assert_not_called()
+
+  def test_find_issues_skips_empty_keywords_when_others_remain(self):
+    """Test find_issues drops only empty clauses while keeping valid keywords."""
+    self.mock.get_issues.return_value = []
+    self.issue_tracker.find_issues(
+        keywords=['foo', '"""===', 'bar'], only_open=False)
+    self.mock.get_issues.assert_called_once_with(
+        self.itm, 'project = VSEC AND text ~ "foo" AND text ~ "bar"')
+
+  def test_find_issues_with_filters(self):
+    """Test find_issues_with_filters handles tuples, None, and sanitization."""
+    self.mock.get_issues.return_value = []
+    self.issue_tracker.find_issues_with_filters(
+        keywords=('foo',), query_filters=(), only_open=False)
+    self.mock.get_issues.assert_called_once_with(
+        self.itm, 'project = VSEC AND text ~ "foo"')
+
+    self.mock.get_issues.reset_mock()
+    self.issue_tracker.find_issues_with_filters(
+        keywords=None,
+        query_filters=('x" OR project = "OTHER',),
+        only_open=True)
+    self.mock.get_issues.assert_called_once_with(
+        self.itm, 'project = VSEC AND text ~ "x OR project OTHER" '
+        'AND resolution = Unresolved')
 
   def test_issue_url(self):
     """Test issue_url."""
@@ -171,8 +227,40 @@ class JiraTests(unittest.TestCase):
     issue_url = self.issue_tracker.find_issues_url(
         keywords=['keyword+-&|!(){}[]^~*?:+-&|!(){}[]^~*?:test'])
     self.assertEqual(
-        'https://jira.company.com/issues/?jql=project = VSEC AND text ~ "keyword test"',
-        issue_url)
+        'https://jira.company.com/issues/'
+        '?jql=project+%3D+VSEC+AND+text+~+%22keyword+test%22', issue_url)
+
+  def test_find_issues_url_sanitizes_jql_injection(self):
+    """Test find_issues_url strips JQL quotes and URL-encodes % and #."""
+    self.mock.get.return_value = Config()
+    issue_url = self.issue_tracker.find_issues_url(
+        keywords=['x" OR project = "OTHER'], only_open=True)
+    parsed = urlparse(issue_url)
+    self.assertEqual('', parsed.fragment)
+    self.assertEqual([
+        'project = VSEC AND text ~ "x OR project OTHER" '
+        'AND resolution = Unresolved'
+    ],
+                     parse_qs(parsed.query)['jql'])
+
+    encoded_url = self.issue_tracker.find_issues_url(
+        keywords=['x%22%20OR%20project%20%3D%20%22OTHER%22#'], only_open=True)
+    parsed_encoded = urlparse(encoded_url)
+    self.assertEqual('', parsed_encoded.fragment)
+    self.assertEqual([
+        'project = VSEC AND text ~ '
+        '"x%22%20OR%20project%20%3D%20%22OTHER%22#" AND resolution = Unresolved'
+    ],
+                     parse_qs(parsed_encoded.query)['jql'])
+
+  def test_find_issues_url_with_filters(self):
+    """Test find_issues_url_with_filters handles tuples and None."""
+    self.mock.get.return_value = Config()
+    issue_url = self.issue_tracker.find_issues_url_with_filters(
+        keywords=('foo',), query_filters=None, only_open=False)
+    parsed = urlparse(issue_url)
+    self.assertEqual(['project = VSEC AND text ~ "foo"'],
+                     parse_qs(parsed.query)['jql'])
 
   def test_issue_save(self):
     """Test save."""
