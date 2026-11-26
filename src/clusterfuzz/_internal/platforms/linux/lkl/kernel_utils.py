@@ -15,6 +15,7 @@
 import os
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms.android import symbols_downloader
 from clusterfuzz._internal.system import environment
 
@@ -42,27 +43,18 @@ def get_kernel_prefix_and_full_hash(build_id):
   return None, None
 
 
-def _get_repo_prop_data(build_id, fuzz_target):
-  """Downloads repo.prop and returuns the data based on build_id and target."""
+def _get_repo_prop_data(build_id: str, fuzz_target: str) -> str | None:
+  """Returns the LKL repo.prop contents, or None if unavailable."""
   symbols_directory = os.path.join(
       environment.get_value('SYMBOLS_DIR'), fuzz_target)
-  repro_filename = symbols_downloader.get_repo_prop_archive_filename(
-      build_id, fuzz_target)
+  try:
+    local_repo_path = symbols_downloader.download_repo_prop_if_needed(
+        symbols_directory,
+        build_id,
+        fuzz_target, [fuzz_target],
+        can_download=_should_download_symbols())
+  except symbols_downloader.SymbolDownloadError as error:
+    logs.warning(f'Unable to obtain LKL kernel repo.prop: {error}')
+    return None
 
-  # Grab repo.prop, it is not on the device nor in the build_dir.
-  _download_kernel_repo_prop_if_needed(symbols_directory, build_id, fuzz_target)
-  local_repo_path = utils.find_binary_path(symbols_directory, repro_filename)
-  if local_repo_path and os.path.exists(local_repo_path):
-    return utils.read_data_from_file(local_repo_path, eval_data=False).decode()
-
-  return None
-
-
-def _download_kernel_repo_prop_if_needed(symbols_directory, build_id,
-                                         fuzz_target):
-  """Downloads the repo.prop for an LKL fuzzer"""
-  if not _should_download_symbols():
-    return
-
-  symbols_downloader.download_repo_prop_if_needed(
-      symbols_directory, build_id, fuzz_target, [fuzz_target], 'lkl_fuzzer')
+  return utils.read_data_from_file(local_repo_path, eval_data=False).decode()

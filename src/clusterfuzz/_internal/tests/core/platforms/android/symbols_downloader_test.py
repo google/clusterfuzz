@@ -146,3 +146,93 @@ class FilterBinaryPathSafetyTest(unittest.TestCase):
     self.assertEqual('/a; id;', binary)
     self.assertEqual('', stack_symbolizer.filter_binary_path(binary))
     self.mock.execute_command.assert_not_called()
+
+
+class DownloadRepoPropIfNeededTest(unittest.TestCase):
+  """Tests for download_repo_prop_if_needed."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.fetch_artifact.get',
+    ])
+
+  def test_returns_existing_local_repo_prop_without_downloading(self):
+    """Returns the local repo.prop path without fetching when already cached."""
+    with tempfile.TemporaryDirectory() as symbols_dir:
+      expected_path = os.path.join(symbols_dir, 'cheetah-12345-repo.prop')
+      with open(expected_path, 'w') as repo_file:
+        repo_file.write('kernel/private/gs-google u\'abc123\'\n')
+
+      result = symbols_downloader.download_repo_prop_if_needed(
+          symbols_dir,
+          '12345',
+          'cheetah', ['kernel', 'kernel_cheetah'],
+          can_download=True)
+
+      self.assertEqual(result, expected_path)
+      self.mock.get.assert_not_called()
+
+  def test_returns_existing_local_repo_prop_when_download_disabled(self):
+    """Returns the local repo.prop path even when can_download is False."""
+    with tempfile.TemporaryDirectory() as symbols_dir:
+      expected_path = os.path.join(symbols_dir, 'cheetah-12345-repo.prop')
+      with open(expected_path, 'w') as repo_file:
+        repo_file.write('kernel/private/gs-google u\'abc123\'\n')
+
+      result = symbols_downloader.download_repo_prop_if_needed(
+          symbols_dir,
+          '12345',
+          'cheetah', ['kernel', 'kernel_cheetah'],
+          can_download=False)
+
+      self.assertEqual(result, expected_path)
+      self.mock.get.assert_not_called()
+
+  def test_downloads_repo_prop_when_missing_locally(self):
+    """Downloads repo.prop and returns its path when absent locally."""
+    with tempfile.TemporaryDirectory() as symbols_dir:
+      expected_path = os.path.join(symbols_dir, 'cheetah-12345-repo.prop')
+
+      def fake_fetch(build_id, target, artifact_name, output_dir,
+                     output_filename):
+        del build_id, artifact_name
+        if target == 'kernel_cheetah':
+          output_path = os.path.join(output_dir, output_filename)
+          with open(output_path, 'w') as repo_file:
+            repo_file.write('kernel/private/gs-google u\'abc123\'\n')
+          return [output_path]
+        return []
+
+      self.mock.get.side_effect = fake_fetch
+
+      result = symbols_downloader.download_repo_prop_if_needed(
+          symbols_dir,
+          '12345',
+          'cheetah', ['kernel', 'kernel_cheetah'],
+          can_download=True)
+
+      self.assertEqual(result, expected_path)
+      self.assertTrue(os.path.isfile(expected_path))
+
+  def test_raises_when_missing_locally_and_download_disabled(self):
+    """Raises SymbolDownloadError when absent and can_download is False."""
+    with tempfile.TemporaryDirectory() as symbols_dir:
+      with self.assertRaises(symbols_downloader.SymbolDownloadError):
+        symbols_downloader.download_repo_prop_if_needed(
+            symbols_dir,
+            '12345',
+            'cheetah', ['kernel', 'kernel_cheetah'],
+            can_download=False)
+      self.mock.get.assert_not_called()
+
+  def test_raises_when_repo_prop_cannot_be_downloaded(self):
+    """Raises SymbolDownloadError when repo.prop is absent and download fails."""
+    with tempfile.TemporaryDirectory() as symbols_dir:
+      self.mock.get.return_value = []
+
+      with self.assertRaises(symbols_downloader.SymbolDownloadError):
+        symbols_downloader.download_repo_prop_if_needed(
+            symbols_dir,
+            '12345',
+            'cheetah', ['kernel', 'kernel_cheetah'],
+            can_download=True)
