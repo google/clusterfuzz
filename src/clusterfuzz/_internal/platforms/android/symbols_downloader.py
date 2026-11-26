@@ -22,7 +22,6 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms.android import adb
 from clusterfuzz._internal.platforms.android import fetch_artifact
-from clusterfuzz._internal.platforms.android import kernel_utils
 from clusterfuzz._internal.platforms.android import settings
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
@@ -70,6 +69,18 @@ def check_symbols_cached(build_params_check_path, build_params):
   return cached_build_params and cached_build_params == build_params
 
 
+def _get_kernel_artifact_targets(target: str) -> list[str]:
+  """Returns candidate Android Build target names for a kernel build."""
+  tool_suffix = environment.get_value('SANITIZER_TOOL_NAME')
+  # Some kernels are just 'kernel', some are 'kernel_<target>'.
+  if tool_suffix:
+    return [
+        'kernel_%s' % tool_suffix,
+        'kernel_%s_%s' % (tool_suffix, target),
+    ]
+  return ['kernel', 'kernel_%s' % target]
+
+
 def download_repo_prop_if_needed(
     symbols_directory: str,
     build_id: str,
@@ -115,38 +126,33 @@ def download_repo_prop_if_needed(
   return symbols_archive_path
 
 
-def download_kernel_repo_prop_if_needed(symbols_directory):
-  """Downloads the repo.prop for the kernel of a device"""
-  if not should_download_symbols():
-    return
+def download_kernel_repo_prop_if_needed(
+    symbols_directory: str,
+    build_id: str,
+    target: str,
+) -> str:
+  """Returns the local Android kernel repo.prop path, downloading if needed.
 
-  # For Android kernel we want to get the repro.prop
-  # Note: kasan and non-kasan kernel should have the same repo.prop for a given
-  # build_id.
-  _, build_id = kernel_utils.get_kernel_hash_and_build_id()
-  target = kernel_utils.get_kernel_name()
-  if not build_id or not target:
-    logs.error('Could not get kernel parameters, exiting.')
-    return
+  Args:
+    symbols_directory: Directory where repo.prop is cached or downloaded.
+    build_id: Android kernel build ID.
+    target: Android kernel target name.
 
-  tool_suffix = environment.get_value('SANITIZER_TOOL_NAME')
-  # Some kernels are just 'kernel', some are kernel_target
-  if tool_suffix:
-    targets_with_type_and_san = [
-        f'kernel_{tool_suffix}', f'kernel_{tool_suffix}_{target}'
-    ]
-  else:
-    targets_with_type_and_san = ['kernel', f'kernel_{target}']
+  Returns:
+    Path to the local repo.prop file.
 
-  try:
-    download_repo_prop_if_needed(
-        symbols_directory,
-        build_id,
-        target,
-        targets_with_type_and_san,
-        can_download=should_download_symbols())
-  except SymbolDownloadError as error:
-    logs.warning(f'Unable to obtain Android kernel repo.prop: {error}')
+  Raises:
+    SymbolDownloadError: If repo.prop is absent locally and downloading is
+      disabled or fails.
+  """
+  # Note: kasan and non-kasan kernels share the same repo.prop for a build_id.
+  targets_with_type_and_san = _get_kernel_artifact_targets(target)
+  return download_repo_prop_if_needed(
+      symbols_directory,
+      build_id,
+      target,
+      targets_with_type_and_san,
+      can_download=should_download_symbols())
 
 
 def download_system_symbols_if_needed(symbols_directory):

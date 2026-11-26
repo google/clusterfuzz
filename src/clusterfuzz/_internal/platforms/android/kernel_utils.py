@@ -90,21 +90,18 @@ def _get_prefix_and_full_hash(repo_data, kernel_partial_hash):
   return None, None
 
 
-def _get_repo_prop_data(build_id, target):
-  """Downloads repo.prop and returns the data based on build_id and target."""
+def _get_repo_prop_data(build_id: str, target: str) -> str | None:
+  """Returns the Android kernel repo.prop contents, or None if unavailable."""
   symbols_directory = os.path.join(
       environment.get_value('SYMBOLS_DIR'), 'kernel')
-  repro_filename = symbols_downloader.get_repo_prop_archive_filename(
-      build_id, target)
+  try:
+    local_repo_path = symbols_downloader.download_kernel_repo_prop_if_needed(
+        symbols_directory, build_id, target)
+  except symbols_downloader.SymbolDownloadError as error:
+    logs.warning(f'Unable to obtain Android kernel repo.prop: {error}')
+    return None
 
-  # Grab repo.prop, it is not on the device nor in the build_dir.
-  symbols_downloader.download_kernel_repo_prop_if_needed(symbols_directory)
-  local_repo_path = utils.find_binary_path(symbols_directory, repro_filename)
-
-  if local_repo_path and os.path.exists(local_repo_path):
-    return utils.read_data_from_file(local_repo_path, eval_data=False).decode()
-
-  return None
+  return utils.read_data_from_file(local_repo_path, eval_data=False).decode()
 
 
 def get_kernel_prefix_and_full_hash():
