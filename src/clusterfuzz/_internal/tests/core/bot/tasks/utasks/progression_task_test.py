@@ -1374,9 +1374,39 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
   def _clean_result(self):
     return crash_result_lib.CrashResult(0, 0.1, '')
 
-  def test_min_revision_bad_build_sets_passed_on_latest_true_when_trunk_clean(
-      self):
-    """Tests bad min_revision after clean latest trunk sets passed_on_latest."""
+  def test_skips_bad_min_revision_and_bisects_fixed_range(self):
+    """Tests skip-forward past bad min_revision recovers bisection."""
+    self.mock.get_revisions_list.return_value = [100, 120, 150, 200]
+    bad_revisions = {100}
+    crashing_revisions = {120}
+
+    def fake_bad_build(job_type, revision):  # pylint: disable=unused-argument
+      return uworker_msg_pb2.BuildData(
+          revision=revision, is_bad_build=revision in bad_revisions)
+
+    calls = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      calls.append(revision)
+      return True
+
+    def fake_test(*args, **kwargs):  # pylint: disable=unused-argument
+      if calls[-1] in crashing_revisions:
+        return self._crashing_result()
+      return self._clean_result()
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = fake_bad_build
+    self.mock.test_for_crash_with_retries.side_effect = fake_test
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual(uworker_msg_pb2.ErrorType.NO_ERROR, output.error_type)
+    self.assertEqual(120, output.progression_task_output.min_revision)
+    self.assertEqual(150, output.progression_task_output.max_revision)
+
+  def test_aborts_without_fixed_range_when_skipped_min_build_is_clean(self):
+    """Tests skip-forward aborts with passed_on_latest when next build passes."""
     self.mock.get_revisions_list.return_value = [100, 150, 200]
     self.mock.check_for_bad_build.side_effect = (
         lambda job_type, rev: uworker_msg_pb2.BuildData(
@@ -1390,6 +1420,238 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
     self.assertTrue(output.progression_task_output.passed_on_latest)
     self.assertEqual(200, output.progression_task_output.max_revision)
     self.assertFalse(output.progression_task_output.HasField('min_revision'))
+
+  def test_short_circuits_skip_forward_on_loader_failure_at_min_revision(self):
+    """Tests cross-OS loader errors at min_revision do not download builds."""
+    self.mock.get_revisions_list.return_value = [100, 120, 150, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    def fake_test(*args, **kwargs):  # pylint: disable=unused-argument
+      if tested_revisions[-1] == 100:
+        return crash_result_lib.CrashResult(
+            0,
+            0.1,
+            '/out/fuzzer: error while loading shared libraries: libssl.so.1.1: '
+            'cannot open shared object file',
+            raw_return_code=127)
+      return self._clean_result()
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=False))
+    self.mock.test_for_crash_with_retries.side_effect = fake_test
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 100], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+    self.assertTrue(output.progression_task_output.passed_on_latest)
+
+  def test_mid_skip_loader_error_short_circuits_and_preserves_bad_build_data(
+      self):
+    """Tests loader failure on a skipped candidate aborts with prior bad builds."""
+    self.mock.get_revisions_list.return_value = [100, 120, 150, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    def fake_test(*args, **kwargs):  # pylint: disable=unused-argument
+      if tested_revisions[-1] == 120:
+        return crash_result_lib.CrashResult(
+            0,
+            0.1,
+            '/out/fuzzer: error while loading shared libraries: libssl.so.1.1: '
+            'cannot open shared object file',
+            raw_return_code=127)
+      return self._clean_result()
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 100))
+    self.mock.test_for_crash_with_retries.side_effect = fake_test
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 100, 120], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+    self.assertTrue(output.progression_task_output.passed_on_latest)
+    bad_revisions = [
+        bd.revision
+        for bd in output.progression_task_output.build_data_list
+        if bd.is_bad_build
+    ]
+    self.assertEqual([100], bad_revisions)
+
+  def test_caps_skip_forward_at_extreme_revisions_limit(self):
+    """Tests skip-forward stops after EXTREME_REVISIONS_TO_TEST bad builds."""
+    self.mock.get_revisions_list.return_value = [100, 110, 120, 130, 140, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev < 200))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 100, 110, 120, 130], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+    self.assertTrue(output.progression_task_output.passed_on_latest)
+
+  def test_two_revision_list_does_not_retest_latest_when_min_is_bad(self):
+    """Tests [100, 200] does not re-test 200 when 100 fails bad-build check."""
+    self.mock.get_revisions_list.return_value = [100, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 100))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 100], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+    self.assertTrue(output.progression_task_output.passed_on_latest)
+
+  def test_deadline_expiry_during_min_skip_forward_returns_timeout(self):
+    """Tests deadline expiry during min_revision skip-forward returns TIMEOUT."""
+    self.mock.get_task_completion_deadline.return_value = 100.0
+    self.mock.get_revisions_list.return_value = [100, 120, 200]
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 100))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    with mock.patch('time.time', return_value=200.0):
+      output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT,
+                     output.error_type)
+    self.assertFalse(
+        output.progression_task_output.HasField('last_progression_min'))
+
+  def test_deadline_expiry_after_advancing_bad_min_saves_progress(self):
+    """Tests timeout right after advancing bad min_revision saves progress."""
+    self.mock.get_task_completion_deadline.return_value = 100.0
+    self.mock.get_revisions_list.return_value = [100, 120, 150, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 100))
+    self.mock.test_for_crash_with_retries.side_effect = (
+        lambda *args, **kwargs: self._crashing_result()
+        if tested_revisions[-1] == 120 else self._clean_result())
+
+    with mock.patch('time.time', side_effect=[50.0, 150.0]):
+      output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 100, 120], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT,
+                     output.error_type)
+    self.assertEqual(120, output.progression_task_output.last_progression_min)
+    self.assertEqual(200, output.progression_task_output.last_progression_max)
+
+  def test_missing_intermediate_min_revision_does_not_test_older_build(self):
+    """Tests missing min_revision returns SETUP_ERROR instead of older build."""
+    self.testcase.crash_revision = 175
+    self.testcase.put()
+    self.mock.get_revisions_list.return_value = [100, 150, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return revision != 175
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=False))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 175], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
+                     output.error_type)
+
+  def test_filtered_bad_last_tested_min_advances_forward_not_backward(self):
+    """Tests filtered bad min_revision advances to > min_revision."""
+    self.testcase.set_metadata('last_tested_crash_revision', 175)
+    self.mock.get_revisions_list.return_value = [100, 150, 180, 190, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev in {175, 180}))
+    self.mock.test_for_crash_with_retries.side_effect = (
+        lambda *args, **kwargs: self._crashing_result()
+        if tested_revisions[-1] == 190 else self._clean_result())
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 175, 180, 190], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.NO_ERROR, output.error_type)
+    self.assertEqual(190, output.progression_task_output.min_revision)
+    self.assertEqual(200, output.progression_task_output.max_revision)
+
+  def test_filtered_min_reproducing_on_healthy_bot_preserves_lower_bound(self):
+    """Tests pre-filtered min_revision reproducing keeps exact fixed bound."""
+    self.testcase.set_metadata('last_tested_crash_revision', 175)
+    self.mock.get_revisions_list.return_value = [100, 150, 180, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=False))
+    self.mock.test_for_crash_with_retries.side_effect = (
+        lambda *args, **kwargs: self._crashing_result()
+        if tested_revisions[-1] == 175 else self._clean_result())
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 175, 180], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.NO_ERROR, output.error_type)
+    self.assertEqual(175, output.progression_task_output.min_revision)
+    self.assertEqual(180, output.progression_task_output.max_revision)
 
   def test_max_revision_bad_build_sets_passed_on_latest_false(self):
     """Tests broken latest trunk leaves passed_on_latest False."""
