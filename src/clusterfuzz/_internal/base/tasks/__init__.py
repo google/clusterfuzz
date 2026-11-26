@@ -146,6 +146,11 @@ _KNOWN_OS_SUFFIX_PATTERN = re.compile(r'-(ubuntu-\d{2}-\d{2})$')
 SUBQUEUE_IDENTIFIER = ':'
 
 UTASK_QUEUE_PULL_SECONDS = 150
+# Shorter pull window for Swarming utask_main queues. Because multiple
+# per-platform Swarming queues are polled sequentially in a single scheduling
+# cycle, using a shorter window than UTASK_QUEUE_PULL_SECONDS prevents one
+# platform queue from stalling others while keeping dispatch responsive.
+SWARMING_UTASK_QUEUE_PULL_SECONDS = 30
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
@@ -853,14 +858,23 @@ def get_task_from_message(message, queue=None, can_defer=True,
   return task
 
 
-def get_utask_mains(queue_name: str) -> List[PubSubTask]:
-  """Returns a list of tasks for preprocessing many utasks on this bot and then
-  running the uworker_mains in the same batch job."""
+def get_utask_mains(queue_name: str,
+                    pull_seconds: int = UTASK_QUEUE_PULL_SECONDS
+                   ) -> List[PubSubTask]:
+  """Pulls a batch of preprocessed utask_main tasks from a Pub/Sub queue.
+
+  Args:
+    queue_name: Name of the Pub/Sub queue to pull utask_main messages from.
+    pull_seconds: Maximum time in seconds to collect messages from the queue
+      before returning. Defaults to UTASK_QUEUE_PULL_SECONDS.
+
+  Returns:
+    A list of PubSubTask objects ready to be scheduled on a remote backend.
+  """
   subscription_name = subscription_name_for_queue(queue_name)
   topic_queue = _strip_os_version_suffix(queue_name)
   pubsub_puller = PubSubPuller(subscription_name)
-  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
-                                                     UTASK_QUEUE_PULL_SECONDS)
+  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS, pull_seconds)
   return handle_multiple_utask_main_messages(messages, topic_queue)
 
 
