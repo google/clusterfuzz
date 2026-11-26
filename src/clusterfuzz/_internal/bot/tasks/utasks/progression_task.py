@@ -727,28 +727,35 @@ def find_fixed_range(uworker_input):
   # for bisecting the progression range. Set start to the revision where noticed
   # the crash. Set end to the trunk revision. Also, use min, max from past run
   # if it timed out.
-  min_revision = testcase.get_metadata('last_progression_min')
-  max_revision = testcase.get_metadata('last_progression_max')
-  testing_latest_revision = not bool(max_revision)
+  raw_min_revision = testcase.get_metadata('last_progression_min')
+  raw_max_revision = testcase.get_metadata('last_progression_max')
+  min_revision = build_manager.parse_revision_metadata(raw_min_revision)
+  max_revision = build_manager.parse_revision_metadata(raw_max_revision)
+  testing_latest_revision = max_revision is None
   progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(  # pylint: disable=no-member
       clear_min_max_metadata=False,
       build_data_list=[])
-  if min_revision or max_revision:
+  if raw_min_revision is not None or raw_max_revision is not None:
     # Clear these to avoid using them in next run. If this run fails, then we
     # should try next run without them to see it succeeds. If this run succeeds,
     # we should still clear them to avoid capping max revision in next run.
     progression_task_output.clear_min_max_metadata = True
 
-  last_tested_revision = testcase.get_metadata('last_tested_crash_revision')
-  known_crash_revision = last_tested_revision or testcase.crash_revision
-  if not min_revision:
-    min_revision = known_crash_revision
+  last_tested_revision = build_manager.parse_revision_metadata(
+      testcase.get_metadata('last_tested_crash_revision'))
+  crash_revision = build_manager.parse_revision_metadata(
+      testcase.crash_revision)
+  known_crash_revision = last_tested_revision or crash_revision
+  if min_revision is None:
     min_revision_in_list = revisions.get_first_revision_in_list(revision_list)
-    if min_revision < min_revision_in_list:
-      logs.info(f'Build {min_revision} might not exist in the list. Hence '
-                f'updating the min_revision to {min_revision_in_list}')
+    if (known_crash_revision is None or
+        known_crash_revision < min_revision_in_list):
+      logs.info(f'Build {known_crash_revision} might not exist in the list. '
+                f'Hence updating the min_revision to {min_revision_in_list}')
       min_revision = min_revision_in_list
-  if not max_revision:
+    else:
+      min_revision = known_crash_revision
+  if max_revision is None:
     max_revision = revisions.get_last_revision_in_list(revision_list)
 
   logs.info(
@@ -807,8 +814,8 @@ def find_fixed_range(uworker_input):
         progression_task_output=progression_task_output,
         issue_metadata=json.dumps(issue_metadata))
 
-  if (testing_latest_revision and max_revision > known_crash_revision and
-      min_index < max_index):
+  if (testing_latest_revision and known_crash_revision is not None and
+      max_revision > known_crash_revision and min_index < max_index):
     progression_task_output.passed_on_latest = True
     progression_task_output.max_revision = int(max_revision)
 

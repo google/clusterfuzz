@@ -1136,8 +1136,8 @@ def get_primary_bucket_path():
 
 def get_revisions_list(bucket_path, bad_revisions, testcase=None):
   """Returns a sorted ascending list of revisions from a bucket path, excluding
-  bad build revisions. Testcase crash revision is not excluded from the list
-  even if it appears in the bad_revisions list."""
+  bad build revisions. Testcase crash revision and last tested crash revision
+  are not excluded from the list even if they appear in bad_revisions."""
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
       bucket_path)
 
@@ -1153,13 +1153,7 @@ def get_revisions_list(bucket_path, bad_revisions, testcase=None):
       revision = revisions.convert_revision_to_integer(match.group(1))
       revision_list.append(revision)
 
-  preserved_revisions = set()
-  if testcase:
-    preserved_revisions.add(testcase.crash_revision)
-    last_tested_crash_revision = testcase.get_metadata(
-        'last_tested_crash_revision')
-    if last_tested_crash_revision is not None:
-      preserved_revisions.add(int(last_tested_crash_revision))
+  preserved_revisions = _get_preserved_revisions(testcase)
 
   for bad_revision in bad_revisions:
     if bad_revision in preserved_revisions:
@@ -1169,6 +1163,47 @@ def get_revisions_list(bucket_path, bad_revisions, testcase=None):
       revision_list.remove(bad_revision)
 
   return revision_list
+
+
+def _get_preserved_revisions(testcase):
+  """Returns testcase revisions exempted from bad_revisions filtering."""
+  if not testcase:
+    return set()
+
+  preserved_revisions = set()
+  for candidate in (
+      testcase.crash_revision,
+      testcase.get_metadata('last_tested_crash_revision'),
+  ):
+    parsed_revision = parse_revision_metadata(candidate)
+    if parsed_revision is not None:
+      preserved_revisions.add(parsed_revision)
+  return preserved_revisions
+
+
+MAX_REVISION_INT64 = (1 << 63) - 1
+MAX_REVISION_INT64_DIGITS = len(str(MAX_REVISION_INT64))
+
+
+def parse_revision_metadata(value):
+  """Parses a positive 64-bit integer revision, or returns None."""
+  if isinstance(value, bool):
+    return None
+  if isinstance(value, int):
+    parsed_revision = value
+  elif isinstance(value, str):
+    stripped = value.strip()
+    if not stripped or not stripped.isascii() or not stripped.isdigit():
+      return None
+    normalized = stripped.lstrip('0')
+    if not normalized or len(normalized) > MAX_REVISION_INT64_DIGITS:
+      return None
+    parsed_revision = int(normalized)
+  else:
+    return None
+  if parsed_revision <= 0 or parsed_revision > MAX_REVISION_INT64:
+    return None
+  return parsed_revision
 
 
 def get_job_bad_revisions():

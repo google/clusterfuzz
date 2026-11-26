@@ -1482,3 +1482,86 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
     self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH,
                      output.error_type)
     self.assertEqual(150, output.progression_task_output.crash_revision)
+
+  def test_numeric_string_last_tested_crash_revision_is_parsed(self):
+    """Tests numeric string last_tested_crash_revision works in find_fixed_range."""
+    self.testcase.set_metadata('last_tested_crash_revision', '150')
+    self.mock.get_revisions_list.return_value = [100, 150, 200]
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 150))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+    self.assertTrue(output.progression_task_output.passed_on_latest)
+    self.assertEqual(200, output.progression_task_output.max_revision)
+
+  def test_invalid_last_tested_crash_revision_falls_back_to_crash_revision(
+      self):
+    """Tests invalid metadata falls back to crash_revision without bypassing guard."""
+    self.testcase.crash_revision = 300
+    self.testcase.put()
+    self.mock.get_revisions_list.side_effect = (
+        lambda *args, **kwargs: [100, 200])
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 300))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    for invalid_value in ('', 'invalid', True, False, 0, -5, 150.5, ['150']):
+      self.testcase.set_metadata('last_tested_crash_revision', invalid_value)
+
+      output = progression_task.find_fixed_range(self._make_input())
+
+      self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                       output.error_type)
+      self.assertFalse(output.progression_task_output.passed_on_latest)
+
+  def test_invalid_last_progression_min_max_falls_back_and_clears_metadata(
+      self):
+    """Tests corrupt last_progression_min/max are ignored and scheduled for cleanup."""
+    self.mock.get_revisions_list.side_effect = (
+        lambda *args, **kwargs: [100, 200])
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 100))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    for bad_min, bad_max in (('invalid', True), (0, ''), (False, -1)):
+      self.testcase.set_metadata('last_progression_min', bad_min)
+      self.testcase.set_metadata('last_progression_max', bad_max)
+
+      output = progression_task.find_fixed_range(self._make_input())
+
+      self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                       output.error_type)
+      self.assertTrue(output.progression_task_output.clear_min_max_metadata)
+      self.assertTrue(output.progression_task_output.passed_on_latest)
+      self.assertEqual(200, output.progression_task_output.max_revision)
+
+  def test_unknown_crash_revision_does_not_crash_or_set_passed_on_latest(self):
+    """Tests None or 0 crash_revision safely clamps min without passed_on_latest."""
+    self.mock.get_revisions_list.side_effect = (
+        lambda *args, **kwargs: [100, 200])
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 100))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    for unknown_rev in (None, 0):
+      for saved_min in (None, 100):
+        self.testcase.crash_revision = unknown_rev
+        self.testcase.put()
+        if saved_min is None:
+          self.testcase.delete_metadata('last_progression_min')
+        else:
+          self.testcase.set_metadata('last_progression_min', saved_min)
+
+        output = progression_task.find_fixed_range(self._make_input())
+
+        self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                         output.error_type)
+        self.assertFalse(output.progression_task_output.passed_on_latest)

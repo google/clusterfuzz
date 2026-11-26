@@ -2114,3 +2114,41 @@ class GetRevisionsListTest(unittest.TestCase):
         bucket_path, [100, 150, 175], testcase=testcase)
 
     self.assertEqual([100, 175, 200], revisions_list)
+
+  def test_preserves_numeric_string_last_tested_crash_revision(self):
+    """Tests numeric string last_tested_crash_revision is parsed and kept."""
+    bucket_path = 'gs://builds/app-([0-9]+).zip'
+    self.mock.get_build_urls_list.return_value = [
+        'gs://builds/app-100.zip',
+        'gs://builds/app-175.zip',
+        'gs://builds/app-200.zip',
+    ]
+    testcase = data_types.Testcase(crash_revision=100)
+    testcase.put()
+    testcase.set_metadata('last_tested_crash_revision', '175')
+
+    revisions_list = build_manager.get_revisions_list(
+        bucket_path, [100, 175], testcase=testcase)
+
+    self.assertEqual([100, 175, 200], revisions_list)
+
+  def test_ignores_invalid_last_tested_crash_revision_values(self):
+    """Tests empty, non-numeric, float, and boolean metadata values are ignored."""
+    bucket_path = 'gs://builds/app-([0-9]+).zip'
+    self.mock.get_build_urls_list.return_value = [
+        'gs://builds/app-1.zip',
+        'gs://builds/app-100.zip',
+        'gs://builds/app-150.zip',
+        'gs://builds/app-200.zip',
+    ]
+    for invalid_value in ('', 'invalid', '1_50', '+150', '١٥٠', '9' * 4301,
+                          True, False, 0, -5, 150.0, 150.5, 1 << 63, ['150'],
+                          {}):
+      testcase = data_types.Testcase(crash_revision=100)
+      testcase.put()
+      testcase.set_metadata('last_tested_crash_revision', invalid_value)
+
+      revisions_list = build_manager.get_revisions_list(
+          bucket_path, [1, 100, 150], testcase=testcase)
+
+      self.assertEqual([100, 200], revisions_list)
