@@ -29,14 +29,17 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.credentials.get_service_account_email',
         'clusterfuzz._internal.google_cloud_utils.google_groups.get_group_id',
         'clusterfuzz._internal.google_cloud_utils.google_groups.create_google_group',
         'clusterfuzz._internal.google_cloud_utils.google_groups.get_google_group_memberships',
         'clusterfuzz._internal.google_cloud_utils.google_groups.add_member_to_group',
         'clusterfuzz._internal.google_cloud_utils.google_groups.delete_google_group_membership',
         'clusterfuzz._internal.google_cloud_utils.google_groups.set_oss_fuzz_access_settings',
-        'clusterfuzz._internal.base.utils.is_service_account',
+        'clusterfuzz._internal.metrics.logs.warning',
     ])
+    self.mock.get_service_account_email.return_value = (
+        'creator@developer.gserviceaccount.com')
 
   def test_main(self):
     """Test main execution for creating groups and syncing project ccs."""
@@ -57,7 +60,6 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
         'member1@example.com': 'membership1',
         'member2@example.com': 'membership2',
     }
-    self.mock.is_service_account.return_value = False
 
     self.assertTrue(oss_fuzz_cc_groups.main())
 
@@ -80,10 +82,9 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
     project1.put()
     self.mock.get_group_id.return_value = '1'
     self.mock.get_google_group_memberships.return_value = {
-        'member1@gserviceaccount.com': 'membership1'
+        'creator@developer.gserviceaccount.com': 'membership1'
     }
     self.mock.set_oss_fuzz_access_settings.return_value = True
-    self.mock.is_service_account.return_value = True
 
     self.assertTrue(oss_fuzz_cc_groups.main())
     self.mock.create_google_group.assert_not_called()
@@ -116,18 +117,40 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
     self.mock.add_member_to_group.assert_not_called()
     self.mock.delete_google_group_membership.assert_not_called()
 
-  def test_skip_sa_deletion(self):
-    """Test that service accounts are not deleted from group."""
+  def test_skip_creator_sa_deletion_only(self):
+    """Test only the creator SA is preserved; spoofed/other SAs are deleted."""
     project1 = data_types.OssFuzzProject(name='project1')
     project1.put()
     self.mock.get_group_id.return_value = 'group1_id'
     self.mock.get_google_group_memberships.return_value = {
-        'sa@serviceaccount.com': 'membership_sa',
+        'creator@developer.gserviceaccount.com': 'membership_creator',
+        'alice@evilgserviceaccount.com': 'membership_spoofed',
+        'other@other-project.iam.gserviceaccount.com': 'membership_other_sa',
     }
-    self.mock.is_service_account.return_value = True
 
     self.assertTrue(oss_fuzz_cc_groups.main())
-    self.mock.delete_google_group_membership.assert_not_called()
+    self.mock.delete_google_group_membership.assert_any_call(
+        'group1_id', 'alice@evilgserviceaccount.com', 'membership_spoofed')
+    self.mock.delete_google_group_membership.assert_any_call(
+        'group1_id', 'other@other-project.iam.gserviceaccount.com',
+        'membership_other_sa')
+    self.assertEqual(self.mock.delete_google_group_membership.call_count, 2)
+
+  def test_skip_sa_deletion_fallback_without_creator_email(self):
+    """Test fallback SA check deletes spoofed domains when SA email unknown."""
+    self.mock.get_service_account_email.return_value = None
+    project1 = data_types.OssFuzzProject(name='project1')
+    project1.put()
+    self.mock.get_group_id.return_value = 'group1_id'
+    self.mock.get_google_group_memberships.return_value = {
+        'creator@developer.gserviceaccount.com': 'membership_sa',
+        'alice@evilgserviceaccount.com': 'membership_spoofed',
+    }
+
+    self.assertTrue(oss_fuzz_cc_groups.main())
+    self.mock.warning.assert_called_once()
+    self.mock.delete_google_group_membership.assert_called_once_with(
+        'group1_id', 'alice@evilgserviceaccount.com', 'membership_spoofed')
 
   @parameterized.parameterized.expand([
       ('test1@googlemail.com', 'test1@gmail.com'),

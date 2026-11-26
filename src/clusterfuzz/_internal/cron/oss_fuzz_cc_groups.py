@@ -17,6 +17,7 @@ from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.google_cloud_utils import google_groups
 from clusterfuzz._internal.metrics import logs
 
@@ -83,7 +84,9 @@ def _delete_member_with_retry(group_id, member, membership_name):
                                                       membership_name)
 
 
-def sync_project_cc_group(project_name: str, ccs: list[str]):
+def sync_project_cc_group(project_name: str,
+                          ccs: list[str],
+                          creator_sa_email: str | None = None):
   """Sync the project's google group used for CCing in the issue tracker."""
   group_name = f'{project_name}{_CC_GROUP_SUFFIX}'
 
@@ -129,7 +132,12 @@ def sync_project_cc_group(project_name: str, ccs: list[str]):
 
   for member in to_delete:
     # Ignore the SA that created the group from members to delete.
-    if not member or utils.is_service_account(member):
+    if not member:
+      continue
+    if creator_sa_email:
+      if utils.emails_equal(member, creator_sa_email):
+        continue
+    elif utils.is_service_account(member):
       continue
     membership_name = group_memberships_norm[member]
     _delete_member_with_retry(group_id, member, membership_name)
@@ -138,11 +146,15 @@ def sync_project_cc_group(project_name: str, ccs: list[str]):
 def main():
   """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
   logs.info('OSS-Fuzz CC groups sync started.')
+  creator_sa_email = credentials.get_service_account_email()
+  if not creator_sa_email:
+    logs.warning('Could not determine service account email; falling back to '
+                 'pattern-based service account check.')
 
   for project in ndb_utils.get_all_from_model(data_types.OssFuzzProject):
     project_name = project.name
     ccs = project.ccs
-    sync_project_cc_group(project_name, ccs)
+    sync_project_cc_group(project_name, ccs, creator_sa_email=creator_sa_email)
 
   logs.info('OSS-Fuzz CC groups sync succeeded.')
   return True
