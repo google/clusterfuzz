@@ -24,6 +24,7 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import filters
 from libs import form
@@ -34,10 +35,46 @@ from libs.query import datastore_query
 
 PAGE_SIZE = 10
 MORE_LIMIT = 50 - PAGE_SIZE  # exactly 5 pages
+DEFAULT_TEST_TIMEOUT = 10  # Matches TEST_TIMEOUT in bot/env.yaml.
+TIMEOUT_RESERVE_ENV_VAR = 'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING'
 
 FILTERS = [
     filters.Keyword([], 'keywords', 'q'),
 ]
+
+
+def _validate_timeout_reserve_environment(env, default_test_timeout=None):
+  """Validate TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING against
+  TEST_TIMEOUT."""
+  if TIMEOUT_RESERVE_ENV_VAR not in env:
+    return
+
+  try:
+    timeout_reserve = environment.get_int(TIMEOUT_RESERVE_ENV_VAR, env=env)
+  except ValueError as e:
+    raise helpers.EarlyExitError(str(e), 400)
+
+  if timeout_reserve < 0:
+    raise helpers.EarlyExitError(
+        f'{TIMEOUT_RESERVE_ENV_VAR} must be >= 0, got {timeout_reserve}.', 400)
+
+  if 'TEST_TIMEOUT' not in env and default_test_timeout is None:
+    return
+
+  try:
+    test_timeout = environment.get_int(
+        'TEST_TIMEOUT', default_test_timeout, env=env)
+  except ValueError as e:
+    raise helpers.EarlyExitError(str(e), 400)
+
+  if test_timeout <= 0:
+    raise helpers.EarlyExitError(
+        f'TEST_TIMEOUT must be > 0, got {test_timeout}.', 400)
+
+  if timeout_reserve >= test_timeout:
+    raise helpers.EarlyExitError(
+        f'{TIMEOUT_RESERVE_ENV_VAR} ({timeout_reserve}) must be < '
+        f'TEST_TIMEOUT ({test_timeout}).', 400)
 
 
 def get_queues():
@@ -183,6 +220,8 @@ class UpdateJob(base_handler.GcsUploadHandler):
     job.description = description
     job.environment_string = environment_string
     job.templates = templates
+    _validate_timeout_reserve_environment(
+        job.get_environment(), default_test_timeout=DEFAULT_TEST_TIMEOUT)
 
     blob_info = self.get_upload()
     if blob_info:
@@ -235,6 +274,8 @@ class UpdateJobTemplate(base_handler.Handler):
     if not environment_string:
       raise helpers.EarlyExitError(
           'No environment string provided for job template.', 400)
+    _validate_timeout_reserve_environment(
+        environment.parse_environment_definition(environment_string))
 
     template = data_types.JobTemplate.query(
         data_types.JobTemplate.name == name).get()
@@ -316,5 +357,5 @@ class GetEnvironmentHandler(base_handler.Handler):
     if not job:
       raise helpers.EarlyExitError('Job not found.', 404)
 
-    environment = job.get_environment()
-    return self.render_json({'environment': environment})
+    job_environment = job.get_environment()
+    return self.render_json({'environment': job_environment})

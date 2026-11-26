@@ -285,6 +285,12 @@ class FixTimeoutArgumentForReproductionTest(unittest.TestCase):
         ['-arg=1', '-timeout=123'])
     self.assertCountEqual(['-arg=1', '-timeout=60'], args)
 
+  def test_clamps_small_timeout_when_reserve_unset(self):
+    """Clamps -timeout to 1 when TEST_TIMEOUT <= 5 and reserve is unset."""
+    environment.set_value('TEST_TIMEOUT', 5)
+    args = libfuzzer.fix_timeout_argument_for_reproduction(['-arg=1'])
+    self.assertCountEqual(['-arg=1', '-timeout=1'], args)
+
   def test_invalid_timeout_configuration_raises(self):
     """Raises ValueError on non-int, negative, or >= TEST_TIMEOUT reserve."""
     invalid_envs = (
@@ -298,6 +304,9 @@ class FixTimeoutArgumentForReproductionTest(unittest.TestCase):
         },
         {
             'TEST_TIMEOUT': 'invalid'
+        },
+        {
+            'TEST_TIMEOUT': '0'
         },
         {
             'TEST_TIMEOUT': '25',

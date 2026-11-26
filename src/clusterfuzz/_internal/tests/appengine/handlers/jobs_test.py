@@ -188,6 +188,8 @@ class JobsUpdateTest(unittest.TestCase):
         collections.namedtuple('GcsUpload', [])())
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule('/', view_func=jobs.UpdateJob.as_view('/'))
+    flaskapp.add_url_rule(
+        '/template', view_func=jobs.UpdateJobTemplate.as_view('/template'))
     self.app = webtest.TestApp(flaskapp)
 
   def _create_job(self,
@@ -240,3 +242,55 @@ class JobsUpdateTest(unittest.TestCase):
 
     self.assertEqual(200, resp.status_int)
     self.mock.update_mappings_for_job.assert_called_with(mock.ANY, [])
+
+  def test_timeout_reserve_validation(self):
+    """Test save-time validation for timeout reserve on jobs and templates."""
+    self.mock.has_access.return_value = True
+    data_types.JobTemplate(
+        name='libfuzzer', environment_string='TEST_TIMEOUT = 65\n').put()
+
+    for bad_env in (
+        'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 65\n',
+        'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = -1\n',
+        'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 25s\n',
+    ):
+      resp = self.app.post(
+          '/', {
+              'csrf_token': form.generate_csrf_token(),
+              'name': 'libfuzzer_job',
+              'platform': 'LINUX',
+              'templates': 'libfuzzer',
+              'environment_string': bad_env,
+          },
+          expect_errors=True)
+      self.assertEqual(400, resp.status_int)
+
+    resp = self.app.post(
+        '/', {
+            'csrf_token':
+                form.generate_csrf_token(),
+            'name':
+                'libfuzzer_job',
+            'platform':
+                'LINUX',
+            'templates':
+                'libfuzzer',
+            'environment_string': (
+                'TEST_TIMEOUT = 85\n'
+                'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 25\n'),
+        },
+        expect_errors=True)
+    self.assertEqual(200, resp.status_int)
+
+    resp = self.app.post(
+        '/template', {
+            'csrf_token':
+                form.generate_csrf_token(),
+            'name':
+                'bad_template',
+            'environment_string': (
+                'TEST_TIMEOUT = 65\n'
+                'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 65\n'),
+        },
+        expect_errors=True)
+    self.assertEqual(400, resp.status_int)

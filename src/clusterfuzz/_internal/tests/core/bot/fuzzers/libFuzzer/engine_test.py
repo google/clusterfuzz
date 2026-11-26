@@ -149,6 +149,14 @@ class PrepareTest(fake_fs_unittest.TestCase):
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertIn('-rss_limit_mb=0', options.arguments)
 
+  def test_prepare_invalid_timeout_reserve_fails_fast(self):
+    """Test prepare fails fast when timeout reserve is >= TEST_TIMEOUT."""
+    os.environ['TEST_TIMEOUT'] = '25'
+    os.environ['TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING'] = '25'
+    engine_impl = engine.Engine()
+    with self.assertRaises(ValueError):
+      engine_impl.prepare('/corpus_dir', '/path/target', '/path')
+
 
 class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
   """fuzz_additional_processing_timeout tests."""
@@ -394,6 +402,16 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'timeout_count': 0,
         'timeout_limit': 123,
     }, result.stats)
+
+  def test_fuzz_invalid_timeout_reserve_fails_before_running(self):
+    """Test fuzz() validates timeout reserve before running the fuzzer."""
+    os.environ['TEST_TIMEOUT'] = '25'
+    os.environ['TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING'] = '25'
+    engine_impl = engine.Engine()
+    options = engine.LibFuzzerOptions('/corpus', [], [], ['/corpus'], {}, False)
+    with self.assertRaises(ValueError):
+      engine_impl.fuzz('/target', options, '/fake', 3600)
+    self.mock.fuzz.assert_not_called()
 
 
 def set_strategy_pool(strategies=None):

@@ -1245,6 +1245,31 @@ def strip_fuzzing_arguments(arguments, is_merge=False):
   return args.list()
 
 
+def get_reproduction_timeout():
+  """Return the per-input timeout for crash reproduction and validate env."""
+  test_timeout = environment.get_int('TEST_TIMEOUT',
+                                     constants.DEFAULT_TIMEOUT_LIMIT)
+  if test_timeout <= 0:
+    raise ValueError(f'TEST_TIMEOUT must be > 0, got {test_timeout}.')
+
+  # Leave buffer for startup and crash report processing (defaults to 5 sec).
+  reserve_env_var = 'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING'
+  timeout_reserve = environment.get_int(reserve_env_var)
+  if timeout_reserve is None:
+    return max(
+        1, test_timeout -
+        constants.DEFAULT_TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING)
+
+  if timeout_reserve < 0:
+    raise ValueError(f'{reserve_env_var} must be >= 0, got {timeout_reserve}.')
+  if timeout_reserve >= test_timeout:
+    raise ValueError(
+        f'{reserve_env_var} ({timeout_reserve}) must be < TEST_TIMEOUT '
+        f'({test_timeout}).')
+
+  return test_timeout - timeout_reserve
+
+
 def fix_timeout_argument_for_reproduction(arguments):
   """Changes timeout argument for reproduction. This is slightly less than the
   |TEST_TIMEOUT| value for the job."""
@@ -1252,22 +1277,7 @@ def fix_timeout_argument_for_reproduction(arguments):
   if constants.TIMEOUT_FLAGNAME in args:
     del args[constants.TIMEOUT_FLAGNAME]
 
-  # Leave buffer for startup and crash report processing (defaults to 5 sec).
-  reserve_env_var = 'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING'
-  timeout_reserve = environment.get_int(
-      reserve_env_var,
-      constants.DEFAULT_TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING)
-  if timeout_reserve < 0:
-    raise ValueError(f'{reserve_env_var} must be >= 0, got {timeout_reserve}.')
-
-  test_timeout = environment.get_int('TEST_TIMEOUT',
-                                     constants.DEFAULT_TIMEOUT_LIMIT)
-  if timeout_reserve >= test_timeout:
-    raise ValueError(
-        f'{reserve_env_var} ({timeout_reserve}) must be < TEST_TIMEOUT '
-        f'({test_timeout}).')
-
-  args[constants.TIMEOUT_FLAGNAME] = test_timeout - timeout_reserve
+  args[constants.TIMEOUT_FLAGNAME] = get_reproduction_timeout()
   return args.list()
 
 
