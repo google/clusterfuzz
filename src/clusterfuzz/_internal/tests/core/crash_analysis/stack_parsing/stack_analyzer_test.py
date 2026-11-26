@@ -4152,60 +4152,157 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_check_failure_chrome_win_module_prefix_and_hex_offset(self):
     """Tests Windows CHECK stacktraces with module! prefixes and hex offsets."""
-    data = (
-        '[1117/081932.001:FATAL:command_line.cc(450)] Check failed: !name.empty().\n'
-        '\tcommand_line_fuzzer!base::debug::CollectStackTrace [0x7ff67c571700+40]'
-        ' (C:\\b\\s\\src\\base\\debug\\stack_trace_win.cc:395)\n'
-        '\tcommand_line_fuzzer!base::debug::StackTrace::StackTrace [0x7ff67c03d19e+14e]'
-        ' (C:\\b\\s\\src\\base\\debug\\stack_trace.cc:276)\n'
-        '\tcommand_line_fuzzer!logging::LogMessage::Flush [0x7ff67c0c49a8+868]'
-        ' (C:\\b\\s\\src\\base\\logging.cc:714)\n'
-        '\tcommand_line_fuzzer!logging::`anonymous namespace\'::CheckLogMessage::~CheckLogMessage [0x7ff67c0fc6b4+d4]'
-        ' (C:\\b\\s\\src\\base\\check.cc:205)\n'
-        '\tcommand_line_fuzzer!base::CommandLine::RemoveSwitch [0x7ff67c33acdc+47c]'
-        ' (C:\\b\\s\\src\\base\\command_line.cc:450)\n'
-        '\tcommand_line_fuzzer!LLVMFuzzerTestOneInput [0x7ff67ba12416+10b6]'
-        ' (C:\\b\\s\\src\\base\\command_line_fuzzer.cc:42)\n'
-        '\tcommand_line_fuzzer!fuzzer::Fuzzer::ExecuteCallback [0x7ff67ba80e06+386]'
-        ' (C:\\b\\s\\src\\third_party\\libFuzzer\\src\\FuzzerLoop.cpp:622)\n'
-        '\tcommand_line_fuzzer!main [0x7ff67ba393ae+de]'
-        ' (C:\\b\\s\\src\\third_party\\libFuzzer\\src\\FuzzerMain.cpp:20)\n'
-        '\tclang_rt.asan_dynamic-x86_64!_asan_wrap_CreateThread [0x7ffee1b4e837+147]\n'
-        '\tKERNEL32!BaseThreadInitThunk [0x7ffc045bdd37+17]\n')
+    data = self._read_test_data('check_failure_chrome_win_module_prefix.txt')
     expected_type = 'CHECK failure'
     expected_address = ''
-    expected_state = ('!name.empty() in command_line.cc\n'
-                      'base::CommandLine::RemoveSwitch\n'
-                      'command_line_fuzzer.cc\n')
+    expected_state = ('spec == recanonicalized.spec() in gurl_fuzzer.cc\n'
+                      'CheckIdempotency\n'
+                      'gurl_fuzzer.cc\n')
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, data, False)
 
     parsed = StackParser().parse(data)
-    frames = parsed.frames[0]
-    self.assertEqual(frames[0].module_name, 'command_line_fuzzer')
-    self.assertEqual(frames[0].function_name, 'base::debug::CollectStackTrace')
-    self.assertEqual(frames[0].function_offset, 0x40)
-    self.assertEqual(frames[4].function_name, 'base::CommandLine::RemoveSwitch')
-    self.assertEqual(frames[4].function_offset, 0x47c)
+    expected_frames = [
+        (
+            'gurl_fuzzer',
+            'base::debug::CollectStackTrace',
+            0x7ff7c1e03790,
+            0x40,
+            r'C:\b\s\w\ir\cache\builder\src\base\debug\stack_trace_win.cc',
+            '395',
+        ),
+        (
+            'gurl_fuzzer',
+            'base::debug::StackTrace::StackTrace',
+            0x7ff7c1cc3a3e,
+            0x14e,
+            r'C:\b\s\w\ir\cache\builder\src\base\debug\stack_trace.cc',
+            '276',
+        ),
+        (
+            'gurl_fuzzer',
+            'logging::LogMessage::Flush',
+            0x7ff7c1c53a68,
+            0x868,
+            r'C:\b\s\w\ir\cache\builder\src\base\logging.cc',
+            '714',
+        ),
+        (
+            'gurl_fuzzer',
+            'logging::LogMessage::~LogMessage',
+            0x7ff7c1c5306f,
+            0x3f,
+            r'C:\b\s\w\ir\cache\builder\src\base\logging.cc',
+            '704',
+        ),
+        (
+            'gurl_fuzzer',
+            "logging::`anonymous namespace'::CheckLogMessage::~CheckLogMessage",
+            0x7ff7c1c66954,
+            0xd4,
+            r'C:\b\s\w\ir\cache\builder\src\base\check.cc',
+            '205',
+        ),
+        (
+            'gurl_fuzzer',
+            'logging::NotReachedNoreturnError::~NotReachedNoreturnError',
+            0x7ff7c1c6621b,
+            0xb,
+            r'C:\b\s\w\ir\cache\builder\src\base\check.cc',
+            '378',
+        ),
+        (
+            'gurl_fuzzer',
+            'CheckIdempotency',
+            0x7ff7c1a81530,
+            0x530,
+            r'C:\b\s\w\ir\cache\builder\src\url\gurl_fuzzer.cc',
+            '32',
+        ),
+        (
+            'gurl_fuzzer',
+            'LLVMFuzzerTestOneInput',
+            0x7ff7c1a8223e,
+            0x42e,
+            r'C:\b\s\w\ir\cache\builder\src\url\gurl_fuzzer.cc',
+            '48',
+        ),
+        (
+            'gurl_fuzzer',
+            'fuzzer::Fuzzer::ExecuteCallback',
+            0x7ff7c1ad0a86,
+            0x386,
+            r'C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerLoop.cpp',
+            '622',
+        ),
+        (
+            'gurl_fuzzer',
+            'fuzzer::Fuzzer::CrashResistantMergeInternalStep',
+            0x7ff7c1ae4a0b,
+            0xa0b,
+            r'C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerMerge.cpp',
+            '239',
+        ),
+        (
+            'gurl_fuzzer',
+            'fuzzer::FuzzerDriver',
+            0x7ff7c1aa7793,
+            0x35b3,
+            r'C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerDriver.cpp',
+            '898',
+        ),
+        (
+            'gurl_fuzzer',
+            'main',
+            0x7ff7c1a8525e,
+            0xde,
+            r'C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerMain.cpp',
+            '20',
+        ),
+        (
+            'gurl_fuzzer',
+            '__scrt_common_main_seh',
+            0x7ff7c1e73a3f,
+            0x10f,
+            r'D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl',
+            '288',
+        ),
+        (
+            'KERNEL32',
+            'BaseThreadInitThunk',
+            0x7ffa9ee3dd37,
+            0x17,
+            None,
+            None,
+        ),
+        (
+            'ntdll',
+            'RtlUserThreadStart',
+            0x7ffa9f69f2bc,
+            0x2c,
+            None,
+            None,
+        ),
+    ]
+    actual_frames = [(
+        frame.module_name,
+        frame.function_name,
+        frame.function_base,
+        frame.function_offset,
+        frame.filename,
+        frame.fileline,
+    ) for frame in parsed.frames[0]]
+    self.assertEqual(actual_frames, expected_frames)
 
-  def test_check_failure_chrome_win_ignores_prefixed_asan_and_fuzzer_frames(
-      self):
-    """Tests that module!-prefixed ASan and libFuzzer frames are ignored."""
-    data = (
-        '[1117/081932.001:FATAL:services.cc(373)] Check failed: initialized.\n'
-        '\thtml_fuzzer!(No symbol) [0x7ff6bd0daa90]\n'
-        '\tclang_rt.asan_dynamic-x86_64!_asan_wrap_CreateThread [0x7ffee1b4e837+147]\n'
-        '\thtml_fuzzer!fuzzer::Fuzzer::ExecuteCallback [0x7ff67ba80e06+386]'
-        ' (C:\\b\\s\\src\\third_party\\libFuzzer\\src\\FuzzerLoop.cpp:622)\n'
-        '\thtml_fuzzer!content::`anonymous namespace\'::RunOnDeviceModel [0x7ff726b907d0+1e0]'
-        ' (C:\\b\\s\\src\\content\\utility\\services.cc:373)\n'
-        '\thtml_fuzzer!mojo::ServiceFactory::RunService [0x7ff730bb3576+506]'
-        ' (C:\\b\\s\\src\\mojo\\public\\cpp\\bindings\\service_factory.cc:37)\n'
-    )
+  def test_check_failure_chrome_win_no_symbol_and_asan_thread_fallback(self):
+    """Tests (No symbol) skipping and prefixed _asan_ filtering before ASan."""
+    data = self._read_test_data(
+        'check_failure_chrome_win_no_symbol_fallback.txt')
     expected_type = 'CHECK failure'
     expected_address = ''
-    expected_state = ('initialized in services.cc\n'
-                      'content::RunOnDeviceModel\n'
-                      'mojo::ServiceFactory::RunService\n')
+    expected_state = (
+        'on_device_model::WasPreSandboxInitCalled() in services.cc\n'
+        'content::RunOnDeviceModel\n'
+        'mojo::ServiceFactory::RunService\n')
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, data, False)

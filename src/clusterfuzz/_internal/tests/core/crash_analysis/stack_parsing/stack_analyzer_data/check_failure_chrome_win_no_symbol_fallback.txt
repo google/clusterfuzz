@@ -1,0 +1,24 @@
+[2844:7652:1111/220040.930:FATAL:content\utility\services.cc:373] Check failed: on_device_model::WasPreSandboxInitCalled();
+	html_in_process_fuzzer!(No symbol) [0x7ff6d7c7bcb0]
+	html_in_process_fuzzer!(No symbol) [0x7ff6d7cb0b4e]
+	html_in_process_fuzzer!(No symbol) [0x7ff6d7f54308]
+	html_in_process_fuzzer!(No symbol) [0x7ff6ce7cfbc0]
+	html_in_process_fuzzer!(No symbol) [0x7ff6d86aa046]
+	html_in_process_fuzzer!(No symbol) [0x7ff6d7c013ce]
+	clang_rt.asan_dynamic-x86_64!_asan_wrap_CreateThread [0x7ff963f4e837+147]
+	KERNEL32!BaseThreadInitThunk [0x7ff99dd5dd37+17]
+	ntdll!RtlUserThreadStart [0x7ff99f3df2bc+2c]
+
+=================================================================
+==2844==ERROR: AddressSanitizer: breakpoint on unknown address 0x7ff6d7f55df2 (pc 0x7ff6d7f55df2 bp 0x00d35fdfe440 sp 0x00d35fdfe3c0 T290)
+SCARINESS: 10 (signal)
+    #0 0x7ff6d7f54308 in logging::LogMessage::Flush(void) C:\b\s\w\ir\cache\builder\src\base\logging.cc:714:7
+    #1 0x7ff6d7f5390f in logging::LogMessage::~LogMessage(void) C:\b\s\w\ir\cache\builder\src\base\logging.cc:704:3
+    #2 0x7ff6d7fce004 in logging::`anonymous namespace'::CheckLogMessage::~CheckLogMessage C:\b\s\w\ir\cache\builder\src\base\check.cc:205:31
+    #3 0x7ff6ce7cfbc0 in content::`anonymous namespace'::RunOnDeviceModel C:\b\s\w\ir\cache\builder\src\content\utility\services.cc:373:3
+    #4 0x7ff6d86aa046 in mojo::ServiceFactory::RunService C:\b\s\w\ir\cache\builder\src\mojo\public\cpp\bindings\service_factory.cc:37:5
+    #5 0x7ff6d7c013ce in base::`anonymous namespace'::ThreadFunc C:\b\s\w\ir\cache\builder\src\base\threading\platform_thread_win.cc:111:13
+    #6 0x7ff963f4e837 in _asan_wrap_CreateThread+0x147 (C:\b\s\w\ir\cache\builder\src\out\Release_x64\clang_rt.asan_dynamic-x86_64.dll+0x18004e837)
+    #7 0x7ff99dd5dd37 in BaseThreadInitThunk (C:\Windows\System32\KERNEL32.DLL+0x18001dd37)
+    #8 0x7ff99f3df2bc in RtlUserThreadStart (C:\Windows\SYSTEM32\ntdll.dll+0x18005f2bc)
+==2844==ABORTING

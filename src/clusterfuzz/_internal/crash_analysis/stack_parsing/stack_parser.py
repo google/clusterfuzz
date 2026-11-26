@@ -34,7 +34,7 @@ def format_address_to_dec(address, base=16):
   if not address:
     return None
 
-  # This is required for Chrome Win and Mac stacks, which mix decimal and hex.
+  # This is required for Chrome Mac stacks, which mix decimal and hex.
   try_bases = [base, 16] if base != 16 else [base]
   for base_try in try_bases:
     try:

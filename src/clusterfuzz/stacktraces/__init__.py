@@ -85,8 +85,8 @@ def _filter_stack_frame(stack_frame):
   for ns in anonymous_namespaces:
     stack_frame = stack_frame.replace(ns, '')
 
-  # Rsplit around '!'.
-  stack_frame = stack_frame.split('!')[-1]
+  # Rsplit around '!', without splitting C++ operator!=.
+  stack_frame = re.split(r'!(?!=)', stack_frame)[-1]
 
   # Lsplit around '(', '['.
   m = re.match(r'(.*?)[\(\[].*', stack_frame)
@@ -1306,7 +1306,7 @@ class StackParser:
           CHROME_WIN_STACK_FRAME_REGEX,
           line,
           state,
-          group=2,
+          group='function',
           frame_spec=CHROME_WIN_STACK_FRAME_SPEC,
           frame_override_func=llvm_test_one_input_override):
         continue

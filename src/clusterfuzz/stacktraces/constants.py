@@ -97,11 +97,12 @@ CHROME_STACK_FRAME_REGEX = re.compile(
     r'([xX0-9a-fA-F]+)[ ])'  # addr (3)
     r'([^/\\]+)$')  # rest, usually fun (4); may have off
 CHROME_WIN_STACK_FRAME_REGEX = re.compile(
-    r'\s*(?:([^\s/\\!:]+)!(?!=))?'  # mod (1), optional
-    r'([^/\\]+) '  # fun (2)
-    r'\[([xX0-9a-fA-F]+)\+'  # fun_base (3)
-    r'((?:0[xX])?[0-9a-fA-F]+)\]'  # off[hex] (4)
-    r'( \((.*):(\d+)\))?')  # if available, file (6) and line (7)
+    r'\s*'
+    r'(?:(?P<module>[^\s/\\!:]+)!(?!=))?'
+    r'(?P<function>[^\s/\\][^/\\]*) '
+    r'\[(?P<function_base>[xX0-9a-fA-F]+)\+'
+    r'(?P<function_offset>(?:0[xX])?[0-9a-fA-F]+)\]'
+    r'(?: \((?P<filename>.*):(?P<fileline>\d+)\))?')
 CHROME_MAC_STACK_FRAME_REGEX = re.compile(
     r'(?P<frame_id>\d+)\s+'  # frame id (1)
     r'(([\w ]+)|(\?\?\?))\s+'  # image (2)
@@ -733,12 +734,12 @@ REPEATED_CYCLE_COUNT = 3
 CHROME_STACK_FRAME_SPEC = stack_parser.StackFrameSpec(
     address=3, function_name=4)
 CHROME_WIN_STACK_FRAME_SPEC = stack_parser.StackFrameSpec(
-    module_name=1,
-    function_name=2,
-    function_base=3,
-    function_offset=4,
-    filename=6,
-    fileline=7,
+    module_name='module',
+    function_name='function',
+    function_base='function_base',
+    function_offset='function_offset',
+    filename='filename',
+    fileline='fileline',
     base=16)
 CHROME_MAC_STACK_FRAME_SPEC = stack_parser.StackFrameSpec(
     address=5, function_name=6, function_offset=7, module_name=2, base=10)
