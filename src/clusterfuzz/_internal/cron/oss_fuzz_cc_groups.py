@@ -134,6 +134,9 @@ def main():
   """Sync OSS-Fuzz projects groups used to CC owners in the issue tracker."""
   logs.info('OSS-Fuzz CC groups sync started.')
   creator_sa_email = credentials.get_service_account_email()
+  if not creator_sa_email:
+    logs.warning('Could not determine service account email; falling back to '
+                 'pattern-based service account check.')
 
   for project in ndb_utils.get_all_from_model(data_types.OssFuzzProject):
     project_name = project.name

@@ -36,6 +36,7 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.google_groups.add_member_to_group',
         'clusterfuzz._internal.google_cloud_utils.google_groups.delete_google_group_membership',
         'clusterfuzz._internal.google_cloud_utils.google_groups.set_oss_fuzz_access_settings',
+        'clusterfuzz._internal.metrics.logs.warning',
     ])
     self.mock.get_service_account_email.return_value = (
         'creator@developer.gserviceaccount.com')
@@ -147,6 +148,7 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
     }
 
     self.assertTrue(oss_fuzz_cc_groups.main())
+    self.mock.warning.assert_called_once()
     self.mock.delete_google_group_membership.assert_called_once_with(
         'group1_id', 'alice@evilgserviceaccount.com', 'membership_spoofed')
 

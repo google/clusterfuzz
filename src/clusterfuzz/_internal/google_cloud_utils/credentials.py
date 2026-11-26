@@ -103,22 +103,25 @@ def get_signing_credentials(service_account_info):
   return signing_creds, token
 
 
-def get_service_account_email() -> str | None:
+def get_service_account_email(creds=None) -> str | None:
   """Gets the default service account email, if available."""
-  creds, _ = get_default()
+  if creds is None:
+    creds, _ = get_default()
   service_account_email = getattr(creds, 'service_account_email', None)
   if service_account_email == 'default':
     # Resolve the default service account email using GCE metadata server.
     service_account_email = compute_metadata.get(
         'instance/service-accounts/default/email')
-  return service_account_email
+  if isinstance(service_account_email, str):
+    service_account_email = service_account_email.strip()
+  return service_account_email or None
 
 
 def get_scoped_service_account_credentials(
     scopes: list[str]) -> impersonated_credentials.Credentials | None:
   """Gets scoped credentials by self-impersonating the service account."""
   creds, _ = get_default()
-  service_account_email = get_service_account_email()
+  service_account_email = get_service_account_email(creds=creds)
 
   if not service_account_email:
     logs.warning('Could not retrieve service account email when getting scoped'
