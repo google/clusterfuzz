@@ -17,6 +17,7 @@ import os
 import re
 import zipfile
 
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms.android import adb
@@ -30,8 +31,12 @@ from clusterfuzz._internal.system import shell
 from . import constants
 
 
-def get_repo_prop_archive_filename(build_id, target):
-  return f'{target}-{build_id}-repo.prop'
+class SymbolDownloadError(errors.Error):
+  """Raised when symbol artifacts are unavailable or fail to download."""
+
+
+def get_repo_prop_archive_filename(build_id: str, target: str) -> str:
+  return '%s-%s-repo.prop' % (target, build_id)
 
 
 def should_download_symbols():
@@ -65,35 +70,49 @@ def check_symbols_cached(build_params_check_path, build_params):
   return cached_build_params and cached_build_params == build_params
 
 
-def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
-                                 targets_with_type_and_san, cache_type):
-  """Downloads the repo.prop for a branch"""
-  artifact_file_name = 'repo.prop'
+def download_repo_prop_if_needed(
+    symbols_directory: str,
+    build_id: str,
+    cache_target: str,
+    targets_with_type_and_san: list[str],
+    *,
+    can_download: bool,
+) -> str:
+  """Returns the local path to repo.prop, downloading it if not already present.
+
+  Args:
+    symbols_directory: Directory where repo.prop is cached or downloaded.
+    build_id: Android Build ID to fetch repo.prop for.
+    cache_target: Target name used to construct the local repo.prop filename.
+    targets_with_type_and_san: Candidate Android Build targets to query.
+    can_download: Whether downloading is allowed when repo.prop is absent.
+
+  Returns:
+    Path to the local repo.prop file.
+
+  Raises:
+    SymbolDownloadError: If repo.prop is not present locally and downloading
+      is disabled or fails.
+  """
   symbols_archive_filename = get_repo_prop_archive_filename(
       build_id, cache_target)
-  output_filename_override = symbols_archive_filename
-  # We create our own build_params for cache
-  build_params = {
-      'build_id': build_id,
-      'target': cache_target,
-      'type': cache_type
-  }
-  build_params_check_path = os.path.join(symbols_directory,
-                                         '.cached_build_params')
-  if check_symbols_cached(build_params_check_path, build_params):
-    return
-
   symbols_archive_path = os.path.join(symbols_directory,
                                       symbols_archive_filename)
-  download_artifact_if_needed(build_id, symbols_directory, symbols_archive_path,
-                              targets_with_type_and_san, artifact_file_name,
-                              output_filename_override)
-  if not os.path.exists(symbols_archive_path):
-    logs.error('Unable to locate repo.prop %s.' % symbols_archive_path)
-    return
+  if os.path.isfile(symbols_archive_path):
+    return symbols_archive_path
 
-  # Store the artifact for later use or for use by other bots.
-  utils.write_data_to_file(build_params, build_params_check_path)
+  if not can_download:
+    raise SymbolDownloadError(
+        'Symbol downloading is disabled for this environment.')
+
+  download_artifact_if_needed(build_id, symbols_directory, symbols_archive_path,
+                              targets_with_type_and_san, 'repo.prop',
+                              symbols_archive_filename)
+  if not os.path.isfile(symbols_archive_path):
+    raise SymbolDownloadError(
+        'Unable to download repo.prop to %s.' % symbols_archive_path)
+
+  return symbols_archive_path
 
 
 def download_kernel_repo_prop_if_needed(symbols_directory):
@@ -119,8 +138,15 @@ def download_kernel_repo_prop_if_needed(symbols_directory):
   else:
     targets_with_type_and_san = ['kernel', f'kernel_{target}']
 
-  download_repo_prop_if_needed(symbols_directory, build_id, target,
-                               targets_with_type_and_san, 'kernel')
+  try:
+    download_repo_prop_if_needed(
+        symbols_directory,
+        build_id,
+        target,
+        targets_with_type_and_san,
+        can_download=should_download_symbols())
+  except SymbolDownloadError as error:
+    logs.warning(f'Unable to obtain Android kernel repo.prop: {error}')
 
 
 def download_system_symbols_if_needed(symbols_directory):
