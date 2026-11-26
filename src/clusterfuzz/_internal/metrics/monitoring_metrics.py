@@ -247,7 +247,7 @@ FUZZER_TESTCASE_COUNT_RATIO = monitor.CumulativeDistributionMetric(
 )
 
 # Nested step names should be prefixed with '<parent_step>_' (e.g.,
-# 'fuzz_process_exec') so it is clear their duration overlaps with the parent.
+# 'fuzz_process_exec') so it is clear their duration is nested in the parent.
 FUZZ_TASK_STEPS_DURATION = monitor.CumulativeDistributionMetric(
     'task/fuzz/steps_duration',
     bucketer=monitor.GeometricBucketer(),

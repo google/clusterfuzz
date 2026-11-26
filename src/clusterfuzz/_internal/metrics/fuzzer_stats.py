@@ -36,7 +36,7 @@ from clusterfuzz._internal.system import shell
 STATS_FILE_EXTENSION = '.stats2'
 
 # Nested step names should be prefixed with '<parent_step>_' (e.g.,
-# 'fuzz_process_exec') so it is clear their duration overlaps with the parent.
+# 'fuzz_process_exec') so it is clear their duration is nested in the parent.
 _STEPS_DURATION_FIELDS = [
     {
         'name': 'process_crash',
