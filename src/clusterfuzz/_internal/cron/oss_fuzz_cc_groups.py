@@ -23,30 +23,43 @@ from clusterfuzz._internal.metrics import logs
 _CC_GROUP_SUFFIX = '-ccs@oss-fuzz.com'
 _CC_GROUP_DESC = 'External CCs in OSS-Fuzz issue tracker for project'
 _API_DELAY = 3  # 3s delay to avoid cloud identity api rate limits.
+_GMAIL_DOMAINS = frozenset({'gmail.com', 'googlemail.com'})
 
 
-def normalize_email_for_group(email):
-  """Normalize an email address for google groups."""
-  email = email.strip().lower()
-
-  parts = email.split('@')
-  if len(parts) != 2:
-    logs.error(f'Email with unexpected format: {email}')
+def _parse_email(email: str | None) -> tuple[str, str] | None:
+  """Parse an email into lowercase (local, domain), or None if malformed."""
+  if not isinstance(email, str):
     return None
-  local, domain = parts
 
-  # Convert googlemail to gmail
-  if domain in 'googlemail.com':
-    domain = 'gmail.com'
+  cleaned = email.strip().lower()
+  if any(ch.isspace() for ch in cleaned):
+    return None
 
-  # Remove dots if domain is gmail
-  if domain == 'gmail.com':
-    local = local.replace('.', '')
+  local, sep, domain = cleaned.partition('@')
+  if not sep or '@' in domain or not local or not domain:
+    return None
 
-  # Remove pluses alias/tags as it is not supported by cloud identity api.
-  local = local.split('+', 1)[0]
+  if '.' not in domain or not all(domain.split('.')):
+    return None
 
-  return f'{local}@{domain}'
+  return local, domain
+
+
+def normalize_email_for_group(email: str | None) -> str | None:
+  """Normalize an email address for Google Groups."""
+  parsed = _parse_email(email)
+  if parsed:
+    local, domain = parsed
+    # Strip '+' alias tags, which are unsupported by Cloud Identity API.
+    local = local.split('+', 1)[0]
+    if domain in _GMAIL_DOMAINS:
+      domain = 'gmail.com'
+      local = local.replace('.', '')
+    if local:
+      return f'{local}@{domain}'
+
+  logs.error(f'Email with unexpected format: {email}')
+  return None
 
 
 @retry.wrap(

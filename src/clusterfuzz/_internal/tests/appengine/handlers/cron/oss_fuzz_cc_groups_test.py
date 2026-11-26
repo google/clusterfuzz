@@ -129,15 +129,29 @@ class OssFuzzCcGroupsTest(unittest.TestCase):
     self.assertTrue(oss_fuzz_cc_groups.main())
     self.mock.delete_google_group_membership.assert_not_called()
 
-  @parameterized.parameterized.expand(
-      [('test1@googlemail.com', 'test1@gmail.com'), ('TesT2@gmail.com',
-                                                     'test2@gmail.com'),
-       ('test3@example.com', 'test3@example.com'), ('test4.dot@gmail.com',
-                                                    'test4dot@gmail.com'),
-       ('test5.dot@example.com',
-        'test5.dot@example.com'), ('test6+alias@example.com',
-                                   'test6@example.com'), ('test7.not.an.email',
-                                                          None)])
+  @parameterized.parameterized.expand([
+      ('test1@googlemail.com', 'test1@gmail.com'),
+      ('user.dot@googlemail.com', 'userdot@gmail.com'),
+      ('  Test.User+tag@GoogleMail.com  ', 'testuser@gmail.com'),
+      ('TesT2@gmail.com', 'test2@gmail.com'),
+      ('test3@example.com', 'test3@example.com'),
+      ('test4.dot@gmail.com', 'test4dot@gmail.com'),
+      ('test5.dot@example.com', 'test5.dot@example.com'),
+      ('test6+alias@example.com', 'test6@example.com'),
+      ('jane.doe@mail.com', 'jane.doe@mail.com'),
+      ('jane.doe@email.com', 'jane.doe@email.com'),
+      ('user@ail.com', 'user@ail.com'),
+      ('test7.not.an.email', None),
+      ('user@', None),
+      ('@mail.com', None),
+      ('+alias@example.com', None),
+      ('.+alias@gmail.com', None),
+      ('...@gmail.com', None),
+      ('. +alias@gmail.com', None),
+      ('user@localhost', None),
+      ('user@.com', None),
+      (None, None),
+  ])
   def test_normalize_email_for_group(self, test_email, normalized_email):
     """Test normalize email for groups method."""
     self.assertEqual(
