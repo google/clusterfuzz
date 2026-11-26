@@ -260,6 +260,7 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['JOB_NAME'] = 'job'
 
     self.mock._unpack_build.side_effect = _mock_unpack_build
+    self.mock.time.return_value = 0.0
 
   def _assert_env_vars(self):
     """Assert env vars exist."""
