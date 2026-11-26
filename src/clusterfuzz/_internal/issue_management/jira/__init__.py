@@ -14,6 +14,7 @@
 """Jira issue tracker."""
 
 import datetime
+from urllib.parse import urlencode
 from urllib.parse import urljoin
 
 from dateutil import parser
@@ -181,18 +182,20 @@ class IssueTracker(issue_tracker.IssueTracker):
 
     return Issue(self._itm, jira_issue)
 
-  def _build_search_query(self, keywords=None, only_open=False):
+  def _build_search_query(self, search_clauses='', only_open=False):
     """Build a JQL search query scoped to this project."""
-    search_text = (
-        f'project = {self._itm.project_name}{_get_search_text(keywords)}')
+    search_text = f'project = {self._itm.project_name}{search_clauses}'
     if only_open:
       search_text += ' AND resolution = Unresolved'
     return search_text
 
   def find_issues(self, keywords=None, only_open=False):
     """Find issues."""
+    search_clauses = _get_search_text(keywords)
+    if not search_clauses:
+      return []
     search_text = self._build_search_query(
-        keywords=keywords, only_open=only_open)
+        search_clauses=search_clauses, only_open=only_open)
     issues = self._itm.get_issues(search_text)
     return [Issue(self._itm, issue) for issue in issues]
 
@@ -202,7 +205,8 @@ class IssueTracker(issue_tracker.IssueTracker):
                                only_open=None):
     """Find issues given query filters."""
     # Jira treats keywords and query filters the same for queries.
-    return self.find_issues((keywords or []) + (query_filters or []), only_open)
+    combined = list(keywords or ()) + list(query_filters or ())
+    return self.find_issues(combined, only_open)
 
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
@@ -215,10 +219,12 @@ class IssueTracker(issue_tracker.IssueTracker):
     return url
 
   def find_issues_url(self, keywords=None, only_open=None):
+    search_clauses = _get_search_text(keywords)
     search_text = self._build_search_query(
-        keywords=keywords, only_open=only_open)
+        search_clauses=search_clauses, only_open=only_open)
     config = db_config.get()
-    return urljoin(config.jira_url, f'/issues/?jql={search_text}')
+    return urljoin(config.jira_url,
+                   f'/issues/?{urlencode({"jql": search_text})}')
 
   def find_issues_url_with_filters(self,
                                    keywords=None,
@@ -226,8 +232,8 @@ class IssueTracker(issue_tracker.IssueTracker):
                                    only_open=None):
     """Return the issue URL with the given ID and additional query filters."""
     # Jira treats keywords and query filters the same for queries.
-    return self.find_issues_url((keywords or []) + (query_filters or []),
-                                only_open)
+    combined = list(keywords or ()) + list(query_filters or ())
+    return self.find_issues_url(combined, only_open)
 
 
 def _get_issue_tracker_manager_for_project(project_name):
