@@ -16,6 +16,7 @@
 import json
 import re
 import time
+from typing import Iterable
 from typing import List
 
 from clusterfuzz._internal.base import bisection
@@ -416,16 +417,22 @@ _LOADER_FAILURE_REGEXES = (
 )
 
 
+def _has_loader_failure_output(text: str) -> bool:
+  """Returns True when process output matches an OS loader or ABI failure."""
+  if not text:
+    return False
+  return ('unshare: failed to execute ' in text or
+          any(r.search(text) for r in _LOADER_FAILURE_REGEXES))
+
+
 def _is_fatal_execution_or_linker_failure(crash_result) -> bool:
   """Returns True if execution failed due to OS loader / library errors."""
   if crash_result is None or not crash_result.raw_return_code:
     return False
 
-  text = crash_result.output
   has_loader_failure = (
       crash_result.raw_return_code in _FATAL_EXECUTION_RETURN_CODES or
-      'unshare: failed to execute ' in text or
-      any(r.search(text) for r in _LOADER_FAILURE_REGEXES))
+      _has_loader_failure_output(crash_result.output))
   if not has_loader_failure:
     return False
 
@@ -826,6 +833,7 @@ def find_fixed_range(uworker_input):
       job_type,
       fuzz_target,
       revision_list=revision_list,
+      bad_revisions=bad_revisions,
       min_revision=min_revision,
       min_index=min_index,
       max_index=max_index,
@@ -923,6 +931,7 @@ def _verify_or_advance_min_revision(
     fuzz_target: data_types.FuzzTarget | None,
     *,
     revision_list: List[int],
+    bad_revisions: Iterable[int] = (),
     min_revision: int,
     min_index: int,
     max_index: int,
@@ -954,6 +963,10 @@ def _verify_or_advance_min_revision(
   if not _is_recoverable_bad_min_build(error, progression_task_output):
     return min_index, max_index, error
 
+  known_bad_revisions = frozenset(
+      rev for rev in bad_revisions if rev > initial_min_revision)
+  tested_bad_revisions: set[int] = set()
+
   for _ in range(EXTREME_REVISIONS_TO_TEST):
     if (min_index < len(revision_list) and
         revision_list[min_index] < initial_min_revision):
@@ -963,6 +976,14 @@ def _verify_or_advance_min_revision(
       max_index -= 1
     if min_index >= max_index:
       return min_index, max_index, error
+
+    candidate_revision = revision_list[min_index]
+    skipped_bad_count = _count_skipped_bad_revisions(
+        known_bad_revisions, tested_bad_revisions, initial_min_revision,
+        candidate_revision)
+    if skipped_bad_count >= EXTREME_REVISIONS_TO_TEST:
+      return min_index, max_index, error
+
     if time.time() >= deadline:
       timeout_message = (
           f'Timed out, current range '
@@ -973,13 +994,13 @@ def _verify_or_advance_min_revision(
           progression_task_output=progression_task_output,
           error_type=uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)  # pylint: disable=no-member
 
-    candidate_revision = revision_list[min_index]
     result, candidate_error = _testcase_reproduces_in_revision(
         testcase, testcase_file_path, job_type, candidate_revision, fuzz_target,
         progression_task_output)
     if candidate_error is not None:
       if _is_recoverable_bad_min_build(candidate_error,
                                        progression_task_output):
+        tested_bad_revisions.add(candidate_revision)
         error = candidate_error
         continue
       return min_index, max_index, candidate_error
@@ -1001,16 +1022,31 @@ def _verify_or_advance_min_revision(
   return min_index, max_index, error
 
 
+def _count_skipped_bad_revisions(
+    known_bad_revisions: frozenset[int],
+    tested_bad_revisions: set[int],
+    initial_min_revision: int,
+    candidate_revision: int,
+) -> int:
+  """Counts distinct bad revisions strictly between min and candidate."""
+  return sum(1 for rev in (known_bad_revisions | tested_bad_revisions)
+             if initial_min_revision < rev < candidate_revision)
+
+
 def _is_recoverable_bad_min_build(
     error: uworker_msg_pb2.Output,  # pylint: disable=no-member
     progression_task_output: uworker_msg_pb2.ProgressionTaskOutput  # pylint: disable=no-member
 ) -> bool:
-  """Returns True when error is a bad-build health check failure."""
+  """Returns True when error is a recoverable bad-build health check failure."""
   if error.error_type != uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:  # pylint: disable=no-member
     return False
   if not progression_task_output.build_data_list:
     return False
-  return bool(progression_task_output.build_data_list[-1].is_bad_build)
+  last_build_data = progression_task_output.build_data_list[-1]
+  if not last_build_data.is_bad_build:
+    return False
+  return not _has_loader_failure_output(
+      last_build_data.build_run_console_output)
 
 
 def utask_main(uworker_input):

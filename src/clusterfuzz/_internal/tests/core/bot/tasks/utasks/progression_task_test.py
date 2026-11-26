@@ -23,6 +23,7 @@ from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.crash_analysis import \
@@ -1328,6 +1329,7 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
+    self._real_check_for_bad_build = testcase_manager.check_for_bad_build
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.get_task_completion_deadline',
         'clusterfuzz._internal.bot.fuzzers.engine_common.get_fuzz_target_issue_metadata',
@@ -1408,6 +1410,13 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
   def test_aborts_without_fixed_range_when_skipped_min_build_is_clean(self):
     """Tests skip-forward aborts with passed_on_latest when next build passes."""
     self.mock.get_revisions_list.return_value = [100, 150, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
     self.mock.check_for_bad_build.side_effect = (
         lambda job_type, rev: uworker_msg_pb2.BuildData(
             revision=rev, is_bad_build=rev == 100))
@@ -1415,8 +1424,10 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
 
     output = progression_task.find_fixed_range(self._make_input())
 
+    self.assertEqual([200, 100, 150], tested_revisions)
     self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
                      output.error_type)
+    self.assertIn('subsequent build r150 did not crash', output.error_message)
     self.assertTrue(output.progression_task_output.passed_on_latest)
     self.assertEqual(200, output.progression_task_output.max_revision)
     self.assertFalse(output.progression_task_output.HasField('min_revision'))
@@ -1540,6 +1551,13 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
     """Tests deadline expiry during min_revision skip-forward returns TIMEOUT."""
     self.mock.get_task_completion_deadline.return_value = 100.0
     self.mock.get_revisions_list.return_value = [100, 120, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
     self.mock.check_for_bad_build.side_effect = (
         lambda job_type, rev: uworker_msg_pb2.BuildData(
             revision=rev, is_bad_build=rev == 100))
@@ -1548,10 +1566,19 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
     with mock.patch('time.time', return_value=200.0):
       output = progression_task.find_fixed_range(self._make_input())
 
+    self.assertEqual([200, 100], tested_revisions)
     self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT,
                      output.error_type)
     self.assertFalse(
         output.progression_task_output.HasField('last_progression_min'))
+    self.assertFalse(
+        output.progression_task_output.HasField('last_progression_max'))
+    bad_revisions = [
+        bd.revision
+        for bd in output.progression_task_output.build_data_list
+        if bd.is_bad_build
+    ]
+    self.assertEqual([100], bad_revisions)
 
   def test_deadline_expiry_after_advancing_bad_min_saves_progress(self):
     """Tests timeout right after advancing bad min_revision saves progress."""
@@ -1571,7 +1598,9 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
         lambda *args, **kwargs: self._crashing_result()
         if tested_revisions[-1] == 120 else self._clean_result())
 
-    with mock.patch('time.time', side_effect=[50.0, 150.0]):
+    with mock.patch(
+        'time.time',
+        side_effect=lambda: 150.0 if 120 in tested_revisions else 50.0):
       output = progression_task.find_fixed_range(self._make_input())
 
     self.assertEqual([200, 100, 120], tested_revisions)
@@ -1827,3 +1856,253 @@ class FindFixedRangeBadMinRevisionAndErrorTest(unittest.TestCase):
         self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
                          output.error_type)
         self.assertFalse(output.progression_task_output.passed_on_latest)
+
+  def test_known_bad_revisions_count_toward_skip_forward_cap(self):
+    """Tests prior bad_revisions between min and next candidate exhaust cap."""
+    self.mock.get_revisions_list.return_value = [100, 104, 105, 106, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev < 200))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    uworker_input = self._make_input()
+    uworker_input.progression_task_input.bad_revisions.extend(
+        [100, 101, 102, 103])
+    output = progression_task.find_fixed_range(uworker_input)
+
+    self.assertEqual([200, 100], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+    self.assertTrue(output.progression_task_output.passed_on_latest)
+
+  def test_partial_known_bad_revisions_consumes_matching_skip_budget(self):
+    """Tests two known bad_revisions leave room for exactly one more bad skip."""
+    self.mock.get_revisions_list.side_effect = (
+        lambda *args, **kwargs: [100, 103, 104, 200])
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev < 200))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    uworker_input = self._make_input()
+    uworker_input.progression_task_input.bad_revisions.extend([101, 102])
+    output = progression_task.find_fixed_range(uworker_input)
+
+    self.assertEqual([200, 100, 103], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+
+    tested_revisions.clear()
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 100))
+    self.mock.test_for_crash_with_retries.side_effect = (
+        lambda *args, **kwargs: self._crashing_result()
+        if tested_revisions[-1] == 103 else self._clean_result())
+
+    recovered = progression_task.find_fixed_range(uworker_input)
+
+    self.assertEqual([200, 100, 103, 104], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.NO_ERROR, recovered.error_type)
+    self.assertEqual(103, recovered.progression_task_output.min_revision)
+    self.assertEqual(104, recovered.progression_task_output.max_revision)
+
+  def test_known_bad_revisions_past_candidate_do_not_block_adjacent_skip(self):
+    """Tests known bad_revisions after an adjacent candidate do not block it."""
+    self.mock.get_revisions_list.return_value = [100, 110, 150, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev < 200))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    uworker_input = self._make_input()
+    uworker_input.progression_task_input.bad_revisions.extend(
+        [100, 120, 130, 140])
+    output = progression_task.find_fixed_range(uworker_input)
+
+    self.assertEqual([200, 100, 110], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+
+  def test_bad_build_check_loader_error_short_circuits_blackbox_job(self):
+    """Tests BAD_BUILD_CHECK=True stops on shared library errors without skips."""
+    os.environ['BAD_BUILD_CHECK'] = 'True'
+    os.environ['APP_NAME'] = 'chrome'
+    os.environ['APP_PATH'] = '/out/chrome'
+    os.environ['APP_DIR'] = '/out'
+    os.environ['FAST_WARMUP_TIMEOUT'] = '5'
+    self.mock.get_revisions_list.return_value = [100, 110, 120, 130, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    def fake_run_process(command, timeout=None, current_working_directory=None):  # pylint: disable=unused-argument
+      if tested_revisions[-1] == 200:
+        return (0, 0.1, '')
+      return (127, 0.1, '/out/chrome: error while loading shared libraries: '
+              'libfoo.so.1: cannot open shared object file: '
+              'No such file or directory')
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = self._real_check_for_bad_build
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    with mock.patch(
+        'clusterfuzz._internal.bot.testcase_manager.'
+        'get_command_line_for_application',
+        return_value='/out/chrome'), mock.patch(
+            'clusterfuzz._internal.system.process_handler.'
+            'terminate_stale_application_instances'), mock.patch(
+                'clusterfuzz._internal.system.process_handler.run_process',
+                side_effect=fake_run_process):
+      output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 100], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+    self.assertTrue(output.progression_task_output.passed_on_latest)
+    last_build_data = output.progression_task_output.build_data_list[-1]
+    self.assertEqual(100, last_build_data.revision)
+    self.assertTrue(last_build_data.is_bad_build)
+    self.assertIn('error while loading shared libraries',
+                  last_build_data.build_run_console_output)
+
+  def test_bad_build_check_glibc_and_mid_skip_loader_error_short_circuits(self):
+    """Tests GLIBC mismatch in BuildData output aborts both initial and mid-skip."""
+    self.mock.get_revisions_list.side_effect = (
+        lambda *args, **kwargs: [100, 110, 120, 200])
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    glibc_output = (
+        "/out/chrome: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' "
+        'not found (required by /out/chrome)')
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev,
+            is_bad_build=rev == 100,
+            build_run_console_output=glibc_output if rev == 100 else ''))
+
+    initial_output = progression_task.find_fixed_range(self._make_input())
+    self.assertEqual([200, 100], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     initial_output.error_type)
+
+    tested_revisions.clear()
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev,
+            is_bad_build=rev in {100, 110},
+            build_run_console_output=(
+                glibc_output
+                if rev == 110 else 'Fatal startup crash at r100')))
+
+    mid_skip_output = progression_task.find_fixed_range(self._make_input())
+    self.assertEqual([200, 100, 110], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     mid_skip_output.error_type)
+
+  def test_exhausted_bad_revisions_budget_precedes_deadline_timeout(self):
+    """Tests exhausted skip budget returns BAD_BUILD even if deadline passed."""
+    self.mock.get_task_completion_deadline.return_value = 100.0
+    self.mock.get_revisions_list.return_value = [100, 104, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 100))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    uworker_input = self._make_input()
+    uworker_input.progression_task_input.bad_revisions.extend([101, 102, 103])
+    with mock.patch('time.time', return_value=200.0):
+      output = progression_task.find_fixed_range(uworker_input)
+
+    self.assertEqual([200, 100], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
+
+  def test_mid_skip_setup_error_aborts_and_preserves_prior_bad_build_data(self):
+    """Tests non-bad-build setup error mid-skip aborts with prior bad builds."""
+    self.mock.get_revisions_list.return_value = [100, 110, 120, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return revision != 110
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev == 100))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    output = progression_task.find_fixed_range(self._make_input())
+
+    self.assertEqual([200, 100, 110], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
+                     output.error_type)
+    bad_revisions = [
+        bd.revision
+        for bd in output.progression_task_output.build_data_list
+        if bd.is_bad_build
+    ]
+    self.assertEqual([100], bad_revisions)
+
+  def test_duplicate_and_overlapping_bad_revisions_are_not_double_counted(self):
+    """Tests duplicate and preserved bad_revisions count once toward cap."""
+    self.mock.get_revisions_list.return_value = [100, 102, 103, 104, 200]
+    tested_revisions = []
+
+    def fake_setup(revision, fuzz_target=None):  # pylint: disable=unused-argument
+      tested_revisions.append(revision)
+      return True
+
+    self.mock.setup_build.side_effect = fake_setup
+    self.mock.check_for_bad_build.side_effect = (
+        lambda job_type, rev: uworker_msg_pb2.BuildData(
+            revision=rev, is_bad_build=rev < 200))
+    self.mock.test_for_crash_with_retries.return_value = self._clean_result()
+
+    uworker_input = self._make_input()
+    uworker_input.progression_task_input.bad_revisions.extend(
+        [101, 101, 101, 102])
+    output = progression_task.find_fixed_range(uworker_input)
+
+    self.assertEqual([200, 100, 102, 103], tested_revisions)
+    self.assertEqual(uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
+                     output.error_type)
