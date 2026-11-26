@@ -14,7 +14,6 @@
 """Used to download Android symbols."""
 
 import os
-import shlex
 import re
 import zipfile
 
@@ -268,7 +267,9 @@ def _get_binary_from_build_or_device(binary_path):
   # Try finding the library in the local system library cache.
   if (ensure_system_symbols(symbols_directory) and
       (local_binary_path := utils.find_binary_path(symbols_directory,
-                                                   binary_path))):
+                                                   relative_binary_path)) and
+      os.path.isfile(local_binary_path) and
+      local_binary_path.endswith(os.sep + relative_binary_path)):
     return local_binary_path
 
   # Mirror the device path so libraries sharing a basename don't collide.
