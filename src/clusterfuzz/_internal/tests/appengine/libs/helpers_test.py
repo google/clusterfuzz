@@ -131,7 +131,8 @@ class GetUserEmailTest(unittest.TestCase):
 
   def test_get_user_email_success(self):
     """Ensure it gets the email when a user is valid."""
-    self.mock.get_current_user.return_value = auth.User('TeSt@Test.com')
+    self.mock.get_current_user.return_value = auth.User(
+        'TeSt@Test.com', email_verified=True)
     self.assertEqual(helpers.get_user_email(), 'TeSt@Test.com')
 
   def test_get_user_email_unverified(self):

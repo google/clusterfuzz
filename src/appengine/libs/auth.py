@@ -32,8 +32,7 @@ from clusterfuzz._internal.system import environment
 from libs import helpers
 from libs import request_cache
 
-User = collections.namedtuple(
-    'User', ['email', 'email_verified'], defaults=(True,))
+User = collections.namedtuple('User', ['email', 'email_verified'])
 BEARER_PREFIX = 'Bearer '
 
 
@@ -147,47 +146,47 @@ def get_email_from_bearer_token(request):
     claim = id_token.verify_oauth2_token(token, google_requests.Request())
   except ValueError:
     raise helpers.UnauthorizedError('Malformed bearer token')
-  if (not claim.get('email_verified') or
+  if (claim.get('email_verified') is not True or
       claim.get('email') != utils.service_account_email()):
     raise helpers.UnauthorizedError('Invalid ID token.')
 
-  if not claim.get('email_verified'):
-    return None
   return claim.get('email')
 
 
 def get_current_user():
   """Get the current logged in user, or None."""
   if environment.is_local_development():
-    return User('user@localhost')
+    return User('user@localhost', email_verified=True)
 
   current_request = request_cache.get_current_request()
   if local_config.AuthConfig().get('enable_loas'):
     loas_user = current_request.headers.get('X-AppEngine-LOAS-Peer-Username')
     if loas_user:
-      return User(loas_user + '@google.com')
+      return User(loas_user + '@google.com', email_verified=True)
 
   iap_email = get_iap_email(current_request)
   if iap_email:
-    return User(iap_email)
+    return User(iap_email, email_verified=True)
 
   try:
     bearer_token_email = get_email_from_bearer_token(current_request)
     if bearer_token_email:
       logs.info(f'bearer token email = {bearer_token_email}')
-      return User(bearer_token_email)
+      return User(bearer_token_email, email_verified=True)
   except helpers.UnauthorizedError as e:
     logs.warning(f'Exception while trying to get email from auth token: {e}')
 
   cache_backing = request_cache.get_cache_backing()
   oauth_email = getattr(cache_backing, '_oauth_email', None)
   if oauth_email:
-    return User(oauth_email)
+    return User(oauth_email, email_verified=True)
 
   cached_email = getattr(cache_backing, '_cached_email', None)
   if cached_email:
-    return User(cached_email,
-                getattr(cache_backing, '_cached_email_verified', True))
+    return User(
+        cached_email,
+        email_verified=getattr(cache_backing, '_cached_email_verified', False)
+        is True)
 
   session_cookie = get_session_cookie()
   if not session_cookie:
@@ -208,7 +207,7 @@ def get_current_user():
     logs.error(f'Firebase provider {sign_in_provider} is not enabled.')
     return None
 
-  email_verified = bool(decoded_claims.get('email_verified'))
+  email_verified = decoded_claims.get('email_verified') is True
   email = decoded_claims.get('email')
   if not email_verified:
     # The user is rejected here rather than by an access check, and the login

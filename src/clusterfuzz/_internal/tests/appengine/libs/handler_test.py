@@ -178,7 +178,8 @@ class CronTest(unittest.TestCase):
     ])
     self.mock.generate_csrf_token.return_value = 'csrf_token'
     self.mock.is_current_user_admin.return_value = False
-    self.mock.get_current_user.return_value = auth.User('test@test.com')
+    self.mock.get_current_user.return_value = auth.User(
+        'test@test.com', email_verified=True)
 
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule('/', view_func=CronHandler.as_view('/'))
@@ -641,19 +642,104 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
 
   def test_unverified_email(self):
     """Test unverified email."""
-    mocked_response = mock.Mock(
+    for verified_value in (False, 'false', 'False', '', None, 1, '1', 'yes'):
+      mocked_response = mock.Mock(
+          status_code=200,
+          text=json.dumps({
+              'aud': 'test-cf-tools.apps.googleusercontent.com',
+              'email': 'test@test.com',
+              'email_verified': verified_value
+          }))
+      self.mock.validate_token.return_value = mocked_response
+      with self.assertRaises(helpers.UnauthorizedError) as cm:
+        handler.get_email_and_access_token('Bearer AccessToken')
+      self.assertEqual(401, cm.exception.status)
+      self.assertIn('The email (test@test.com) is not verified',
+                    str(cm.exception))
+
+  def test_allowed_bearer_with_string_email_verified(self):
+    """Test allowing Bearer when tokeninfo returns string 'true'."""
+    for aud in self.test_whitelisted_oauth_client_ids:
+      for verified_value in ('true', 'True'):
+        mocked_response = mock.Mock(
+            status_code=200,
+            text=json.dumps({
+                'aud': aud,
+                'email': 'test@test.com',
+                'email_verified': verified_value
+            }))
+        self.mock.validate_token.return_value = mocked_response
+        email, token = handler.get_email_and_access_token('Bearer AccessToken')
+        self.assertEqual('test@test.com', email)
+        self.assertEqual('Bearer AccessToken', token)
+
+  def test_whitelisted_account_with_string_email_verified(self):
+    """Test whitelisted OAuth email accepts 'true' and rejects 'false'."""
+    email = self.test_whitelisted_oauth_emails[0]
+
+    self.mock.validate_token.return_value = mock.Mock(
         status_code=200,
         text=json.dumps({
-            'aud': 'test-cf-tools.apps.googleusercontent.com',
-            'email': 'test@test.com',
-            'email_verified': False
+            'email_verified': 'true',
+            'email': email
         }))
-    self.mock.validate_token.return_value = mocked_response
+    returned_email, token = handler.get_email_and_access_token(
+        'Bearer AccessToken')
+    self.assertEqual(email, returned_email)
+    self.assertEqual('Bearer AccessToken', token)
+
+    for verified_value in (False, 'false', 'False', None):
+      self.mock.validate_token.return_value = mock.Mock(
+          status_code=200,
+          text=json.dumps({
+              'email_verified': verified_value,
+              'email': email
+          }))
+      with self.assertRaises(helpers.UnauthorizedError) as cm:
+        handler.get_email_and_access_token('Bearer AccessToken')
+      self.assertEqual(401, cm.exception.status)
+
+  def test_missing_or_empty_email_rejected(self):
+    """Test tokens with missing or empty email are rejected."""
+    for payload in ({
+        'aud': self.test_whitelisted_oauth_client_ids[0],
+        'email_verified': 'true',
+    }, {
+        'aud': self.test_whitelisted_oauth_client_ids[0],
+        'email': '',
+        'email_verified': 'true',
+    }):
+      self.mock.validate_token.return_value = mock.Mock(
+          status_code=200, text=json.dumps(payload))
+      with self.assertRaises(helpers.UnauthorizedError) as cm:
+        handler.get_email_and_access_token('Bearer AccessToken')
+      self.assertEqual(401, cm.exception.status)
+
+  def test_non_object_json_rejected(self):
+    """Test non-object JSON tokeninfo responses raise 500."""
+    self.mock.validate_token.return_value = mock.Mock(
+        status_code=200, text=json.dumps(['not', 'a', 'dict']))
     with self.assertRaises(helpers.EarlyExitError) as cm:
       handler.get_email_and_access_token('Bearer AccessToken')
+    self.assertEqual(500, cm.exception.status)
+
+  def test_null_whitelists_in_config(self):
+    """Test empty/null YAML whitelist keys fail closed with 401."""
+    self.mock._load_yaml_file.side_effect = None  # pylint: disable=protected-access
+    self.mock._load_yaml_file.return_value = {  # pylint: disable=protected-access
+        'whitelisted_oauth_emails': None,
+        'whitelisted_oauth_client_ids': None,
+    }
+    self.mock.validate_token.return_value = mock.Mock(
+        status_code=200,
+        text=json.dumps({
+            'aud': 'some-client-id',
+            'email': 'test@test.com',
+            'email_verified': 'true',
+        }))
+    with self.assertRaises(helpers.UnauthorizedError) as cm:
+      handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
-    self.assertIn('The email (test@test.com) is not verified',
-                  str(cm.exception))
 
 
 class AllowedCorsHandlerTest(unittest.TestCase):

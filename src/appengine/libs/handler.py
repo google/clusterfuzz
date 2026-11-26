@@ -206,6 +206,19 @@ def validate_token(authorization):
       'is neither a valid id or access token.')
 
 
+def _is_email_verified(value):
+  """Return True only when an OAuth tokeninfo email_verified claim is true.
+
+  Google's oauth2/v3/tokeninfo endpoint serializes boolean claims as JSON
+  strings ('true' / 'false'), so Python truthiness treats 'false' as verified.
+  """
+  if isinstance(value, bool):
+    return value
+  if isinstance(value, str):
+    return value.lower() == 'true'
+  return False
+
+
 def get_email_and_access_token(authorization):
   """Get user email from the request.
 
@@ -220,26 +233,37 @@ def get_email_and_access_token(authorization):
 
   try:
     data = json.loads(response.text)
+    if not isinstance(data, dict):
+      raise ValueError('Tokeninfo response is not a JSON object.')
+
+    email = data.get('email')
+    has_valid_email = isinstance(email, str) and bool(email)
+    email_verified = _is_email_verified(data.get('email_verified'))
 
     # Whitelist service accounts. They have different client IDs (or aud).
     # Therefore, we check against their email directly.
-    if data.get('email_verified') and data.get('email') in _auth_config().get(
-        'whitelisted_oauth_emails', default=[]):
-      return data['email'], authorization
+    whitelisted_emails = (
+        _auth_config().get('whitelisted_oauth_emails', default=[]) or [])
+    if has_valid_email and email_verified and email in whitelisted_emails:
+      return email, authorization
 
     # Validate that this is an explicitly whitelisted client ID.
-    whitelisted_client_ids = _auth_config().get(
-        'whitelisted_oauth_client_ids', default=[])
+    whitelisted_client_ids = (
+        _auth_config().get('whitelisted_oauth_client_ids', default=[]) or [])
     if data.get('aud') not in whitelisted_client_ids:
       raise helpers.UnauthorizedError(
           "The access token doesn't belong to one of the allowed OAuth clients"
           ': %s.' % response.text)
 
-    if not data.get('email_verified'):
-      raise helpers.UnauthorizedError('The email (%s) is not verified: %s.' %
-                                      (data.get('email'), response.text))
+    if not email_verified:
+      raise helpers.UnauthorizedError(
+          'The email (%s) is not verified: %s.' % (email, response.text))
 
-    return data['email'], authorization
+    if not has_valid_email:
+      raise helpers.UnauthorizedError(
+          'The access token does not contain an email: %s.' % response.text)
+
+    return email, authorization
   except (KeyError, ValueError) as e:
     raise helpers.EarlyExitError(
         'Parsing the JSON response body failed: %s' % response.text, 500) from e

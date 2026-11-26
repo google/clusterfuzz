@@ -223,7 +223,7 @@ class GetAccessTest(unittest.TestCase):
         'clusterfuzz._internal.base.external_users.is_job_allowed_for_user',
     ])
     self.mock._is_blacklisted_user.return_value = False
-    self.user = auth.User('test@test.com')
+    self.user = auth.User('test@test.com', email_verified=True)
 
   def test_get_access_access_redirect(self):
     """Ensure it redirects when user is None."""
@@ -378,7 +378,8 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
     self.get_issue = self.itm.get_issue
 
     self.email = 'test@test.com'
-    self.mock.get_current_user.return_value = auth.User(self.email)
+    self.mock.get_current_user.return_value = auth.User(
+        self.email, email_verified=True)
 
     self.bug = issue.Issue()
     self.bug.id = 1234

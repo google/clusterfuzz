@@ -15,11 +15,13 @@
 
 import threading
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from libs import auth
+from libs import helpers
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -99,3 +101,59 @@ class AuthTest(unittest.TestCase):
     self.mock.get_current_user.return_value = auth.User(
         'admin@example.com', email_verified=True)
     self.assertTrue(auth.is_current_user_admin())
+
+  def test_user_requires_explicit_email_verified(self):
+    """Ensure User cannot be instantiated without explicit email_verified."""
+    with self.assertRaises(TypeError):
+      auth.User('user@example.com')  # pylint: disable=no-value-for-parameter
+
+  def test_get_current_user_rejects_string_email_verified_in_session(self):
+    """Ensure non-boolean email_verified claims in Firebase cookies fail."""
+    for verified_value in ('false', 'true'):
+      self.mock.decode_claims.return_value = {
+          'email': 'admin@example.com',
+          'email_verified': verified_value,
+          'firebase': {
+              'sign_in_provider': 'github.com',
+          },
+      }
+      self.assertIsNone(auth.get_current_user())
+
+  def test_get_current_user_cached_email_fails_closed(self):
+    """Ensure missing _cached_email_verified defaults to False."""
+    cache = threading.local()
+    cache._cached_email = 'user@example.com'  # pylint: disable=protected-access
+    self.mock.get_cache_backing.return_value = cache
+    user = auth.get_current_user()
+    self.assertEqual(user, auth.User('user@example.com', email_verified=False))
+
+
+class GetEmailFromBearerTokenTest(unittest.TestCase):
+  """Test get_email_from_bearer_token."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'google.oauth2.id_token.verify_oauth2_token',
+        'clusterfuzz._internal.base.utils.service_account_email',
+    ])
+    self.mock.service_account_email.return_value = (
+        'sa@example.gserviceaccount.com')
+
+  def test_requires_bool_email_verified(self):
+    """Ensure bearer token verification requires strict boolean True."""
+    req = mock.Mock(headers={'Authorization': 'Bearer fake-token'})
+
+    for verified_value in (False, 'false', 'true', None):
+      self.mock.verify_oauth2_token.return_value = {
+          'email': 'sa@example.gserviceaccount.com',
+          'email_verified': verified_value,
+      }
+      with self.assertRaises(helpers.UnauthorizedError):
+        auth.get_email_from_bearer_token(req)
+
+    self.mock.verify_oauth2_token.return_value = {
+        'email': 'sa@example.gserviceaccount.com',
+        'email_verified': True,
+    }
+    self.assertEqual('sa@example.gserviceaccount.com',
+                     auth.get_email_from_bearer_token(req))
