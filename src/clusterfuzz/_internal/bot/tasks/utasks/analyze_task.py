@@ -33,6 +33,7 @@ from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
+from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -353,8 +354,12 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 
 def get_analyze_task_input():
+  stacktrace_blob_name, stacktrace_upload_url = (
+      blobs.get_blob_signed_upload_url())
   return uworker_msg_pb2.AnalyzeTaskInput(  # pylint: disable=no-member
-      bad_revisions=build_manager.get_job_bad_revisions())
+      bad_revisions=build_manager.get_job_bad_revisions(),
+      stacktrace_blob_name=stacktrace_blob_name,
+      stacktrace_upload_url=stacktrace_upload_url)
 
 
 def _build_task_output(
@@ -429,7 +434,9 @@ def _utask_main(uworker_input):
       application_command_line, state.crash_stacktrace,
       unsymbolized_crash_stacktrace)
   testcase.crash_stacktrace = data_handler.filter_stacktrace(
-      crash_stacktrace_output)
+      crash_stacktrace_output,
+      uworker_input.analyze_task_input.stacktrace_blob_name,
+      uworker_input.analyze_task_input.stacktrace_upload_url)
 
   analyze_task_output.crash_stacktrace = testcase.crash_stacktrace
 

@@ -18,10 +18,12 @@ import json
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 import parameterized
 
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import events
@@ -310,3 +312,73 @@ class HandleEventEmissionNonCrashTest(unittest.TestCase):
         events.TestcaseRejectionEvent(
             testcase=self.testcase,
             rejection_reason=events.RejectionReason.ANALYZE_NO_REPRO))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class StacktraceUploadUrlTest(unittest.TestCase):
+  """Tests signed stacktrace upload URL plumbing in analyze_task."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.build_management.build_manager.get_job_bad_revisions',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_signed_upload_url',
+    ])
+    self.mock.get_job_bad_revisions.return_value = [100]
+    self.mock.get_blob_signed_upload_url.return_value = (
+        'stacktrace-blob', 'https://signed-upload-url')
+
+  def test_get_analyze_task_input_includes_signed_stacktrace_upload_url(self):
+    """Ensure get_analyze_task_input populates stacktrace upload URL fields."""
+    task_input = analyze_task.get_analyze_task_input()
+    self.assertEqual(list(task_input.bad_revisions), [100])
+    self.assertEqual(task_input.stacktrace_blob_name, 'stacktrace-blob')
+    self.assertEqual(task_input.stacktrace_upload_url,
+                     'https://signed-upload-url')
+
+  def test_utask_main_passes_signed_upload_url_to_filter_stacktrace(self):
+    """Ensure _utask_main forwards signed upload URL to filter_stacktrace."""
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.analyze_task.prepare_env_for_main',
+        'clusterfuzz._internal.bot.tasks.utasks.analyze_task.setup_testcase_and_build',
+        'clusterfuzz._internal.bot.tasks.utasks.analyze_task.test_for_crash_with_retries',
+        'clusterfuzz._internal.bot.testcase_manager.get_command_line_for_application',
+        'clusterfuzz._internal.bot.testcase_manager.get_fuzz_target_from_input',
+        'clusterfuzz._internal.datastore.data_handler.filter_stacktrace',
+        'clusterfuzz._internal.metrics.monitoring_metrics.ANALYZE_TASK_REPRODUCIBILITY.increment',
+    ])
+    os.environ['APP_REVISION'] = '1234'
+    os.environ['TEST_TIMEOUT'] = '10'
+
+    testcase = test_utils.create_generic_testcase()
+    upload_metadata = data_types.TestcaseUploadMetadata(
+        testcase_id=testcase.key.id())
+    upload_metadata.put()
+
+    self.mock.get_fuzz_target_from_input.return_value = None
+    self.mock.setup_testcase_and_build.return_value = ('/fake/testcase', None)
+    self.mock.get_command_line_for_application.return_value = 'app /fake/testcase'
+    crash_result = mock.MagicMock()
+    crash_result.is_crash.return_value = False
+    crash_result.get_crash_time.return_value = 0.0
+    crash_result.get_symbolized_data.return_value = mock.MagicMock(
+        crash_stacktrace='sym-stack')
+    crash_result.get_stacktrace.return_value = 'raw-stack'
+    self.mock.test_for_crash_with_retries.return_value = (crash_result, False)
+    self.mock.filter_stacktrace.return_value = 'blobs:stacktrace-blob'
+
+    uworker_input = uworker_msg_pb2.Input(
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        testcase_upload_metadata=uworker_io.entity_to_protobuf(upload_metadata),
+        testcase_id=str(testcase.key.id()),
+        job_type='linux_asan_chrome',
+        fuzzer_name='fuzzer',
+        analyze_task_input=analyze_task.get_analyze_task_input(),
+    )
+
+    output = analyze_task._utask_main(uworker_input)  # pylint: disable=protected-access
+
+    self.mock.filter_stacktrace.assert_called_once_with(
+        mock.ANY, 'stacktrace-blob', 'https://signed-upload-url')
+    self.assertEqual(output.analyze_task_output.crash_stacktrace,
+                     'blobs:stacktrace-blob')
