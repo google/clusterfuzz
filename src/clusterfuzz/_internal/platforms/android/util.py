@@ -278,3 +278,29 @@ def activity_crashed_by_package(app_package: str) -> bool:
 
   exit_info = get_exit_info_for_pid(app_package, pid)
   return activity_crashed(exit_info)
+
+
+def is_package_running(app_package: str) -> bool:
+  """Returns whether any process belonging to an Android package is running.
+
+  Matches only exact `app_package` or `<app_package>:*` service processes in a
+  single `ps -A` snapshot, ignoring prefix-sharing processes (e.g.
+  `*_zygote_native`) and monkey.
+
+  Args:
+    app_package: Android application package name.
+
+  Returns:
+    True if at least one process of `app_package` is running, False otherwise.
+  """
+  service_prefix = '%s:' % app_package
+  for line in (adb.get_ps_output() or '').splitlines():
+    data = line.split()
+    if not data:
+      continue
+
+    process_name = data[-1]
+    if process_name == app_package or process_name.startswith(service_prefix):
+      return True
+
+  return False
