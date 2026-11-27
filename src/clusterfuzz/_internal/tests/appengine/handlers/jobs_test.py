@@ -249,48 +249,79 @@ class JobsUpdateTest(unittest.TestCase):
     data_types.JobTemplate(
         name='libfuzzer', environment_string='TEST_TIMEOUT = 65\n').put()
 
+    def post_job(name, env, templates=''):
+      return self.app.post(
+          '/', {
+              'csrf_token': form.generate_csrf_token(),
+              'name': name,
+              'platform': 'LINUX',
+              'templates': templates,
+              'environment_string': env,
+          },
+          expect_errors=True).status_int
+
+    def post_template(name, env):
+      return self.app.post(
+          '/template', {
+              'csrf_token': form.generate_csrf_token(),
+              'name': name,
+              'environment_string': env,
+          },
+          expect_errors=True).status_int
+
     for bad_env in (
         'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 65\n',
         'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = -1\n',
         'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 25s\n',
     ):
-      resp = self.app.post(
-          '/', {
-              'csrf_token': form.generate_csrf_token(),
-              'name': 'libfuzzer_job',
-              'platform': 'LINUX',
-              'templates': 'libfuzzer',
-              'environment_string': bad_env,
-          },
-          expect_errors=True)
-      self.assertEqual(400, resp.status_int)
+      self.assertEqual(400, post_job('libfuzzer_job', bad_env, 'libfuzzer'))
 
-    resp = self.app.post(
-        '/', {
-            'csrf_token':
-                form.generate_csrf_token(),
-            'name':
-                'libfuzzer_job',
-            'platform':
-                'LINUX',
-            'templates':
-                'libfuzzer',
-            'environment_string': (
-                'TEST_TIMEOUT = 85\n'
-                'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 25\n'),
-        },
-        expect_errors=True)
-    self.assertEqual(200, resp.status_int)
+    self.assertEqual(
+        200,
+        post_job(
+            'libfuzzer_job', 'TEST_TIMEOUT = 85\n'
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 25\n',
+            'libfuzzer'))
+    self.assertEqual(
+        400,
+        post_template(
+            'bad_template', 'TEST_TIMEOUT = 65\n'
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 65\n'))
 
-    resp = self.app.post(
-        '/template', {
-            'csrf_token':
-                form.generate_csrf_token(),
-            'name':
-                'bad_template',
-            'environment_string': (
-                'TEST_TIMEOUT = 65\n'
-                'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 65\n'),
-        },
-        expect_errors=True)
-    self.assertEqual(400, resp.status_int)
+    # Clearing the reserve override with None is allowed; TEST_TIMEOUT = None
+    # is allowed on a standalone template but rejected on a resolved job.
+    self.assertEqual(
+        200,
+        post_template(
+            'reserve_template', 'TEST_TIMEOUT = None\n'
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 25\n'))
+    self.assertEqual(
+        200,
+        post_job('clear_reserve_job',
+                 'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = None\n',
+                 'reserve_template'))
+    self.assertEqual(
+        400,
+        post_job(
+            'none_timeout_job', 'TEST_TIMEOUT = None\n'
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 5\n'))
+
+    # Template edits reject breaking dependent jobs without deadlocking on
+    # pre-existing invalid jobs persisted outside the UI.
+    self.assertEqual(
+        200,
+        post_job('inherited_timeout_job',
+                 'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 25\n',
+                 'libfuzzer'))
+    data_types.Job(
+        name='preexisting_bad_job',
+        platform='LINUX',
+        templates=['libfuzzer'],
+        environment_string=(
+            'TEST_TIMEOUT = 10\n'
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 25\n')).put()
+
+    self.assertEqual(200,
+                     post_template('libfuzzer', 'TEST_TIMEOUT = 65\nFOO = 1\n'))
+    self.assertEqual(400, post_template('libfuzzer', 'TEST_TIMEOUT = 25\n'))
+    self.assertEqual(200, post_template('libfuzzer', 'TEST_TIMEOUT = 30\n'))
