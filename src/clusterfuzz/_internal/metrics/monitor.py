@@ -63,6 +63,8 @@ MAX_TIME_SERIES_PER_CALL = 200
 # prev_end_time and a reset's new start_time. Use 2ms to account for float64 to
 # nanosecond truncation in _time_to_timestamp.
 MIN_RESET_GAP_SECONDS = 0.002
+# Cloud Monitoring requires time intervals to be at least 1 microsecond long.
+MIN_INTERVAL_GAP_SECONDS = 1e-6
 
 # Since `monitoring_v3` is only conditionally imported, pylint complains about
 # any accesses to its members. Define type aliases here once and for all, for
@@ -130,7 +132,7 @@ def _flush_metrics():
          ):
         start_time = end_time
         key = None  # Do not clear Gauge metrics
-      elif start_time >= end_time:
+      elif end_time - start_time <=  MIN_INTERVAL_GAP_SECONDS:
         # Avoid sending time series that will be rejected by Cloud Monitoring
         continue
       series = _TimeSeries()
