@@ -637,7 +637,7 @@ class _StepTracker:
 
 
 class TimeStatTracker:
-  """Reusable context manager to keep track of time stats.
+  """Keeps track of time stats.
 
   Time measurements are emitted to the supplied Cloud Monitoring metric and
   are saved as datetime.timedelta in the |self.stats| dictionary as well.
@@ -670,22 +670,82 @@ class TimeStatTracker:
                    'and will be overwritten.')
     self.current_step: str | None = None
 
+  def _check_parent_step(self, name: str, expected_parent_step: str | None):
+    """Logs an error if parent step is invalid or mismatches current step."""
+    if expected_parent_step == name:
+      logs.error(f'Step "{name}" cannot be nested inside itself.')
+      return
+    if self.current_step == expected_parent_step:
+      return
+    if expected_parent_step is None:
+      logs.error(f'Step "{name}" is nested inside step "{self.current_step}".')
+    elif self.current_step is None:
+      logs.error(f'Step "{name}" expected to be nested inside step '
+                 f'"{expected_parent_step}", but no step is active.')
+    else:
+      logs.error(f'Step "{name}" expected to be nested inside step '
+                 f'"{expected_parent_step}", but is nested inside step '
+                 f'"{self.current_step}".')
+
+  def _record(self, name: str, duration_secs: float, success: bool):
+    """Records a duration measurement for |name| in stats and metric."""
+    if duration_secs < 0:
+      # Clamp negative durations (e.g., from wall-clock adjustments) to 0.
+      logs.error(f'Negative duration ({duration_secs}s) recorded for step '
+                 f'"{name}", clamping to 0.')
+      duration_secs = 0.0
+    duration = datetime.timedelta(seconds=duration_secs)
+    if name in self.stats:
+      self.stats[name] += duration
+    else:
+      self.stats[name] = duration
+    if self.metric:
+      self.metric.insert(
+          duration_secs,
+          labels={
+              **self.common_labels, 'step': name,
+              'success': success
+          })
+
+  def record(self,
+             name: str,
+             duration_secs: float,
+             success: bool = True,
+             expected_parent_step: str | None = None):
+    """Records a manual time measurement for the stat named |name|.
+
+    Args:
+      name: The name of the step being measured.
+      duration_secs: The measured duration in seconds.
+      success: Whether the step succeeded.
+      expected_parent_step: The name of the parent step this measurement is
+        expected to be nested inside, or None if it should not be nested. An
+        error is logged if the current step does not match and the method
+        executes normally.
+    """
+    self._check_parent_step(name, expected_parent_step)
+    self._record(name, duration_secs, success)
+
   @contextlib.contextmanager
-  def track(self, name: str):
-    """Tracks the stat named |name|.
+  def track(self, name: str, expected_parent_step: str | None = None):
+    """Context manager that tracks the stat named |name|.
 
     Yields a step tracker whose fail() method, when invoked, marks the step as
     failed without interrupting the block. Any raised exception is also treated
-    as a failure and re-raised. Steps should not be nested; however, if this
-    occurs, an error is logged and the method continues to execute normally.
+    as a failure and re-raised.
+
+    Args:
+      name: The name of the step being tracked.
+      expected_parent_step: The name of the parent step this step is expected to
+        be nested inside, or None if it should not be nested. An error is logged
+        if the current step does not match and the method executes normally.
     """
     parent_step = self.current_step
-    if parent_step is not None:
-      logs.error(f'Step "{name}" is nested inside step "{parent_step}".')
+    self._check_parent_step(name, expected_parent_step)
     start = time.time()
     step = _StepTracker()
-    self.current_step = name
 
+    self.current_step = name
     try:
       yield step
     except:
@@ -694,18 +754,7 @@ class TimeStatTracker:
     finally:
       self.current_step = parent_step
       duration_secs = time.time() - start
-      duration = datetime.timedelta(seconds=duration_secs)
-      if name in self.stats:
-        self.stats[name] += duration
-      else:
-        self.stats[name] = duration
-      if self.metric:
-        self.metric.insert(
-            duration_secs,
-            labels={
-                **self.common_labels, 'step': name,
-                'success': step.success
-            })
+      self._record(name, duration_secs, step.success)
 
 
 # Global state.

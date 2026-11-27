@@ -1517,6 +1517,15 @@ def run_engine_fuzzer(
   with steps_time_tracker.track('fuzz'):
     result = engine_impl.fuzz(target_path, options, testcase_directory,
                               adjusted_fuzz_test_timeout)
+    if result.time_executed is not None:
+      # AFL: count only the last round's time, since earlier rounds'
+      # results are discarded.
+      steps_time_tracker.record(
+          'fuzz_process_exec',
+          result.time_executed,
+          expected_parent_step='fuzz')
+    else:
+      logs.error('Engine fuzz result missing time_executed.')
 
   logs.info('Used strategies.', strategies=options.strategies)
   for strategy, value in options.strategies.items():
@@ -2077,9 +2086,11 @@ class FuzzingSession:
 
           time.sleep(thread_delay)
 
-        with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
-                            job_type) as tracker:
-          tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
+        with self.steps_time_tracker.track(
+            'fuzz_process_exec', expected_parent_step='fuzz'):
+          with _TrackFuzzTime(self.fully_qualified_fuzzer_name,
+                              job_type) as tracker:
+            tracker.timeout = utils.wait_until_timeout(threads, thread_timeout)
 
       with self.steps_time_tracker.track('round_cleanup'):
         # Allow for some time to finish processing before terminating the
