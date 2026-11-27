@@ -1,0 +1,54 @@
+[1124/191655.767:FATAL:url\gurl_fuzzer.cc:32] Check failed: spec == recanonicalized.spec() (file://// vs. file:///);
+	gurl_fuzzer!base::debug::CollectStackTrace [0x7ff7c1e03790+40] (C:\b\s\w\ir\cache\builder\src\base\debug\stack_trace_win.cc:395)
+	gurl_fuzzer!base::debug::StackTrace::StackTrace [0x7ff7c1cc3a3e+14e] (C:\b\s\w\ir\cache\builder\src\base\debug\stack_trace.cc:276)
+	gurl_fuzzer!logging::LogMessage::Flush [0x7ff7c1c53a68+868] (C:\b\s\w\ir\cache\builder\src\base\logging.cc:714)
+	gurl_fuzzer!logging::LogMessage::~LogMessage [0x7ff7c1c5306f+3f] (C:\b\s\w\ir\cache\builder\src\base\logging.cc:704)
+	gurl_fuzzer!logging::`anonymous namespace'::CheckLogMessage::~CheckLogMessage [0x7ff7c1c66954+d4] (C:\b\s\w\ir\cache\builder\src\base\check.cc:205)
+	gurl_fuzzer!logging::NotReachedNoreturnError::~NotReachedNoreturnError [0x7ff7c1c6621b+b] (C:\b\s\w\ir\cache\builder\src\base\check.cc:378)
+	gurl_fuzzer!CheckIdempotency [0x7ff7c1a81530+530] (C:\b\s\w\ir\cache\builder\src\url\gurl_fuzzer.cc:32)
+	gurl_fuzzer!LLVMFuzzerTestOneInput [0x7ff7c1a8223e+42e] (C:\b\s\w\ir\cache\builder\src\url\gurl_fuzzer.cc:48)
+	gurl_fuzzer!fuzzer::Fuzzer::ExecuteCallback [0x7ff7c1ad0a86+386] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerLoop.cpp:622)
+	gurl_fuzzer!fuzzer::Fuzzer::CrashResistantMergeInternalStep [0x7ff7c1ae4a0b+a0b] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerMerge.cpp:239)
+	gurl_fuzzer!fuzzer::FuzzerDriver [0x7ff7c1aa7793+35b3] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerDriver.cpp:898)
+	gurl_fuzzer!main [0x7ff7c1a8525e+de] (C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerMain.cpp:20)
+	gurl_fuzzer!__scrt_common_main_seh [0x7ff7c1e73a3f+10f] (D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288)
+	KERNEL32!BaseThreadInitThunk [0x7ffa9ee3dd37+17]
+	ntdll!RtlUserThreadStart [0x7ffa9f69f2bc+2c]
+
+=================================================================
+==3396==ERROR: AddressSanitizer: breakpoint on unknown address 0x7ff7c1c55582 (pc 0x7ff7c1c55582 bp 0x0018f46feee0 sp 0x0018f46fee60 T0)
+SCARINESS: 10 (signal)
+==3396==*** WARNING: Failed to initialize DbgHelp!              ***
+==3396==*** Most likely this means that the app is already      ***
+==3396==*** using DbgHelp, possibly with incompatible flags.    ***
+==3396==*** Due to technical reasons, symbolization might crash ***
+==3396==*** or produce wrong results.                           ***
+    #0 0x7ff7c1c55581 in logging::LogMessage::HandleFatal(unsigned __int64, class std::__Cr::basic_string<char, struct std::__Cr::char_traits<char>, class std::__Cr::allocator<char>> const &) const C:\b\s\w\ir\cache\builder\src\base\logging.cc:1018:5
+    #1 0x7ff7c1c542ae in logging::LogMessage::Flush::<lambda_0>::operator() C:\b\s\w\ir\cache\builder\src\base\logging.cc:749
+    #2 0x7ff7c1c542ae in absl::cleanup_internal::Storage<`lambda at ..\..\base\logging.cc:747:40'>::InvokeCallback C:\b\s\w\ir\cache\builder\src\third_party\abseil-cpp\absl\cleanup\internal\cleanup.h:87
+    #3 0x7ff7c1c542ae in absl::Cleanup<absl::cleanup_internal::Tag,`lambda at ..\..\base\logging.cc:747:40'>::~Cleanup C:\b\s\w\ir\cache\builder\src\third_party\abseil-cpp\absl\cleanup\cleanup.h:111
+    #4 0x7ff7c1c542ae in logging::LogMessage::Flush(void) C:\b\s\w\ir\cache\builder\src\base\logging.cc:897:1
+    #5 0x7ff7c1c5306e in logging::LogMessage::~LogMessage(void) C:\b\s\w\ir\cache\builder\src\base\logging.cc:703:3
+    #6 0x7ff7c1c66953 in logging::`anonymous namespace'::CheckLogMessage::~CheckLogMessage C:\b\s\w\ir\cache\builder\src\base\check.cc:208
+    #7 0x7ff7c1c66953 in logging::`anonymous namespace'::CheckLogMessage::~CheckLogMessage C:\b\s\w\ir\cache\builder\src\base\check.cc:205:31
+    #8 0x7ff7c1c6621a in logging::NotReachedNoreturnError::~NotReachedNoreturnError(void) C:\b\s\w\ir\cache\builder\src\base\check.cc:459:16
+    #9 0x7ff7c1a8152f in CheckIdempotency(class GURL const &) C:\b\s\w\ir\cache\builder\src\url\gurl_fuzzer.cc:32:3
+    #10 0x7ff7c1a8223d in TestOneInput C:\b\s\w\ir\cache\builder\src\url\gurl_fuzzer.cc:84
+    #11 0x7ff7c1a8223d in LLVMFuzzerTestOneInput C:\b\s\w\ir\cache\builder\src\url\gurl_fuzzer.cc:48:1
+    #12 0x7ff7c1ad0a85 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const *, unsigned __int64) C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerLoop.cpp:622:13
+    #13 0x7ff7c1ae4a0a in fuzzer::Fuzzer::CrashResistantMergeInternalStep(class std::__Cr::basic_string<char, struct std::__Cr::char_traits<char>, class std::__Cr::allocator<char>> const &, bool) C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerMerge.cpp:239:5
+    #14 0x7ff7c1aa7792 in fuzzer::FuzzerDriver(int *, char ***, int (*)(unsigned char const *, unsigned __int64)) C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerDriver.cpp:898:8
+    #15 0x7ff7c1a8525d in main C:\b\s\w\ir\cache\builder\src\third_party\libFuzzer\src\FuzzerMain.cpp:20:10
+    #16 0x7ff7c1e73a3e in invoke_main D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+    #17 0x7ff7c1e73a3e in __scrt_common_main_seh D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #18 0x7ffa9ee3dd36 in KERNEL32.DLL
+    #19 0x7ffa9f69f2bb in ntdll.dll
+
+==3396==Register values:
+rax = 1639b650000  rbx = 163818192d0  rcx = 16381107000  rdx = 0
+rdi = 1639b980000  rsi = 31e8dfdd4  rbp = 18f46feee0  rsp = 18f46fee60
+r8  = e0  r9  = e0  r10 = 7ffa9ca60000  r11 = 7ffa9cb4d781
+r12 = 0  r13 = 0  r14 = 75  r15 = 2c7030325c
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: breakpoint (c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd6\revisions\out\81af-Libfuzzer_Uploa\gurl_fuzzer.exe+0x1401d5581)
+==3396==ABORTING

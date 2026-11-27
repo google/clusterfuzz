@@ -17,6 +17,7 @@ import re
 import unittest
 
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_parser
+from clusterfuzz.stacktraces import StackParser
 
 
 class StackFrameTestcase(unittest.TestCase):
@@ -81,3 +82,16 @@ class StackFrameTestcase(unittest.TestCase):
     self.assertEqual(stack_frame_proto.function_base, -13)
     self.assertEqual(stack_frame_proto.module.base_address,
                      -9223372036854775808)
+
+  def test_chrome_win_operator_not_equal(self):
+    """Tests that C++ operator!= is not split as a module! prefix."""
+    stacktrace = (
+        '[1124/191655.767:FATAL:foo.cc:12] Check failed: a != b;\n'
+        '\tmy_fuzzer!Foo::operator!= [0x7ff7c1a81530+4c]'
+        ' (C:\\b\\s\\src\\foo.cc:12)\n'
+        '\toperator!= [0x7ff7c1a81560+1a] (C:\\b\\s\\src\\foo.cc:20)\n')
+    parsed = StackParser().parse(stacktrace)
+    self.assertEqual(parsed.crash_state, 'a != b in foo.cc\nFoo::operator!=\n')
+    self.assertEqual(
+        [(f.module_name, f.function_name) for f in parsed.frames[0]],
+        [('my_fuzzer', 'Foo::operator!='), (None, 'operator!=')])
