@@ -47,6 +47,9 @@ class ExecuteTaskTest(unittest.TestCase):
     self.mock.get_impacts_from_url.return_value = impacts
     self.mock.setup_testcase.return_value = (['a'], 'path', None)
 
+    self.job = data_types.Job(name='job2', platform='LINUX')
+    self.job.put()
+
     self.testcase = data_types.Testcase()
     self.testcase.is_impact_set_flag = False
     self.testcase.status = 'Processed'
@@ -127,12 +130,48 @@ class ExecuteTaskTest(unittest.TestCase):
     impact_task.execute_task(self.testcase.key.id(), 'job')
     self.expect_unchanged()
 
+  def test_bail_out_missing_job(self):
+    """Test bailing out when the testcase's job no longer exists."""
+    self.job.key.delete()
+    impact_task.execute_task(self.testcase.key.id(), 'job')
+    self.expect_unchanged()
+    self.assertFalse(self.testcase.is_impact_set_flag)
+    self.assertIn('errored out: Job job2 not found.', self.testcase.comments)
+    self.mock.get_impacts_from_url.assert_not_called()
+
   def test_non_prod_build(self):
     """Test getting impact for non-prod build."""
     impact_task.execute_task(self.testcase.key.id(), 'job')
     self.expect_changed()
-    self.mock.get_impacts_from_url.assert_has_calls(
-        [mock.call(self.testcase.regression, self.testcase.job_type)])
+    self.mock.get_impacts_from_url.assert_has_calls([
+        mock.call(
+            self.testcase.regression,
+            self.testcase.job_type,
+            platform='LINUX',
+            platform_id=None)
+    ])
+
+  def test_uses_job_platform_not_host_platform(self):
+    """Test impact passes the job's platform and testcase platform_id."""
+    self.job.platform = 'ANDROID_EMULATOR'
+    self.job.put()
+    self.testcase.platform_id = 'android_emulator'
+    self.testcase.put()
+    with mock.patch(
+        'clusterfuzz._internal.build_management.revisions.get_component_range_list',
+        return_value=[{
+            'component': 'Chromium',
+            'link_text': '100:200'
+        }]) as mock_component_range:
+      impact_task.execute_task(self.testcase.key.id(), 'job')
+    self.expect_changed()
+    mock_component_range.assert_called_once_with(
+        123, 456, self.testcase.job_type, platform_id='android_emulator')
+    self.mock.get_impacts_from_url.assert_called_once_with(
+        self.testcase.regression,
+        self.testcase.job_type,
+        platform='ANDROID_EMULATOR',
+        platform_id='android_emulator')
 
 
 class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
@@ -198,7 +237,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     self.assertTrue(
         impact_task.get_impacts_from_url('123:456', 'job').is_empty())
     self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+        [mock.call('123:456', 'job', platform=None, platform_id=None)])
     self.mock.get_build_to_revision_mappings.assert_has_calls([])
     self.mock.get_impact.assert_has_calls([])
 
@@ -209,7 +248,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         impact_task.get_impacts_from_url('123:456', 'job',
                                          'windows').is_empty())
     self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+        [mock.call('123:456', 'job', platform='windows', platform_id=None)])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([])
@@ -221,7 +260,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         impact_task.get_impacts_from_url('123:456', 'job',
                                          'windows').is_empty())
     self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+        [mock.call('123:456', 'job', platform='windows', platform_id=None)])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([])
@@ -233,7 +272,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         impact_task.get_impacts_from_url('123:456', 'job',
                                          'windows').is_empty())
     self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+        [mock.call('123:456', 'job', platform='windows', platform_id=None)])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
 
@@ -254,13 +293,14 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         impact_task.get_impacts_from_url('123:456', 'job',
                                          'windows').is_empty())
     self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+        [mock.call('123:456', 'job', platform='windows', platform_id=None)])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
 
   def test_get_impacts_es_not_exists(self):
     """Test getting impacts when extended stable doesn't exist."""
-    impacts = impact_task.get_impacts_from_url('123:456', 'job', 'windows')
+    impacts = impact_task.get_impacts_from_url(
+        '123:456', 'job', 'windows', platform_id='android:pixel')
 
     self.assertEqual('', impacts.extended_stable.version)
     self.assertFalse(impacts.extended_stable.likely)
@@ -271,8 +311,10 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     self.assertEqual('c', impacts.head.version)
     self.assertFalse(impacts.head.likely)
 
-    self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+    self.mock.get_start_and_end_revision.assert_has_calls([
+        mock.call(
+            '123:456', 'job', platform='windows', platform_id='android:pixel')
+    ])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([
@@ -326,7 +368,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     self.assertFalse(impacts.head.likely)
 
     self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+        [mock.call('123:456', 'job', platform='windows', platform_id=None)])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([
@@ -387,7 +429,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     self.assertFalse(impacts.head.likely)
 
     self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+        [mock.call('123:456', 'job', platform='windows', platform_id=None)])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([
@@ -418,7 +460,8 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         impact_task.Impact('b', True),
         impact_task.Impact('c', False)
     ]
-    impacts = impact_task.get_impacts_from_url('123:456', 'job', 'windows')
+    impacts = impact_task.get_impacts_from_url(
+        '123:456', 'job', 'windows', platform_id='android:pixel')
 
     self.assertEqual('', impacts.extended_stable.version)
     self.assertFalse(impacts.extended_stable.likely)
@@ -427,8 +470,10 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     self.assertEqual('b', impacts.beta.version)
     self.assertTrue(impacts.beta.likely)
 
-    self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+    self.mock.get_start_and_end_revision.assert_has_calls([
+        mock.call(
+            '123:456', 'job', platform='windows', platform_id='android:pixel')
+    ])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([
@@ -486,7 +531,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     self.assertTrue(impacts.head.likely)
 
     self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+        [mock.call('123:456', 'job', platform='windows', platform_id=None)])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([
@@ -544,7 +589,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     self.assertTrue(impacts.head.likely)
 
     self.mock.get_start_and_end_revision.assert_has_calls(
-        [mock.call('123:456', 'job')])
+        [mock.call('123:456', 'job', platform='windows', platform_id=None)])
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
     self.mock.get_impact.assert_has_calls([
@@ -651,12 +696,16 @@ class GetStartAndEndRevisionTest(unittest.TestCase):
     }, {
         'component': 'test'
     }]
-    start, end = impact_task.get_start_and_end_revision('123:456',
-                                                        'android_job')
+    start, end = impact_task.get_start_and_end_revision(
+        '123:456',
+        'android_job',
+        platform='android_emulator',
+        platform_id='android_emulator')
 
     self.assertEqual(9, start)
     self.assertEqual(90, end)
+    self.mock.is_android.assert_called_once_with('ANDROID_EMULATOR')
     self.mock.get_start_and_end_revision.assert_has_calls(
         [mock.call('123:456'), mock.call('somelink')])
     self.mock.get_component_range_list.assert_has_calls(
-        [mock.call(1, 100, 'android_job')])
+        [mock.call(1, 100, 'android_job', platform_id='android_emulator')])
