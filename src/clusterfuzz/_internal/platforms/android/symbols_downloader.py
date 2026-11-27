@@ -34,13 +34,17 @@ def get_repo_prop_archive_filename(build_id, target):
   return f'{target}-{build_id}-repo.prop'
 
 
+def can_fetch_build_symbols() -> bool:
+  """Return whether the current bot can fetch unbundled build symbols via
+  fetch_artifact (unavailable in local development or on uworkers)."""
+  return (not environment.get_value('LOCAL_DEVELOPMENT') and
+          not environment.is_uworker())
+
+
 def should_download_symbols():
   """Return True if we should continue to download symbols."""
-  # For local testing, we do not have access to the cloud storage bucket with
-  # the symbols. In this case, just bail out. We have archived symbols for
-  # google builds only.
-  return (not environment.get_value('LOCAL_DEVELOPMENT') and
-          settings.is_google_device())
+  # We have archived symbols for google builds only.
+  return can_fetch_build_symbols() and settings.is_google_device()
 
 
 def download_artifact_if_needed(
@@ -67,7 +71,15 @@ def check_symbols_cached(build_params_check_path, build_params):
 
 def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
                                  targets_with_type_and_san, cache_type):
-  """Downloads the repo.prop for a branch"""
+  """Downloads the repo.prop for a branch on a best-effort basis.
+
+  The download is skipped when this bot can't fetch build artifacts (local
+  development or uworkers) and failures are only logged, so callers must check
+  whether the repo.prop exists in |symbols_directory| before using it.
+  """
+  if not can_fetch_build_symbols():
+    return
+
   artifact_file_name = 'repo.prop'
   symbols_archive_filename = get_repo_prop_archive_filename(
       build_id, cache_target)
@@ -123,21 +135,33 @@ def download_kernel_repo_prop_if_needed(symbols_directory):
                                targets_with_type_and_san, 'kernel')
 
 
-def download_system_symbols_if_needed(symbols_directory):
-  """Download system libraries from |SYMBOLS_URL| and cache locally."""
+def ensure_system_symbols(symbols_directory) -> bool:
+  """Ensures system symbols for the current build are available locally.
+
+  Downloads and extracts the system symbols archive if it is not already found
+  in the local cache.
+
+  Args:
+    symbols_directory: Local directory where system symbols are extracted and
+      cached.
+
+  Returns:
+    True if system symbols are cached or downloaded successfully; False if
+    downloading is skipped, build parameters are missing, or fetching fails.
+  """
   if not should_download_symbols():
-    return
+    return False
 
   # Get the build fingerprint parameters.
   build_params = settings.get_build_parameters()
   if not build_params:
     logs.error('Unable to determine build parameters.')
-    return
+    return False
 
   build_params_check_path = os.path.join(symbols_directory,
                                          '.cached_build_params')
   if check_symbols_cached(build_params_check_path, build_params):
-    return
+    return True
 
   build_id = build_params.get('build_id')
   target = build_params.get('target')
@@ -154,7 +178,7 @@ def download_system_symbols_if_needed(symbols_directory):
 
   if not build_id or not target or not build_type:
     logs.error('Null build parameters found, exiting.')
-    return
+    return False
 
   symbols_archive_filename = f'{target}-symbols-{build_id}.zip'
   artifact_file_name = symbols_archive_filename
@@ -175,17 +199,26 @@ def download_system_symbols_if_needed(symbols_directory):
                               output_filename_override)
   if not os.path.exists(symbols_archive_path):
     logs.error('Unable to locate symbols archive %s.' % symbols_archive_path)
-    return
+    return False
 
   with archive.open(symbols_archive_path) as reader:
     reader.extract_all(symbols_directory, trusted=True)
   shell.remove_file(symbols_archive_path)
 
   utils.write_data_to_file(build_params, build_params_check_path)
+  return True
 
 
 def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
-  """Downloads and extracts Trusted App ELF files"""
+  """Downloads and extracts Trusted App ELF files on a best-effort basis.
+
+  The download is skipped when this bot can't fetch build artifacts (local
+  development or uworkers) and failures are only logged, so callers must check
+  whether lk.elf and the app ELF exist in |symbols_directory| before using them.
+  """
+  if not can_fetch_build_symbols():
+    return
+
   ab_target = ''
   device = settings.get_build_parameters().get('target')
   if 'cheetah' in device or 'panther' in device:
@@ -247,27 +280,24 @@ def _get_binary_from_build_or_device(binary_path):
     logs.warning('Skipping invalid Android binary path: %s.' % binary_path)
     return None
 
-  # Initialize some helper variables.
   symbols_directory = environment.get_value('SYMBOLS_DIR')
-  if not symbols_directory:
-    return None
   relative_binary_path = binary_path.lstrip('/')
-  binary_filename = os.path.basename(relative_binary_path)
 
   # We didn't find the library locally in the build directory.
   # Try finding the library in the local system library cache.
-  download_system_symbols_if_needed(symbols_directory)
-  local_binary_path = utils.find_binary_path(symbols_directory,
-                                             relative_binary_path)
-  if local_binary_path and os.path.isfile(local_binary_path):
+  if (ensure_system_symbols(symbols_directory) and
+      (local_binary_path := utils.find_binary_path(symbols_directory,
+                                                   relative_binary_path)) and
+      os.path.isfile(local_binary_path) and
+      local_binary_path.endswith(os.sep + relative_binary_path)):
     return local_binary_path
 
-  # Try pulling in the binary directly from the device into the
-  # system library cache directory.
-  local_binary_path = os.path.join(symbols_directory, binary_filename)
-  if os.path.exists(local_binary_path):
-    return None
-  adb.run_command(['pull', binary_path, local_binary_path])
+  # Mirror the device path so libraries sharing a basename don't collide.
+  local_binary_path = os.path.join(symbols_directory, relative_binary_path)
+  if not os.path.exists(local_binary_path):
+    shell.create_directory(
+        os.path.dirname(local_binary_path), create_intermediates=True)
+    adb.run_command(['pull', binary_path, local_binary_path])
   if os.path.isfile(local_binary_path):
     return local_binary_path
 
@@ -299,6 +329,5 @@ def filter_binary_path(binary_path):
     if local_binary_path:
       return local_binary_path
 
-  # Unable to find library.
-  logs.error('Unable to find library %s for symbolization.' % binary_path)
+  logs.error(f'Unable to find library {binary_path} for symbolization.')
   return ''
