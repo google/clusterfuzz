@@ -116,28 +116,28 @@ def _parse_args(script_args: list[str] | None) -> argparse.Namespace:
   parsed = parser.parse_args(script_args or [])
 
   if parsed.task == 'fuzz':
-    expected_flag = 'fuzzer'
+    task_target = 'fuzzer'
     requires_job = True
   elif task_utils.is_testcase_based_task(parsed.task):
-    expected_flag = 'testcase_id'
+    task_target = 'testcase_id'
     requires_job = False
   else:
-    expected_flag = 'fuzz_target'
+    task_target = 'fuzz_target'
     requires_job = True
 
   unexpected = [
       flag for attr, flag in _TASK_TARGET_FLAGS.items()
-      if attr != expected_flag and getattr(parsed, attr) is not None
+      if attr != task_target and getattr(parsed, attr) is not None
   ]
   if unexpected:
     parser.error(
         'Task %s does not accept %s; use %s.' %
-        (parsed.task, ', '.join(unexpected), _TASK_TARGET_FLAGS[expected_flag]))
+        (parsed.task, ', '.join(unexpected), _TASK_TARGET_FLAGS[task_target]))
 
-  task_argument = getattr(parsed, expected_flag)
+  task_argument = getattr(parsed, task_target)
   if not task_argument:
     parser.error(
-        'Task %s requires %s.' % (parsed.task, _TASK_TARGET_FLAGS[expected_flag]))
+        'Task %s requires %s.' % (parsed.task, _TASK_TARGET_FLAGS[task_target]))
 
   if requires_job and not parsed.job:
     parser.error('Task %s requires --job.' % parsed.task)
@@ -231,6 +231,7 @@ def preprocess_task(task_name: str, task_argument: str, job_name: str,
     The (input_download_url, output_download_url) tuple from tworker_preprocess,
     or None if preprocessing failed.
   """
+  del job_name  # Only used by the decorator, no need to use it now.
   uworker_env = _set_up_task_environment(task_name, task_argument, requisites)
   effective_job_name = uworker_env['JOB_NAME']
 
