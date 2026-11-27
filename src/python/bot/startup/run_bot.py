@@ -93,23 +93,27 @@ def lease_all_tasks(task_list):
     yield
 
 
-def schedule_utask_mains():
-  """Schedules utask_mains from preprocessed utasks on remote backends."""
+def _schedule_utask_main_queue(queue_name: str,
+                               gate: remote_task_gate.RemoteTaskGate,
+                               pull_seconds: int | None = None) -> None:
+  """Pulls, leases, and schedules utask_mains from a single Pub/Sub queue.
 
-  logs.info('Attempting to combine batch tasks.')
-  utask_mains = tasks.get_utask_mains(pub_sub_task_queue.UTASK_MAIN_QUEUE.name)
-
-  if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
-    swarming_utask_mains = tasks.get_utask_mains(
-        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT.name)
-    logs.info(f'Found {len(swarming_utask_mains)} swarming utask mains.')
-    utask_mains.extend(swarming_utask_mains)
+  Args:
+    queue_name: Name of the Pub/Sub queue to pull utask_main tasks from.
+    gate: RemoteTaskGate instance used to schedule jobs on the remote backend.
+    pull_seconds: Optional maximum time in seconds to pull messages from the
+      queue. If None, tasks.get_utask_mains() uses its default pull duration.
+  """
+  if pull_seconds is None:
+    utask_mains = tasks.get_utask_mains(queue_name)
+  else:
+    utask_mains = tasks.get_utask_mains(queue_name, pull_seconds=pull_seconds)
 
   if not utask_mains:
-    logs.info('No utask mains.')
+    logs.info(f'No utask mains in {queue_name}.')
     return
 
-  logs.info(f'Combining {len(utask_mains)} batch tasks.')
+  logs.info(f'Combining {len(utask_mains)} batch tasks from {queue_name}.')
 
   with lease_all_tasks(utask_mains):
     batch_tasks = [
@@ -117,13 +121,27 @@ def schedule_utask_mains():
             task.command, task.job, task.argument, pubsub_task=task)
         for task in utask_mains
     ]
-    uncreated_tasks = remote_task_gate.RemoteTaskGate().create_utask_main_jobs(
-        batch_tasks)
-    logs.info(f'Not acking {len(uncreated_tasks)} uncreated tasks.')
-    # Tasks that couldn't be scheduled shoulnd't be acked.
+    uncreated_tasks = gate.create_utask_main_jobs(batch_tasks)
+    logs.info(
+        f'Not acking {len(uncreated_tasks)} uncreated tasks from {queue_name}.')
+    # Tasks that couldn't be scheduled shouldn't be acked.
     for task in uncreated_tasks:
       if task.pubsub_task:
         task.pubsub_task.cancel_lease_ack()
+
+
+def schedule_utask_mains():
+  """Schedules utask_mains from preprocessed utasks on remote backends."""
+  logs.info('Attempting to combine batch tasks.')
+  gate = remote_task_gate.RemoteTaskGate()
+  _schedule_utask_main_queue(pub_sub_task_queue.UTASK_MAIN_QUEUE.name, gate)
+
+  if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
+    for queue in pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUES:
+      _schedule_utask_main_queue(
+          queue.name,
+          gate,
+          pull_seconds=tasks.SWARMING_UTASK_QUEUE_PULL_SECONDS)
 
 
 def _get_max_task_executions():  # pylint: disable=inconsistent-return-statements
