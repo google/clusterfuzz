@@ -22,6 +22,7 @@ from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.batch import service as batch_service
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import events
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -173,10 +174,13 @@ class UTask(BaseUTask):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
+    job = data_types.Job.query(data_types.Job.name == job_type).get()
     queue = pub_sub_task_queue.UTASK_MAIN_QUEUE
-    is_swarming_job = swarming.is_swarming_job(job_type)
+    is_swarming_job = swarming.is_swarming_job(job_type, job=job)
     if is_swarming_job:
-      queue = pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT
+      queue = pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUES_BY_PLATFORM.get(
+          job.platform if job else None,
+          pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT)
 
     utask_main_queue_size = tasks.get_utask_main_queue_size(queue.name)
     utask_main_queue_limit = queue.get_max_target_size()
