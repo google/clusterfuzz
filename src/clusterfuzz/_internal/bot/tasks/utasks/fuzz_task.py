@@ -1494,6 +1494,8 @@ def run_engine_fuzzer(
     result = engine_impl.fuzz(target_path, options, testcase_directory,
                               adjusted_fuzz_test_timeout)
     if result.time_executed is not None:
+      # AFL: count only the last round's time, since earlier rounds'
+      # results are discarded.
       steps_time_tracker.record(
           'fuzz_process_exec',
           result.time_executed,
