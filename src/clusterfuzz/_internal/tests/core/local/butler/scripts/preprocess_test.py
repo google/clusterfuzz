@@ -13,10 +13,16 @@
 # limitations under the License.
 """Tests for the preprocess butler script."""
 
+import argparse
 import unittest
+from unittest import mock
 
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from local.butler.scripts import preprocess
 
@@ -122,3 +128,104 @@ class GetTaskRequisitesTest(unittest.TestCase):
 
     with self.assertRaises(preprocess.PreprocessError):
       preprocess.get_task_requisites('analyze', str(testcase.key.id()))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class PreprocessTaskTest(unittest.TestCase):
+  """Tests setting up the environment and running preprocess for a task."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  def test_sets_task_payload_and_tworker_env_during_preprocess(self):
+    """Sets TASK_PAYLOAD and tworker env vars during preprocess and removes
+    TASK_PAYLOAD afterwards."""
+    job = data_types.Job(name='linux_asan_d8', environment_string='JOB_VAR = 1')
+    job.put()
+    fuzzer = data_types.Fuzzer(name='js_fuzzer')
+    fuzzer.put()
+    requisites = preprocess.TaskRequisites(job=job, fuzzer=fuzzer)
+    seen_env = {}
+
+    def fake_tworker_preprocess(utask_module, task_argument, job_type,
+                                uworker_env):
+      seen_env['module'] = utask_module
+      seen_env['task_argument'] = task_argument
+      seen_env['job_type'] = job_type
+      seen_env['uworker_env'] = uworker_env
+      seen_env['task_payload'] = environment.get_value('TASK_PAYLOAD')
+      seen_env['tworker'] = environment.get_value('TWORKER')
+      seen_env['remote_utask_execution'] = environment.get_value(
+          'REMOTE_UTASK_EXECUTION')
+      seen_env['task_lease_seconds'] = environment.get_value(
+          'TASK_LEASE_SECONDS')
+      seen_env['bot_name'] = environment.get_value('BOT_NAME')
+      seen_env['fail_wait'] = environment.get_value('FAIL_WAIT')
+      seen_env['job_name'] = environment.get_value('JOB_NAME')
+      return ('https://input', 'https://output')
+
+    with mock.patch(
+        'clusterfuzz._internal.bot.tasks.utasks.tworker_preprocess',
+        side_effect=fake_tworker_preprocess):
+      result = preprocess.preprocess_task('fuzz', 'js_fuzzer', job.name,
+                                          requisites)
+
+    self.assertEqual(('https://input', 'https://output'), result)
+    self.assertIs(fuzz_task, seen_env['module'])
+    self.assertEqual('js_fuzzer', seen_env['task_argument'])
+    self.assertEqual('linux_asan_d8', seen_env['job_type'])
+    self.assertEqual('fuzz js_fuzzer linux_asan_d8 None',
+                     seen_env['task_payload'])
+    self.assertTrue(seen_env['tworker'])
+    self.assertTrue(seen_env['remote_utask_execution'])
+    self.assertEqual(
+        tasks.get_task_duration('fuzz'), seen_env['task_lease_seconds'])
+    self.assertTrue(seen_env['bot_name'])
+    self.assertIsNotNone(seen_env['fail_wait'])
+    self.assertEqual('linux_asan_d8', seen_env['job_name'])
+    self.assertEqual('1', seen_env['uworker_env']['JOB_VAR'])
+    self.assertIsNone(environment.get_value('TASK_PAYLOAD'))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ExecuteTest(unittest.TestCase):
+  """Tests the butler execute entrypoint dry-run guard."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.logs.configure',
+        'local.butler.scripts.preprocess.preprocess_task',
+    ])
+
+  def test_dry_run_skips_preprocess_task(self):
+    """Validates requisites without running preprocess when --non-dry-run is
+    omitted."""
+    data_types.Job(name='linux_asan_d8').put()
+    data_types.Fuzzer(name='js_fuzzer').put()
+    args = argparse.Namespace(
+        non_dry_run=False,
+        script_args=[
+            '--task', 'fuzz', '--argument', 'js_fuzzer', '--job',
+            'linux_asan_d8'
+        ])
+
+    preprocess.execute(args)
+
+    self.mock.preprocess_task.assert_not_called()
+
+  def test_non_dry_run_executes_preprocess_task(self):
+    """Runs preprocess_task when --non-dry-run is passed."""
+    data_types.Job(name='linux_asan_d8').put()
+    data_types.Fuzzer(name='js_fuzzer').put()
+    self.mock.preprocess_task.return_value = ('https://in', 'https://out')
+    args = argparse.Namespace(
+        non_dry_run=True,
+        script_args=[
+            '--task', 'fuzz', '--argument', 'js_fuzzer', '--job',
+            'linux_asan_d8'
+        ])
+
+    preprocess.execute(args)
+
+    self.mock.preprocess_task.assert_called_once()

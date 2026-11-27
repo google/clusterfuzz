@@ -15,10 +15,10 @@
 would, and prints the signed URL of the input its uworker_main needs.
 
 Requires the given idenity to have the `roles/secretmanager.secretAccessor`
- role in the target ClusterFuzz instance.
+role in the target ClusterFuzz instance.
 
 Usage:
-  butler.py run preprocess -c <config_dir> --script_args \
+  butler.py run preprocess -c <config_dir> --non-dry-run --script_args \
       --task <task> --argument <fuzzer|fuzz target|testcase id> [--job <job>]
 """
 
@@ -26,6 +26,7 @@ import argparse
 import dataclasses
 import uuid
 
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.tasks import task_utils
 from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.bot.tasks import task_types
@@ -74,7 +75,8 @@ def _parse_args(script_args: list[str] | None) -> argparse.Namespace:
       'a testcase id (any other task).')
   parser.add_argument(
       '--job',
-      help='Job to run the task with. Defaults to the job of the testcase.')
+      help='Job to run the task with. Required for fuzz and corpus_pruning; '
+      'defaults to the testcase job for other tasks.')
   return parser.parse_args(script_args or [])
 
 
@@ -138,12 +140,39 @@ def _set_up_task_environment(task_name: str, task_argument: str,
   Returns:
     The uworker environment, whose JOB_NAME is the job to run the task with.
   """
-  # Preprocess only signs the URLs a uworker needs if utask_main runs remotely.
+  environment.set_bot_environment()
   environment.set_value('TWORKER', True)
   environment.set_value('REMOTE_UTASK_EXECUTION', True)
+  environment.set_value('TASK_LEASE_SECONDS',
+                        tasks.get_task_duration(task_name))
   return commands.update_environment_for_task(task_name, task_argument,
                                               requisites.job,
                                               requisites.testcase, uuid.uuid4())
+
+
+@commands.set_task_payload
+def preprocess_task(task_name: str, task_argument: str, job_name: str,
+                    requisites: TaskRequisites) -> tuple[str, str] | None:
+  """Sets up the tworker environment and runs preprocess for a task.
+
+  Args:
+    task_name: The task's command (e.g. fuzz).
+    task_argument: The task's raw argument.
+    job_name: The job the task was scheduled for.
+    requisites: Datastore entities needed to set up the task environment.
+
+  Returns:
+    The (input_download_url, output_download_url) tuple from tworker_preprocess,
+    or None if preprocessing failed.
+  """
+  uworker_env = _set_up_task_environment(task_name, task_argument, requisites)
+  effective_job_name = uworker_env['JOB_NAME']
+
+  print('Running %s preprocess for argument: %s, job: %s' %
+        (task_name, task_argument, effective_job_name))
+  return utasks.tworker_preprocess(commands.COMMAND_MAP[task_name].module,
+                                   task_argument, effective_job_name,
+                                   uworker_env)
 
 
 def execute(args):
@@ -156,13 +185,14 @@ def execute(args):
   logs.configure('run_bot')
 
   requisites = get_task_requisites(task_name, task_argument, script_args.job)
-  uworker_env = _set_up_task_environment(task_name, task_argument, requisites)
-  job_name = uworker_env['JOB_NAME']
+  if not args.non_dry_run:
+    print('Dry-run mode: would preprocess %s for argument: %s, job: %s. '
+          'Re-run with --non-dry-run to execute.' % (task_name, task_argument,
+                                                     requisites.job.name))
+    return
 
-  print('Running %s preprocess for argument: %s, job: %s' %
-        (task_name, task_argument, job_name))
-  result = utasks.tworker_preprocess(commands.COMMAND_MAP[task_name].module,
-                                     task_argument, job_name, uworker_env)
+  result = preprocess_task(task_name, task_argument, requisites.job.name,
+                           requisites)
 
   if result:
     download_url, _ = result
