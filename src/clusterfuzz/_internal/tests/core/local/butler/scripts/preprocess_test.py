@@ -187,6 +187,85 @@ class PreprocessTaskTest(unittest.TestCase):
     self.assertIsNone(environment.get_value('TASK_PAYLOAD'))
 
 
+class ParseArgsTest(unittest.TestCase):
+  """Tests parsing and validating grouped script arguments."""
+
+  def test_fuzz_args(self):
+    """Fuzz accepts --fuzzer and --job."""
+    parsed = preprocess._parse_args(  # pylint: disable=protected-access
+        ['--task', 'fuzz', '--fuzzer', 'js_fuzzer', '--job', 'linux_asan_d8'])
+
+    self.assertEqual('fuzz', parsed.task)
+    self.assertEqual('js_fuzzer', parsed.argument)
+    self.assertEqual('linux_asan_d8', parsed.job)
+
+  def test_corpus_pruning_args(self):
+    """Corpus pruning accepts --fuzz-target and --job."""
+    parsed = preprocess._parse_args([  # pylint: disable=protected-access
+        '--task', 'corpus_pruning', '--fuzz-target', 'libFuzzer_v8_json_fuzzer',
+        '--job', 'libfuzzer_asan_v8'
+    ])
+
+    self.assertEqual('corpus_pruning', parsed.task)
+    self.assertEqual('libFuzzer_v8_json_fuzzer', parsed.argument)
+    self.assertEqual('libfuzzer_asan_v8', parsed.job)
+
+  def test_testcase_task_args_without_job(self):
+    """Testcase tasks accept --testcase-id without --job."""
+    parsed = preprocess._parse_args(  # pylint: disable=protected-access
+        ['--task', 'progression', '--testcase-id', '12345'])
+
+    self.assertEqual('progression', parsed.task)
+    self.assertEqual('12345', parsed.argument)
+    self.assertIsNone(parsed.job)
+
+  def test_testcase_task_args_with_job(self):
+    """Testcase tasks accept an optional --job override."""
+    parsed = preprocess._parse_args([  # pylint: disable=protected-access
+        '--task', 'variant', '--testcase-id', '12345', '--job', 'linux_msan_d8'
+    ])
+
+    self.assertEqual('variant', parsed.task)
+    self.assertEqual('12345', parsed.argument)
+    self.assertEqual('linux_msan_d8', parsed.job)
+
+  def test_missing_required_target_flag_rejected(self):
+    """Missing the task's required target flag exits with an error."""
+    for argv in (
+        ['--task', 'fuzz', '--job', 'linux_asan_d8'],
+        ['--task', 'corpus_pruning', '--job', 'libfuzzer_asan_v8'],
+        ['--task', 'minimize'],
+    ):
+      with self.subTest(argv=argv), self.assertRaises(SystemExit):
+        preprocess._parse_args(argv)  # pylint: disable=protected-access
+
+  def test_missing_required_job_rejected(self):
+    """Fuzz and corpus_pruning without --job exit with an error."""
+    for argv in (
+        ['--task', 'fuzz', '--fuzzer', 'js_fuzzer'],
+        ['--task', 'corpus_pruning', '--fuzz-target', 'libFuzzer_v8_json'],
+    ):
+      with self.subTest(argv=argv), self.assertRaises(SystemExit):
+        preprocess._parse_args(argv)  # pylint: disable=protected-access
+
+  def test_mismatched_target_flag_rejected(self):
+    """Passing a target flag belonging to another task group is rejected."""
+    for argv in (
+        ['--task', 'fuzz', '--testcase-id', '12345', '--job', 'linux_asan_d8'],
+        [
+            '--task', 'fuzz', '--fuzzer', 'js_fuzzer', '--testcase-id', '12345',
+            '--job', 'linux_asan_d8'
+        ],
+        [
+            '--task', 'corpus_pruning', '--fuzzer', 'js_fuzzer', '--job',
+            'libfuzzer_asan_v8'
+        ],
+        ['--task', 'progression', '--fuzzer', 'js_fuzzer'],
+    ):
+      with self.subTest(argv=argv), self.assertRaises(SystemExit):
+        preprocess._parse_args(argv)  # pylint: disable=protected-access
+
+
 @test_utils.with_cloud_emulators('datastore')
 class ExecuteTest(unittest.TestCase):
   """Tests the butler execute entrypoint dry-run guard."""
@@ -206,8 +285,7 @@ class ExecuteTest(unittest.TestCase):
     args = argparse.Namespace(
         non_dry_run=False,
         script_args=[
-            '--task', 'fuzz', '--argument', 'js_fuzzer', '--job',
-            'linux_asan_d8'
+            '--task', 'fuzz', '--fuzzer', 'js_fuzzer', '--job', 'linux_asan_d8'
         ])
 
     preprocess.execute(args)
@@ -222,8 +300,7 @@ class ExecuteTest(unittest.TestCase):
     args = argparse.Namespace(
         non_dry_run=True,
         script_args=[
-            '--task', 'fuzz', '--argument', 'js_fuzzer', '--job',
-            'linux_asan_d8'
+            '--task', 'fuzz', '--fuzzer', 'js_fuzzer', '--job', 'linux_asan_d8'
         ])
 
     preprocess.execute(args)

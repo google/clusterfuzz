@@ -19,7 +19,11 @@ role in the target ClusterFuzz instance.
 
 Usage:
   butler.py run preprocess -c <config_dir> --non-dry-run --script_args \
-      --task <task> --argument <fuzzer|fuzz target|testcase id> [--job <job>]
+      --task fuzz --fuzzer <fuzzer> --job <job>
+  butler.py run preprocess -c <config_dir> --non-dry-run --script_args \
+      --task corpus_pruning --fuzz-target <fuzz_target> --job <job>
+  butler.py run preprocess -c <config_dir> --non-dry-run --script_args \
+      --task <testcase_task> --testcase-id <testcase_id> [--job <job>]
 """
 
 import argparse
@@ -58,26 +62,88 @@ def get_preprocess_tasks() -> list[str]:
                 if isinstance(task, task_types.BaseUTask))
 
 
-def _parse_args(script_args: list[str] | None) -> argparse.Namespace:
-  """Parses the script arguments."""
+_TARGET_FLAGS = {
+    'fuzzer': '--fuzzer',
+    'fuzz_target': '--fuzz-target',
+    'testcase_id': '--testcase-id',
+}
+
+
+def _build_arg_parser() -> argparse.ArgumentParser:
+  """Builds the argument parser with task-specific argument groups."""
+  preprocess_tasks = get_preprocess_tasks()
+  testcase_tasks = [
+      t for t in preprocess_tasks if task_utils.is_testcase_based_task(t)
+  ]
+
   parser = argparse.ArgumentParser(
       prog='butler.py run preprocess -c <config_dir> --script_args',
       description='Runs the preprocess step of a task locally.')
   parser.add_argument(
       '--task',
       required=True,
-      choices=get_preprocess_tasks(),
+      choices=preprocess_tasks,
       help='Name of the task to run the preprocess step of.')
-  parser.add_argument(
-      '--argument',
-      required=True,
-      help='Task argument: a fuzzer (fuzz), a fuzz target (corpus_pruning) or '
-      'a testcase id (any other task).')
   parser.add_argument(
       '--job',
       help='Job to run the task with. Required for fuzz and corpus_pruning; '
-      'defaults to the testcase job for other tasks.')
-  return parser.parse_args(script_args or [])
+      'optional for testcase tasks (defaults to the testcase job).')
+
+  fuzz_group = parser.add_argument_group('fuzz task',
+                                         'Requires --fuzzer and --job.')
+  fuzz_group.add_argument('--fuzzer', help='Name of the fuzzer to run.')
+
+  corpus_pruning_group = parser.add_argument_group(
+      'corpus_pruning task', 'Requires --fuzz-target and --job.')
+  corpus_pruning_group.add_argument(
+      '--fuzz-target',
+      help='Full name of the fuzz target to prune '
+      '(e.g. libFuzzer_v8_json_fuzzer).')
+
+  testcase_group = parser.add_argument_group(
+      'testcase tasks (%s)' % ', '.join(testcase_tasks),
+      'Requires --testcase-id. --job is optional and defaults to the '
+      'testcase job.')
+  testcase_group.add_argument(
+      '--testcase-id', help='ID of the testcase to preprocess.')
+
+  return parser
+
+
+def _parse_args(script_args: list[str] | None) -> argparse.Namespace:
+  """Parses and validates the script arguments."""
+  parser = _build_arg_parser()
+  parsed = parser.parse_args(script_args or [])
+
+  if parsed.task == 'fuzz':
+    expected_attr = 'fuzzer'
+    requires_job = True
+  elif task_utils.is_testcase_based_task(parsed.task):
+    expected_attr = 'testcase_id'
+    requires_job = False
+  else:
+    expected_attr = 'fuzz_target'
+    requires_job = True
+
+  unexpected = [
+      flag for attr, flag in _TARGET_FLAGS.items()
+      if attr != expected_attr and getattr(parsed, attr) is not None
+  ]
+  if unexpected:
+    parser.error(
+        'Task %s does not accept %s; use %s.' %
+        (parsed.task, ', '.join(unexpected), _TARGET_FLAGS[expected_attr]))
+
+  task_argument = getattr(parsed, expected_attr)
+  if not task_argument:
+    parser.error(
+        'Task %s requires %s.' % (parsed.task, _TARGET_FLAGS[expected_attr]))
+
+  if requires_job and not parsed.job:
+    parser.error('Task %s requires --job.' % parsed.task)
+
+  parsed.argument = task_argument
+  return parsed
 
 
 def get_task_requisites(task_name: str,
