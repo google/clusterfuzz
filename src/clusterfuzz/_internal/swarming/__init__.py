@@ -118,6 +118,12 @@ def get_swarming_config() -> local_config.SwarmingConfig | None:
     return None
 
 
+_SWARMING_OS_BY_PLATFORM = {
+    'ANDROID_EMULATOR': 'Linux',
+    'MAC_ARM64': 'Mac',
+}
+
+
 def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
                         ) -> list[swarming_pb2.StringPair]:  # pylint: disable=no-member
   """ Gets all swarming dimensions for a task.
@@ -128,12 +134,13 @@ def _get_task_dimensions(job: data_types.Job, platform_specific_dimensions: list
         '[Swarming] No dimensions set. Reason: failed to retrieve config')
     return []
 
-  unique_dimensions = {}
-  if job.platform == 'ANDROID_EMULATOR':
-    unique_dimensions['os'] = 'Linux'
-  else:
-    unique_dimensions['os'] = str(job.platform).capitalize()
-  unique_dimensions['pool'] = swarming_config.get('swarming_pool')
+  unique_dimensions = {
+      'os':
+          _SWARMING_OS_BY_PLATFORM.get(job.platform,
+                                       str(job.platform).capitalize()),
+      'pool':
+          swarming_config.get('swarming_pool'),
+  }
 
   for dimension in platform_specific_dimensions:
     unique_dimensions[dimension['key'].lower()] = dimension['value']

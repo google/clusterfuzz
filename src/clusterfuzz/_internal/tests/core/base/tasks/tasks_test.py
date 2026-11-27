@@ -1057,6 +1057,20 @@ class SwarmingNonFuzzTaskRoutingTest(unittest.TestCase):
         'minimize', '123', 'android_emulator_swarming', queue='custom-queue')
     self.assertEqual(self._queue_used(), 'custom-queue')
 
+  def test_mac_arm64_display_name_and_platform_queue_routing(self):
+    """Tests that MAC_ARM64 is registered in TASK_QUEUE_DISPLAY_NAMES and
+    routes non-fuzz Swarming tasks to jobs-mac-arm64."""
+    self.assertEqual(
+        tasks.TASK_QUEUE_DISPLAY_NAMES.get('MAC_ARM64'), 'Mac (ARM64)')
+    self.assertEqual(tasks.queue_for_platform('MAC_ARM64'), 'jobs-mac-arm64')
+
+    data_types.Job(
+        name='mac_arm64_swarming',
+        platform='MAC_ARM64',
+        environment_string='IS_SWARMING_JOB = True\n').put()
+    tasks.add_task('minimize', '456', 'mac_arm64_swarming')
+    self.assertEqual(self._queue_used(), 'jobs-mac-arm64')
+
 
 @test_utils.with_cloud_emulators('datastore')
 class RedoTestcaseProgressionRetryResetTest(unittest.TestCase):
