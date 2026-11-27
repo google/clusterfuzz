@@ -123,13 +123,21 @@ def run_process(cmdline,
                 gestures=None,
                 env_copy=None,
                 testcase_run=True,
-                ignore_children=True):
+                ignore_children=True,
+                dont_terminate_android_app=False):
   """Executes a process with a given command line and other parameters."""
   if environment.is_trusted_host() and testcase_run:
     from clusterfuzz._internal.bot.untrusted_runner import remote_process_host
     return remote_process_host.run_process(
-        cmdline, current_working_directory, timeout, need_shell, gestures,
-        env_copy, testcase_run, ignore_children)
+        cmdline,
+        current_working_directory,
+        timeout,
+        need_shell,
+        gestures,
+        env_copy,
+        testcase_run,
+        ignore_children,
+        dont_terminate_android_app=dont_terminate_android_app)
 
   if gestures is None:
     gestures = []
