@@ -977,7 +977,7 @@ def is_running_on_k8s() -> bool:
 
 
 def base_platform(override):
-  """Return the base platform when an override is provided."""
+  """Return the base platform from a platform override or platform_id."""
   return override.split(':')[0]
 
 
