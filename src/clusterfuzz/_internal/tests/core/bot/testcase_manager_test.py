@@ -1263,6 +1263,7 @@ class CheckForBadBuildTest(unittest.TestCase):
         'clusterfuzz._internal.bot.testcase_manager.get_command_line_for_application',
         'clusterfuzz._internal.platforms.android.app.get_package_name',
         'clusterfuzz._internal.platforms.android.adb.get_process_and_child_pids',
+        'clusterfuzz._internal.platforms.android.app.stop',
         'clusterfuzz._internal.system.process_handler.run_process',
         'clusterfuzz._internal.system.process_handler.terminate_stale_application_instances',
     ])
@@ -1286,17 +1287,27 @@ class CheckForBadBuildTest(unittest.TestCase):
     self.assertEqual(build_data.revision, 123)
 
   def test_android_valid_apk_running(self):
-    """Test that a working Android APK that is running is not marked as a bad build."""
+    """A running Android APK is not a bad build. run_process must leave the app
+    alive for the liveness check, and the app is stopped right after it."""
     environment.set_value('OS_OVERRIDE', 'ANDROID')
     self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
     self.mock.get_package_name.return_value = 'org.chromium.chrome'
     self.mock.get_process_and_child_pids.return_value = [2155]
+    call_order = mock.Mock()
+    call_order.attach_mock(self.mock.run_process, 'run_process')
+    call_order.attach_mock(self.mock.get_process_and_child_pids,
+                           'get_process_and_child_pids')
+    call_order.attach_mock(self.mock.stop, 'stop')
 
     build_data = testcase_manager.check_for_bad_build(
         job_type='aluminium_asan_chrome_public', crash_revision=123)
 
     self.assertFalse(build_data.is_bad_build)
     self.assertEqual(build_data.revision, 123)
+    self.assertTrue(
+        self.mock.run_process.call_args.kwargs['dont_terminate_android_app'])
+    self.assertEqual(['run_process', 'get_process_and_child_pids', 'stop'],
+                     [name for name, _, _ in call_order.mock_calls])
 
   def test_android_no_package_name_skips_process_check(self):
     """Test that Android fuzzing without an APK package (e.g. a native binary
@@ -1311,6 +1322,7 @@ class CheckForBadBuildTest(unittest.TestCase):
         job_type='android_libfuzzer_target', crash_revision=123)
 
     self.mock.get_process_and_child_pids.assert_not_called()
+    self.mock.stop.assert_not_called()
     self.assertFalse(build_data.is_bad_build)
     self.assertEqual(build_data.revision, 123)
 
@@ -1346,3 +1358,17 @@ class CheckForBadBuildTest(unittest.TestCase):
         job_type='aluminium_asan_chrome_public', crash_revision=123)
 
     self.assertTrue(build_data.is_bad_build)
+
+  def test_android_app_stopped_when_liveness_check_raises(self):
+    """If the liveness check raises (e.g. adb failure), the error propagates
+    and the app left running by run_process is still stopped."""
+    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    self.mock.run_process.return_value = (0, 1.0, 'Starting: Intent ...')
+    self.mock.get_package_name.return_value = 'org.chromium.chrome'
+    self.mock.get_process_and_child_pids.side_effect = RuntimeError('adb error')
+
+    with self.assertRaises(RuntimeError):
+      testcase_manager.check_for_bad_build(
+          job_type='aluminium_asan_chrome_public', crash_revision=123)
+
+    self.mock.stop.assert_called_once_with()
