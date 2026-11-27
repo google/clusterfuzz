@@ -27,6 +27,7 @@ import re
 import signal
 import threading
 import time
+from typing import Iterable
 from typing import List
 
 import requests
@@ -58,6 +59,12 @@ RETRY_DEADLINE_SECONDS = 5 * 60  # 5 minutes.
 INITIAL_DELAY_SECONDS = 16
 MAXIMUM_DELAY_SECONDS = 2 * 60  # 2 minutes.
 MAX_TIME_SERIES_PER_CALL = 200
+# Cloud Monitoring uses closed intervals and requires >= 1ms between
+# prev_end_time and a reset's new start_time. Use 2ms to account for float64 to
+# nanosecond truncation in _time_to_timestamp.
+MIN_RESET_GAP_SECONDS = 0.002
+# Cloud Monitoring requires time intervals to be at least 1 microsecond long.
+MIN_INTERVAL_GAP_SECONDS = 1e-6
 
 # Since `monitoring_v3` is only conditionally imported, pylint complains about
 # any accesses to its members. Define type aliases here once and for all, for
@@ -83,16 +90,18 @@ else:
     initial=INITIAL_DELAY_SECONDS,
     maximum=MAXIMUM_DELAY_SECONDS,
     deadline=RETRY_DEADLINE_SECONDS)
-def _create_time_series(name: str, time_series: List[_TimeSeries]):
+def _create_time_series(name: str, time_series: List[_TimeSeries]) -> bool:
   """Wraps `create_time_series()` from the monitoring client.
 
-  Adds retries and logging.
+  Adds retries and logging. Returns True on success, or False otherwise.
   """
   try:
     _monitoring_v3_client.create_time_series(name=name, time_series=time_series)
   except Exception as e:
     logs.warning(f'Error uploading time series: {e}')
     logs.warning(f'Time series - {name} - contents: {time_series}')
+    return False
+  return True
 
 
 class _MockMetric:
@@ -113,24 +122,32 @@ def _flush_metrics():
   """Flushes all metrics stored in _metrics_store"""
   project_path = _monitoring_v3_client.common_project_path(  # pylint: disable=no-member
       utils.get_application_id())
+  flushed_non_gauge_keys = []
+  end_time = time.time()
   try:
     time_series = []
-    end_time = time.time()
-    for metric, labels, start_time, value in _metrics_store.iter_values():
+    keys = []
+    for key, (metric, labels, start_time, value) in _metrics_store.iter_store():
       if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
          ):
         start_time = end_time
+        key = None  # Do not clear Gauge metrics
+      elif end_time - start_time <= MIN_INTERVAL_GAP_SECONDS:
+        # Avoid sending time series that will be rejected by Cloud Monitoring
+        continue
       series = _TimeSeries()
       metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                        value)
       time_series.append(series)
-      if len(time_series) == MAX_TIME_SERIES_PER_CALL:
-        time_series.sort(key=_time_series_sort_key)
-        _create_time_series(project_path, time_series)
-        time_series = []
-    if time_series:
-      time_series.sort(key=_time_series_sort_key)
-      _create_time_series(project_path, time_series)
+      keys.append(key)
+
+    for start in range(0, len(time_series), MAX_TIME_SERIES_PER_CALL):
+      end = min(start + MAX_TIME_SERIES_PER_CALL, len(time_series))
+      batch = time_series[start:end]
+      key_batch = keys[start:end]
+      batch.sort(key=_time_series_sort_key)
+      if _create_time_series(project_path, batch):
+        flushed_non_gauge_keys.extend(k for k in key_batch if k is not None)
   except Exception as e:
     if environment.is_android():
       # FIXME: This exception is extremely common on Android. We are already
@@ -138,6 +155,9 @@ def _flush_metrics():
       logs.warning(f'Failed to flush metrics: {e}')
     else:
       logs.error(f'Failed to flush metrics: {e}')
+  finally:
+    if flushed_non_gauge_keys:
+      _metrics_store.clear_flushed_keys(flushed_non_gauge_keys, end_time)
 
 
 _on_sigterm_callbacks = []
@@ -255,6 +275,8 @@ class _MetricsStore:
 
   def __init__(self):
     self._store = {}
+    self._dirty = set()
+    self._last_flush_end_time = 0.0
     self._lock = threading.RLock()
 
   def _get_key(self, metric_name, labels):
@@ -266,9 +288,21 @@ class _MetricsStore:
 
     return (metric_name, normalized_labels)
 
-  def iter_values(self):
+  def _get_new_start_time(self):
+    """Get a start_time strictly after the last flush's end_time."""
+    return max(time.time(), self._last_flush_end_time + MIN_RESET_GAP_SECONDS)
+
+  def iter_store(self):
     with self._lock:
-      yield from self._store.values()
+      self._dirty.clear()
+      yield from self._store.items()
+
+  def clear_flushed_keys(self, key_list: Iterable, end_time: float):
+    with self._lock:
+      self._last_flush_end_time = max(self._last_flush_end_time, end_time)
+      for key in key_list:
+        if key not in self._dirty and key in self._store:
+          del self._store[key]
 
   def get(self, metric, labels):
     """Get the stored value for the metric."""
@@ -283,9 +317,10 @@ class _MetricsStore:
       if key in self._store:
         start_time = self._store[key].start_time
       else:
-        start_time = time.time()
+        start_time = self._get_new_start_time()
 
       self._store[key] = _StoreValue(metric, labels, start_time, value)
+      self._dirty.add(key)
 
   def increment(self, metric, labels, delta):
     """Increment a value by |delta|."""
@@ -296,15 +331,18 @@ class _MetricsStore:
         start_time = self._store[key].start_time
         value = self._store[key].value + delta
       else:
-        start_time = time.time()
+        start_time = self._get_new_start_time()
         value = metric.default_value + delta
 
       self._store[key] = _StoreValue(metric, labels, start_time, value)
+      self._dirty.add(key)
 
   def reset_for_testing(self):
     """Reset all data. Used for tests."""
     with self._lock:
       self._store.clear()
+      self._dirty.clear()
+      self._last_flush_end_time = 0.0
 
 
 class _Field:
