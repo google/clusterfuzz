@@ -67,6 +67,23 @@ class InitializeTest(unittest.TestCase):
     monitor.initialize()
     self.assertEqual(1, self.mock.start.call_count)
 
+  def test_initialize_swarming_monitored_resource(self):
+    """Tests Swarming bots populate instance_id from BOT_NAME even with IS_K8S_ENV."""
+    os.environ['SWARMING_BOT'] = 'True'
+    os.environ['IS_K8S_ENV'] = 'True'
+    os.environ['BOT_NAME'] = 'mac-103-h527'
+    os.environ['APPLICATION_ID'] = 'clusterfuzz-development'
+
+    monitor.initialize()
+
+    self.assertEqual(1, self.mock.start.call_count)
+    self.assertEqual(monitor._monitored_resource.labels['instance_id'],
+                     'mac-103-h527')
+    self.assertEqual(monitor._monitored_resource.labels['project_id'],
+                     'clusterfuzz-development')
+    self.assertEqual(monitor._monitored_resource.labels['zone'],
+                     'us-central1-f')
+
 
 class MonitorTest(unittest.TestCase):
   """Tests for monitor functions."""

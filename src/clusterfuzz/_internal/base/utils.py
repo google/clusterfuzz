@@ -1021,6 +1021,10 @@ def parse_manifest_data(file_data: str | None) -> dict[str, str] | None:
 
 def get_instance_name() -> str:
   """Return the instance name based on the running environment."""
+  if environment.is_running_on_swarming():
+    # Swarming bots also set IS_K8S_ENV=True, so check Swarming first to use
+    # BOT_NAME (SWARMING_BOT_ID) instead of HOSTNAME (unset on native macOS).
+    return environment.get_value('BOT_NAME', '')
   if environment.is_running_on_k8s():
     return environment.get_value('HOSTNAME', '')
   if environment.is_running_on_app_engine():
