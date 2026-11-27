@@ -44,6 +44,12 @@ definition.
   `CORPUS_PRUNE = True` for libFuzzer ASan jobs only. Enabling pruning for a one
   job only is sufficient, as other libFuzzer and AFL jobs use the same corpus
   when running the same fuzz targets.
+* **TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING**: seconds reserved from
+  **TEST_TIMEOUT** for target startup and crash report processing when libFuzzer
+  reproduces a crash (defaults to `5`, setting `-timeout` to
+  `TEST_TIMEOUT - 5`). Must be a non-negative integer strictly less than
+  **TEST_TIMEOUT**; raise **TEST_TIMEOUT** (and **WARMUP_TIMEOUT**) alongside it
+  when widening startup/reporting headroom so `-timeout` does not shrink.
 
 ### Blackbox fuzzing specific
 

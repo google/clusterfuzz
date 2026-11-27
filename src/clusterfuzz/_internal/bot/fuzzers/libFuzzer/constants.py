@@ -68,8 +68,8 @@ MEMORY_OVERHEAD = 1024  # 1 GB
 # Default value for timeout flag to catch timeouts.
 DEFAULT_TIMEOUT_LIMIT = 25
 
-# Buffer for processing crash reports.
-REPORT_PROCESSING_TIME = 5
+# Default buffer reserved from TEST_TIMEOUT for startup and crash reporting.
+DEFAULT_TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING = 5
 
 # libFuzzer's exit code if a bug occurred in libFuzzer.
 LIBFUZZER_ERROR_EXITCODE = 1

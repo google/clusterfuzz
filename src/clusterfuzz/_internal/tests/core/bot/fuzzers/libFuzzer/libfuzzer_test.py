@@ -271,5 +271,60 @@ class GetArgumentsTest(unittest.TestCase):
     self.assertEqual(fuzzer.get_rss_limit_mb(target_options), 0)
 
 
+class FixTimeoutArgumentForReproductionTest(unittest.TestCase):
+  """Tests for fix_timeout_argument_for_reproduction."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+
+  def test_custom_timeout_reserve(self):
+    """Uses TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING when set."""
+    environment.set_value('TEST_TIMEOUT', 85)
+    environment.set_value('TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING', 25)
+    args = libfuzzer.fix_timeout_argument_for_reproduction(
+        ['-arg=1', '-timeout=123'])
+    self.assertCountEqual(['-arg=1', '-timeout=60'], args)
+
+  def test_clamps_small_timeout_when_reserve_unset(self):
+    """Clamps -timeout to 1 when TEST_TIMEOUT <= 5 and reserve is unset."""
+    environment.set_value('TEST_TIMEOUT', 5)
+    args = libfuzzer.fix_timeout_argument_for_reproduction(['-arg=1'])
+    self.assertCountEqual(['-arg=1', '-timeout=1'], args)
+
+  def test_invalid_timeout_configuration_raises(self):
+    """Raises ValueError on non-int, negative, or >= TEST_TIMEOUT reserve."""
+    invalid_envs = (
+        {
+            'TEST_TIMEOUT': '85',
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING': '25s'
+        },
+        {
+            'TEST_TIMEOUT': '85',
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING': '-1'
+        },
+        {
+            'TEST_TIMEOUT': 'invalid'
+        },
+        {
+            'TEST_TIMEOUT': '0'
+        },
+        {
+            'TEST_TIMEOUT': '25',
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING': '25'
+        },
+        {
+            'TEST_TIMEOUT': '20',
+            'TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING': '25'
+        },
+    )
+    for env_case in invalid_envs:
+      with self.subTest(env=env_case):
+        os.environ.pop('TEST_TIMEOUT', None)
+        os.environ.pop('TEST_TIMEOUT_RESERVE_FOR_STARTUP_AND_REPORTING', None)
+        os.environ.update(env_case)
+        with self.assertRaises(ValueError):
+          libfuzzer.fix_timeout_argument_for_reproduction(['-arg=1'])
+
+
 if __name__ == '__main__':
   unittest.main()

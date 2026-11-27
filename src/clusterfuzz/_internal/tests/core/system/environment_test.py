@@ -80,6 +80,24 @@ class EnvironmentTest(unittest.TestCase):
     self.assertEqual(environment.get_runtime(),
                      environment.UtaskMainRuntime.BATCH)
 
+  def test_get_int(self):
+    """Tests that get_int() returns ints/defaults and rejects non-ints."""
+    self.assertIsNone(environment.get_int('UNSET_INT'))
+    self.assertEqual(environment.get_int('UNSET_INT', 5), 5)
+
+    os.environ['INT_VAR'] = 'None'
+    self.assertEqual(environment.get_int('INT_VAR', 5), 5)
+
+    for raw, expected in (('0', 0), ('25', 25), ('-5', -5)):
+      os.environ['INT_VAR'] = raw
+      self.assertEqual(environment.get_int('INT_VAR', 5), expected)
+
+    for bad_value in ('', '25s', '25.5', 'True', 'False'):
+      with self.subTest(bad_value=bad_value):
+        os.environ['INT_VAR'] = bad_value
+        with self.assertRaises(ValueError):
+          environment.get_int('INT_VAR', 5)
+
 
 class GetExecutableFileNameTest(unittest.TestCase):
   """Tests for get_executable_filename."""

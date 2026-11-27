@@ -128,6 +128,7 @@ class Engine(engine.Engine):
       A FuzzOptions object.
     """
     del build_dir
+    libfuzzer.get_reproduction_timeout()
     arguments = fuzzer.get_arguments(target_path)
     extra_env = fuzzer.get_extra_env(target_path)
 
@@ -289,6 +290,7 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
+    libfuzzer.get_reproduction_timeout()
     libfuzzer.set_sanitizer_options(target_path)
     runner = libfuzzer.get_runner(target_path)
 
