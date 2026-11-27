@@ -159,6 +159,7 @@ class GetBinaryFromBuildOrDeviceTest(unittest.TestCase):
         'clusterfuzz._internal.platforms.android.adb.run_command',
         ('fetch_artifact_get',
          'clusterfuzz._internal.platforms.android.fetch_artifact.get'),
+        'clusterfuzz._internal.platforms.android.settings.get_build_parameters',
         'clusterfuzz._internal.platforms.android.settings.is_google_device',
     ])
     temp_dir = tempfile.TemporaryDirectory()
@@ -167,13 +168,14 @@ class GetBinaryFromBuildOrDeviceTest(unittest.TestCase):
     self.build_dir = os.path.join(self.temp_dir, 'build')
     self.symbols_dir = os.path.join(self.temp_dir, 'symbols')
 
-  def test_build_dir_library(self):
-    """Libraries found in BUILD_DIR are returned without adb pull or remote
-    symbol downloads."""
+  def test_build_dir_library_on_uworker(self):
+    """On uworkers, libraries found in BUILD_DIR are returned without adb pull
+    or remote symbol downloads."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
-    os.environ['LOCAL_DEVELOPMENT'] = 'True'
+    os.environ['UWORKER'] = 'True'
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
 
     library_path = os.path.join(self.build_dir, 'lib64', 'libfoo.so')
     os.makedirs(os.path.dirname(library_path), exist_ok=True)
@@ -187,13 +189,14 @@ class GetBinaryFromBuildOrDeviceTest(unittest.TestCase):
     self.mock.run_command.assert_not_called()
     self.mock.fetch_artifact_get.assert_not_called()
 
-  def test_cached_device_library(self):
-    """A library already at its mirrored SYMBOLS_DIR path is reused instead
-    of being pulled from the device again."""
+  def test_cached_device_library_on_uworker(self):
+    """On uworkers, a library already at its mirrored SYMBOLS_DIR path is
+    reused instead of being pulled from the device again."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
-    os.environ['LOCAL_DEVELOPMENT'] = 'True'
+    os.environ['UWORKER'] = 'True'
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
 
     cached_path = os.path.join(self.symbols_dir, 'system/lib64/libfoo.so')
     os.makedirs(os.path.dirname(cached_path), exist_ok=True)
@@ -207,13 +210,14 @@ class GetBinaryFromBuildOrDeviceTest(unittest.TestCase):
     self.mock.run_command.assert_not_called()
     self.mock.fetch_artifact_get.assert_not_called()
 
-  def test_adb_pulled_libraries(self):
-    """Same-named libraries from different device dirs are pulled to separate
-    mirrored paths instead of overwriting each other."""
+  def test_adb_pulled_libraries_on_uworker(self):
+    """On uworkers, same-named libraries from different device dirs are pulled
+    to separate mirrored paths instead of overwriting each other."""
     os.environ['OS_OVERRIDE'] = 'ANDROID'
     os.environ['BUILD_DIR'] = self.build_dir
     os.environ['SYMBOLS_DIR'] = self.symbols_dir
-    os.environ['LOCAL_DEVELOPMENT'] = 'True'
+    os.environ['UWORKER'] = 'True'
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
 
     def create_pulled_file(cmd):
       with open(cmd[-1], 'wb'):
@@ -274,4 +278,42 @@ class GetBinaryFromBuildOrDeviceTest(unittest.TestCase):
     self.assertEqual(
         expected_path,
         symbols_downloader.filter_binary_path('/system/lib64/libfoo..so'))
+    self.mock.run_command.assert_called_once()
+
+  def test_missing_library_on_uworker(self):
+    """On uworkers, a library missing locally returns '' after only an adb
+    pull attempt, with no remote symbol download."""
+    os.environ['OS_OVERRIDE'] = 'ANDROID'
+    os.environ['BUILD_DIR'] = self.build_dir
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ['UWORKER'] = 'True'
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
+
+    actual_path = symbols_downloader.filter_binary_path(
+        '/system/lib64/libfoo.so')
+
+    self.assertEqual('', actual_path)
+    self.mock.run_command.assert_called_once()
+    self.mock.fetch_artifact_get.assert_not_called()
+
+  def test_missing_library_on_regular_bot(self):
+    """On regular bots, a library missing locally returns '' after both a
+    remote symbol download and an adb pull attempt."""
+    os.environ['OS_OVERRIDE'] = 'ANDROID'
+    os.environ['BUILD_DIR'] = self.build_dir
+    os.environ['SYMBOLS_DIR'] = self.symbols_dir
+    os.environ.pop('UWORKER', None)
+    os.environ.pop('LOCAL_DEVELOPMENT', None)
+    self.mock.is_google_device.return_value = True
+    self.mock.get_build_parameters.return_value = {
+        'build_id': '1234567',
+        'target': 'cheetah',
+        'type': 'userdebug',
+    }
+
+    actual_path = symbols_downloader.filter_binary_path(
+        '/system/lib64/libfoo.so')
+
+    self.assertEqual('', actual_path)
+    self.mock.fetch_artifact_get.assert_called_once()
     self.mock.run_command.assert_called_once()
