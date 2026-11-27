@@ -641,6 +641,8 @@ class TimeStatTracker:
 
   Time measurements are emitted to the supplied Cloud Monitoring metric and
   are saved as datetime.timedelta in the |self.stats| dictionary as well.
+  There should be only one instance of this class per metric type for the
+  nested steps safety checks to work.
   """
 
   def __init__(self, metric: Metric | None = None, common_labels=None):
@@ -666,6 +668,7 @@ class TimeStatTracker:
     if 'step' in self.common_labels or 'success' in self.common_labels:
       logs.warning('Labels "step" or "success" are in common_labels '
                    'and will be overwritten.')
+    self.current_step: str | None = None
 
   @contextlib.contextmanager
   def track(self, name: str):
@@ -673,10 +676,15 @@ class TimeStatTracker:
 
     Yields a step tracker whose fail() method, when invoked, marks the step as
     failed without interrupting the block. Any raised exception is also treated
-    as a failure and re-raised.
+    as a failure and re-raised. Steps should not be nested; however, if this
+    occurs, an error is logged and the method continues to execute normally.
     """
+    parent_step = self.current_step
+    if parent_step is not None:
+      logs.error(f'Step "{name}" is nested inside step "{parent_step}".')
     start = time.time()
     step = _StepTracker()
+    self.current_step = name
 
     try:
       yield step
@@ -684,6 +692,7 @@ class TimeStatTracker:
       step.fail()
       raise
     finally:
+      self.current_step = parent_step
       duration_secs = time.time() - start
       duration = datetime.timedelta(seconds=duration_secs)
       if name in self.stats:

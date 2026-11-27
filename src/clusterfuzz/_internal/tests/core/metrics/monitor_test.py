@@ -497,3 +497,72 @@ class TimeStatTrackerTest(unittest.TestCase):
     dist = self.metric.get({'tag': 'val', 'step': 'step_1', 'success': True})
     self.assertEqual(2, dist.count)
     self.assertAlmostEqual(7.7, dist.sum)
+
+  def test_sequential_steps_no_error(self):
+    """Test that sequential (non-nested) steps do not log errors."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('step_1'):
+      self.mock_time.advance(1.0)
+    with tracker.track('step_2'):
+      self.mock_time.advance(2.0)
+
+    self.mock.error.assert_not_called()
+    self.assertIsNone(tracker.current_step)
+
+  def test_nested_step_logs_error(self):
+    """Test that a nested step logs an error but is still tracked."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('outer'):
+      self.mock_time.advance(1.0)
+      with tracker.track('inner'):
+        self.mock_time.advance(2.0)
+
+    self.mock.error.assert_called_once()
+    error_message = self.mock.error.call_args[0][0]
+    self.assertIn('outer', error_message)
+    self.assertIn('inner', error_message)
+    self.assertEqual(
+        {
+            'outer': datetime.timedelta(seconds=3.0),
+            'inner': datetime.timedelta(seconds=2.0),
+        },
+        tracker.stats)
+    self.assertIsNone(tracker.current_step)
+
+  def test_nested_step_restores_parent(self):
+    """Test that the parent step is restored after a nested step exits."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with tracker.track('outer'):
+      with tracker.track('inner_1'):
+        self.assertEqual('inner_1', tracker.current_step)
+        with tracker.track('inner_1.2'):
+          self.assertEqual('inner_1.2', tracker.current_step)
+        self.assertEqual('inner_1', tracker.current_step)
+      self.assertEqual('outer', tracker.current_step)
+      with tracker.track('inner_2'):
+        pass
+
+    expected_nested_steps = [
+        ('outer', 'inner_1'),
+        ('inner_1', 'inner_1.2'),
+        ('outer', 'inner_2'),
+    ]
+    self.assertEqual(len(expected_nested_steps), self.mock.error.call_count)
+    for (parent_step, current_step), call_args in zip(
+        expected_nested_steps, self.mock.error.call_args_list):
+      error_message = call_args[0][0]
+      self.assertIn(parent_step, error_message)
+      self.assertIn(current_step, error_message)
+    self.assertIsNone(tracker.current_step)
+
+  def test_current_step_reset_on_exception(self):
+    """Test that current step is reset when the step raises."""
+    tracker = monitor.TimeStatTracker(self.metric, {'tag': 'val'})
+    with self.assertRaises(RuntimeError):
+      with tracker.track('step_1'):
+        raise RuntimeError('boom')
+
+    self.assertIsNone(tracker.current_step)
+    with tracker.track('step_2'):
+      pass
+    self.mock.error.assert_not_called()
