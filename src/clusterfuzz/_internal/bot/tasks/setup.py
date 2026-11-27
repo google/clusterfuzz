@@ -488,7 +488,14 @@ def take_trusted_host_path():
 def update_data_bundle(
     fuzzer: data_types.Fuzzer,
     data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> bool:  # pylint: disable=no-member
-  """Updates a data bundle to the latest version."""
+  """Updates a data bundle to the latest version.
+
+  Returns:
+    True if the data bundle is already up to date or was synced successfully
+    (including search-index bundles that do not sync files to disk).
+    False if required signed URLs are missing on a uworker or syncing the
+    data bundle fails.
+  """
   data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
                                                 data_types.DataBundle)
   num_urls = len(data_bundle_corpus.corpus_urls)
@@ -504,8 +511,8 @@ def update_data_bundle(
         f'{data_bundle.name}, and the fuzzer is configured with '
         f'{fuzzer.data_bundle_name}. The Tworker failed to generate signed URLs'
         ' during preprocess.')
-  else:
-    logs.info(f'Setting up data bundle {data_bundle.name}.')
+    return False
+  logs.info(f'Setting up data bundle {data_bundle.name}.')
   data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
 
   if not _should_update_data_bundle(data_bundle, data_bundle_directory):

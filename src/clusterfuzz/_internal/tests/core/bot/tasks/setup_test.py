@@ -170,6 +170,23 @@ class ClearOldDataBundlesIfNeededTest(fake_filesystem_unittest.TestCase):
     self.assertEqual([str(i) for i in range(1, 5)],
                      sorted(os.listdir(self.data_bundles_dir), key=int))
 
+  @unittest.mock.patch(
+      'clusterfuzz._internal.bot.tasks.utasks.uworker_io.entity_from_protobuf')
+  @unittest.mock.patch(
+      'clusterfuzz._internal.bot.tasks.setup._prepare_update_data_bundle')
+  @unittest.mock.patch('clusterfuzz._internal.system.environment.is_uworker')
+  def test_update_data_bundle_uworker_empty_urls_returns_false(
+      self, mock_is_uworker, mock_prepare, mock_entity_from_proto):
+    """Tests that update_data_bundle returns False on uworker when gcs_urls is empty."""
+    mock_is_uworker.return_value = True
+    fuzzer = data_types.Fuzzer(name='test_fuzzer', data_bundle_name='mybundle')
+    bundle = data_types.DataBundle(name='mybundle', sync_to_worker=True)
+    mock_entity_from_proto.return_value = bundle
+    bundle_corpus = uworker_msg_pb2.DataBundleCorpus()
+
+    self.assertFalse(setup.update_data_bundle(fuzzer, bundle_corpus))
+    mock_prepare.assert_not_called()
+
 
 @test_utils.with_cloud_emulators('datastore')
 class PreprocessGetDataBundlesTest(unittest.TestCase):
