@@ -90,10 +90,10 @@ else:
     initial=INITIAL_DELAY_SECONDS,
     maximum=MAXIMUM_DELAY_SECONDS,
     deadline=RETRY_DEADLINE_SECONDS)
-def _create_time_series(name: str, time_series: List[_TimeSeries]):
+def _create_time_series(name: str, time_series: List[_TimeSeries]) -> bool:
   """Wraps `create_time_series()` from the monitoring client.
 
-  Adds retries and logging.
+  Adds retries and logging. Returns True on success, or False otherwise.
   """
   try:
     _monitoring_v3_client.create_time_series(name=name, time_series=time_series)
