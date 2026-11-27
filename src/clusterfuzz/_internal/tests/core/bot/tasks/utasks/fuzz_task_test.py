@@ -2980,6 +2980,21 @@ class EmitTestcaseCreationEventTest(unittest.TestCase):
     kwargs = self.mock.store_testcase.call_args[1]
     self.assertFalse(kwargs.get('trusted'))
 
+  def test_create_testcase_propagates_uworker_platform_id(self):
+    """Test creating a testcase persists the uworker's platform_id."""
+    self.mock.store_testcase.side_effect = _store_generic_testcase
+    self.uworker_output.platform_id = 'android:sdk_gphone64_x86_64:35'
+
+    testcase = fuzz_task.create_testcase(
+        group=self.group,
+        uworker_input=self.uworker_input,
+        uworker_output=self.uworker_output,
+        fully_qualified_fuzzer_name='engine')
+
+    reloaded = testcase.key.get()
+    self.assertEqual(reloaded.platform, 'android')
+    self.assertEqual(reloaded.platform_id, 'android:sdk_gphone64_x86_64:35')
+
 
 def _store_generic_testcase(*args, **kwargs):  # pylint: disable=unused-argument
   """Store a generic testcase and return its id."""

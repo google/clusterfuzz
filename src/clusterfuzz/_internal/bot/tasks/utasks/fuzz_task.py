@@ -1215,6 +1215,10 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       build_url=fuzz_task_output.build_url,
       gn_args=fuzz_task_output.gn_args,
       update=True)
+  if uworker_output.platform_id:
+    testcase.platform = environment.base_platform(uworker_output.platform_id)
+    testcase.platform_id = uworker_output.platform_id
+    testcase.put()
 
   if group.context.fuzzer_metadata:
     for key, value in group.context.fuzzer_metadata.items():
