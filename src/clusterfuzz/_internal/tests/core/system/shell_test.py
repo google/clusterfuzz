@@ -14,6 +14,7 @@
 """shell tests."""
 import os
 import shutil
+import subprocess
 import sys
 import unittest
 from unittest import mock
@@ -74,7 +75,7 @@ class RemoveDirectoryTest(unittest.TestCase):
         'os.chmod',
         'os.makedirs',
         'os.path.exists',
-        'os.system',
+        'subprocess.run',
         'clusterfuzz._internal.system.environment.platform',
         'clusterfuzz._internal.metrics.logs.error',
         'clusterfuzz._internal.metrics.logs.warning',
@@ -104,13 +105,22 @@ class RemoveDirectoryTest(unittest.TestCase):
   def test_remove_os_specific_windows(self):
     """Test remove with os-specific command on windows."""
     self._test_remove_os_specific('WINDOWS', True, False)
-    self.mock.system.assert_has_calls([mock.call('rd /s /q "dir" > nul 2>&1')])
+    self.mock.run.assert_has_calls([
+        mock.call(['cmd', '/c', 'rd', '/s', '/q', 'dir'],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+                  check=False)
+    ])
 
   def test_remove_os_specific_non_windows(self):
     """Test remove with os-specific command on non-windows."""
     self._test_remove_os_specific('LINUX', True, False)
-    self.mock.system.assert_has_calls(
-        [mock.call('rm -rf "dir" > /dev/null 2>&1')])
+    self.mock.run.assert_has_calls([
+        mock.call(['rm', '-rf', 'dir'],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+                  check=False)
+    ])
 
   def test_remove_without_recreate(self):
     """Test remove without recreate."""
@@ -122,39 +132,59 @@ class RemoveDirectoryTest(unittest.TestCase):
 
   def test_remove_shutil_success(self):
     """Test remove with shutil."""
+    self.mock.platform.return_value = 'LINUX'
     self.mock.exists.side_effect = [True, True, False]
     self.assertTrue(shell.remove_directory('dir'))
-    self.mock.system.assert_has_calls(
-        [mock.call('rm -rf "dir" > /dev/null 2>&1')])
+    self.mock.run.assert_has_calls([
+        mock.call(['rm', '-rf', 'dir'],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+                  check=False)
+    ])
     self.mock.rmtree.assert_has_calls([mock.call('dir', onerror=mock.ANY)])
 
   def test_remove_shutil_failure(self):
     """Test remove with shutil but fails."""
+    self.mock.platform.return_value = 'LINUX'
     self.mock.exists.side_effect = [True, True, True]
     self.assertFalse(shell.remove_directory('dir'))
     self.mock.error.assert_has_calls(
         [mock.call('Failed to clear directory dir.')])
     self.assertEqual(0, self.mock.warning.call_count)
-    self.mock.system.assert_has_calls(
-        [mock.call('rm -rf "dir" > /dev/null 2>&1')])
+    self.mock.run.assert_has_calls([
+        mock.call(['rm', '-rf', 'dir'],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+                  check=False)
+    ])
     self.mock.rmtree.assert_has_calls([mock.call('dir', onerror=mock.ANY)])
 
   def test_remove_shutil_failure_ignore_errors(self):
+    self.mock.platform.return_value = 'LINUX'
     self.mock.exists.side_effect = [True, True, True]
     self.assertFalse(shell.remove_directory('dir', ignore_errors=True))
     self.mock.warning.assert_has_calls(
         [mock.call('Failed to clear directory dir.')])
     self.assertEqual(0, self.mock.error.call_count)
-    self.mock.system.assert_has_calls(
-        [mock.call('rm -rf "dir" > /dev/null 2>&1')])
+    self.mock.run.assert_has_calls([
+        mock.call(['rm', '-rf', 'dir'],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+                  check=False)
+    ])
     self.mock.rmtree.assert_has_calls([mock.call('dir', onerror=mock.ANY)])
 
   def test_remove_shutil_onerror(self):
     """Test shutil invoking onerror."""
+    self.mock.platform.return_value = 'LINUX'
     self.mock.exists.side_effect = [True, True, False]
     self.assertTrue(shell.remove_directory('dir'))
-    self.mock.system.assert_has_calls(
-        [mock.call('rm -rf "dir" > /dev/null 2>&1')])
+    self.mock.run.assert_has_calls([
+        mock.call(['rm', '-rf', 'dir'],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+                  check=False)
+    ])
     self.mock.rmtree.assert_has_calls([mock.call('dir', onerror=mock.ANY)])
 
     onerror = self.mock.rmtree.call_args[1]['onerror']
@@ -165,6 +195,28 @@ class RemoveDirectoryTest(unittest.TestCase):
 
     self.mock.chmod.assert_has_calls([mock.call('dir/child', 0o750)])
     fake_fn.assert_has_calls([mock.call('dir/child')])
+
+  def test_remove_directory_no_shell_injection(self):
+    """Regression test for the FUZZ_INPUTS command-injection issue: a
+    directory path containing shell metacharacters must never be
+    interpreted by a shell, regardless of its contents."""
+    self.mock.platform.return_value = 'LINUX'
+    self.mock.exists.side_effect = [True, False, False]
+    malicious_dir = '/tmp/x_$(touch /tmp/should_not_be_created)'
+
+    shell.remove_directory(malicious_dir, recreate=False)
+
+    # The path must reach subprocess.run as a single argv element, not
+    # inside a shell string - this is what makes command substitution
+    # impossible no matter what the path contains.
+    self.mock.run.assert_has_calls([
+        mock.call(['rm', '-rf', malicious_dir],
+                   stdout=subprocess.DEVNULL,
+                   stderr=subprocess.DEVNULL,
+                   check=False)
+    ])
+    for call in self.mock.run.call_args_list:
+      self.assertNotIn('shell', call.kwargs)
 
 
 class GetDirectoryFileCount(fake_filesystem_unittest.TestCase):
