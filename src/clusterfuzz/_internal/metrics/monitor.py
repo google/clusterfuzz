@@ -132,7 +132,7 @@ def _flush_metrics():
          ):
         start_time = end_time
         key = None  # Do not clear Gauge metrics
-      elif end_time - start_time <=  MIN_INTERVAL_GAP_SECONDS:
+      elif end_time - start_time <= MIN_INTERVAL_GAP_SECONDS:
         # Avoid sending time series that will be rejected by Cloud Monitoring
         continue
       series = _TimeSeries()
