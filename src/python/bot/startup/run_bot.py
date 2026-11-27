@@ -101,7 +101,7 @@ def schedule_utask_mains():
 
   if feature_flags.FeatureFlags.SWARMING_REMOTE_EXECUTION.enabled:
     swarming_utask_mains = tasks.get_utask_mains(
-        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name)
+        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT.name)
     logs.info(f'Found {len(swarming_utask_mains)} swarming utask mains.')
     utask_mains.extend(swarming_utask_mains)
 

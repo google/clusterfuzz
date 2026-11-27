@@ -27,7 +27,7 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
 from clusterfuzz._internal.base.tasks.pub_sub_task_queue import \
-    SWARMING_PREPROCESS_QUEUE
+    SWARMING_PREPROCESS_QUEUE_DEFAULT
 from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PREPROCESS_QUEUE
 from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PubSubTaskQueue
 from clusterfuzz._internal.datastore import data_types
@@ -304,7 +304,7 @@ def schedule_chrome_fuzz_tasks():
 
   swarming_jobs = _get_swarming_jobs()
   swarming_provider = ChromeFuzzTaskProvider(swarming_jobs)
-  _fill_queue(SWARMING_PREPROCESS_QUEUE, swarming_provider)
+  _fill_queue(SWARMING_PREPROCESS_QUEUE_DEFAULT, swarming_provider)
 
 
 def schedule_fuzz_tasks():

@@ -16,6 +16,7 @@
 import unittest
 
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
+from clusterfuzz._internal.base.tasks import pub_sub_task_queue
 from clusterfuzz._internal.base.tasks.pub_sub_task_queue import PubSubTaskQueue
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -65,3 +66,37 @@ class PubSubTaskQueueTest(unittest.TestCase):
         default_target_size=25,
         target_size_flag=FeatureFlags.SWARMING_MAX_PENDING_TASKS)
     self.assertEqual(queue.get_max_target_size(), 25)
+
+  def test_per_platform_swarming_queues(self):
+    """Tests per-platform Swarming preprocess/utask_main queue definitions."""
+    self.assertEqual(
+        pub_sub_task_queue.SWARMING_PREPROCESS_QUEUES_BY_PLATFORM['MAC_ARM64']
+        .name, 'preprocess-swarming-mac-arm64')
+    self.assertEqual(
+        pub_sub_task_queue.SWARMING_PREPROCESS_QUEUES_BY_PLATFORM['LINUX'].name,
+        'preprocess-swarming')
+    self.assertEqual(
+        pub_sub_task_queue.SWARMING_PREPROCESS_QUEUES_BY_PLATFORM[
+            'ANDROID_EMULATOR'].name, 'preprocess-swarming')
+    self.assertEqual(
+        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUES_BY_PLATFORM['MAC_ARM64']
+        .name, 'utask_main-swarming-mac-arm64')
+    self.assertEqual(
+        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUES_BY_PLATFORM['LINUX'].name,
+        'utask_main-swarming')
+    self.assertEqual(
+        pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUES_BY_PLATFORM[
+            'ANDROID_EMULATOR'].name, 'utask_main-swarming')
+
+    self.assertEqual(
+        [q.name for q in pub_sub_task_queue.SWARMING_PREPROCESS_QUEUES],
+        ['preprocess-swarming', 'preprocess-swarming-mac-arm64'])
+    self.assertEqual(
+        [q.name for q in pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUES],
+        ['utask_main-swarming', 'utask_main-swarming-mac-arm64'])
+    self.assertEqual(
+        set(pub_sub_task_queue.SWARMING_PREPROCESS_QUEUES_BY_PLATFORM.values()),
+        set(pub_sub_task_queue.SWARMING_PREPROCESS_QUEUES))
+    self.assertEqual(
+        set(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUES_BY_PLATFORM.values()),
+        set(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUES))

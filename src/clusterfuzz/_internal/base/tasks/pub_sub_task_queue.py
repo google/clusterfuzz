@@ -19,7 +19,7 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base.feature_flags import FeatureFlags
 
 
-@dataclass
+@dataclass(frozen=True)
 class PubSubTaskQueue:
   """Data class that holds information about a pub/sub queue.
 
@@ -61,10 +61,37 @@ PREPROCESS_QUEUE = PubSubTaskQueue(
     target_size_flag=FeatureFlags.PREPROCESS_QUEUE_SIZE_LIMIT,
 )
 
-SWARMING_PREPROCESS_QUEUE = PubSubTaskQueue(
-    name=tasks.SWARMING_QUEUES[tasks.PREPROCESS_QUEUE],
+# Swarming 3-stage UTask queues:
+# - Preprocess queues receive fuzz tasks from schedule_fuzz and are drained by
+#   platform-specific tworker pools that prepare signed uworker_input bundles.
+# - utask_main queues receive preprocessed tasks (both fuzz and non-fuzz) and
+#   are drained by utask-main-scheduler to create LUCI Swarming tasks.
+#
+# LINUX and ANDROID_EMULATOR share the legacy default Swarming queues
+# (*_DEFAULT), while MAC_ARM64 uses dedicated per-platform queues (*_MAC_ARM64)
+# for independent backpressure, metrics, and kill-switch rollback.
+SWARMING_PREPROCESS_QUEUE_DEFAULT = PubSubTaskQueue(
+    name=tasks.SWARMING_PREPROCESS_QUEUE_DEFAULT,
     default_target_size=SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT,
     target_size_flag=FeatureFlags.SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT,
+)
+
+SWARMING_PREPROCESS_QUEUE_MAC_ARM64 = PubSubTaskQueue(
+    name=tasks.SWARMING_PREPROCESS_QUEUE_MAC_ARM64,
+    default_target_size=SWARMING_PREPROCESS_TARGET_SIZE_DEFAULT,
+    target_size_flag=(
+        FeatureFlags.SWARMING_PREPROCESS_QUEUE_SIZE_LIMIT_MAC_ARM64),
+)
+
+SWARMING_PREPROCESS_QUEUES_BY_PLATFORM = {
+    'LINUX': SWARMING_PREPROCESS_QUEUE_DEFAULT,
+    'ANDROID_EMULATOR': SWARMING_PREPROCESS_QUEUE_DEFAULT,
+    'MAC_ARM64': SWARMING_PREPROCESS_QUEUE_MAC_ARM64,
+}
+
+SWARMING_PREPROCESS_QUEUES = (
+    SWARMING_PREPROCESS_QUEUE_DEFAULT,
+    SWARMING_PREPROCESS_QUEUE_MAC_ARM64,
 )
 
 UTASK_MAIN_QUEUE = PubSubTaskQueue(
@@ -73,10 +100,28 @@ UTASK_MAIN_QUEUE = PubSubTaskQueue(
     target_size_flag=FeatureFlags.UTASK_MAIN_QUEUE_LIMIT,
 )
 
-SWARMING_UTASK_MAIN_QUEUE = PubSubTaskQueue(
-    name=tasks.SWARMING_QUEUES[tasks.UTASK_MAIN_QUEUE],
+SWARMING_UTASK_MAIN_QUEUE_DEFAULT = PubSubTaskQueue(
+    name=tasks.SWARMING_UTASK_MAIN_QUEUE_DEFAULT,
     default_target_size=SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
     target_size_flag=FeatureFlags.SWARMING_UTASK_MAIN_QUEUE_SIZE_LIMIT,
+)
+
+SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64 = PubSubTaskQueue(
+    name=tasks.SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64,
+    default_target_size=SWARMING_UTASK_MAIN_QUEUE_LIMIT_DEFAULT,
+    target_size_flag=(
+        FeatureFlags.SWARMING_UTASK_MAIN_QUEUE_SIZE_LIMIT_MAC_ARM64),
+)
+
+SWARMING_UTASK_MAIN_QUEUES_BY_PLATFORM = {
+    'LINUX': SWARMING_UTASK_MAIN_QUEUE_DEFAULT,
+    'ANDROID_EMULATOR': SWARMING_UTASK_MAIN_QUEUE_DEFAULT,
+    'MAC_ARM64': SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64,
+}
+
+SWARMING_UTASK_MAIN_QUEUES = (
+    SWARMING_UTASK_MAIN_QUEUE_DEFAULT,
+    SWARMING_UTASK_MAIN_QUEUE_MAC_ARM64,
 )
 
 

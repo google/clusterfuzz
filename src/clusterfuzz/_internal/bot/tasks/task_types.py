@@ -176,7 +176,7 @@ class UTask(BaseUTask):
     queue = pub_sub_task_queue.UTASK_MAIN_QUEUE
     is_swarming_job = swarming.is_swarming_job(job_type)
     if is_swarming_job:
-      queue = pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE
+      queue = pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT
 
     utask_main_queue_size = tasks.get_utask_main_queue_size(queue.name)
     utask_main_queue_limit = queue.get_max_target_size()

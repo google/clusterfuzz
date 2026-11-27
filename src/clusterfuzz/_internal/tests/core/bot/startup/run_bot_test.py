@@ -279,7 +279,7 @@ class ScheduleUtaskMainsTest(unittest.TestCase):
 
     self.mock.get_utask_mains.assert_has_calls([
         mock.call(pub_sub_task_queue.UTASK_MAIN_QUEUE.name),
-        mock.call(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE.name),
+        mock.call(pub_sub_task_queue.SWARMING_UTASK_MAIN_QUEUE_DEFAULT.name),
     ])
     self.mock.RemoteTaskGate.return_value.create_utask_main_jobs.assert_called_once(
     )
