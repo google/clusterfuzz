@@ -825,6 +825,12 @@ class SplitTargetBuild(RegularBuild):
 class FuchsiaBuild(RegularBuild):
   """Represents a Fuchsia build."""
 
+  @property
+  def is_discovery(self):
+    """Fuchsia requires a fully unpacked build to boot an instance and enumerate
+    targets via undercoat."""
+    return False
+
   def _get_fuzz_targets_from_dir(self, build_dir):
     """A running instance is required to enumerate targets so this is a
     no-op."""
