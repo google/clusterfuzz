@@ -16,6 +16,7 @@
 import base64
 import collections
 from concurrent import futures
+import contextlib
 import copy
 import datetime
 import io
@@ -99,6 +100,11 @@ SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 
 # Timeout for HTTP operations.
 HTTP_TIMEOUT_SECONDS = 15
+
+# Chunk size for streaming signed URL downloads. 1 MiB bounds live buffers
+# across _POOL_SIZE workers while avoiding high per-chunk loop overhead on
+# large files (files under 1 MiB still complete in one read).
+_DOWNLOAD_CHUNK_SIZE = 1024 * 1024  # 1 MiB.
 
 # TODO(metzman): Figure out why this works on oss-fuzz and doesn't destroy
 # memory usage?
@@ -185,6 +191,10 @@ class StorageProvider:
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
+    raise NotImplementedError
+
+  def download_signed_url_to_filepath(self, signed_url: str, filepath: str):
+    """Downloads |signed_url| to |filepath|."""
     raise NotImplementedError
 
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
@@ -458,6 +468,42 @@ class GcsProvider(StorageProvider):
     """Downloads |signed_url|."""
     return _download_url(signed_url)
 
+  @retry.wrap(
+      retries=1,
+      delay=1,
+      function='google_cloud_utils.storage.GcsProvider.'
+      'download_signed_url_to_filepath',
+      exception_types=_TRANSIENT_ERRORS)
+  def download_signed_url_to_filepath(self, signed_url: str, filepath: str):
+    """Streams |signed_url| to |filepath| atomically via a temporary file."""
+    if _integration_test_env_doesnt_support_signed_urls():
+      data = read_data(signed_url)
+      if data is None:
+        raise RuntimeError(f'Failed to read {signed_url}.')
+      with open(filepath, 'wb') as fp:
+        fp.write(data)
+      return
+
+    directory = os.path.dirname(filepath) or '.'
+    with _signed_url_session().get(
+        signed_url, timeout=HTTP_TIMEOUT_SECONDS, stream=True) as response:
+      _raise_for_signed_url_error(response, signed_url)
+      temp_path = os.path.join(directory, f'.tmp-{uuid.uuid4().hex}')
+      try:
+        with open(temp_path, 'wb') as temp_file:
+          for chunk in response.iter_content(chunk_size=_DOWNLOAD_CHUNK_SIZE):
+            if chunk:
+              temp_file.write(chunk)
+        remaining = getattr(response.raw, 'length_remaining', None)
+        if isinstance(remaining, int) and remaining > 0:
+          raise requests.exceptions.ChunkedEncodingError(
+              f'Incomplete read ({remaining} bytes remaining).')
+        os.replace(temp_path, filepath)
+      except BaseException:
+        with contextlib.suppress(OSError):
+          os.remove(temp_path)
+        raise
+
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
     """Uploads |data| to |signed_url|."""
     _signed_url_session().put(
@@ -726,6 +772,11 @@ class FileSystemProvider(StorageProvider):
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
     return self.read_data(signed_url)
+
+  def download_signed_url_to_filepath(self, signed_url: str, filepath: str):
+    """Downloads |signed_url| to |filepath|."""
+    if not self.copy_file_from(signed_url, filepath):
+      raise RuntimeError(f'Failed to copy {signed_url} to {filepath}.')
 
   def upload_signed_url(self, data_or_fileobj, signed_url: str) -> bool:
     """Uploads |data| to |signed_url|."""
@@ -1275,6 +1326,24 @@ class ExpiredSignedUrlError(errors.Error):
     self.response_text = response_text
 
 
+def _raise_for_signed_url_error(response: requests.Response, url: str) -> None:
+  """Raises ExpiredSignedUrlError or RuntimeError if |response| failed."""
+  if response.ok:
+    return
+  try:
+    element_tree = ET.fromstring(response.text)
+    error = element_tree.find('Code').text
+    if error == 'ExpiredToken':
+      raise ExpiredSignedUrlError('Expired token for signed URL.', url,
+                                  response.text)
+  except ExpiredSignedUrlError:
+    raise
+  except:
+    pass
+  raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
+                     (url, response.status_code, response.text))
+
+
 # Don't retry so hard. We don't want to slow down corpus downloading.
 @retry.wrap(
     retries=1,
@@ -1286,19 +1355,7 @@ def _download_url(url):
   if _integration_test_env_doesnt_support_signed_urls():
     return read_data(url)
   response = _signed_url_session().get(url, timeout=HTTP_TIMEOUT_SECONDS)
-  if not response.ok:
-    try:
-      element_tree = ET.fromstring(response.text)
-      error = element_tree.find('Code').text
-      if error == 'ExpiredToken':
-        raise ExpiredSignedUrlError('Expired token for signed URL.', url,
-                                    response.text)
-    except ExpiredSignedUrlError:
-      raise
-    except:
-      pass
-    raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
-                       (url, response.status_code, response.text))
+  _raise_for_signed_url_error(response, url)
   return response.content
 
 
@@ -1342,12 +1399,8 @@ def str_to_bytes(data):
 
 
 def download_signed_url_to_filepath(url, filepath: str):
-  os.makedirs(os.path.dirname(filepath), exist_ok=True)
-  # Download fully before opening |filepath|, so a failed request never leaves
-  # an empty file under the real name. The handle is used only in this block.
-  contents = download_signed_url(url)
-  with open(filepath, 'wb') as fp:
-    fp.write(contents)
+  os.makedirs(os.path.dirname(filepath) or '.', exist_ok=True)
+  _provider().download_signed_url_to_filepath(url, filepath)
   return filepath
 
 
