@@ -62,7 +62,7 @@ def get_preprocess_tasks() -> list[str]:
                 if isinstance(task, task_types.BaseUTask))
 
 
-_TARGET_FLAGS = {
+_TASK_TARGET_FLAGS = {
     'fuzzer': '--fuzzer',
     'fuzz_target': '--fuzz-target',
     'testcase_id': '--testcase-id',
@@ -116,28 +116,28 @@ def _parse_args(script_args: list[str] | None) -> argparse.Namespace:
   parsed = parser.parse_args(script_args or [])
 
   if parsed.task == 'fuzz':
-    expected_attr = 'fuzzer'
+    expected_flag = 'fuzzer'
     requires_job = True
   elif task_utils.is_testcase_based_task(parsed.task):
-    expected_attr = 'testcase_id'
+    expected_flag = 'testcase_id'
     requires_job = False
   else:
-    expected_attr = 'fuzz_target'
+    expected_flag = 'fuzz_target'
     requires_job = True
 
   unexpected = [
-      flag for attr, flag in _TARGET_FLAGS.items()
-      if attr != expected_attr and getattr(parsed, attr) is not None
+      flag for attr, flag in _TASK_TARGET_FLAGS.items()
+      if attr != expected_flag and getattr(parsed, attr) is not None
   ]
   if unexpected:
     parser.error(
         'Task %s does not accept %s; use %s.' %
-        (parsed.task, ', '.join(unexpected), _TARGET_FLAGS[expected_attr]))
+        (parsed.task, ', '.join(unexpected), _TASK_TARGET_FLAGS[expected_flag]))
 
-  task_argument = getattr(parsed, expected_attr)
+  task_argument = getattr(parsed, expected_flag)
   if not task_argument:
     parser.error(
-        'Task %s requires %s.' % (parsed.task, _TARGET_FLAGS[expected_attr]))
+        'Task %s requires %s.' % (parsed.task, _TASK_TARGET_FLAGS[expected_flag]))
 
   if requires_job and not parsed.job:
     parser.error('Task %s requires --job.' % parsed.task)
