@@ -39,7 +39,7 @@ class BuildInfo:
 def _convert_platform_to_chromiumdash_platform(platform):
   """Converts platform to Chromium Dash platform.
   Note that Windows in Chromium Dash is win64 and we only want win32."""
-  base_platform = platform.split(':', 1)[0].upper()
+  base_platform = environment.base_platform(platform).upper()
   if base_platform.startswith('ANDROID'):
     return 'Android'
   if base_platform.startswith('LINUX'):
